@@ -4,11 +4,11 @@ require __DIR__ . '/auth.php';
 require_admin();
 
 $admin = current_admin();
-$isOwner = in_array(($admin['role'] ?? ''), ['owner','superadmin','admin']); // adjust as needed
+$isOwner = in_array(($admin['role'] ?? ''), ['owner','superadmin','admin','practice_admin']); // practice_admin sees all physicians too
 $tab = $_GET['tab'] ?? 'physicians';
 $msg='';
 
-/* Physician scope: only those mapped to this admin unless owner/superadmin */
+/* Physician scope: only those mapped to this admin unless owner/superadmin/practice_admin */
 $physQuery = "
   SELECT u.id, u.first_name, u.last_name, u.email, u.account_type, u.status, u.created_at
   FROM users u
@@ -52,8 +52,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
   if ($act==='create_phys') {
     $pdo->prepare("INSERT INTO users(id,email,password_hash,first_name,last_name,account_type,status,created_at,updated_at) VALUES(?,?,?,?,?,'referral','active',NOW(),NOW())")
         ->execute([bin2hex(random_bytes(16)), trim($_POST['email']), password_hash($_POST['password'], PASSWORD_DEFAULT), trim($_POST['first_name']), trim($_POST['last_name'])]);
-    // Map to this admin if not owner
-    if (!$isOwner) {
+    // Map to this admin if not owner/practice_admin (only for regular admins with limited scope)
+    if (!$isOwner && ($admin['role'] ?? '') !== 'practice_admin') {
       $uid = $pdo->lastInsertId(); // if not available (VARCHAR PK), fetch by email
       $uidRow = $pdo->prepare("SELECT id FROM users WHERE email=? ORDER BY created_at DESC LIMIT 1"); $uidRow->execute([trim($_POST['email'])]);
       $uid = $uidRow->fetch()['id'] ?? null;
@@ -70,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $pdo->prepare("DELETE FROM admin_physicians WHERE physician_user_id=?")->execute([$_POST['phys_id']]);
     $msg='Physician deleted';
   }
-  if ($act==='map_phys' && !$isOwner) {
+  if ($act==='map_phys' && !$isOwner && ($admin['role'] ?? '') !== 'practice_admin') {
     $pdo->prepare("INSERT IGNORE INTO admin_physicians(admin_id, physician_user_id) VALUES(?,?)")->execute([$admin['id'], $_POST['phys_id']]);
     $msg='Physician assigned to you';
   }
