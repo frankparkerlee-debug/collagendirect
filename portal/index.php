@@ -445,26 +445,36 @@ if ($page==='logout'){
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
-  /* Design Tokens - shadcn inspired */
+  /* Design Tokens - Healthcare UI */
   :root {
-    --brand: #10b981;
-    --brand-dark: #059669;
-    --brand-light: #d1fae5;
-    --ink: #0f172a;
-    --muted: #64748b;
-    --border: #e2e8f0;
-    --ring: rgba(16, 185, 129, 0.2);
+    --brand: #4DB8A8;
+    --brand-dark: #3A9688;
+    --brand-light: #E0F5F2;
+    --ink: #1F2937;
+    --ink-light: #6B7280;
+    --muted: #9CA3AF;
+    --bg-gray: #F9FAFB;
+    --bg-sidebar: #F8F9FA;
+    --border: #E5E7EB;
+    --ring: rgba(77, 184, 168, 0.2);
     --radius: 0.5rem;
-    --success: #10b981;
-    --warning: #f59e0b;
-    --error: #ef4444;
-    --info: #3b82f6;
+    --radius-lg: 0.75rem;
+    --success: #10B981;
+    --success-light: #D1FAE5;
+    --warning: #F59E0B;
+    --warning-light: #FEF3C7;
+    --error: #EF4444;
+    --error-light: #FEE2E2;
+    --info: #3B82F6;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   }
 
   html, body {
     font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
     color: var(--ink);
     -webkit-font-smoothing: antialiased;
+    background: var(--bg-gray);
   }
 
   /* Card Component */
@@ -740,26 +750,201 @@ if ($page==='logout'){
   tbody tr:hover {
     background: #f9fafb;
   }
+  /* Sidebar Layout */
+  .app-container {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  .sidebar {
+    width: 240px;
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--border);
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidebar-header {
+    padding: 1.5rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-user {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border-radius: var(--radius);
+    transition: background 0.2s;
+  }
+
+  .sidebar-user:hover {
+    background: rgba(0,0,0,0.04);
+  }
+
+  .sidebar-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--brand);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+
+  .sidebar-nav {
+    padding: 1rem;
+    flex: 1;
+  }
+
+  .sidebar-nav a {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius);
+    color: var(--ink-light);
+    font-weight: 500;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+    margin-bottom: 0.25rem;
+  }
+
+  .sidebar-nav a:hover {
+    background: rgba(0,0,0,0.04);
+    color: var(--ink);
+  }
+
+  .sidebar-nav a.active {
+    background: var(--brand-light);
+    color: var(--brand-dark);
+    font-weight: 600;
+  }
+
+  .sidebar-nav-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .top-bar {
+    height: 64px;
+    background: white;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+  }
+
+  .top-bar-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .top-bar-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .icon-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    cursor: pointer;
+  }
+
+  .icon-btn:hover {
+    background: var(--bg-gray);
+  }
+
+  .content-area {
+    flex: 1;
+    padding: 2rem;
+    overflow-y: auto;
+  }
 </style>
 </head>
-<body class="min-h-screen bg-white">
-<header class="sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-slate-200">
-  <div class="px-4 lg:px-6 xl:px-8 py-3 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <img src="/assets/collagendirect.png" class="h-8 w-auto" alt="CollagenDirect">
-      <span class="hidden sm:inline text-sm text-slate-500">Physician Portal</span>
+<body>
+<div class="app-container">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar">
+          <?php echo strtoupper(substr($user['first_name'] ?? 'U', 0, 1) . substr($user['last_name'] ?? 'S', 0, 1)); ?>
+        </div>
+        <div style="flex:1; min-width:0;">
+          <div style="font-weight:600; font-size:0.875rem; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+            <?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?>
+          </div>
+          <div style="font-size:0.75rem; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+            Physician
+          </div>
+        </div>
+      </div>
     </div>
-    <nav class="sidenav flex gap-1">
-      <a class="<?php echo $page==='dashboard'?'active':''; ?>" href="?page=dashboard">Dashboard</a>
-      <a class="<?php echo $page==='patients'?'active':''; ?>" href="?page=patients">Patients</a>
-      <a class="<?php echo $page==='orders'?'active':''; ?>" href="?page=orders">Orders</a>
-      <a class="<?php echo $page==='admin'?'active':''; ?>" href="?page=admin">Admin</a>
-      <a href="?page=logout">Logout</a>
-    </nav>
-  </div>
-</header>
 
-<main class="px-4 lg:px-6 xl:px-8 py-6 space-y-8">
+    <nav class="sidebar-nav">
+      <a class="<?php echo $page==='dashboard'?'active':''; ?>" href="?page=dashboard">
+        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+        Dashboard
+      </a>
+      <a class="<?php echo $page==='patients'?'active':''; ?>" href="?page=patients">
+        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+        Patient
+      </a>
+      <a class="<?php echo $page==='orders'?'active':''; ?>" href="?page=orders">
+        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+        Orders
+      </a>
+      <a class="<?php echo $page==='admin'?'active':''; ?>" href="?page=admin">
+        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+        Admin
+      </a>
+    </nav>
+
+    <div style="padding:1rem; border-top:1px solid var(--border);">
+      <a href="?page=logout" style="display:flex; align-items:center; gap:0.75rem; padding:0.75rem 1rem; border-radius:var(--radius); color:var(--error); font-weight:500; font-size:0.875rem; transition:background 0.2s;">
+        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+        Log out
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="top-bar">
+      <h1 class="top-bar-title"><?php echo ucfirst($page); ?></h1>
+      <div class="top-bar-actions">
+        <button class="icon-btn">
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        </button>
+        <button class="icon-btn">
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+        </button>
+        <button class="icon-btn">
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+        </button>
+      </div>
+    </div>
+
+    <main class="content-area">
 <?php if ($page==='dashboard'): ?>
   <section class="grid grid-cols-1 sm:grid-cols-3 gap-4">
     <div class="card p-5"><div class="text-sm text-slate-500">Active Orders</div><div id="m-active" class="text-3xl font-semibold mt-1">-</div></div>
@@ -1626,4 +1811,7 @@ document.addEventListener('click', (e)=>{
 });
 </script>
 
+    </main>
+  </div>
+</div>
 </body></html>
