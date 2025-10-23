@@ -44,7 +44,17 @@ try {
 try {
     echo "Executing migration...\n\n";
 
-    // Execute the migration (SQL embedded directly)
+    // FIRST: Update existing order statuses BEFORE adding any constraints
+    echo "Step 1: Normalizing existing order statuses...\n";
+    $pdo->exec("
+        UPDATE orders SET status = 'submitted' WHERE status = 'pending' OR status IS NULL;
+        UPDATE orders SET status = 'draft' WHERE status = 'new';
+        UPDATE orders SET status = 'delivered' WHERE status = 'completed';
+    ");
+    echo "✓ Order statuses normalized\n\n";
+
+    // SECOND: Execute the main schema changes
+    echo "Step 2: Adding schema changes...\n";
     $pdo->exec("
 -- Migration: Compliance Workflow for DME Order Management
 -- Date: 2025-10-23
@@ -224,15 +234,7 @@ BEGIN
 END \$\$;
 
 -- =====================================================
--- 4. UPDATE EXISTING ORDER STATUSES FIRST
--- =====================================================
--- Update existing order statuses to new format BEFORE adding constraint
-UPDATE orders SET status = 'submitted' WHERE status = 'pending' OR status IS NULL;
-UPDATE orders SET status = 'draft' WHERE status = 'new';
-UPDATE orders SET status = 'delivered' WHERE status = 'completed';
-
--- =====================================================
--- 5. CREATE ORDER STATUS CONSTRAINT
+-- 4. CREATE ORDER STATUS CONSTRAINT
 -- =====================================================
 DO \$\$
 BEGIN
@@ -260,7 +262,7 @@ BEGIN
 END \$\$;
 
 -- =====================================================
--- 6. CREATE ORDER STATUS HISTORY TABLE
+-- 5. CREATE ORDER STATUS HISTORY TABLE
 -- =====================================================
 CREATE TABLE IF NOT EXISTS order_status_history (
   id SERIAL PRIMARY KEY,
@@ -278,7 +280,7 @@ CREATE INDEX IF NOT EXISTS osh_order ON order_status_history(order_id);
 CREATE INDEX IF NOT EXISTS osh_created ON order_status_history(created_at DESC);
 
 -- =====================================================
--- 7. CREATE ORDER ALERTS/NOTIFICATIONS TABLE
+-- 6. CREATE ORDER ALERTS/NOTIFICATIONS TABLE
 -- =====================================================
 CREATE TABLE IF NOT EXISTS order_alerts (
   id SERIAL PRIMARY KEY,
@@ -303,7 +305,7 @@ COMMENT ON COLUMN order_alerts.severity IS 'Severity: info, warning, critical';
 COMMENT ON COLUMN order_alerts.recipient_role IS 'Who needs to see this: physician, practice_admin, superadmin';
 
 -- =====================================================
--- 8. ADD INDEXES FOR PERFORMANCE
+-- 7. ADD INDEXES FOR PERFORMANCE
 -- =====================================================
 CREATE INDEX IF NOT EXISTS ord_delivery_location ON orders(delivery_location);
 CREATE INDEX IF NOT EXISTS ord_payment_method ON orders(payment_method);
@@ -313,7 +315,7 @@ CREATE INDEX IF NOT EXISTS users_role ON users(role);
 CREATE INDEX IF NOT EXISTS users_dme_license ON users(has_dme_license);
     ");
 
-    echo "✓ Steps 1-8 completed (schema changes)\n\n";
+    echo "✓ Steps 2-7 completed (schema changes)\n\n";
 
     // Create the completeness function
     $pdo->exec("
@@ -405,7 +407,7 @@ END;
 \$\$ LANGUAGE plpgsql;
     ");
 
-    echo "✓ Step 9 completed (completeness function)\n\n";
+    echo "✓ Step 8 completed (completeness function)\n\n";
 
     // Create the trigger function
     $pdo->exec("
@@ -433,7 +435,7 @@ CREATE TRIGGER order_status_change_trigger
     EXECUTE FUNCTION log_order_status_change();
     ");
 
-    echo "✓ Step 10 completed (status change trigger)\n\n";
+    echo "✓ Step 9 completed (status change trigger)\n\n";
 
     // Update existing user data
     $pdo->exec("
@@ -449,7 +451,7 @@ COMMENT ON TABLE order_status_history IS 'Audit trail of all order status change
 COMMENT ON TABLE order_alerts IS 'Notifications for physicians and super admins requiring action';
     ");
 
-    echo "✓ Step 11 completed (final data updates)\n\n";
+    echo "✓ Step 10 completed (final data updates)\n\n";
 
     echo "✓ Migration completed successfully!\n\n";
 
