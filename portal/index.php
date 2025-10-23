@@ -802,6 +802,7 @@ if ($page==='logout'){
     bottom: 0;
     overflow-y: auto;
     transition: width 0.3s ease, transform 0.3s ease;
+    z-index: 100;
   }
 
   .sidebar.collapsed {
@@ -914,12 +915,15 @@ if ($page==='logout'){
     flex-direction: column;
     margin-left: 240px;
     height: 100vh;
-    transition: margin-left 0.3s ease;
+    transition: margin-left 0.3s ease, width 0.3s ease;
+    width: calc(100% - 240px);
+    max-width: calc(100% - 240px);
   }
 
   .main-content.sidebar-collapsed {
     margin-left: 72px;
-    overflow: hidden;
+    width: calc(100% - 72px);
+    max-width: calc(100% - 72px);
   }
 
   .top-bar {
