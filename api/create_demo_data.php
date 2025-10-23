@@ -63,7 +63,7 @@ try {
         $stmt = $pdo->prepare("
             INSERT INTO patients (
                 id, user_id, first_name, last_name, dob, sex, phone, email,
-                address, city, state, zip, insurance_provider, insurance_id, mrn,
+                address, city, state, zip, insurance_provider, insurance_member_id, mrn,
                 created_at, updated_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
         ");
