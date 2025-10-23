@@ -11,127 +11,232 @@
 
   <style>
     :root{
-      --bg:#ffffff; --panel:#f6f8fb; --text:#1e2a38; --muted:#5c6b80; --line:rgba(0,0,0,.08);
-      --brand-teal:#47c6be; --teal-50:#e9fbf8; --teal-100:#d2f6f1; --teal-700:#0b5f56;
-      --radius:16px; --shadow:0 14px 40px rgba(7,16,40,.10); --max:1180px;
+      --bg:#fafafa; --text:#1e2a38; --muted:#6b7280; --line:#e5e7eb;
+      --brand:#5FA8A1; --brand-hover:#4d8d87;
+      --radius:12px; --shadow:0 1px 3px rgba(0,0,0,.05);
     }
     *{box-sizing:border-box;margin:0;padding:0}
-    body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+    body{
+      background:var(--bg);
+      color:var(--text);
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,sans-serif;
+      line-height:1.6;
+      -webkit-font-smoothing:antialiased;
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+    }
     img{max-width:100%;display:block}
     a{text-decoration:none;color:inherit}
-    .container{max-width:var(--max);margin:0 auto;padding:0 20px}
 
-    /* Header (matches Contact page) */
-    header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);backdrop-filter:saturate(160%) blur(8px);border-bottom:1px solid var(--line)}
-    .nav{display:flex;align-items:center;justify-content:space-between;height:74px}
-    .brand{display:flex;align-items:center;gap:14px}
-    .brand img{height:34px;width:auto}
-    .brand .title{font-weight:800;font-size:1.05rem;letter-spacing:.4px}
-    .brand .subtitle{font-size:.78rem;color:var(--muted)}
-    .nav ul{display:flex;gap:18px;list-style:none}
-    .link{padding:10px 12px;border-radius:10px;font-weight:600;color:#3c4657}
-    .link:hover{background:var(--teal-50)}
-    .cta{display:flex;gap:10px;align-items:center}
-    .btn{padding:12px 16px;border-radius:12px;font-weight:700;cursor:pointer;border:1px solid transparent;display:inline-flex;align-items:center;justify-content:center;transition:filter .2s ease, background-color .2s ease, border-color .2s ease}
-    .btn.primary{background:var(--brand-teal);color:#0a1b1a}
-    .btn.primary:hover{filter:brightness(.96)}
-    .btn.ghost{background:#fff;border:1px solid var(--brand-teal);color:#1e2a38}
-    .btn.ghost:hover{background:var(--teal-50)}
+    /* Simple header */
+    header{
+      background:#fff;
+      border-bottom:1px solid var(--line);
+      padding:1rem 0;
+    }
+    .nav{
+      max-width:1200px;
+      margin:0 auto;
+      padding:0 1.5rem;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .brand{display:flex;align-items:center;gap:12px}
+    .brand img{height:32px;width:auto}
+    .brand .title{font-weight:700;font-size:1rem;letter-spacing:.3px}
 
-    /* Hero strip */
-    .hero{background:linear-gradient(180deg,#fdfefe,#f4f7fb);border-bottom:1px solid var(--line)}
-    .hero-wrap{display:flex;align-items:center;min-height:200px;padding:24px 0}
-    .hero h1{font-size:2.1rem;font-weight:900;color:#1a2430}
-    .lead{color:var(--muted);font-size:1.02rem;margin-top:6px;max-width:62ch}
-
-    /* Auth layout */
-    .auth{display:grid;grid-template-columns:1.05fr .95fr;gap:24px;align-items:stretch;padding:48px 0}
-    .auth-card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:24px;box-shadow:var(--shadow)}
-    .auth-card h2{font-size:1.5rem;margin-bottom:8px}
+    /* Centered auth layout matching screenshot */
+    main{
+      flex:1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:2rem 1rem;
+    }
+    .auth-card{
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:3rem 2.5rem;
+      box-shadow:0 4px 6px -1px rgba(0,0,0,.05),0 2px 4px -1px rgba(0,0,0,.03);
+      width:100%;
+      max-width:440px;
+    }
+    .auth-card h1{
+      font-size:1.75rem;
+      font-weight:700;
+      color:#111;
+      text-align:center;
+      margin-bottom:0.5rem;
+      line-height:1.3;
+    }
+    .auth-card .subtitle{
+      text-align:center;
+      color:var(--muted);
+      font-size:0.95rem;
+      margin-bottom:2rem;
+    }
     .muted{color:var(--muted)}
-    .form-grid{display:grid;grid-template-columns:1fr;gap:14px;margin-top:12px}
-    /* Style existing inputs without touching names/ids */
-    .auth-card input,.auth-card select,.auth-card textarea{
-      width:100%;padding:12px 14px;border-radius:12px;border:1px solid #dde2ec;background:#fbfcfe;color:#111;outline:none;font-size:1rem
+
+    /* Form styling */
+    .form-grid{display:flex;flex-direction:column;gap:1.25rem}
+    .field{display:flex;flex-direction:column;gap:0.5rem}
+    .field label{
+      font-size:0.875rem;
+      font-weight:500;
+      color:#374151;
     }
-    .auth-card input:focus,.auth-card select:focus,.auth-card textarea:focus{
-      border-color:var(--brand-teal);box-shadow:0 0 0 3px rgba(71,198,190,.18)
+    .auth-card input,.auth-card select{
+      width:100%;
+      padding:0.75rem 1rem;
+      border-radius:var(--radius);
+      border:1px solid var(--line);
+      background:#fff;
+      color:#111;
+      outline:none;
+      font-size:0.95rem;
+      transition:border-color 0.2s,box-shadow 0.2s;
     }
-    .row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-    .row a{color:var(--teal-700);text-decoration:underline}
+    .auth-card input::placeholder{color:#9ca3af}
+    .auth-card input:focus,.auth-card select:focus{
+      border-color:var(--brand);
+      box-shadow:0 0 0 3px rgba(95,168,161,.1);
+    }
+    .row{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      font-size:0.875rem;
+    }
+    .row label{
+      display:flex;
+      align-items:center;
+      gap:0.5rem;
+      color:var(--muted);
+      cursor:pointer;
+    }
+    .row a{
+      color:var(--brand);
+      text-decoration:none;
+      font-weight:500;
+    }
+    .row a:hover{text-decoration:underline}
 
-    /* Messages (compatible with your existing classes) */
-    .error{display:none;margin:0 0 4px;padding:.7rem .8rem;border-radius:12px;border:1px solid #ffc9c9;background:#fff5f5;color:#8a1f1f}
-    .success{background:#e9fbf8;border:1px solid #b8efe7;color:#0b5f56;padding:10px 12px;border-radius:12px;font-size:.95rem}
+    /* Buttons matching screenshot style */
+    .btn{
+      width:100%;
+      padding:0.875rem 1.5rem;
+      border-radius:var(--radius);
+      font-weight:600;
+      font-size:1rem;
+      cursor:pointer;
+      border:none;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      transition:all 0.2s;
+    }
+    .btn.primary{
+      background:var(--brand);
+      color:#fff;
+    }
+    .btn.primary:hover{
+      background:var(--brand-hover);
+    }
+    .btn.secondary{
+      background:#fff;
+      color:#374151;
+      border:1px solid var(--line);
+    }
+    .btn.secondary:hover{
+      background:#f9fafb;
+    }
 
-    /* Password toggle button from your form */
-    .toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:.9rem;color:#5c6b80;cursor:pointer;background:none;border:none}
+    /* Messages */
+    .error{
+      display:none;
+      margin:0 0 1rem;
+      padding:0.75rem 1rem;
+      border-radius:var(--radius);
+      border:1px solid #fecaca;
+      background:#fef2f2;
+      color:#991b1b;
+      font-size:0.875rem;
+    }
 
-    /* Right-hand reassurance panel */
-    .panel{background:linear-gradient(135deg,#e9fbf8,#f6f8fb);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:22px}
-    .panel h3{margin:0 0 8px;color:#0b5f56}
-    .stat{display:flex;gap:10px;align-items:center;margin-top:10px}
-    .dot{width:9px;height:9px;border-radius:999px;background:var(--brand-teal)}
+    /* Password toggle */
+    .toggle{
+      position:absolute;
+      right:12px;
+      top:50%;
+      transform:translateY(-50%);
+      font-size:0.875rem;
+      color:var(--muted);
+      cursor:pointer;
+      background:none;
+      border:none;
+      padding:0.25rem 0.5rem;
+    }
+    .toggle:hover{color:var(--text)}
+
+    /* Divider */
+    .divider{
+      display:flex;
+      align-items:center;
+      text-align:center;
+      margin:1.5rem 0;
+      color:var(--muted);
+      font-size:0.875rem;
+    }
+    .divider::before,.divider::after{
+      content:'';
+      flex:1;
+      border-bottom:1px solid var(--line);
+    }
+    .divider span{padding:0 1rem}
 
     /* Footer */
-    footer{margin-top:0;background:linear-gradient(180deg,#f7fbfb,#f6f8fb);border-top:1px solid var(--line)}
-    .footer-grid{display:grid;grid-template-columns:1.2fr .6fr .6fr .6fr;gap:24px;padding:36px 0}
-    .foot-brand{display:flex;gap:14px}
-    .foot-brand img{height:42px}
-    .foot-small{color:#6e7a93;font-size:.92rem}
+    footer{
+      background:#fff;
+      border-top:1px solid var(--line);
+      padding:1rem;
+      text-align:center;
+      color:var(--muted);
+      font-size:0.875rem;
+    }
 
     /* Responsive */
-    @media (max-width:980px){.auth{grid-template-columns:1fr}.panel{order:-1;margin-bottom:16px}}
-    @media (max-width:860px){.nav ul{display:none}}
-    @media (max-width:600px){.hero h1{font-size:1.8rem}}
+    @media (max-width:640px){
+      .auth-card{padding:2rem 1.5rem}
+      .auth-card h1{font-size:1.5rem}
+    }
   </style>
 </head>
 <body>
-  <!-- Header (identical to Contact page) -->
+  <!-- Simple header -->
   <header>
-    <div class="container nav">
+    <div class="nav">
       <a href="/index.html" class="brand" aria-label="Go to homepage">
         <img src="/assets/collagendirect.png" alt="CollagenDirect logo">
-        <div>
-          <div class="title">COLLAGEN <span style="color:var(--brand-teal)">DIRECT</span></div>
-          <div class="subtitle">Evidence-Backed Wound Therapies</div>
-        </div>
+        <span class="title">COLLAGEN <span style="color:#5FA8A1">DIRECT</span></span>
       </a>
-      <ul>
-        <li><a class="link" href="/products">Products</a></li>
-        <li><a class="link" href="/index.html#value">About</a></li>
-        <li><a class="link" href="/index.html#resources">Resources</a></li>
-        <li><a class="link" href="/contact">Contact</a></li>
-      </ul>
-      <div class="cta">
-        <a class="btn ghost" href="/register">Register</a>
-        <a class="btn primary" href="/portal">Provider Login</a>
-      </div>
     </div>
   </header>
 
-  <!-- Hero -->
-  <section class="hero">
-    <div class="container hero-wrap">
-      <div>
-        <h1>Physician Portal Login</h1>
-        <p class="lead">HIPAA-secure access to submit, start, or stop patient orders and track shipments in real time.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- Auth -->
-  <main class="container auth">
-    <!-- Login Card with YOUR exact form -->
+  <!-- Centered auth card -->
+  <main>
     <section class="auth-card">
-      <h2>Welcome back</h2>
-      <p class="muted">New here? <a href="/register">Create an account</a></p>
+      <h1>Welcome back</h1>
+      <p class="subtitle">New here? <a href="/register" style="color:var(--brand);font-weight:500">Create an account</a></p>
+
       <p id="err" class="error" role="alert">Invalid email or password. Please try again.</p>
 
-      <!-- === YOUR ORIGINAL FORM & IDs (unchanged) === -->
       <form id="loginForm" novalidate action="javascript:void(0)">
         <div class="form-grid">
-          <div class="field" style="position:relative">
+          <div class="field">
             <label for="email">Work Email</label>
             <input id="email" type="email" required placeholder="name@practice.com" autocomplete="username" />
           </div>
@@ -141,63 +246,25 @@
             <button type="button" class="toggle" aria-label="Show password" id="togglePw">Show</button>
           </div>
           <div class="row">
-            <label class="muted" style="display:flex;align-items:center;gap:8px">
+            <label>
               <input id="remember" type="checkbox" style="width:16px;height:16px" />
               <span>Remember me on this device</span>
             </label>
-            <a class="muted" href="/portal/forgot">Forgot password?</a>
+            <a href="/portal/forgot">Forgot password?</a>
           </div>
-          <button class="btn primary" type="submit" style="width:100%">Sign in</button>
+          <button class="btn primary" type="submit">Sign in</button>
         </div>
       </form>
-      <p class="muted" style="margin-top:12px">For assistance, contact <a href="mailto:clinical@collagendirect.com">clinical@collagendirect.com</a>.</p>
-      <!-- === /YOUR ORIGINAL FORM === -->
-    </section>
 
-    <!-- Right panel (marketing / reassurance) -->
-    <aside class="panel" aria-label="Why CollagenDirect">
-      <h3>Clinical-grade access</h3>
-      <p class="muted">Secure tools for physician teams to manage orders with speed and accuracy.</p>
-      <div class="stat"><span class="dot"></span><span>Role-based access & audit trail</span></div>
-      <div class="stat"><span class="dot"></span><span>COAs, IFUs, coding docs in one place</span></div>
-      <div class="stat"><span class="dot"></span><span>Direct-to-manufacturer supply</span></div>
-      <div class="stat"><span class="dot"></span><span>U.S. support • 1-business-day response</span></div>
-      <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
-        <a class="btn ghost" href="/register">Register a Physician Account</a>
-        <a class="btn" style="border:1px solid var(--line)" href="/contact">Contact Support</a>
-      </div>
-    </aside>
+      <p class="muted" style="margin-top:1.5rem;text-align:center;font-size:0.875rem">
+        For assistance, contact <a href="mailto:clinical@collagendirect.com" style="color:var(--brand);font-weight:500">clinical@collagendirect.com</a>
+      </p>
+    </section>
   </main>
 
-  <!-- Footer (matches Contact page) -->
+  <!-- Simple footer -->
   <footer>
-    <div class="container footer-grid">
-      <div class="foot-brand">
-        <img src="/assets/collagendirect.png" alt="CollagenDirect">
-        <div>
-          <div style="font-weight:900;letter-spacing:.4px">COLLAGEN <span style="color:var(--brand-teal)">DIRECT</span></div>
-          <p class="foot-small">Direct-to-manufacturer collagen therapies for modern wound care.</p>
-        </div>
-      </div>
-      <div>
-        <h4>Company</h4>
-        <a href="/index.html#">About</a><br>
-        <a href="/contact">Contact</a>
-      </div>
-      <div>
-        <h4>Products</h4>
-        <a href="/products">Catalog</a><br>
-        <a href="/index.html#resources">Resources</a>
-      </div>
-      <div>
-        <h4>Legal</h4>
-        <a href="/terms">Terms</a><br>
-        <a href="/privacy">Privacy</a>
-      </div>
-    </div>
-    <div style="border-top:1px solid var(--line);padding:18px 0;text-align:center;color:#6e7a93;font-size:.9rem">
-      © <span id="year"></span> CollagenDirect. All rights reserved.
-    </div>
+    © <span id="year"></span> CollagenDirect. All rights reserved.
   </footer>
 
   <!-- === YOUR ORIGINAL JS (unchanged) === -->

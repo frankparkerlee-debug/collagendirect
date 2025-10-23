@@ -11,122 +11,248 @@
 
   <style>
     :root{
-      --bg:#ffffff; --panel:#f6f8fb; --text:#1e2a38; --muted:#5c6b80; --line:rgba(0,0,0,.08);
-      --brand-teal:#47c6be; --teal-50:#e9fbf8; --teal-100:#d2f6f1; --teal-700:#0b5f56;
-      --radius:16px; --shadow:0 14px 40px rgba(7,16,40,.10); --max:1180px;
+      --bg:#fafafa; --text:#1e2a38; --muted:#6b7280; --line:#e5e7eb;
+      --brand:#5FA8A1; --brand-hover:#4d8d87;
+      --radius:12px; --shadow:0 1px 3px rgba(0,0,0,.05);
     }
     *{box-sizing:border-box;margin:0;padding:0}
-    body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+    body{
+      background:var(--bg);
+      color:var(--text);
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,sans-serif;
+      line-height:1.6;
+      -webkit-font-smoothing:antialiased;
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+    }
     img{max-width:100%;display:block}
     a{text-decoration:none;color:inherit}
-    .container{max-width:var(--max);margin:0 auto;padding:0 20px}
+    .container{max-width:1200px;margin:0 auto;padding:0 1.5rem}
 
-    /* Header (matches Contact/Login) */
-    header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);backdrop-filter:saturate(160%) blur(8px);border-bottom:1px solid var(--line)}
-    .nav{display:flex;align-items:center;justify-content:space-between;height:74px}
-    .brand{display:flex;align-items:center;gap:14px}
-    .brand img{height:34px;width:auto}
-    .brand .title{font-weight:800;font-size:1.05rem;letter-spacing:.4px}
-    .brand .subtitle{font-size:.78rem;color:var(--muted)}
-    .nav ul{display:flex;gap:18px;list-style:none}
-    .link{padding:10px 12px;border-radius:10px;font-weight:600;color:#3c4657}
-    .link:hover{background:var(--teal-50)}
-    .cta{display:flex;gap:10px;align-items:center}
-    .btn{padding:12px 16px;border-radius:12px;font-weight:700;cursor:pointer;border:1px solid transparent;display:inline-flex;align-items:center;justify-content:center;transition:filter .2s ease, background-color .2s ease, border-color .2s ease}
-    .btn.primary{background:var(--brand-teal);color:#0a1b1a}
-    .btn.primary:hover{filter:brightness(.96)}
-    .btn.ghost{background:#fff;border:1px solid var(--brand-teal);color:#1e2a38}
-    .btn.ghost:hover{background:var(--teal-50)}
+    /* Simple header */
+    header{
+      background:#fff;
+      border-bottom:1px solid var(--line);
+      padding:1rem 0;
+    }
+    .nav{
+      max-width:1200px;
+      margin:0 auto;
+      padding:0 1.5rem;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .brand{display:flex;align-items:center;gap:12px}
+    .brand img{height:32px;width:auto}
+    .brand .title{font-weight:700;font-size:1rem;letter-spacing:.3px}
 
-    /* Hero */
-    .hero{background:linear-gradient(180deg,#fdfefe,#f4f7fb);border-bottom:1px solid var(--line)}
-    .hero-wrap{display:flex;align-items:center;min-height:220px;padding:26px 0}
-    .hero h1{font-size:2.2rem;font-weight:900;color:#1a2430}
-    .lead{color:var(--muted);font-size:1.02rem;margin-top:6px;max-width:62ch}
-
-    /* Auth layout */
-    .auth{display:grid;grid-template-columns:1.15fr .85fr;gap:24px;align-items:stretch;padding:48px 0}
-    .auth-card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:24px;box-shadow:var(--shadow)}
-    .auth-card h2{font-size:1.5rem;margin-bottom:8px}
+    /* Main content area */
+    main{
+      flex:1;
+      padding:3rem 0;
+    }
+    .auth-card{
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:2.5rem;
+      box-shadow:0 4px 6px -1px rgba(0,0,0,.05),0 2px 4px -1px rgba(0,0,0,.03);
+      max-width:900px;
+      margin:0 auto;
+    }
+    .auth-card h2{
+      font-size:1.75rem;
+      font-weight:700;
+      color:#111;
+      margin-bottom:0.5rem;
+    }
     .muted{color:var(--muted)}
-    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
-    .span-2{grid-column:1 / -1}
+    .section-title{
+      font-size:1.125rem;
+      font-weight:600;
+      color:#374151;
+      margin-top:2rem;
+      margin-bottom:1rem;
+      padding-bottom:0.5rem;
+      border-bottom:1px solid var(--line);
+    }
 
-    /* Inputs (style without renaming anything) */
+    /* Form styling */
+    .form-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:1rem;
+      margin-top:1rem;
+    }
+    .form-grid > div{
+      display:flex;
+      flex-direction:column;
+      gap:0.5rem;
+    }
+
+    /* Inputs */
     .auth-card input,.auth-card select,.auth-card textarea{
-      width:100%;padding:12px 14px;border-radius:12px;border:1px solid #dde2ec;background:#fbfcfe;color:#111;outline:none;font-size:1rem
+      width:100%;
+      padding:0.75rem 1rem;
+      border-radius:var(--radius);
+      border:1px solid var(--line);
+      background:#fff;
+      color:#111;
+      outline:none;
+      font-size:0.95rem;
+      transition:border-color 0.2s,box-shadow 0.2s;
     }
+    .auth-card input::placeholder{color:#9ca3af}
     .auth-card input:focus,.auth-card select:focus,.auth-card textarea:focus{
-      border-color:var(--brand-teal);box-shadow:0 0 0 3px rgba(71,198,190,.18)
+      border-color:var(--brand);
+      box-shadow:0 0 0 3px rgba(95,168,161,.1);
     }
-    label{display:block;font-weight:700;font-size:.95rem;margin:.2rem 0}
-    .row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-    .row a{color:var(--teal-700);text-decoration:underline}
+    label{
+      display:block;
+      font-weight:500;
+      font-size:0.875rem;
+      color:#374151;
+    }
+    .row{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+      font-size:0.875rem;
+    }
+    .row a{
+      color:var(--brand);
+      text-decoration:none;
+      font-weight:500;
+    }
+    .row a:hover{text-decoration:underline}
 
-    .error{display:none;margin:0 0 4px;padding:.7rem .8rem;border-radius:12px;border:1px solid #ffc9c9;background:#fff5f5;color:#8a1f1f}
-    .success{display:none;margin:0 0 4px;padding:.7rem .8rem;border-radius:12px;border:1px solid #b8efe7;background:#e9fbf8;color:#0b5f56}
+    /* Buttons */
+    .btn{
+      padding:0.75rem 1.5rem;
+      border-radius:var(--radius);
+      font-weight:600;
+      font-size:0.95rem;
+      cursor:pointer;
+      border:1px solid var(--line);
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      transition:all 0.2s;
+      background:#fff;
+      color:#374151;
+    }
+    .btn:hover{
+      background:#f9fafb;
+    }
+    .btn.primary{
+      background:var(--brand);
+      color:#fff;
+      border-color:var(--brand);
+    }
+    .btn.primary:hover{
+      background:var(--brand-hover);
+    }
+    .btn.ghost{
+      background:#fff;
+      border:1px solid var(--line);
+      color:#374151;
+    }
+    .btn.ghost:hover{
+      background:#f9fafb;
+    }
 
-    .toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:.9rem;color:#5c6b80;cursor:pointer;background:none;border:none}
+    /* Messages */
+    .error{
+      display:none;
+      margin:0 0 1rem;
+      padding:0.75rem 1rem;
+      border-radius:var(--radius);
+      border:1px solid #fecaca;
+      background:#fef2f2;
+      color:#991b1b;
+      font-size:0.875rem;
+    }
+    .success{
+      display:none;
+      margin:0 0 1rem;
+      padding:0.75rem 1rem;
+      border-radius:var(--radius);
+      border:1px solid #d1fae5;
+      background:#ecfdf5;
+      color:#065f46;
+      font-size:0.875rem;
+    }
 
-    /* Right-hand panel */
-    .panel{background:linear-gradient(135deg,#e9fbf8,#f6f8fb);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:22px}
-    .panel h3{margin:0 0 8px;color:#0b5f56}
-    .stat{display:flex;gap:10px;align-items:center;margin-top:10px}
-    .dot{width:9px;height:9px;border-radius:999px;background:var(--brand-teal)}
+    /* Status indicators */
+    .status{
+      padding:0.5rem 0.75rem;
+      border-radius:var(--radius);
+      border:1px solid var(--line);
+      background:#fff;
+      font-size:0.875rem;
+    }
+    .status.ok{
+      border-color:#d1fae5;
+      background:#ecfdf5;
+      color:#065f46;
+    }
+    .status.bad{
+      border-color:#fecaca;
+      background:#fef2f2;
+      color:#991b1b;
+    }
+
+    /* Fieldset styling */
+    fieldset{
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      padding:1.5rem;
+      margin-top:1rem;
+    }
+    legend{
+      padding:0 0.5rem;
+      font-weight:600;
+      color:#374151;
+    }
 
     /* Footer */
-    footer{margin-top:0;background:linear-gradient(180deg,#f7fbfb,#f6f8fb);border-top:1px solid var(--line)}
-    .footer-grid{display:grid;grid-template-columns:1.2fr .6fr .6fr .6fr;gap:24px;padding:36px 0}
-    .foot-brand{display:flex;gap:14px}
-    .foot-brand img{height:42px}
-    .foot-small{color:#6e7a93;font-size:.92rem}
+    footer{
+      background:#fff;
+      border-top:1px solid var(--line);
+      padding:1rem;
+      text-align:center;
+      color:var(--muted);
+      font-size:0.875rem;
+    }
 
     /* Responsive */
-    @media (max-width:980px){.auth{grid-template-columns:1fr}.panel{order:-1;margin-bottom:16px}}
-    @media (max-width:860px){.nav ul{display:none}}
-    @media (max-width:640px){.form-grid{grid-template-columns:1fr}.hero h1{font-size:1.9rem}}
+    @media (max-width:640px){
+      .form-grid{grid-template-columns:1fr}
+      .auth-card{padding:1.5rem}
+      .auth-card h2{font-size:1.5rem}
+    }
   </style>
 </head>
 <body>
-  <!-- Header -->
+  <!-- Simple header -->
   <header>
-    <div class="container nav">
+    <div class="nav">
       <a href="/index.html" class="brand" aria-label="Go to homepage">
         <img src="/assets/collagendirect.png" alt="CollagenDirect logo">
-        <div>
-          <div class="title">COLLAGEN <span style="color:var(--brand-teal)">DIRECT</span></div>
-          <div class="subtitle">Evidence-Backed Wound Therapies</div>
-        </div>
+        <span class="title">COLLAGEN <span style="color:#5FA8A1">DIRECT</span></span>
       </a>
-      <ul>
-        <li><a class="link" href="/products">Products</a></li>
-        <li><a class="link" href="/index.html#value">About</a></li>
-        <li><a class="link" href="/index.html#resources">Resources</a></li>
-        <li><a class="link" href="/contact">Contact</a></li>
-      </ul>
-      <div class="cta">
-        <a class="btn ghost" href="/portal">Provider Login</a>
-        <a class="btn primary" href="/register">Join Provider Network</a>
-      </div>
     </div>
   </header>
 
-  <!-- Hero -->
-  <section class="hero">
-    <div class="container hero-wrap">
-      <div>
-        <h1>Create Your Physician Account</h1>
-        <p class="lead">Register to access ordering, COAs, IFUs, coverage resources, and patient workflows in a HIPAA-secure portal.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- Auth -->
-  <main class="container auth">
-    <!-- Registration Card with YOUR exact form -->
+  <!-- Main registration form -->
+  <main class="container">
     <section class="auth-card">
-      <h2>Register</h2>
-      <p class="muted">Already have an account? <a href="/portal">Sign in</a></p>
+      <h2>Create Your Physician Account</h2>
+      <p class="muted">Already have an account? <a href="/portal" style="color:var(--brand);font-weight:500">Sign in</a></p>
 
       <!-- === YOUR ORIGINAL FORM & IDs (unchanged) === -->
       <form id="registerForm" novalidate action="javascript:void(0)">
@@ -242,57 +368,22 @@
           </div>
         </section>
 
-        <div class="row" style="margin-top:18px;gap:12px;flex-wrap:wrap">
-          <button id="submitBtn" type="button" class="btn primary" style="background:var(--brand-teal);color:#0a1b1a;border:1px solid transparent">Create Account</button>
-          <a class="btn ghost" href="/portal" style="border:1px solid var(--brand-teal)">Already registered? Log in</a>
+        <div class="row" style="margin-top:2rem;gap:12px;flex-wrap:wrap">
+          <button id="submitBtn" type="button" class="btn primary">Create Account</button>
+          <a class="btn ghost" href="/portal">Already registered? Log in</a>
         </div>
+
+        <p class="muted" style="margin-top:1.5rem;text-align:center;font-size:0.875rem">
+          For assistance, contact <a href="mailto:clinical@collagendirect.com" style="color:var(--brand);font-weight:500">clinical@collagendirect.com</a>
+        </p>
       </form>
       <!-- === /YOUR ORIGINAL FORM === -->
     </section>
-
-    <!-- Right panel (reassurance) -->
-    <aside class="panel" aria-label="Why CollagenDirect">
-      <h3>What you’ll get</h3>
-      <div class="stat"><span class="dot"></span><span>Order submission & tracking</span></div>
-      <div class="stat"><span class="dot"></span><span>COAs, IFUs, coding & coverage docs</span></div>
-      <div class="stat"><span class="dot"></span><span>Direct-to-manufacturer pricing & support</span></div>
-      <div class="stat"><span class="dot"></span><span>Role-based access and audit trail</span></div>
-      <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
-        <a class="btn ghost" href="/portal">Back to Login</a>
-        <a class="btn" style="border:1px solid var(--line)" href="/contact">Contact Support</a>
-      </div>
-    </aside>
   </main>
 
-  <!-- Footer -->
+  <!-- Simple footer -->
   <footer>
-    <div class="container footer-grid">
-      <div class="foot-brand">
-        <img src="/assets/collagendirect.png" alt="CollagenDirect">
-        <div>
-          <div style="font-weight:900;letter-spacing:.4px">COLLAGEN <span style="color:var(--brand-teal)">DIRECT</span></div>
-          <p class="foot-small">Direct-to-manufacturer collagen therapies for modern wound care.</p>
-        </div>
-      </div>
-      <div>
-        <h4>Company</h4>
-        <a href="/index.html#">About</a><br>
-        <a href="/contact">Contact</a>
-      </div>
-      <div>
-        <h4>Products</h4>
-        <a href="/products">Catalog</a><br>
-        <a href="/index.html#resources">Resources</a>
-      </div>
-      <div>
-        <h4>Legal</h4>
-        <a href="/terms">Terms</a><br>
-        <a href="/privacy">Privacy</a>
-      </div>
-    </div>
-    <div style="border-top:1px solid var(--line);padding:18px 0;text-align:center;color:#6e7a93;font-size:.9rem">
-      © <span id="year"></span> CollagenDirect. All rights reserved.
-    </div>
+    © <span id="year"></span> CollagenDirect. All rights reserved.
   </footer>
 
   <!-- === YOUR ORIGINAL JS (unchanged) === -->
