@@ -226,7 +226,7 @@ if ($action) {
   }
 
   if ($action==='products'){
-    $rows=$pdo->query("SELECT id,name,size,uom,price_admin AS price FROM products WHERE active=1 ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
+    $rows=$pdo->query("SELECT id,name,size,size AS uom,price_admin AS price FROM products WHERE active=1 ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
     jok(['rows'=>$rows]);
   }
 
