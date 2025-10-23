@@ -68,7 +68,7 @@ function cd_active($path, $match){
       justify-content: center;
       gap: 0.5rem;
       border-radius: var(--radius);
-      padding: 0.5rem 1rem;
+      padding: 0.4375rem 0.875rem;
       font-size: 0.875rem;
       font-weight: 500;
       transition: all 0.15s ease;
