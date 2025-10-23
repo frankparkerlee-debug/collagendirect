@@ -1012,9 +1012,290 @@ if ($page==='logout'){
     padding: 2rem;
     overflow-y: auto;
   }
+
+  /* ========== MOBILE RESPONSIVE & TOUCH OPTIMIZATIONS ========== */
+
+  /* Mobile hamburger menu */
+  .mobile-menu-btn {
+    display: none;
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 1000;
+    width: 44px;
+    height: 44px;
+    background: var(--brand);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+
+  .mobile-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 998;
+  }
+
+  /* Tablet and below (< 768px) */
+  @media (max-width: 767px) {
+    .mobile-menu-btn {
+      display: flex;
+    }
+
+    .mobile-overlay.mobile-open {
+      display: block;
+    }
+
+    /* Sidebar becomes slide-out menu */
+    .sidebar {
+      position: fixed;
+      left: -240px;
+      transition: left 0.3s ease;
+      z-index: 999;
+      box-shadow: 2px 0 8px rgba(0,0,0,0.15);
+    }
+
+    .sidebar.mobile-open {
+      left: 0;
+    }
+
+    /* Main content takes full width */
+    .main-content {
+      margin-left: 0;
+      width: 100%;
+    }
+
+    /* Top bar adjustments */
+    .top-bar {
+      padding: 0 1rem 0 4rem; /* Space for hamburger button */
+      height: 56px;
+    }
+
+    .top-bar-title {
+      font-size: 1rem;
+    }
+
+    /* Content area padding */
+    .content-area {
+      padding: 1rem;
+    }
+
+    /* Tables become horizontally scrollable */
+    table {
+      display: block;
+      overflow-x: auto;
+      white-space: nowrap;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* Make cards stack vertically */
+    .grid {
+      grid-template-columns: 1fr !important;
+    }
+
+    /* Touch-friendly buttons - minimum 44x44px */
+    .btn, button {
+      min-height: 44px;
+      padding: 0.75rem 1rem;
+      font-size: 0.875rem;
+    }
+
+    /* Form fields stack vertically */
+    .form-grid {
+      grid-template-columns: 1fr !important;
+    }
+
+    /* Patient detail page mobile adjustments */
+    #patient-detail-container {
+      grid-template-columns: 1fr !important;
+    }
+
+    #patient-detail-container .lg\\:col-span-2 {
+      grid-column: span 1;
+    }
+
+    /* Breadcrumb and actions stack on mobile */
+    .flex.items-center.justify-between.mb-4 {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+
+    .flex.items-center.justify-between.mb-4 > div:last-child {
+      width: 100%;
+    }
+
+    .flex.items-center.justify-between.mb-4 .btn {
+      width: 100%;
+    }
+
+    /* Dashboard metrics stack */
+    .metrics-grid {
+      grid-template-columns: 1fr !important;
+    }
+
+    /* Hide less important columns in tables */
+    .table-hide-mobile {
+      display: none;
+    }
+
+    /* Accordion/expandable rows work better on mobile */
+    .acc-row {
+      overflow-x: auto;
+    }
+
+    /* Dropdown menus */
+    .dropdown {
+      position: fixed !important;
+      left: 1rem !important;
+      right: 1rem !important;
+      width: auto !important;
+    }
+
+    /* Cards have less padding on mobile */
+    .card {
+      padding: 1rem !important;
+    }
+
+    /* Sidebar nav items more touch-friendly */
+    .sidebar-nav a {
+      padding: 1rem;
+      font-size: 1rem;
+    }
+
+    /* Profile dropdown adjustments */
+    .sidebar-user {
+      padding: 1rem;
+    }
+
+    /* Action buttons in cards */
+    .card .flex.gap-2 {
+      flex-direction: column;
+    }
+
+    .card .flex.gap-2 .btn {
+      width: 100%;
+    }
+
+    /* Patient cards in Orders/History sections */
+    .space-y-2 > div {
+      flex-direction: column !important;
+      gap: 0.5rem;
+    }
+
+    .space-y-2 > div .btn-sm {
+      width: 100%;
+    }
+
+    /* Top-level CRUD actions on mobile */
+    .flex.gap-2:has(#patient-detail-new-order-btn) {
+      width: 100%;
+      flex-direction: row;
+    }
+
+    #patient-detail-new-order-btn {
+      flex: 1;
+    }
+  }
+
+  /* Small mobile (< 480px) */
+  @media (max-width: 479px) {
+    .top-bar {
+      padding: 0 0.5rem 0 3.5rem;
+    }
+
+    .content-area {
+      padding: 0.75rem;
+    }
+
+    .btn, button {
+      font-size: 0.8125rem;
+      padding: 0.625rem 0.875rem;
+    }
+
+    /* Even more compact on very small screens */
+    .card {
+      padding: 0.75rem !important;
+      border-radius: 8px;
+    }
+
+    h1, .top-bar-title {
+      font-size: 0.875rem;
+    }
+
+    h2 {
+      font-size: 1rem;
+    }
+
+    /* Hide avatar on very small screens */
+    .sidebar-avatar {
+      width: 32px;
+      height: 32px;
+      font-size: 0.75rem;
+    }
+
+    /* Stack breadcrumb elements */
+    .text-sm.text-slate-600 {
+      font-size: 0.75rem;
+    }
+  }
+
+  /* Touch enhancements for all mobile devices */
+  @media (hover: none) and (pointer: coarse) {
+    /* Larger tap targets */
+    a, button, .btn, input[type="checkbox"], input[type="radio"] {
+      min-height: 44px;
+      min-width: 44px;
+    }
+
+    /* Remove hover states, use active states instead */
+    .btn:hover, button:hover, a:hover {
+      background: inherit;
+    }
+
+    .btn:active, button:active {
+      transform: scale(0.98);
+      opacity: 0.8;
+    }
+
+    /* Better focus indicators for touch */
+    input:focus, textarea:focus, select:focus {
+      outline: 2px solid var(--brand);
+      outline-offset: 2px;
+    }
+
+    /* Smooth scrolling on touch devices */
+    * {
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* Prevent text selection on buttons */
+    .btn, button {
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+  }
 </style>
 </head>
 <body>
+
+<!-- Mobile Menu Button -->
+<button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Toggle menu">
+  <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+  </svg>
+</button>
+
+<!-- Mobile Overlay -->
+<div class="mobile-overlay" id="mobile-overlay"></div>
+
 <div class="app-container">
   <!-- Sidebar -->
   <aside class="sidebar">
@@ -2224,6 +2505,64 @@ function getInitials(first, last){
   const l = (last||'').trim()[0]||'';
   return (f+l).toUpperCase() || '?';
 }
+
+/* ========== Mobile Menu Functionality ========== */
+(function initMobileMenu() {
+  const menuBtn = document.getElementById('mobile-menu-btn');
+  const overlay = document.getElementById('mobile-overlay');
+  const sidebar = document.querySelector('.sidebar');
+
+  if (!menuBtn || !overlay || !sidebar) return;
+
+  // Toggle menu function
+  function toggleMenu(forceClose = false) {
+    if (forceClose) {
+      sidebar.classList.remove('mobile-open');
+      overlay.classList.remove('mobile-open');
+      document.body.style.overflow = '';
+    } else {
+      const isOpen = sidebar.classList.toggle('mobile-open');
+      overlay.classList.toggle('mobile-open');
+      // Prevent body scroll when menu is open
+      document.body.style.overflow = isOpen ? 'hidden' : '';
+    }
+  }
+
+  // Open/close menu on button click
+  menuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleMenu();
+  });
+
+  // Close menu when clicking overlay
+  overlay.addEventListener('click', () => toggleMenu(true));
+
+  // Close menu when clicking sidebar links
+  sidebar.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', () => {
+      // Small delay to allow navigation
+      setTimeout(() => toggleMenu(true), 100);
+    });
+  });
+
+  // Close menu on window resize to desktop
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      if (window.innerWidth > 767) {
+        toggleMenu(true);
+      }
+    }, 250);
+  });
+
+  // Close menu on ESC key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && sidebar.classList.contains('mobile-open')) {
+      toggleMenu(true);
+    }
+  });
+})();
 
 /* Metrics (dashboard) */
 if (<?php echo json_encode($page==='dashboard'); ?>) {
