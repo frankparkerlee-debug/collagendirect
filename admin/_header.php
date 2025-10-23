@@ -196,9 +196,19 @@ function cd_active($path, $match){
       display: flex;
       align-items: center;
     }
+    .sidebar-nav a {
+      border: 1px solid transparent;
+      border-radius: 8px;
+    }
     .sidebar-nav a:hover {
-      background: rgba(0,0,0,0.04) !important;
+      background: var(--brand-light) !important;
+      color: var(--brand-dark) !important;
+      border-color: var(--border-sidebar) !important;
+    }
+    .sidebar-nav a.active {
+      background: #ffffff !important;
       color: var(--ink) !important;
+      border: 1px solid var(--border-sidebar) !important;
     }
     .sidebar-nav-icon {
       width: 20px;
@@ -280,25 +290,25 @@ function cd_active($path, $match){
       <nav class="sidebar-nav" style="padding: 1rem; flex: 1;">
         <?php if ($currentContext === 'platform' && $isSuperAdmin): ?>
           <!-- Platform Admin Navigation -->
-          <a href="/admin/platform/dashboard.php" class="<?=cd_active($path,'/admin/platform/dashboard')?>" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: var(--radius); color: var(--ink-light); font-weight: 500; font-size: 0.875rem; transition: all 0.2s; margin-bottom: 0.25rem; <?=cd_active($path,'/admin/platform/dashboard') ? 'background: var(--brand-light); color: var(--brand-dark); font-weight: 600;' : ''?>">
+          <a href="/admin/platform/dashboard.php" class="<?=cd_active($path,'/admin/platform/dashboard')?>" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; color: var(--ink-light); font-weight: 500; font-size: 0.875rem; transition: all 0.2s; margin-bottom: 0.25rem; <?=cd_active($path,'/admin/platform/dashboard') ? 'background: #ffffff; color: var(--ink); font-weight: 600; border: 1px solid var(--border-sidebar);' : ''?>">
             <svg class="sidebar-nav-icon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
             </svg>
             Overview
           </a>
-          <a href="/admin/platform/practices.php" class="<?=cd_active($path,'/admin/platform/practices')?>" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: var(--radius); color: var(--ink-light); font-weight: 500; font-size: 0.875rem; transition: all 0.2s; margin-bottom: 0.25rem; <?=cd_active($path,'/admin/platform/practices') ? 'background: var(--brand-light); color: var(--brand-dark); font-weight: 600;' : ''?>">
+          <a href="/admin/platform/practices.php" class="<?=cd_active($path,'/admin/platform/practices')?>" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; color: var(--ink-light); font-weight: 500; font-size: 0.875rem; transition: all 0.2s; margin-bottom: 0.25rem; <?=cd_active($path,'/admin/platform/practices') ? 'background: #ffffff; color: var(--ink); font-weight: 600; border: 1px solid var(--border-sidebar);' : ''?>">
             <svg class="sidebar-nav-icon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
             </svg>
             Practices
           </a>
-          <a href="/admin/platform/subscriptions.php" class="<?=cd_active($path,'/admin/platform/subscriptions')?>" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: var(--radius); color: var(--ink-light); font-weight: 500; font-size: 0.875rem; transition: all 0.2s; margin-bottom: 0.25rem; <?=cd_active($path,'/admin/platform/subscriptions') ? 'background: var(--brand-light); color: var(--brand-dark); font-weight: 600;' : ''?>">
+          <a href="/admin/platform/subscriptions.php" class="<?=cd_active($path,'/admin/platform/subscriptions')?>" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; color: var(--ink-light); font-weight: 500; font-size: 0.875rem; transition: all 0.2s; margin-bottom: 0.25rem; <?=cd_active($path,'/admin/platform/subscriptions') ? 'background: #ffffff; color: var(--ink); font-weight: 600; border: 1px solid var(--border-sidebar);' : ''?>">
             <svg class="sidebar-nav-icon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
             </svg>
             Subscriptions
           </a>
-          <a href="/admin/platform/system.php" class="<?=cd_active($path,'/admin/platform/system')?>" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: var(--radius); color: var(--ink-light); font-weight: 500; font-size: 0.875rem; transition: all 0.2s; margin-bottom: 0.25rem; <?=cd_active($path,'/admin/platform/system') ? 'background: var(--brand-light); color: var(--brand-dark); font-weight: 600;' : ''?>">
+          <a href="/admin/platform/system.php" class="<?=cd_active($path,'/admin/platform/system')?>" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; color: var(--ink-light); font-weight: 500; font-size: 0.875rem; transition: all 0.2s; margin-bottom: 0.25rem; <?=cd_active($path,'/admin/platform/system') ? 'background: #ffffff; color: var(--ink); font-weight: 600; border: 1px solid var(--border-sidebar);' : ''?>">
             <svg class="sidebar-nav-icon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
             </svg>
@@ -306,11 +316,11 @@ function cd_active($path, $match){
           </a>
         <?php else: ?>
           <!-- Practice Admin Navigation -->
-          <a href="/admin/index.php" class="<?=cd_active($path,'/admin/index.php')?>" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: var(--radius); color: var(--ink-light); font-weight: 500; font-size: 0.875rem; transition: all 0.2s; margin-bottom: 0.25rem; <?=cd_active($path,'/admin/index.php') ? 'background: var(--brand-light); color: var(--brand-dark); font-weight: 600;' : ''?>">Dashboard</a>
-          <a href="/admin/orders.php" class="<?=cd_active($path,'/admin/orders.php')?>" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: var(--radius); color: var(--ink-light); font-weight: 500; font-size: 0.875rem; transition: all 0.2s; margin-bottom: 0.25rem; <?=cd_active($path,'/admin/orders.php') ? 'background: var(--brand-light); color: var(--brand-dark); font-weight: 600;' : ''?>">Manage Orders</a>
-          <a href="/admin/shipments.php" class="<?=cd_active($path,'/admin/shipments.php')?>" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: var(--radius); color: var(--ink-light); font-weight: 500; font-size: 0.875rem; transition: all 0.2s; margin-bottom: 0.25rem; <?=cd_active($path,'/admin/shipments.php') ? 'background: var(--brand-light); color: var(--brand-dark); font-weight: 600;' : ''?>">Shipments</a>
-          <a href="/admin/billing.php" class="<?=cd_active($path,'/admin/billing.php')?>" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: var(--radius); color: var(--ink-light); font-weight: 500; font-size: 0.875rem; transition: all 0.2s; margin-bottom: 0.25rem; <?=cd_active($path,'/admin/billing.php') ? 'background: var(--brand-light); color: var(--brand-dark); font-weight: 600;' : ''?>">Billing</a>
-          <a href="/admin/users.php" class="<?=cd_active($path,'/admin/users.php')?>" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: var(--radius); color: var(--ink-light); font-weight: 500; font-size: 0.875rem; transition: all 0.2s; margin-bottom: 0.25rem; <?=cd_active($path,'/admin/users.php') ? 'background: var(--brand-light); color: var(--brand-dark); font-weight: 600;' : ''?>">Users</a>
+          <a href="/admin/index.php" class="<?=cd_active($path,'/admin/index.php')?>" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; color: var(--ink-light); font-weight: 500; font-size: 0.875rem; transition: all 0.2s; margin-bottom: 0.25rem; <?=cd_active($path,'/admin/index.php') ? 'background: #ffffff; color: var(--ink); font-weight: 600; border: 1px solid var(--border-sidebar);' : ''?>">Dashboard</a>
+          <a href="/admin/orders.php" class="<?=cd_active($path,'/admin/orders.php')?>" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; color: var(--ink-light); font-weight: 500; font-size: 0.875rem; transition: all 0.2s; margin-bottom: 0.25rem; <?=cd_active($path,'/admin/orders.php') ? 'background: #ffffff; color: var(--ink); font-weight: 600; border: 1px solid var(--border-sidebar);' : ''?>">Manage Orders</a>
+          <a href="/admin/shipments.php" class="<?=cd_active($path,'/admin/shipments.php')?>" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; color: var(--ink-light); font-weight: 500; font-size: 0.875rem; transition: all 0.2s; margin-bottom: 0.25rem; <?=cd_active($path,'/admin/shipments.php') ? 'background: #ffffff; color: var(--ink); font-weight: 600; border: 1px solid var(--border-sidebar);' : ''?>">Shipments</a>
+          <a href="/admin/billing.php" class="<?=cd_active($path,'/admin/billing.php')?>" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; color: var(--ink-light); font-weight: 500; font-size: 0.875rem; transition: all 0.2s; margin-bottom: 0.25rem; <?=cd_active($path,'/admin/billing.php') ? 'background: #ffffff; color: var(--ink); font-weight: 600; border: 1px solid var(--border-sidebar);' : ''?>">Billing</a>
+          <a href="/admin/users.php" class="<?=cd_active($path,'/admin/users.php')?>" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; color: var(--ink-light); font-weight: 500; font-size: 0.875rem; transition: all 0.2s; margin-bottom: 0.25rem; <?=cd_active($path,'/admin/users.php') ? 'background: #ffffff; color: var(--ink); font-weight: 600; border: 1px solid var(--border-sidebar);' : ''?>">Users</a>
         <?php endif; ?>
       </nav>
       <div style="padding: 1rem; border-top: 1px solid var(--border);">

@@ -847,23 +847,26 @@ if ($page==='logout'){
     align-items: center;
     gap: 0.75rem;
     padding: 0.75rem 1rem;
-    border-radius: var(--radius);
+    border-radius: 8px;
     color: var(--ink-light);
     font-weight: 500;
     font-size: 0.875rem;
     transition: all 0.2s;
     margin-bottom: 0.25rem;
+    border: 1px solid transparent;
   }
 
   .sidebar-nav a:hover {
-    background: rgba(0,0,0,0.04);
-    color: var(--ink);
+    background: var(--brand-light);
+    color: var(--brand-dark);
+    border-color: var(--border-sidebar);
   }
 
   .sidebar-nav a.active {
-    background: var(--brand-light);
-    color: var(--brand-dark);
+    background: #ffffff;
+    color: var(--ink);
     font-weight: 600;
+    border: 1px solid var(--border-sidebar);
   }
 
   .sidebar-nav-icon {
