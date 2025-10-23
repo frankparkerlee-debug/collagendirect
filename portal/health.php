@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 // Setup mode: /portal/health.php?setup=temp-setup-token-2024
 if (isset($_GET['setup']) && $_GET['setup'] === 'temp-setup-token-2024') {
-    // Start output buffering to avoid header issues
-    ob_start();
+    // Send headers FIRST before any output
+    header('Content-Type: text/plain; charset=utf-8');
 
     echo "=== CollagenDirect Database Setup ===\n\n";
 
-    // Don't include db.php yet - it sends headers
-    // Database connection
+    // Database connection (no db.php to avoid header conflicts)
     $DB_HOST = getenv('DB_HOST') ?: '127.0.0.1';
     $DB_NAME = getenv('DB_NAME') ?: 'collagen_db';
     $DB_USER = getenv('DB_USER') ?: 'postgres';
@@ -25,18 +24,12 @@ if (isset($_GET['setup']) && $_GET['setup'] === 'temp-setup-token-2024') {
             [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
         );
     } catch (PDOException $e) {
-        ob_end_clean();
-        header('Content-Type: text/plain; charset=utf-8');
-        die("Database connection failed: " . $e->getMessage());
+        die("Database connection failed: " . $e->getMessage() . "\n");
     }
 
-    // Now we can flush the buffer with proper headers
-    ob_end_clean();
-    header('Content-Type: text/plain; charset=utf-8');
-
     echo "✓ Connected to database\n";
-    echo "  Host: " . getenv('DB_HOST') . "\n";
-    echo "  Database: " . getenv('DB_NAME') . "\n\n";
+    echo "  Host: $DB_HOST\n";
+    echo "  Database: $DB_NAME\n\n";
 
     // Check if tables exist
     echo "Checking schema...\n";
