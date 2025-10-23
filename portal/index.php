@@ -641,7 +641,7 @@ if ($page==='logout'){
   /* Select specific styling */
   select {
     padding-right: 2.5rem !important;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%231B1B1B' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
     background-position: right 0.5rem center;
     background-repeat: no-repeat;
     background-size: 1.5em 1.5em;
@@ -1321,7 +1321,7 @@ if ($page==='logout'){
 <div class="mobile-overlay" id="mobile-overlay"></div>
 
 <!-- Profile Dropdown Menu (triggered from sidebar) -->
-<div class="dropdown-menu" id="profile-menu" style="min-width: 240px; position: fixed; top: auto; left: auto; z-index: 1001;">
+<div class="dropdown-menu" id="profile-menu" style="min-width: auto; width: max-content; position: fixed; top: auto; left: auto; z-index: 1001;">
   <div class="dropdown-header">
     <div>
       <div style="font-weight: 600; color: var(--ink);"><?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?></div>
@@ -1473,24 +1473,6 @@ if ($page==='logout'){
 
     <main class="content-area">
 <?php if ($page==='dashboard'): ?>
-  <!-- Dashboard Header -->
-  <div class="flex items-center justify-between mb-6">
-    <div class="flex items-center gap-3">
-      <h2 class="text-xl font-semibold" style="color: var(--ink);">January 2025</h2>
-      <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--muted);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-    </div>
-    <div class="flex gap-2">
-      <button class="btn btn-outline">
-        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
-        Filter
-      </button>
-      <button class="btn btn-outline">
-        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-        Export
-      </button>
-    </div>
-  </div>
-
   <!-- Stat Cards -->
   <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <div class="card p-5">
