@@ -800,6 +800,32 @@ if ($page==='logout'){
     top: 0;
     bottom: 0;
     overflow-y: auto;
+    transition: width 0.3s ease, transform 0.3s ease;
+  }
+
+  .sidebar.collapsed {
+    width: 72px;
+  }
+
+  .sidebar.collapsed .sidebar-user > div:last-child,
+  .sidebar.collapsed .sidebar-nav a span,
+  .sidebar.collapsed .sidebar a[href="/admin/"] span {
+    display: none;
+  }
+
+  .sidebar.collapsed .sidebar-user {
+    justify-content: center;
+    padding: 0.5rem;
+  }
+
+  .sidebar.collapsed .sidebar-nav a {
+    justify-content: center;
+    padding: 0.75rem;
+  }
+
+  .sidebar.collapsed .sidebar a[href="/admin/"] {
+    justify-content: center;
+    padding: 0.75rem !important;
   }
 
   .sidebar-header {
@@ -874,12 +900,24 @@ if ($page==='logout'){
     height: 20px;
   }
 
+  /* Admin link at bottom of sidebar */
+  .sidebar a[href="/admin/"]:hover {
+    background: var(--brand-light) !important;
+    color: var(--brand-dark) !important;
+    border-color: var(--border-sidebar) !important;
+  }
+
   .main-content {
     flex: 1;
     display: flex;
     flex-direction: column;
     margin-left: 240px;
     height: 100vh;
+    transition: margin-left 0.3s ease;
+  }
+
+  .main-content.sidebar-collapsed {
+    margin-left: 72px;
     overflow: hidden;
   }
 
@@ -1365,13 +1403,13 @@ if ($page==='logout'){
         <div class="sidebar-avatar">
           <?php echo strtoupper(substr($user['first_name'] ?? 'U', 0, 1) . substr($user['last_name'] ?? 'S', 0, 1)); ?>
         </div>
-        <div style="flex:1; min-width:0;">
-          <div style="font-weight:600; font-size:0.875rem; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+        <div style="flex:1; min-width:0; display:flex; align-items:center; gap:0.5rem;">
+          <div style="font-weight:600; font-size:0.875rem; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;">
             <?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?>
           </div>
-          <div style="font-size:0.75rem; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-            Physician
-          </div>
+          <svg style="width:16px; height:16px; color:#5A5B60; flex-shrink:0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+          </svg>
         </div>
       </div>
     </div>
@@ -1379,52 +1417,56 @@ if ($page==='logout'){
     <nav class="sidebar-nav">
       <a class="<?php echo $page==='dashboard'?'active':''; ?>" href="?page=dashboard">
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-        Dashboard
+        <span>Dashboard</span>
       </a>
       <a class="<?php echo $page==='patients'?'active':''; ?>" href="?page=patients">
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-        Patient
+        <span>Patient</span>
       </a>
       <a class="<?php echo $page==='orders'?'active':''; ?>" href="?page=orders">
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
-        Orders
+        <span>Orders</span>
       </a>
       <a class="<?php echo $page==='messages'?'active':''; ?>" href="?page=messages">
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
-        Messages
+        <span>Messages</span>
       </a>
       <a class="<?php echo $page==='billing'?'active':''; ?>" href="?page=billing">
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-        Billing
+        <span>Billing</span>
       </a>
       <a class="<?php echo $page==='transactions'?'active':''; ?>" href="?page=transactions">
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
-        Transactions
+        <span>Transactions</span>
       </a>
       <a class="<?php echo $page==='profile'?'active':''; ?>" href="?page=profile">
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-        Profile
+        <span>Profile</span>
       </a>
-      <?php if ($isPracticeAdmin): ?>
-      <a href="/admin/" style="display:flex; align-items:center; gap:0.75rem; padding:0.75rem 1rem; border-radius:var(--radius); color:var(--brand); font-weight:500; font-size:0.875rem; transition:background 0.2s; border-top:1px solid var(--border); margin-top:0.5rem; padding-top:0.75rem;">
-        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-        Practice Admin
-      </a>
-      <?php endif; ?>
     </nav>
 
-    <div style="padding:1rem; border-top:1px solid var(--border);">
-      <a href="?page=logout" style="display:flex; align-items:center; gap:0.75rem; padding:0.75rem 1rem; border-radius:var(--radius); color:var(--error); font-weight:500; font-size:0.875rem; transition:background 0.2s;">
-        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-        Log out
+    <!-- Admin Functions Section -->
+    <?php if ($isPracticeAdmin): ?>
+    <div style="margin-top: auto; padding: 1rem; border-top: 1px solid var(--border-sidebar);">
+      <a href="/admin/" style="display:flex; align-items:center; gap:0.75rem; padding:0.75rem 1rem; border-radius:8px; color:#5A5B60; font-weight:500; font-size:0.875rem; transition:all 0.2s; border:1px solid transparent;">
+        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+        <span>Practice Admin</span>
       </a>
     </div>
+    <?php endif; ?>
   </aside>
 
   <!-- Main Content -->
   <div class="main-content">
     <div class="top-bar">
-      <h1 class="top-bar-title"><?php echo ucfirst($page); ?></h1>
+      <div style="display: flex; align-items: center; gap: 1rem;">
+        <button class="icon-btn" id="sidebar-toggle-btn" title="Toggle sidebar">
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
+        <h1 class="top-bar-title"><?php echo ucfirst($page); ?></h1>
+      </div>
       <div class="top-bar-actions">
         <!-- Search Button -->
         <button class="icon-btn" id="search-btn">
@@ -2715,6 +2757,28 @@ document.addEventListener('DOMContentLoaded', () => {
   const profileMenu = document.getElementById('profile-menu');
   const globalNewOrderBtn = document.getElementById('global-new-order-btn');
   const sidebarProfileTrigger = document.getElementById('sidebar-profile-trigger');
+  const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
+  const sidebar = document.querySelector('.sidebar');
+  const mainContent = document.querySelector('.main-content');
+
+  // Sidebar collapse toggle
+  if (sidebarToggleBtn && sidebar && mainContent) {
+    // Load saved state from localStorage
+    const sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+    if (sidebarCollapsed) {
+      sidebar.classList.add('collapsed');
+      mainContent.classList.add('sidebar-collapsed');
+    }
+
+    sidebarToggleBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('collapsed');
+      mainContent.classList.toggle('sidebar-collapsed');
+
+      // Save state to localStorage
+      const isCollapsed = sidebar.classList.contains('collapsed');
+      localStorage.setItem('sidebarCollapsed', isCollapsed);
+    });
+  }
 
   // Global New Order button - opens patient selector
   if (globalNewOrderBtn) {

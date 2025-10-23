@@ -1,7 +1,23 @@
 <?php
 // /public/admin/db.php
 declare(strict_types=1);
-if (session_status() !== PHP_SESSION_ACTIVE) session_start();
+
+// Configure session for 7 days persistence
+if (session_status() !== PHP_SESSION_ACTIVE) {
+  $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+
+  ini_set('session.gc_maxlifetime', (string)(60*60*24*7)); // 7 days
+  ini_set('session.cookie_lifetime', (string)(60*60*24*7)); // 7 days
+
+  session_set_cookie_params([
+    'lifetime' => 60*60*24*7, // 7 days
+    'path' => '/',
+    'secure' => $secure,
+    'httponly' => true,
+    'samesite' => 'Lax'
+  ]);
+  session_start();
+}
 
 /* Database credentials - Use environment variables for production */
 $DB_HOST = getenv('DB_HOST') ?: '127.0.0.1';

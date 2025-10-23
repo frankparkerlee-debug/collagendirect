@@ -24,22 +24,21 @@ if (!$user || !password_verify($pass, (string)$user['password_hash'])) {
   json_out(401, ['error'=>'Invalid credentials']);
 }
 
-// rotate session id
+// Rotate session id for security
 session_regenerate_id(true);
 $_SESSION['user_id'] = $user['id'];
 
-// extend cookie if remember == true (7 days)
-if ($remember) {
-  $params = session_get_cookie_params();
-  setcookie(session_name(), session_id(), [
-    'expires'  => time() + 60*60*24*7,
-    'path'     => $params['path'],
-    'domain'   => $params['domain'],
-    'secure'   => $params['secure'],
-    'httponly' => $params['httponly'],
-    'samesite' => $params['samesite'] ?? 'Lax'
-  ]);
-}
+// Always set persistent cookie (7 days) - session config handles this
+// The session cookie params are already configured in db.php for 7 days
+$params = session_get_cookie_params();
+setcookie(session_name(), session_id(), [
+  'expires'  => time() + 60*60*24*7, // 7 days
+  'path'     => $params['path'],
+  'domain'   => $params['domain'],
+  'secure'   => $params['secure'],
+  'httponly' => $params['httponly'],
+  'samesite' => $params['samesite'] ?? 'Lax'
+]);
 
 json_out(200, ['ok'=>true, 'user'=>[
   'id'=>$user['id'],

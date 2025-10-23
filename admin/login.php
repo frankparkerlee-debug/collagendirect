@@ -22,7 +22,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->execute([$email]);
     $row = $stmt->fetch();
     if ($row && password_verify($pass, $row['password_hash'])) {
+      // Regenerate session ID for security
+      session_regenerate_id(true);
       $_SESSION['admin'] = ['id'=>$row['id'],'email'=>$row['email'],'name'=>$row['name'],'role'=>$row['role']];
+
+      // Set persistent cookie (7 days)
+      $params = session_get_cookie_params();
+      setcookie(session_name(), session_id(), [
+        'expires'  => time() + 60*60*24*7, // 7 days
+        'path'     => $params['path'],
+        'domain'   => $params['domain'],
+        'secure'   => $params['secure'],
+        'httponly' => $params['httponly'],
+        'samesite' => $params['samesite'] ?? 'Lax'
+      ]);
+
       $next = $_GET['next'] ?? '/admin/index.php';
       header("Location: $next"); exit;
     } else { $err = 'Invalid credentials'; }

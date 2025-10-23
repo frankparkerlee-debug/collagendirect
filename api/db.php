@@ -10,8 +10,12 @@ header('X-Content-Type-Options: nosniff');
 // --- Session (for auth endpoints that include this file) ---
 $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
 if (session_status() === PHP_SESSION_NONE) {
+  // Configure session for 7 days persistence
+  ini_set('session.gc_maxlifetime', (string)(60*60*24*7)); // 7 days
+  ini_set('session.cookie_lifetime', (string)(60*60*24*7)); // 7 days
+
   session_set_cookie_params([
-    'lifetime' => 60*60*12,
+    'lifetime' => 60*60*24*7, // 7 days
     'path' => '/',
     'secure' => $secure,
     'httponly' => true,
