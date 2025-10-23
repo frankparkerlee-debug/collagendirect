@@ -780,7 +780,8 @@ if ($page==='logout'){
   /* Sidebar Layout */
   .app-container {
     display: flex;
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
   }
 
   .sidebar {
@@ -790,6 +791,11 @@ if ($page==='logout'){
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    overflow-y: auto;
   }
 
   .sidebar-header {
@@ -861,6 +867,9 @@ if ($page==='logout'){
     flex: 1;
     display: flex;
     flex-direction: column;
+    margin-left: 240px;
+    height: 100vh;
+    overflow: hidden;
   }
 
   .top-bar {
@@ -871,6 +880,10 @@ if ($page==='logout'){
     align-items: center;
     justify-content: space-between;
     padding: 0 2rem;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    flex-shrink: 0;
   }
 
   .top-bar-title {
@@ -1714,11 +1727,23 @@ if ($page==='logout'){
       // Patient data will be loaded via JavaScript
       $isEditing = ($page === 'patient-edit');
   ?>
-  <!-- Breadcrumb -->
-  <div class="mb-4 text-sm text-slate-600">
-    <a href="?page=patients" class="hover:underline">Patient</a>
-    <span class="mx-2">/</span>
-    <span><?php echo $isEditing ? 'Edit' : 'Detail'; ?> patient</span>
+  <!-- Breadcrumb with CRUD Actions -->
+  <div class="flex items-center justify-between mb-4">
+    <div class="text-sm text-slate-600">
+      <a href="?page=patients" class="hover:underline">Patient</a>
+      <span class="mx-2">/</span>
+      <span><?php echo $isEditing ? 'Edit' : 'Detail'; ?> patient</span>
+    </div>
+    <?php if (!$isEditing): ?>
+    <div class="flex gap-2">
+      <button id="patient-detail-new-order-btn" class="btn btn-primary" type="button" style="display:none;">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: inline; margin-right: 4px; vertical-align: middle;">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+        </svg>
+        New Order
+      </button>
+    </div>
+    <?php endif; ?>
   </div>
 
   <div id="patient-detail-container" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -3370,20 +3395,19 @@ function renderPatientDetailPage(p, orders, isEditing) {
     </div>
   `;
 
+  // Wire up the top-level New Order button
+  const topBtn = document.getElementById('patient-detail-new-order-btn');
+  if (topBtn) {
+    topBtn.style.display = 'inline-flex';
+    topBtn.onclick = () => openOrderDialog(p.id);
+  }
+
   // Right column - Orders and History (matching screenshot layout)
   const rightColumn = `
     <div class="lg:col-span-2 space-y-6">
       <!-- Orders Section -->
       <div class="card p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h4 class="font-semibold text-base">Orders</h4>
-          <button class="btn btn-primary btn-sm" type="button" onclick="openOrderDialog('${esc(p.id)}')">
-            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: inline; margin-right: 4px; vertical-align: middle;">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-            </svg>
-            New Order
-          </button>
-        </div>
+        <h4 class="font-semibold text-base mb-4">Orders</h4>
 
         ${orders.length > 0 ? `
           <!-- Upcoming/Active Orders -->
