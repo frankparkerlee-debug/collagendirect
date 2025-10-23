@@ -38,15 +38,16 @@ function uid(): string {
   return rtrim(strtr(base64_encode(random_bytes(16)),'+/','-_'),'=');
 }
 
-// --- DB connection (PDO MySQL) ---
-$DB_HOST = '127.0.0.1';  // Use 127.0.0.1 for Docker container
-$DB_NAME = 'frxnaisp_collagendirect';
-$DB_USER = 'frxnaisp_collagendirect';
-$DB_PASS = 'YEW!ad10jeo';
+// --- DB connection (PDO PostgreSQL) ---
+$DB_HOST = getenv('DB_HOST') ?: '127.0.0.1';
+$DB_NAME = getenv('DB_NAME') ?: 'collagen_db';
+$DB_USER = getenv('DB_USER') ?: 'postgres';
+$DB_PASS = getenv('DB_PASS') ?: '';
+$DB_PORT = getenv('DB_PORT') ?: '5432';
 
 try {
   $pdo = new PDO(
-    "mysql:host={$DB_HOST};port=3306;dbname={$DB_NAME};charset=utf8mb4",
+    "pgsql:host={$DB_HOST};port={$DB_PORT};dbname={$DB_NAME};options='--client_encoding=UTF8'",
     $DB_USER,
     $DB_PASS,
     [

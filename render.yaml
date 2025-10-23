@@ -7,15 +7,30 @@ services:
     dockerfilePath: ./Dockerfile
     envVars:
       - key: DB_HOST
-        sync: false
+        fromDatabase:
+          name: collagendirect-db
+          property: host
       - key: DB_PORT
-        value: 3306
+        fromDatabase:
+          name: collagendirect-db
+          property: port
       - key: DB_NAME
-        sync: false
+        fromDatabase:
+          name: collagendirect-db
+          property: database
       - key: DB_USER
-        sync: false
+        fromDatabase:
+          name: collagendirect-db
+          property: user
       - key: DB_PASS
-        sync: false
+        fromDatabase:
+          name: collagendirect-db
+          property: password
       - key: SENDGRID_API_KEY
         sync: false
     healthCheckPath: /portal/health.php
+
+databases:
+  - name: collagendirect-db
+    databaseName: collagen_db
+    plan: free

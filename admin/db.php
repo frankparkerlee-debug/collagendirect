@@ -3,14 +3,15 @@
 declare(strict_types=1);
 if (session_status() !== PHP_SESSION_ACTIVE) session_start();
 
-/* Database credentials */
-$DB_HOST = '127.0.0.1';  // Use 127.0.0.1 for Docker container
-$DB_NAME = 'frxnaisp_collagendirect';
-$DB_USER = 'frxnaisp_collagendirect';
-$DB_PASS = 'YEW!ad10jeo';
+/* Database credentials - Use environment variables for production */
+$DB_HOST = getenv('DB_HOST') ?: '127.0.0.1';
+$DB_NAME = getenv('DB_NAME') ?: 'collagen_db';
+$DB_USER = getenv('DB_USER') ?: 'postgres';
+$DB_PASS = getenv('DB_PASS') ?: '';
+$DB_PORT = getenv('DB_PORT') ?: '5432';
 
 try {
-  $dsn = "mysql:host={$DB_HOST};port=3306;dbname={$DB_NAME};charset=utf8mb4";
+  $dsn = "pgsql:host={$DB_HOST};port={$DB_PORT};dbname={$DB_NAME};options='--client_encoding=UTF8'";
   $pdo = new PDO($dsn, $DB_USER, $DB_PASS, [
     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
