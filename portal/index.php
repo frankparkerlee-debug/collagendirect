@@ -22,6 +22,9 @@ if (!$user) {
   exit;
 }
 
+// Check if user is a practice admin (has access to /admin)
+$isPracticeAdmin = (($user['role'] ?? 'physician') === 'practice_admin');
+
 /* ------------ Upload roots (keep structure) ------------ */
 $UPLOAD_ROOT = realpath(__DIR__ . '/../uploads') ?: (__DIR__ . '/../uploads');
 $DIRS = [
@@ -1316,10 +1319,10 @@ if ($page==='logout'){
     </div>
   </div>
   <div class="dropdown-body">
-    <a href="?page=admin" class="dropdown-item">
+    <a href="?page=profile" class="dropdown-item">
       <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
       <div>
-        <div style="font-weight: 500; color: var(--ink);">Account profile</div>
+        <div style="font-weight: 500; color: var(--ink);">Profile & Settings</div>
         <div style="font-size: 0.75rem; color: var(--muted);">Manage your account</div>
       </div>
     </a>
@@ -1388,10 +1391,16 @@ if ($page==='logout'){
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
         Transactions
       </a>
-      <a class="<?php echo $page==='admin'?'active':''; ?>" href="?page=admin">
-        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-        Admin
+      <a class="<?php echo $page==='profile'?'active':''; ?>" href="?page=profile">
+        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+        Profile
       </a>
+      <?php if ($isPracticeAdmin): ?>
+      <a href="/admin/" style="display:flex; align-items:center; gap:0.75rem; padding:0.75rem 1rem; border-radius:var(--radius); color:var(--brand); font-weight:500; font-size:0.875rem; transition:background 0.2s; border-top:1px solid var(--border); margin-top:0.5rem; padding-top:0.75rem;">
+        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+        Practice Admin
+      </a>
+      <?php endif; ?>
     </nav>
 
     <div style="padding:1rem; border-top:1px solid var(--border);">
@@ -1990,7 +1999,7 @@ if ($page==='logout'){
     </div>
   </section>
 
-<?php elseif ($page==='admin'): ?>
+<?php elseif ($page==='profile'): ?>
   <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
     <div class="card p-5 lg:col-span-2">
       <h2 class="text-lg font-semibold mb-3">Business Agreements</h2>
@@ -3005,7 +3014,7 @@ if (<?php echo json_encode($page==='orders'); ?>){
 }
 
 /* ADMIN: change password */
-if (<?php echo json_encode($page==='admin'); ?>){
+if (<?php echo json_encode($page==='profile'); ?>){
   $('#btn-pw').onclick=async()=>{
     const r=await fetch('?action=user.change_password',{method:'POST',body:fd({current:$('#pw-cur').value,new:$('#pw-new').value,confirm:$('#pw-con').value})});
     const j=await r.json(); $('#pw-hint').textContent = j.ok ? 'Password updated.' : (j.error||'Failed to update');
