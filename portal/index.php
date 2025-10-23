@@ -2205,6 +2205,16 @@ const $=s=>document.querySelector(s);
 const fd=o=>{const f=new FormData(); for(const [k,v] of Object.entries(o)) f.append(k,v??''); return f;};
 async function api(q,opts={}){const r=await fetch(`?${q}`,{method:opts.method||'GET',headers:{'Accept':'application/json','X-Requested-With':'fetch'},body:opts.body||null});const t=await r.text();try{return JSON.parse(t);}catch(e){alert('Server error:\n'+t);console.error('Server said:',t);throw e;}}
 
+/* Helper functions - defined early for use throughout */
+function pill(s){ if(!s) return '<span class="pill">—</span>'; const c={active:'pill pill--active',approved:'pill pill--pending',submitted:'pill pill--pending',pending:'pill pill--pending',shipped:'pill',stopped:'pill pill--stopped'}[(s||'').toLowerCase()]||'pill'; return `<span class="${c}" style="text-transform:capitalize">${s}</span>`; }
+function fmt(d){ if(!d) return '—'; return (''+d).slice(0,10); }
+function esc(s){ return (s??'').toString().replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function getInitials(first, last){
+  const f = (first||'').trim()[0]||'';
+  const l = (last||'').trim()[0]||'';
+  return (f+l).toUpperCase() || '?';
+}
+
 /* Metrics (dashboard) */
 if (<?php echo json_encode($page==='dashboard'); ?>) {
   (async()=>{ try{const m=await api('action=metrics'); $('#m-patients').textContent=m.metrics.patients; $('#m-pending').textContent=m.metrics.pending; $('#m-active').textContent=m.metrics.active_orders;}catch(e){} })();
@@ -2317,17 +2327,7 @@ if (<?php echo json_encode($page==='dashboard'); ?>) {
   }
 }
 
-/* Helpers */
-function pill(s){ if(!s) return '<span class="pill">—</span>'; const c={active:'pill pill--active',approved:'pill pill--pending',submitted:'pill pill--pending',pending:'pill pill--pending',shipped:'pill',stopped:'pill pill--stopped'}[(s||'').toLowerCase()]||'pill'; return `<span class="${c}" style="text-transform:capitalize">${s}</span>`; }
-function fmt(d){ if(!d) return '—'; return (''+d).slice(0,10); }
-function esc(s){ return (s??'').toString().replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-
-/* Helper: Generate avatar initials */
-function getInitials(first, last){
-  const f = (first||'').trim()[0]||'';
-  const l = (last||'').trim()[0]||'';
-  return (f+l).toUpperCase() || '?';
-}
+/* Helper functions are now defined at the top of the script block */
 
 /* Helper: Calculate age from DOB */
 function calculateAge(dob){
