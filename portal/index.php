@@ -2632,15 +2632,7 @@ if (<?php echo json_encode($page==='admin'); ?>){
   };
 }
 
-/* Global click -> navigate to full-page patient detail view (no more accordion) */
-document.addEventListener('click', async (e)=>{
-  const btn = e.target.closest('[data-acc]');
-  if (!btn) return;
-  e.preventDefault();
-  const pid = btn.getAttribute('data-acc');
-  // Navigate to full-page patient detail view instead of accordion
-  window.location.href = `?page=patient-detail&id=${encodeURIComponent(pid)}`;
-});
+/* Patient detail navigation is handled by page-specific handler below (line ~3564) */
 
 /* Accordion details */
 async function toggleAccordion(rowEl, patientId, page){
