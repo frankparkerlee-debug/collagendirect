@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: collagendirect
+    runtime: docker
+    plan: starter
+    env: docker
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: 3306
+      - key: DB_NAME
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASS
+        sync: false
+      - key: SENDGRID_API_KEY
+        sync: false
+    healthCheckPath: /portal/health.php
+
+databases:
+  - name: collagendirect-db
+    databaseName: collagen_db
+    plan: starter
