@@ -443,6 +443,7 @@ if ($page==='logout'){
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>CollagenDirect — <?php echo ucfirst($page); ?></title>
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   /* Design Tokens - Healthcare UI */
@@ -888,6 +889,100 @@ if ($page==='logout'){
     background: var(--bg-gray);
   }
 
+  .icon-btn.active {
+    background: var(--brand-light);
+    color: var(--brand-dark);
+  }
+
+  /* Dropdown Menu Styles */
+  .dropdown {
+    position: relative;
+  }
+
+  .dropdown-menu {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    min-width: 320px;
+    max-height: 480px;
+    overflow-y: auto;
+    z-index: 50;
+    display: none;
+  }
+
+  .dropdown-menu.show {
+    display: block;
+  }
+
+  .dropdown-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .dropdown-header h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .dropdown-body {
+    padding: 0.5rem 0;
+  }
+
+  .dropdown-item {
+    padding: 0.75rem 1.25rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-bottom: 1px solid var(--bg-gray);
+  }
+
+  .dropdown-item:hover {
+    background: var(--bg-gray);
+  }
+
+  .dropdown-item:last-child {
+    border-bottom: none;
+  }
+
+  .dropdown-footer {
+    padding: 0.75rem 1.25rem;
+    border-top: 1px solid var(--border);
+    text-align: center;
+  }
+
+  .dropdown-footer button {
+    color: var(--brand);
+    font-weight: 500;
+    font-size: 0.875rem;
+  }
+
+  /* Notification Badge */
+  .notification-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: var(--error);
+    color: white;
+    border-radius: 9999px;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.625rem;
+    font-weight: 600;
+  }
+
   .content-area {
     flex: 1;
     padding: 2rem;
@@ -928,6 +1023,18 @@ if ($page==='logout'){
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
         Orders
       </a>
+      <a class="<?php echo $page==='messages'?'active':''; ?>" href="?page=messages">
+        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+        Messages
+      </a>
+      <a class="<?php echo $page==='billing'?'active':''; ?>" href="?page=billing">
+        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+        Billing
+      </a>
+      <a class="<?php echo $page==='transactions'?'active':''; ?>" href="?page=transactions">
+        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+        Transactions
+      </a>
       <a class="<?php echo $page==='admin'?'active':''; ?>" href="?page=admin">
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
         Admin
@@ -947,15 +1054,84 @@ if ($page==='logout'){
     <div class="top-bar">
       <h1 class="top-bar-title"><?php echo ucfirst($page); ?></h1>
       <div class="top-bar-actions">
-        <button class="icon-btn">
+        <!-- Search Button -->
+        <button class="icon-btn" id="search-btn">
           <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
         </button>
-        <button class="icon-btn">
-          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-        </button>
-        <button class="icon-btn">
-          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-        </button>
+
+        <!-- Notifications Dropdown -->
+        <div class="dropdown">
+          <button class="icon-btn" id="notifications-btn" style="position: relative;">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+            <span class="notification-badge" id="notification-count">4</span>
+          </button>
+          <div class="dropdown-menu" id="notifications-menu">
+            <div class="dropdown-header">
+              <h3>Notifications <span style="color: var(--muted); font-weight: 400;">4</span></h3>
+              <button class="icon-btn" style="width: 32px; height: 32px;">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+              </button>
+            </div>
+            <div style="padding: 0.5rem 1.25rem; border-bottom: 1px solid var(--border);">
+              <div style="display: flex; gap: 1rem; font-size: 0.875rem;">
+                <button style="padding: 0.5rem 0; color: var(--brand); border-bottom: 2px solid var(--brand); font-weight: 500;">All</button>
+                <button style="padding: 0.5rem 0; color: var(--muted);">Doctor</button>
+                <button style="padding: 0.5rem 0; color: var(--muted);">Patient</button>
+              </div>
+            </div>
+            <div class="dropdown-body" id="notifications-list">
+              <!-- Notifications will be populated by JS -->
+            </div>
+            <div class="dropdown-footer">
+              <button class="btn btn-ghost">Mark all as read</button>
+              <button class="btn btn-primary" style="margin-left: 0.5rem;">View All</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Profile Dropdown -->
+        <div class="dropdown">
+          <button class="icon-btn" id="profile-btn">
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--brand); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.75rem;">
+              <?php echo strtoupper(substr($user['first_name'] ?? 'U', 0, 1) . substr($user['last_name'] ?? 'S', 0, 1)); ?>
+            </div>
+          </button>
+          <div class="dropdown-menu" id="profile-menu" style="min-width: 240px;">
+            <div class="dropdown-header">
+              <div>
+                <div style="font-weight: 600; color: var(--ink);"><?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?></div>
+                <div style="font-size: 0.75rem; color: var(--muted);"><?php echo htmlspecialchars($user['email']); ?></div>
+              </div>
+            </div>
+            <div class="dropdown-body">
+              <a href="?page=admin" class="dropdown-item">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                <div>
+                  <div style="font-weight: 500; color: var(--ink);">Account profile</div>
+                  <div style="font-size: 0.75rem; color: var(--muted);">Manage your account</div>
+                </div>
+              </a>
+              <a href="#" class="dropdown-item">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <div>
+                  <div style="font-weight: 500; color: var(--ink);">Information</div>
+                  <div style="font-size: 0.75rem; color: var(--muted);">About this app</div>
+                </div>
+              </a>
+              <a href="#" class="dropdown-item">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                <div>
+                  <div style="font-weight: 500; color: var(--ink);">Notification</div>
+                  <div style="font-size: 0.75rem; color: var(--muted);">Notification settings</div>
+                </div>
+              </a>
+              <a href="?page=logout" class="dropdown-item" style="border-top: 1px solid var(--border); margin-top: 0.5rem; padding-top: 0.75rem; color: var(--error);">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                <div style="font-weight: 500;">Log out</div>
+              </a>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1045,12 +1221,8 @@ if ($page==='logout'){
         <option>Weekly</option>
       </select>
     </div>
-    <div style="height: 300px; display: flex; align-items: center; justify-content: center; background: var(--bg-gray); border-radius: var(--radius); color: var(--muted);">
-      <div class="text-center">
-        <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin: 0 auto 1rem;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-        <p>Chart visualization</p>
-        <p class="text-xs">Patient growth over time</p>
-      </div>
+    <div style="height: 300px; padding: 1rem;">
+      <canvas id="patientChart"></canvas>
     </div>
   </section>
 
@@ -1136,6 +1308,357 @@ if ($page==='logout'){
         </thead>
         <tbody id="orders-tb"></tbody>
       </table>
+    </div>
+  </section>
+
+<?php elseif ($page==='messages'): ?>
+  <section class="card p-5">
+    <div class="flex items-center gap-3 mb-4">
+      <h2 class="text-lg font-semibold">Messages</h2>
+      <div class="ml-auto flex gap-2">
+        <input id="msg-search" class="w-full sm:w-80" placeholder="Search messages…">
+        <button class="btn btn-primary" id="btn-compose" type="button">
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right: 0.5rem;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+          Compose
+        </button>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 320px 1fr; gap: 1rem; min-height: 600px;">
+      <!-- Message List -->
+      <div style="border-right: 1px solid var(--border); overflow-y: auto;">
+        <div style="padding: 0.5rem 0;">
+          <button style="width: 100%; text-align: left; padding: 0.75rem; border-bottom: 1px solid var(--border); background: #f0fdfa; border-left: 3px solid var(--brand);">
+            <div style="display: flex; align-items: start; gap: 0.75rem;">
+              <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--brand); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.875rem; flex-shrink: 0;">JS</div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                  <div style="font-weight: 600; font-size: 0.875rem; color: var(--ink);">John Smith</div>
+                  <div style="font-size: 0.75rem; color: var(--muted);">2h</div>
+                </div>
+                <div style="font-size: 0.875rem; color: var(--ink); font-weight: 500; margin-bottom: 0.25rem;">Patient Records Update</div>
+                <div style="font-size: 0.75rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">I've uploaded the latest lab results...</div>
+              </div>
+            </div>
+          </button>
+          <button style="width: 100%; text-align: left; padding: 0.75rem; border-bottom: 1px solid var(--border);">
+            <div style="display: flex; align-items: start; gap: 0.75rem;">
+              <div style="width: 40px; height: 40px; border-radius: 50%; background: #94a3b8; color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.875rem; flex-shrink: 0;">MW</div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                  <div style="font-weight: 500; font-size: 0.875rem; color: var(--ink);">Mary Wilson</div>
+                  <div style="font-size: 0.75rem; color: var(--muted);">1d</div>
+                </div>
+                <div style="font-size: 0.875rem; color: var(--muted); margin-bottom: 0.25rem;">Order Confirmation</div>
+                <div style="font-size: 0.75rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Thank you for your order #12345...</div>
+              </div>
+            </div>
+          </button>
+          <button style="width: 100%; text-align: left; padding: 0.75rem; border-bottom: 1px solid var(--border);">
+            <div style="display: flex; align-items: start; gap: 0.75rem;">
+              <div style="width: 40px; height: 40px; border-radius: 50%; background: #94a3b8; color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.875rem; flex-shrink: 0;">RJ</div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                  <div style="font-weight: 500; font-size: 0.875rem; color: var(--ink);">Robert Johnson</div>
+                  <div style="font-size: 0.75rem; color: var(--muted);">3d</div>
+                </div>
+                <div style="font-size: 0.875rem; color: var(--muted); margin-bottom: 0.25rem;">Insurance Documents</div>
+                <div style="font-size: 0.75rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Documents have been uploaded successfully...</div>
+              </div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Message Thread -->
+      <div style="display: flex; flex-direction: column;">
+        <div style="padding: 1rem; border-bottom: 1px solid var(--border);">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--brand); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600;">JS</div>
+            <div>
+              <div style="font-weight: 600; color: var(--ink);">John Smith</div>
+              <div style="font-size: 0.75rem; color: var(--muted);">Patient ID: 12345</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="flex: 1; overflow-y: auto; padding: 1.5rem; background: #f8fafc;">
+          <div style="margin-bottom: 1.5rem;">
+            <div style="display: flex; gap: 0.75rem;">
+              <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--brand); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.75rem; flex-shrink: 0;">JS</div>
+              <div style="flex: 1;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                  <span style="font-weight: 600; font-size: 0.875rem;">John Smith</span>
+                  <span style="font-size: 0.75rem; color: var(--muted);">2 hours ago</span>
+                </div>
+                <div style="background: white; padding: 1rem; border-radius: var(--radius-lg); border: 1px solid var(--border); font-size: 0.875rem; line-height: 1.5;">
+                  Hi Dr. <?php echo htmlspecialchars($user['last_name']); ?>,<br><br>
+                  I've uploaded the latest lab results for my recent checkup. Could you please review them when you have a chance?<br><br>
+                  Thank you!
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 1.5rem;">
+            <div style="display: flex; gap: 0.75rem; flex-direction: row-reverse;">
+              <div style="width: 32px; height: 32px; border-radius: 50%; background: #94a3b8; color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.75rem; flex-shrink: 0;">
+                <?php echo strtoupper(substr($user['first_name'] ?? 'U', 0, 1) . substr($user['last_name'] ?? 'S', 0, 1)); ?>
+              </div>
+              <div style="flex: 1; text-align: right;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem; justify-content: flex-end;">
+                  <span style="font-size: 0.75rem; color: var(--muted);">1 hour ago</span>
+                  <span style="font-weight: 600; font-size: 0.875rem;">You</span>
+                </div>
+                <div style="background: var(--brand); color: white; padding: 1rem; border-radius: var(--radius-lg); font-size: 0.875rem; line-height: 1.5; display: inline-block; text-align: left;">
+                  Hi John,<br><br>
+                  I've reviewed your lab results. Everything looks good! Let's schedule a follow-up appointment next month.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="padding: 1rem; border-top: 1px solid var(--border); background: white;">
+          <div style="display: flex; gap: 0.75rem; align-items: end;">
+            <textarea id="msg-reply" placeholder="Type your message..." style="flex: 1; min-height: 80px; resize: vertical; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.875rem;"></textarea>
+            <button class="btn btn-primary" style="height: fit-content;">
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+<?php elseif ($page==='billing'): ?>
+  <section class="card p-5">
+    <div class="flex items-center gap-3 mb-4">
+      <h2 class="text-lg font-semibold">Billing & Invoices</h2>
+      <div class="ml-auto flex gap-2">
+        <input id="bill-search" class="w-full sm:w-80" placeholder="Search invoices…">
+        <select id="bill-filter">
+          <option value="">All Status</option>
+          <option value="paid">Paid</option>
+          <option value="pending">Pending</option>
+          <option value="overdue">Overdue</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="border-b">
+          <tr class="text-left">
+            <th class="py-2">Invoice #</th>
+            <th class="py-2">Date</th>
+            <th class="py-2">Patient</th>
+            <th class="py-2">Description</th>
+            <th class="py-2">Amount</th>
+            <th class="py-2">Status</th>
+            <th class="py-2">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="border-b hover:bg-slate-50">
+            <td class="py-3"><span class="font-mono text-brand">#INV-2024-001</span></td>
+            <td class="py-3">Jan 15, 2024</td>
+            <td class="py-3">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--brand); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.75rem;">JS</div>
+                John Smith
+              </div>
+            </td>
+            <td class="py-3">Wound Care - CollagenBand Classic</td>
+            <td class="py-3 font-semibold">$450.00</td>
+            <td class="py-3"><span class="pill pill--pending">Paid</span></td>
+            <td class="py-3">
+              <button class="btn btn-ghost" style="padding: 0.375rem 0.75rem; font-size: 0.75rem;">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right: 0.25rem;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                Download
+              </button>
+            </td>
+          </tr>
+          <tr class="border-b hover:bg-slate-50">
+            <td class="py-3"><span class="font-mono text-brand">#INV-2024-002</span></td>
+            <td class="py-3">Jan 18, 2024</td>
+            <td class="py-3">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <div style="width: 32px; height: 32px; border-radius: 50%; background: #94a3b8; color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.75rem;">MW</div>
+                Mary Wilson
+              </div>
+            </td>
+            <td class="py-3">Wound Care - CollagenBand Plus</td>
+            <td class="py-3 font-semibold">$650.00</td>
+            <td class="py-3"><span class="pill" style="background: #fef3c7; color: #92400e;">Pending</span></td>
+            <td class="py-3">
+              <button class="btn btn-ghost" style="padding: 0.375rem 0.75rem; font-size: 0.75rem;">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right: 0.25rem;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                View
+              </button>
+            </td>
+          </tr>
+          <tr class="border-b hover:bg-slate-50">
+            <td class="py-3"><span class="font-mono text-brand">#INV-2024-003</span></td>
+            <td class="py-3">Jan 20, 2024</td>
+            <td class="py-3">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <div style="width: 32px; height: 32px; border-radius: 50%; background: #94a3b8; color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.75rem;">RJ</div>
+                Robert Johnson
+              </div>
+            </td>
+            <td class="py-3">Wound Care - CollagenBand Premium</td>
+            <td class="py-3 font-semibold">$850.00</td>
+            <td class="py-3"><span class="pill pill--stopped">Overdue</span></td>
+            <td class="py-3">
+              <button class="btn btn-primary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem;">Send Reminder</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+        <div style="padding: 1rem; background: #f0fdfa; border-radius: var(--radius-lg); border: 1px solid #99f6e4;">
+          <div style="font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem;">Total Billed</div>
+          <div style="font-size: 1.5rem; font-weight: 600; color: var(--ink);">$12,450.00</div>
+        </div>
+        <div style="padding: 1rem; background: #f0fdf4; border-radius: var(--radius-lg); border: 1px solid #bbf7d0;">
+          <div style="font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem;">Paid</div>
+          <div style="font-size: 1.5rem; font-weight: 600; color: #16a34a;">$8,900.00</div>
+        </div>
+        <div style="padding: 1rem; background: #fef3c7; border-radius: var(--radius-lg); border: 1px solid #fde68a;">
+          <div style="font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem;">Pending</div>
+          <div style="font-size: 1.5rem; font-weight: 600; color: #92400e;">$2,700.00</div>
+        </div>
+        <div style="padding: 1rem; background: #fee2e2; border-radius: var(--radius-lg); border: 1px solid #fecaca;">
+          <div style="font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem;">Overdue</div>
+          <div style="font-size: 1.5rem; font-weight: 600; color: #dc2626;">$850.00</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+<?php elseif ($page==='transactions'): ?>
+  <section class="card p-5">
+    <div class="flex items-center gap-3 mb-4">
+      <h2 class="text-lg font-semibold">Transaction History</h2>
+      <div class="ml-auto flex gap-2">
+        <input id="txn-search" class="w-full sm:w-80" placeholder="Search transactions…">
+        <select id="txn-filter">
+          <option value="">All Types</option>
+          <option value="payment">Payment</option>
+          <option value="refund">Refund</option>
+          <option value="invoice">Invoice</option>
+        </select>
+        <button class="btn btn-ghost">
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right: 0.5rem;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+          Export CSV
+        </button>
+      </div>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="border-b">
+          <tr class="text-left">
+            <th class="py-2">Transaction ID</th>
+            <th class="py-2">Date & Time</th>
+            <th class="py-2">Type</th>
+            <th class="py-2">Patient</th>
+            <th class="py-2">Invoice #</th>
+            <th class="py-2">Payment Method</th>
+            <th class="py-2">Amount</th>
+            <th class="py-2">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="border-b hover:bg-slate-50">
+            <td class="py-3"><span class="font-mono text-xs">txn_9k3j2h1g4f</span></td>
+            <td class="py-3">Jan 15, 2024<br><span class="text-xs text-slate-500">10:34 AM</span></td>
+            <td class="py-3"><span class="pill" style="background: #dcfce7; color: #166534;">Payment</span></td>
+            <td class="py-3">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--brand); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.75rem;">JS</div>
+                John Smith
+              </div>
+            </td>
+            <td class="py-3"><span class="font-mono text-brand">#INV-2024-001</span></td>
+            <td class="py-3">
+              <div style="display: flex; align-items: center; gap: 0.375rem;">
+                <svg width="24" height="16" viewBox="0 0 24 16" fill="none"><rect width="24" height="16" rx="2" fill="#1434CB"/><rect x="12" y="4" width="8" height="8" rx="4" fill="#EB001B"/><rect x="4" y="4" width="8" height="8" rx="4" fill="#FF5F00"/></svg>
+                Mastercard •••• 4242
+              </div>
+            </td>
+            <td class="py-3 font-semibold text-green-600">+$450.00</td>
+            <td class="py-3"><span class="pill pill--pending">Success</span></td>
+          </tr>
+          <tr class="border-b hover:bg-slate-50">
+            <td class="py-3"><span class="font-mono text-xs">txn_8h2g1f9k3j</span></td>
+            <td class="py-3">Jan 14, 2024<br><span class="text-xs text-slate-500">3:22 PM</span></td>
+            <td class="py-3"><span class="pill" style="background: #e0e7ff; color: #3730a3;">Invoice</span></td>
+            <td class="py-3">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <div style="width: 32px; height: 32px; border-radius: 50%; background: #94a3b8; color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.75rem;">MW</div>
+                Mary Wilson
+              </div>
+            </td>
+            <td class="py-3"><span class="font-mono text-brand">#INV-2024-002</span></td>
+            <td class="py-3">—</td>
+            <td class="py-3 font-semibold">$650.00</td>
+            <td class="py-3"><span class="pill" style="background: #fef3c7; color: #92400e;">Pending</span></td>
+          </tr>
+          <tr class="border-b hover:bg-slate-50">
+            <td class="py-3"><span class="font-mono text-xs">txn_7g1f8k2h9j</span></td>
+            <td class="py-3">Jan 12, 2024<br><span class="text-xs text-slate-500">11:15 AM</span></td>
+            <td class="py-3"><span class="pill" style="background: #ffe4e6; color: #9f1239;">Refund</span></td>
+            <td class="py-3">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <div style="width: 32px; height: 32px; border-radius: 50%; background: #94a3b8; color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.75rem;">SB</div>
+                Sarah Brown
+              </div>
+            </td>
+            <td class="py-3"><span class="font-mono text-brand">#INV-2023-987</span></td>
+            <td class="py-3">
+              <div style="display: flex; align-items: center; gap: 0.375rem;">
+                <svg width="24" height="16" viewBox="0 0 24 16" fill="none"><rect width="24" height="16" rx="2" fill="#0066CC"/></svg>
+                Visa •••• 1234
+              </div>
+            </td>
+            <td class="py-3 font-semibold text-red-600">-$125.00</td>
+            <td class="py-3"><span class="pill pill--pending">Success</span></td>
+          </tr>
+          <tr class="border-b hover:bg-slate-50">
+            <td class="py-3"><span class="font-mono text-xs">txn_6f9h1k7g2j</span></td>
+            <td class="py-3">Jan 10, 2024<br><span class="text-xs text-slate-500">9:45 AM</span></td>
+            <td class="py-3"><span class="pill" style="background: #dcfce7; color: #166534;">Payment</span></td>
+            <td class="py-3">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <div style="width: 32px; height: 32px; border-radius: 50%; background: #94a3b8; color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.75rem;">RJ</div>
+                Robert Johnson
+              </div>
+            </td>
+            <td class="py-3"><span class="font-mono text-brand">#INV-2023-985</span></td>
+            <td class="py-3">
+              <div style="display: flex; align-items: center; gap: 0.375rem;">
+                <svg width="24" height="16" viewBox="0 0 24 16" fill="none"><rect width="24" height="16" rx="2" fill="#002D72"/></svg>
+                Amex •••• 9876
+              </div>
+            </td>
+            <td class="py-3 font-semibold text-green-600">+$750.00</td>
+            <td class="py-3"><span class="pill pill--pending">Success</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+      <div style="font-size: 0.875rem; color: var(--muted);">Showing 4 of 247 transactions</div>
+      <div style="display: flex; gap: 0.5rem;">
+        <button class="btn btn-ghost" disabled style="opacity: 0.5;">Previous</button>
+        <button class="btn btn-ghost">Next</button>
+      </div>
     </div>
   </section>
 
@@ -1426,6 +1949,113 @@ async function api(q,opts={}){const r=await fetch(`?${q}`,{method:opts.method||'
 /* Metrics (dashboard) */
 if (<?php echo json_encode($page==='dashboard'); ?>) {
   (async()=>{ try{const m=await api('action=metrics'); $('#m-patients').textContent=m.metrics.patients; $('#m-pending').textContent=m.metrics.pending; $('#m-active').textContent=m.metrics.active_orders;}catch(e){} })();
+
+  // Initialize Chart.js for patient growth visualization
+  const ctx = document.getElementById('patientChart');
+  if (ctx) {
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+        datasets: [{
+          label: 'New Patients',
+          data: [12, 19, 15, 25, 22, 30, 35, 42, 38, 45, 50, 58],
+          borderColor: '#4DB8A8',
+          backgroundColor: 'rgba(77, 184, 168, 0.1)',
+          tension: 0.4,
+          fill: true,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: '#4DB8A8',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2
+        }, {
+          label: 'Active Orders',
+          data: [8, 12, 10, 18, 15, 22, 25, 30, 28, 35, 38, 42],
+          borderColor: '#10B981',
+          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+          tension: 0.4,
+          fill: true,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: '#10B981',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            align: 'end',
+            labels: {
+              usePointStyle: true,
+              padding: 15,
+              font: {
+                family: 'Inter',
+                size: 12
+              }
+            }
+          },
+          tooltip: {
+            backgroundColor: '#1F2937',
+            titleFont: {
+              family: 'Inter',
+              size: 13
+            },
+            bodyFont: {
+              family: 'Inter',
+              size: 12
+            },
+            padding: 12,
+            cornerRadius: 8,
+            displayColors: true,
+            callbacks: {
+              label: function(context) {
+                return context.dataset.label + ': ' + context.parsed.y + ' patients';
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              font: {
+                family: 'Inter',
+                size: 11
+              },
+              color: '#9CA3AF'
+            },
+            grid: {
+              color: '#E5E7EB',
+              drawBorder: false
+            }
+          },
+          x: {
+            ticks: {
+              font: {
+                family: 'Inter',
+                size: 11
+              },
+              color: '#9CA3AF'
+            },
+            grid: {
+              display: false,
+              drawBorder: false
+            }
+          }
+        },
+        interaction: {
+          intersect: false,
+          mode: 'index'
+        }
+      }
+    });
+  }
 }
 
 /* Helpers */
@@ -1456,6 +2086,118 @@ function formatDate(date){
   if(!date) return '-';
   const d = new Date(date);
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+/* Dropdown functionality */
+document.addEventListener('DOMContentLoaded', () => {
+  const notificationsBtn = document.getElementById('notifications-btn');
+  const notificationsMenu = document.getElementById('notifications-menu');
+  const profileBtn = document.getElementById('profile-btn');
+  const profileMenu = document.getElementById('profile-menu');
+
+  // Toggle notifications dropdown
+  if (notificationsBtn) {
+    notificationsBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      notificationsMenu.classList.toggle('show');
+      if (profileMenu) profileMenu.classList.remove('show');
+    });
+  }
+
+  // Toggle profile dropdown
+  if (profileBtn) {
+    profileBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      profileMenu.classList.toggle('show');
+      if (notificationsMenu) notificationsMenu.classList.remove('show');
+    });
+  }
+
+  // Close dropdowns when clicking outside
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.dropdown-menu').forEach(menu => {
+      menu.classList.remove('show');
+    });
+  });
+
+  // Prevent dropdown menus from closing when clicking inside them
+  document.querySelectorAll('.dropdown-menu').forEach(menu => {
+    menu.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+  });
+
+  // Populate notifications
+  populateNotifications();
+});
+
+/* Populate notification dropdown */
+function populateNotifications() {
+  const notificationsList = document.getElementById('notifications-list');
+  if (!notificationsList) return;
+
+  const notifications = [
+    {
+      type: 'patient',
+      avatar: 'JS',
+      name: 'John Smith',
+      action: 'submitted new patient records',
+      time: '2 hours ago',
+      unread: true,
+      hasActions: true
+    },
+    {
+      type: 'order',
+      avatar: 'MW',
+      name: 'Mary Wilson',
+      action: 'order #12345 has been shipped',
+      time: '5 hours ago',
+      unread: true,
+      hasActions: false
+    },
+    {
+      type: 'patient',
+      avatar: 'RJ',
+      name: 'Robert Johnson',
+      action: 'uploaded new insurance documents',
+      time: '1 day ago',
+      unread: false,
+      hasActions: true
+    },
+    {
+      type: 'system',
+      avatar: 'SY',
+      name: 'System',
+      action: 'Monthly report is ready for review',
+      time: '2 days ago',
+      unread: false,
+      hasActions: false
+    }
+  ];
+
+  notificationsList.innerHTML = notifications.map(notif => `
+    <div class="dropdown-item" style="display: block; padding: 1rem 1.25rem; ${notif.unread ? 'background: #f0fdfa;' : ''}">
+      <div style="display: flex; gap: 0.75rem;">
+        <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--brand); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.875rem; flex-shrink: 0;">
+          ${notif.avatar}
+        </div>
+        <div style="flex: 1; min-width: 0;">
+          <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.25rem;">
+            <div style="font-weight: 500; color: var(--ink);">${notif.name}</div>
+            ${notif.unread ? '<div style="width: 8px; height: 8px; border-radius: 50%; background: var(--brand); flex-shrink: 0; margin-top: 0.375rem;"></div>' : ''}
+          </div>
+          <div style="font-size: 0.875rem; color: var(--muted); margin-bottom: 0.25rem;">${notif.action}</div>
+          <div style="font-size: 0.75rem; color: var(--muted);">${notif.time}</div>
+          ${notif.hasActions ? `
+            <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
+              <button class="btn btn-primary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem;">Approve</button>
+              <button class="btn btn-ghost" style="padding: 0.375rem 0.75rem; font-size: 0.75rem;">Reject</button>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    </div>
+  `).join('');
 }
 
 /* DASHBOARD table (view-only) */
