@@ -1307,6 +1307,43 @@ if ($page==='logout'){
 <!-- Mobile Overlay -->
 <div class="mobile-overlay" id="mobile-overlay"></div>
 
+<!-- Profile Dropdown Menu (triggered from sidebar) -->
+<div class="dropdown-menu" id="profile-menu" style="min-width: 240px; position: fixed; top: auto; left: auto; z-index: 1001;">
+  <div class="dropdown-header">
+    <div>
+      <div style="font-weight: 600; color: var(--ink);"><?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?></div>
+      <div style="font-size: 0.75rem; color: var(--muted);"><?php echo htmlspecialchars($user['email']); ?></div>
+    </div>
+  </div>
+  <div class="dropdown-body">
+    <a href="?page=admin" class="dropdown-item">
+      <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+      <div>
+        <div style="font-weight: 500; color: var(--ink);">Account profile</div>
+        <div style="font-size: 0.75rem; color: var(--muted);">Manage your account</div>
+      </div>
+    </a>
+    <a href="#" class="dropdown-item">
+      <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+      <div>
+        <div style="font-weight: 500; color: var(--ink);">Information</div>
+        <div style="font-size: 0.75rem; color: var(--muted);">About this app</div>
+      </div>
+    </a>
+    <a href="#" class="dropdown-item">
+      <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+      <div>
+        <div style="font-weight: 500; color: var(--ink);">Notification</div>
+        <div style="font-size: 0.75rem; color: var(--muted);">Notification settings</div>
+      </div>
+    </a>
+    <a href="?page=logout" class="dropdown-item" style="border-top: 1px solid var(--border); margin-top: 0.5rem; padding-top: 0.75rem; color: var(--error);">
+      <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+      <div style="font-weight: 500;">Log out</div>
+    </a>
+  </div>
+</div>
+
 <div class="app-container">
   <!-- Sidebar -->
   <aside class="sidebar">
@@ -1401,50 +1438,6 @@ if ($page==='logout'){
             <div class="dropdown-footer">
               <button class="btn btn-ghost">Mark all as read</button>
               <button class="btn btn-primary" style="margin-left: 0.5rem;">View All</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Profile Dropdown -->
-        <div class="dropdown">
-          <button class="icon-btn" id="profile-btn">
-            <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--brand); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.75rem;">
-              <?php echo strtoupper(substr($user['first_name'] ?? 'U', 0, 1) . substr($user['last_name'] ?? 'S', 0, 1)); ?>
-            </div>
-          </button>
-          <div class="dropdown-menu" id="profile-menu" style="min-width: 240px;">
-            <div class="dropdown-header">
-              <div>
-                <div style="font-weight: 600; color: var(--ink);"><?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?></div>
-                <div style="font-size: 0.75rem; color: var(--muted);"><?php echo htmlspecialchars($user['email']); ?></div>
-              </div>
-            </div>
-            <div class="dropdown-body">
-              <a href="?page=admin" class="dropdown-item">
-                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                <div>
-                  <div style="font-weight: 500; color: var(--ink);">Account profile</div>
-                  <div style="font-size: 0.75rem; color: var(--muted);">Manage your account</div>
-                </div>
-              </a>
-              <a href="#" class="dropdown-item">
-                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                <div>
-                  <div style="font-weight: 500; color: var(--ink);">Information</div>
-                  <div style="font-size: 0.75rem; color: var(--muted);">About this app</div>
-                </div>
-              </a>
-              <a href="#" class="dropdown-item">
-                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-                <div>
-                  <div style="font-weight: 500; color: var(--ink);">Notification</div>
-                  <div style="font-size: 0.75rem; color: var(--muted);">Notification settings</div>
-                </div>
-              </a>
-              <a href="?page=logout" class="dropdown-item" style="border-top: 1px solid var(--border); margin-top: 0.5rem; padding-top: 0.75rem; color: var(--error);">
-                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                <div style="font-weight: 500;">Log out</div>
-              </a>
             </div>
           </div>
         </div>
@@ -2743,14 +2736,17 @@ document.addEventListener('DOMContentLoaded', () => {
   // Function to toggle profile menu
   const toggleProfileMenu = (e) => {
     e.stopPropagation();
+
+    // Position dropdown near the sidebar profile trigger
+    if (sidebarProfileTrigger && profileMenu) {
+      const rect = sidebarProfileTrigger.getBoundingClientRect();
+      profileMenu.style.top = (rect.bottom + 8) + 'px';
+      profileMenu.style.left = rect.left + 'px';
+    }
+
     profileMenu.classList.toggle('show');
     if (notificationsMenu) notificationsMenu.classList.remove('show');
   };
-
-  // Toggle profile dropdown from header button
-  if (profileBtn) {
-    profileBtn.addEventListener('click', toggleProfileMenu);
-  }
 
   // Toggle profile dropdown from sidebar user profile
   if (sidebarProfileTrigger) {
