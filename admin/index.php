@@ -6,6 +6,14 @@ require_once __DIR__ . '/db.php';
 $bootstrap = __DIR__.'/_bootstrap.php'; if (is_file($bootstrap)) require_once $bootstrap;
 $auth      = __DIR__ . '/auth.php'; if (is_file($auth) && function_exists('require_admin')) require_admin();
 
+// Handle context switching
+if (isset($_GET['context'])) {
+  $context = $_GET['context'] === 'platform' ? 'platform' : 'practice';
+  $_SESSION['admin_context'] = $context;
+  header('Location: /admin/index.php');
+  exit;
+}
+
 /* ---------- helpers ---------- */
 if (!function_exists('str_contains')) {
   function str_contains($h,$n){ return $n===''?true:strpos((string)$h,(string)$n)!==false; }
