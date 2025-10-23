@@ -19,9 +19,3 @@ services:
       - key: SENDGRID_API_KEY
         sync: false
     healthCheckPath: /portal/health.php
-
-databases:
-  - name: collagendirect-db
-    databaseName: collagen_db
-    plan: free
-    ipAllowList: []
