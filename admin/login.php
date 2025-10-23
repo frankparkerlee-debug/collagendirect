@@ -46,26 +46,136 @@ if ($cnt === 0) {
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin Login — CollagenHealth</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Admin Login — CollagenDirect</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --brand: #4DB8A8;
+      --brand-dark: #3A9688;
+      --brand-light: #E0F5F2;
+      --ink: #1F2937;
+      --ink-light: #6B7280;
+      --muted: #9CA3AF;
+      --bg-gray: #F9FAFB;
+      --bg-sidebar: #F6F6F6;
+      --border: #E5E7EB;
+      --border-sidebar: #E8E8E9;
+      --ring: rgba(77, 184, 168, 0.2);
+      --radius: 0.5rem;
+      --error: #EF4444;
+      --error-light: #FEE2E2;
+      --warning: #F59E0B;
+      --warning-light: #FEF3C7;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      background: #ffffff;
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+    }
+    .container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    .form-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 2rem;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+      color: var(--ink);
+    }
+    .subtitle {
+      font-size: 0.875rem;
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+    }
+    .alert {
+      padding: 0.75rem;
+      border-radius: var(--radius);
+      margin-bottom: 1rem;
+      font-size: 0.875rem;
+    }
+    .alert-warning {
+      background: var(--warning-light);
+      border: 1px solid var(--warning);
+      color: #92400E;
+    }
+    .alert-error {
+      background: var(--error-light);
+      border: 1px solid var(--error);
+      color: #991B1B;
+    }
+    label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      color: var(--ink);
+    }
+    input {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.5rem 0.75rem;
+      font-size: 0.875rem;
+      margin-bottom: 1rem;
+      font-family: inherit;
+      transition: all 0.15s ease;
+    }
+    input:focus {
+      outline: none;
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px var(--ring);
+    }
+    button {
+      width: 100%;
+      background: var(--brand);
+      color: white;
+      font-weight: 600;
+      border-radius: var(--radius);
+      padding: 0.625rem 1rem;
+      font-size: 0.875rem;
+      border: none;
+      cursor: pointer;
+      transition: background 0.15s ease;
+      font-family: inherit;
+    }
+    button:hover {
+      background: var(--brand-dark);
+    }
+  </style>
 </head>
-<body class="bg-gray-50">
-  <div class="min-h-screen flex items-center justify-center p-6">
-    <form method="post" class="bg-white border rounded-xl shadow p-6 w-full max-w-sm">
-      <h1 class="text-xl font-semibold mb-1">Admin Login</h1>
-      <p class="text-sm text-slate-500 mb-4">Use your employee credentials.</p>
+<body>
+  <div class="container">
+    <form method="post" class="form-card">
+      <h1>Admin Login</h1>
+      <p class="subtitle">Use your employee credentials.</p>
       <?php echo csrf_field(); ?>
       <?php if (!empty($bootnote)): ?>
-        <div class="text-xs bg-amber-50 border border-amber-200 text-amber-800 rounded p-2 mb-2"><?php echo e($bootnote); ?></div>
+        <div class="alert alert-warning"><?php echo e($bootnote); ?></div>
       <?php endif; ?>
       <?php if ($err): ?>
-        <div class="text-sm bg-red-50 border border-red-200 text-red-700 rounded p-2 mb-3"><?php echo e($err); ?></div>
+        <div class="alert alert-error"><?php echo e($err); ?></div>
       <?php endif; ?>
-      <label class="block text-sm mb-1">Email</label>
-      <input class="w-full border rounded px-3 py-2 mb-3" type="email" name="email" required/>
-      <label class="block text-sm mb-1">Password</label>
-      <input class="w-full border rounded px-3 py-2 mb-4" type="password" name="password" required/>
-      <button class="w-full bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded px-3 py-2">Sign In</button>
+      <label>Email</label>
+      <input type="email" name="email" required autofocus/>
+      <label>Password</label>
+      <input type="password" name="password" required/>
+      <button type="submit">Sign In</button>
     </form>
   </div>
 </body>
