@@ -3220,16 +3220,16 @@ function renderPatientDetailPage(p, orders, isEditing) {
     return `${years} years ${months} month`;
   };
 
-  // Left column - Patient profile
+  // Left column - Patient profile with insurance PRIORITIZED
   const leftColumn = `
     <div class="card p-6">
       <!-- Patient Profile Header with Avatar -->
       <div class="text-center mb-6">
-        <div class="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white text-3xl font-bold shadow-lg">
+        <div class="w-20 h-20 mx-auto mb-3 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg">
           ${(p.first_name||'').charAt(0).toUpperCase()}${(p.last_name||'').charAt(0).toUpperCase()}
         </div>
-        <h2 class="text-2xl font-bold mb-2">${esc(p.first_name||'')} ${esc(p.last_name||'')}</h2>
-        <div class="text-slate-500 text-sm flex items-center justify-center gap-3">
+        <h2 class="text-xl font-bold mb-1">${esc(p.first_name||'')} ${esc(p.last_name||'')}</h2>
+        <div class="text-slate-500 text-xs flex items-center justify-center gap-2">
           <span>${esc(p.sex||'Female')}</span>
           <span>•</span>
           <span>#${esc(p.mrn||'N/A')}</span>
@@ -3240,40 +3240,46 @@ function renderPatientDetailPage(p, orders, isEditing) {
 
       ${!isEditing ? `
         <!-- View Mode - Action Buttons -->
-        <div class="flex gap-2 mb-6">
-          <a href="?page=patient-edit&id=${esc(p.id)}" class="btn flex-1 text-white" style="background: var(--brand);">
-            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: inline; margin-right: 4px; vertical-align: middle;">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+        <div class="flex gap-2 mb-4">
+          <button class="btn flex-1 btn-primary" type="button" onclick="openOrderDialog('${esc(p.id)}')">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: inline; margin-right: 4px; vertical-align: middle;">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
             </svg>
-            Edit Patient
-          </a>
-          <button class="btn btn-primary" type="button" onclick="openOrderDialog('${esc(p.id)}')">New Order</button>
+            New Order
+          </button>
+          <button class="btn" type="button" onclick="alert('Message feature coming soon')">Message</button>
+          <button class="btn" type="button" onclick="document.getElementById('action-menu-${esc(p.id)}').classList.toggle('hidden')">•••</button>
+        </div>
+        <!-- Action Menu -->
+        <div id="action-menu-${esc(p.id)}" class="hidden mb-4 p-2 bg-slate-50 rounded border">
+          <a href="?page=patient-edit&id=${esc(p.id)}" class="block px-3 py-2 text-sm hover:bg-white rounded">Edit profile patient</a>
+          <button onclick="if(confirm('Delete this patient?')) deletePatient('${esc(p.id)}')" class="block w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-white rounded">Delete patient</button>
         </div>
       ` : ''}
 
-      <!-- Demographics Section -->
-      <div class="space-y-4 mb-6">
+      <!-- Key Demographics - Compact -->
+      <div class="space-y-3 mb-4 text-sm">
         <div>
-          <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-2">Date of birth</label>
+          <div class="text-slate-500 text-xs mb-1">Date of birth</div>
           ${isEditing
-            ? `<input type="date" class="w-full mb-1" id="edit-dob" value="${esc(p.dob||'')}">`
-            : `<div class="px-3 py-2 bg-amber-50 text-amber-800 rounded text-sm inline-block">${fmt(p.dob)} <span class="ml-2 text-xs">(${calcAge(p.dob)})</span></div>`
+            ? `<input type="date" class="w-full text-sm" id="edit-dob" value="${esc(p.dob||'')}">`
+            : `<div class="font-medium">${fmt(p.dob)} <span class="text-slate-500">(${calcAge(p.dob)})</span></div>`
           }
         </div>
 
         <div>
-          <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-2">Address</label>
+          <div class="text-slate-500 text-xs mb-1">Address</div>
           ${isEditing
-            ? `<input class="w-full mb-2" id="edit-address" value="${esc(p.address||'')}" placeholder="Street address">`
-            : `<div class="text-sm">${esc(p.address||'')}, ${esc(p.city||'')}, ${esc(p.state||'')} ${esc(p.zip||'')}, United States</div>`
+            ? `<input class="w-full text-sm mb-1" id="edit-address" value="${esc(p.address||'')}" placeholder="Street address">`
+            : `<div class="font-medium">${esc(p.address||'')}<br>${esc(p.city||'')}, ${esc(p.state||'')} ${esc(p.zip||'')}, United States</div>`
           }
         </div>
 
         <div>
-          <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-2">Email</label>
+          <div class="text-slate-500 text-xs mb-1">Email</div>
           ${isEditing
-            ? `<input class="w-full" id="edit-email" value="${esc(p.email||'')}">`
-            : `<div class="text-sm">${esc(p.email||'')}</div>`
+            ? `<input class="w-full text-sm" id="edit-email" value="${esc(p.email||'')}">`
+            : `<div class="font-medium">${esc(p.email||'')}</div>`
           }
         </div>
 
@@ -3285,33 +3291,43 @@ function renderPatientDetailPage(p, orders, isEditing) {
         ` : ''}
 
         <div>
-          <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-2">Blood group</label>
-          <div class="text-sm font-medium">A+</div>
+          <div class="text-slate-500 text-xs mb-1">Blood group</div>
+          <div class="font-medium">A+</div>
         </div>
       </div>
 
-      <!-- Medical History -->
-      <div class="mb-6 pb-6 border-t pt-6">
-        <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-3">Medical history</label>
-        <div class="flex flex-wrap gap-2">
-          <span class="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs">Hypertension</span>
-          <span class="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs">Asthma</span>
-          <span class="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs">Diabetes</span>
+      <!-- Medical History - Compact -->
+      <div class="mb-4 pb-4 border-t pt-4">
+        <div class="text-slate-500 text-xs mb-2">Medical history</div>
+        <div class="flex flex-wrap gap-1">
+          <span class="px-2 py-1 bg-slate-100 text-slate-700 rounded text-xs">Hypertension</span>
+          <span class="px-2 py-1 bg-slate-100 text-slate-700 rounded text-xs">Asthma</span>
+          <span class="px-2 py-1 bg-slate-100 text-slate-700 rounded text-xs">Diabetes</span>
         </div>
       </div>
 
-      <!-- Insurance Information -->
-      <div class="mb-6 pb-6 border-t pt-6">
-        <h4 class="font-semibold text-lg mb-4">Insurance information</h4>
-        <div class="space-y-4">
-          <div class="grid grid-cols-2 gap-4">
+      <!-- Insurance Information - PRIORITIZED SECTION -->
+      <div class="mb-4 pb-4 border-t pt-4">
+        <h4 class="font-semibold text-sm mb-3">Insurance information</h4>
+        <div class="space-y-3 text-sm">
+          <div class="grid grid-cols-2 gap-3">
             <div>
               <div class="text-slate-500 text-xs mb-1">Type of insurance</div>
-              <div class="font-medium text-sm">${esc(p.insurance_provider||'Not provided')}</div>
+              <div class="font-medium">${esc(p.insurance_provider||'Not provided')}</div>
             </div>
             <div>
-              <div class="text-slate-500 text-xs mb-1">Member ID</div>
-              <div class="font-medium text-sm">${esc(p.insurance_member_id||'N/A')}</div>
+              <div class="text-slate-500 text-xs mb-1">Participation number</div>
+              <div class="font-medium">${esc(p.insurance_member_id||'N/A')}</div>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <div class="text-slate-500 text-xs mb-1">Validity period</div>
+              <div class="font-medium">Until ${p.insurance_member_id ? 'December 12, 2025' : 'N/A'}</div>
+            </div>
+            <div>
+              <div class="text-slate-500 text-xs mb-1">Membership status</div>
+              <div class="font-medium">${p.insurance_member_id ? 'Active' : 'N/A'}</div>
             </div>
           </div>
         </div>
@@ -3354,14 +3370,15 @@ function renderPatientDetailPage(p, orders, isEditing) {
     </div>
   `;
 
-  // Right column - Wound Care Orders
+  // Right column - Orders and History (matching screenshot layout)
   const rightColumn = `
-    <div class="lg:col-span-2">
+    <div class="lg:col-span-2 space-y-6">
+      <!-- Orders Section -->
       <div class="card p-6">
-        <div class="flex items-center justify-between mb-6">
-          <h4 class="font-semibold text-lg">Wound Care Orders</h4>
-          <button class="btn btn-primary" type="button" onclick="openOrderDialog('${esc(p.id)}')">
-            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: inline; margin-right: 4px; vertical-align: middle;">
+        <div class="flex items-center justify-between mb-4">
+          <h4 class="font-semibold text-base">Orders</h4>
+          <button class="btn btn-primary btn-sm" type="button" onclick="openOrderDialog('${esc(p.id)}')">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: inline; margin-right: 4px; vertical-align: middle;">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
             </svg>
             New Order
@@ -3369,73 +3386,82 @@ function renderPatientDetailPage(p, orders, isEditing) {
         </div>
 
         ${orders.length > 0 ? `
-          <!-- Active Orders -->
-          ${orders.filter(o=>o.status==='active' || o.status==='submitted' || o.status==='approved').length > 0 ? `
-            <div class="mb-6">
-              <h5 class="text-sm font-semibold text-slate-700 mb-3">Active Orders</h5>
-              <div class="space-y-3">
-                ${orders.filter(o=>o.status==='active' || o.status==='submitted' || o.status==='approved').map((o,i)=>{
-                  const colors = ['bg-blue-50 border-l-4 border-l-blue-500', 'bg-green-50 border-l-4 border-l-green-500', 'bg-teal-50 border-l-4 border-l-teal-500'];
-                  return `
-                    <div class="${colors[i%3]} p-4 rounded">
-                      <div class="flex items-start justify-between">
-                        <div class="flex-1">
-                          <div class="font-medium mb-1">${esc(o.product||'Wound Care Product')}</div>
-                          <div class="text-sm text-slate-600 space-y-1">
-                            <div>Status: ${pill(o.status||'')} • ${o.shipments_remaining ?? 0} shipments remaining</div>
-                            <div>Frequency: ${esc(o.frequency||'N/A')} • Delivery: ${o.delivery_mode==='office'?'Office':'Patient'}</div>
-                            <div>Created: ${fmt(o.created_at)}${o.expires_at ? ` • Expires: ${fmt(o.expires_at)}` : ''}</div>
-                          </div>
-                        </div>
-                        <div class="flex gap-2">
-                          ${o.rx_note_path ? `<a href="?action=file.dl&order_id=${esc(o.id)}" target="_blank" class="btn text-xs">View Rx</a>` : ''}
-                          ${o.status !== 'stopped' ? `<button class="btn text-xs" onclick="if(confirm('Stop this order?')) stopOrder('${esc(o.id)}')">Stop</button>` : ''}
-                        </div>
-                      </div>
+          <!-- Upcoming/Active Orders -->
+          <div class="mb-4">
+            <div class="text-xs text-slate-500 mb-3">Upcoming orders</div>
+            <div class="space-y-2">
+              ${orders.filter(o=>o.status==='active' || o.status==='submitted' || o.status==='approved').slice(0, 3).map((o,i)=>{
+                const colors = [
+                  {bg: 'bg-blue-50', border: 'border-l-blue-500'},
+                  {bg: 'bg-green-50', border: 'border-l-green-500'},
+                  {bg: 'bg-purple-50', border: 'border-l-purple-500'}
+                ];
+                const color = colors[i % 3];
+                return `
+                  <div class="${color.bg} border-l-4 ${color.border} p-3 rounded flex items-center justify-between">
+                    <div class="flex-1">
+                      <div class="font-medium text-sm mb-1">${esc(o.product||'Wound Care Product')}</div>
+                      <div class="text-xs text-slate-600">${fmt(o.created_at)} • ${esc(o.frequency||'Weekly')}</div>
                     </div>
-                  `;
-                }).join('')}
-              </div>
+                    <button class="btn btn-sm" onclick="alert('View order details')">View Details</button>
+                  </div>
+                `;
+              }).join('')}
             </div>
-          ` : ''}
+            ${orders.filter(o=>o.status==='active' || o.status==='submitted' || o.status==='approved').length > 3 ? `
+              <button class="text-xs text-slate-600 hover:text-slate-900 mt-3 flex items-center gap-1">
+                See more
+                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </button>
+            ` : ''}
+          </div>
 
-          <!-- Completed/Stopped Orders -->
-          ${orders.filter(o=>o.status==='completed' || o.status==='stopped' || o.status==='delivered').length > 0 ? `
-            <div class="mb-4">
-              <h5 class="text-sm font-semibold text-slate-700 mb-3">Order History</h5>
-              <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                  <thead class="border-b"><tr class="text-left text-slate-600">
-                    <th class="py-2 font-medium">Product</th>
-                    <th class="py-2 font-medium">Status</th>
-                    <th class="py-2 font-medium">Created</th>
-                    <th class="py-2 font-medium">Delivery</th>
-                    <th class="py-2 font-medium">Actions</th>
-                  </tr></thead>
-                  <tbody>
-                    ${orders.filter(o=>o.status==='completed' || o.status==='stopped' || o.status==='delivered').slice(0,10).map(o=>`
-                      <tr class="border-b">
-                        <td class="py-3">${esc(o.product||'')}</td>
-                        <td class="py-3">${pill(o.status||'')}</td>
-                        <td class="py-3">${fmt(o.created_at)}</td>
-                        <td class="py-3">${o.delivery_mode==='office'?'Office':'Patient'}</td>
-                        <td class="py-3">
-                          ${o.rx_note_path ? `<a href="?action=file.dl&order_id=${esc(o.id)}" target="_blank" class="text-blue-600 hover:underline text-xs">View Rx</a>` : '—'}
-                        </td>
-                      </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+        ` : `
+          <div class="text-center py-8">
+            <p class="text-slate-500 text-sm mb-3">No wound care orders yet</p>
+            <button class="btn btn-primary btn-sm" type="button" onclick="openOrderDialog('${esc(p.id)}')">Create First Order</button>
+          </div>
+        `}
+      </div>
+
+      <!-- History Section -->
+      <div class="card p-6">
+        <h4 class="font-semibold text-base mb-4">History</h4>
+        ${orders.length > 0 ? `
+          <div class="space-y-2">
+            ${orders.slice(0, 5).map((o,i)=>{
+              const colors = [
+                {bg: 'bg-blue-50', border: 'border-l-blue-500'},
+                {bg: 'bg-green-50', border: 'border-l-green-500'},
+                {bg: 'bg-purple-50', border: 'border-l-purple-500'},
+                {bg: 'bg-amber-50', border: 'border-l-amber-500'},
+                {bg: 'bg-pink-50', border: 'border-l-pink-500'}
+              ];
+              const color = colors[i % 5];
+              return `
+                <div class="${color.bg} border-l-4 ${color.border} p-3 rounded flex items-center justify-between">
+                  <div class="flex-1">
+                    <div class="font-medium text-sm mb-1">${esc(o.product||'Wound Care Product')}</div>
+                    <div class="text-xs text-slate-600">${fmt(o.created_at)} • ${esc(o.frequency||'Weekly')}</div>
+                  </div>
+                  <button class="btn btn-sm" onclick="alert('View order details')">View Details</button>
+                </div>
+              `;
+            }).join('')}
+          </div>
+          ${orders.length > 5 ? `
+            <button class="text-xs text-slate-600 hover:text-slate-900 mt-3 flex items-center gap-1">
+              See more
+              <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </button>
           ` : ''}
         ` : `
-          <div class="text-center py-12">
-            <svg class="w-16 h-16 mx-auto mb-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-            </svg>
-            <p class="text-slate-500 mb-4">No wound care orders yet</p>
-            <button class="btn btn-primary" type="button" onclick="openOrderDialog('${esc(p.id)}')">Create First Order</button>
+          <div class="text-center py-8">
+            <p class="text-slate-500 text-sm">No order history yet</p>
           </div>
         `}
       </div>
