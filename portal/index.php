@@ -512,7 +512,7 @@ if ($page==='logout'){
     justify-content: center;
     gap: 0.5rem;
     border-radius: var(--radius);
-    padding: 0.5rem 1rem;
+    padding: 0.4375rem 0.875rem;
     font-size: 0.875rem;
     font-weight: 500;
     transition: all 0.15s ease;
@@ -814,8 +814,8 @@ if ($page==='logout'){
   .sidebar-user {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem;
+    gap: 0.625rem;
+    padding: 0.5rem 0.75rem;
     border-radius: var(--radius);
     transition: background 0.2s;
   }
@@ -825,8 +825,8 @@ if ($page==='logout'){
   }
 
   .sidebar-avatar {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     background: var(--brand);
     color: white;
@@ -834,7 +834,7 @@ if ($page==='logout'){
     align-items: center;
     justify-content: center;
     font-weight: 600;
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
   }
 
   .sidebar-nav {
@@ -908,8 +908,8 @@ if ($page==='logout'){
   }
 
   .icon-btn {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     border-radius: var(--radius);
     display: flex;
     align-items: center;
