@@ -548,39 +548,54 @@ if ($page==='logout'){
     background: #f3f4f6;
   }
 
-  /* Badge/Pill Component */
+  /* Badge/Pill Component - Healthcare Design */
   .badge {
     display: inline-flex;
     align-items: center;
-    padding: 0.25rem 0.625rem;
+    padding: 0.375rem 0.75rem;
     font-size: 0.75rem;
     font-weight: 500;
-    border-radius: 9999px;
-    border: 1px solid transparent;
+    border-radius: 0.375rem;
+    border: none;
+  }
+
+  /* Status badges */
+  .badge-approved,
+  .badge-paid {
+    background: var(--success-light);
+    color: var(--success);
+  }
+
+  .badge-pending {
+    background: var(--warning-light);
+    color: #B45309;
+  }
+
+  .badge-reject,
+  .badge-unpaid,
+  .badge-rejected {
+    background: var(--error-light);
+    color: var(--error);
   }
 
   .badge-success {
-    background: #d1fae5;
-    color: #065f46;
-    border-color: #a7f3d0;
+    background: var(--success-light);
+    color: var(--success);
   }
 
   .badge-warning {
-    background: #fef3c7;
-    color: #92400e;
-    border-color: #fde68a;
+    background: var(--warning-light);
+    color: #B45309;
   }
 
   .badge-error {
-    background: #fee2e2;
-    color: #991b1b;
-    border-color: #fecaca;
+    background: var(--error-light);
+    color: var(--error);
   }
 
   .badge-info {
-    background: #dbeafe;
-    color: #1e40af;
-    border-color: #bfdbfe;
+    background: #DBEAFE;
+    color: #1E40AF;
   }
 
   /* Legacy pill support */
@@ -946,24 +961,129 @@ if ($page==='logout'){
 
     <main class="content-area">
 <?php if ($page==='dashboard'): ?>
-  <section class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-    <div class="card p-5"><div class="text-sm text-slate-500">Active Orders</div><div id="m-active" class="text-3xl font-semibold mt-1">-</div></div>
-    <div class="card p-5"><div class="text-sm text-slate-500">Pending Approvals</div><div id="m-pending" class="text-3xl font-semibold mt-1">-</div></div>
-    <div class="card p-5"><div class="text-sm text-slate-500">Total Patients</div><div id="m-patients" class="text-3xl font-semibold mt-1">-</div></div>
+  <!-- Dashboard Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div class="flex items-center gap-3">
+      <h2 class="text-xl font-semibold" style="color: var(--ink);">January 2025</h2>
+      <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--muted);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+    </div>
+    <div class="flex gap-2">
+      <button class="btn btn-outline">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+        Filter
+      </button>
+      <button class="btn btn-outline">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+        Export
+      </button>
+    </div>
+  </div>
+
+  <!-- Stat Cards -->
+  <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="card p-5">
+      <div class="text-sm text-muted mb-2" style="color: var(--ink-light); font-weight: 500;">Total patient</div>
+      <div id="m-patients" class="text-3xl font-bold mb-2" style="color: var(--ink);">-</div>
+      <div class="flex items-center gap-2 text-sm">
+        <span class="flex items-center gap-1" style="color: var(--success); font-weight: 500;">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+          65.92%
+        </span>
+        <span style="color: var(--muted);">Since last week</span>
+      </div>
+    </div>
+
+    <div class="card p-5">
+      <div class="text-sm text-muted mb-2" style="color: var(--ink-light); font-weight: 500;">Total appointment</div>
+      <div id="m-active" class="text-3xl font-bold mb-2" style="color: var(--ink);">-</div>
+      <div class="flex items-center gap-2 text-sm">
+        <span class="flex items-center gap-1" style="color: var(--error); font-weight: 500;">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg>
+          23.89%
+        </span>
+        <span style="color: var(--muted);">Since last week</span>
+      </div>
+    </div>
+
+    <div class="card p-5">
+      <div class="text-sm text-muted mb-2" style="color: var(--ink-light); font-weight: 500;">Total income</div>
+      <div class="text-3xl font-bold mb-2" style="color: var(--ink);">$12,923.45</div>
+      <div class="flex items-center gap-2 text-sm">
+        <span class="flex items-center gap-1" style="color: var(--error); font-weight: 500;">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg>
+          12.23%
+        </span>
+        <span style="color: var(--muted);">Since last week</span>
+      </div>
+    </div>
+
+    <div class="card p-5">
+      <div class="text-sm text-muted mb-2" style="color: var(--ink-light); font-weight: 500;">Total treatment</div>
+      <div id="m-pending" class="text-3xl font-bold mb-2" style="color: var(--ink);">-</div>
+      <div class="flex items-center gap-2 text-sm">
+        <span class="flex items-center gap-1" style="color: var(--success); font-weight: 500;">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+          65.92%
+        </span>
+        <span style="color: var(--muted);">Since last week</span>
+      </div>
+    </div>
   </section>
 
-  <section class="card p-5">
-    <div class="flex items-center gap-3 mb-4">
-      <h2 class="text-lg font-semibold">Patients</h2>
-      <input id="patient-search" class="ml-auto w-full sm:w-96" placeholder="Search by name, phone, email, MRN…">
-      <button class="btn btn-primary" id="btn-new-order" type="button">New Order</button>
+  <!-- Overview Chart Section -->
+  <section class="card p-6 mb-6">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h3 class="text-lg font-semibold" style="color: var(--ink);">Overview</h3>
+        <p class="text-sm" style="color: var(--ink-light);">Patients in a month
+          <span style="color: var(--success); font-weight: 500;"> ↗ 53.82%</span>
+        </p>
+      </div>
+      <select class="btn btn-outline">
+        <option>Yearly</option>
+        <option>Monthly</option>
+        <option>Weekly</option>
+      </select>
+    </div>
+    <div style="height: 300px; display: flex; align-items: center; justify-content: center; background: var(--bg-gray); border-radius: var(--radius); color: var(--muted);">
+      <div class="text-center">
+        <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin: 0 auto 1rem;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+        <p>Chart visualization</p>
+        <p class="text-xs">Patient growth over time</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Patients List -->
+  <section class="card p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-lg font-semibold" style="color: var(--ink);">Patients list</h3>
+      <div class="flex gap-2">
+        <button class="btn btn-outline">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+          Filter
+        </button>
+        <button class="btn btn-outline">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+          Export
+        </button>
+      </div>
     </div>
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
-        <thead class="border-b">
+        <thead style="border-bottom: 1px solid var(--border);">
           <tr class="text-left">
-            <th class="py-2">Name</th><th class="py-2">DOB</th><th class="py-2">Phone</th><th class="py-2">Email</th>
-            <th class="py-2">City/State</th><th class="py-2">Status</th><th class="py-2">Bandage Count</th><th class="py-2">Action</th>
+            <th class="py-3 px-2" style="width: 40px;">
+              <input type="checkbox" style="width: 16px; height: 16px; cursor: pointer;">
+            </th>
+            <th class="py-3 px-2" style="color: var(--ink-light); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Patient name</th>
+            <th class="py-3 px-2" style="color: var(--ink-light); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Patient ID</th>
+            <th class="py-3 px-2" style="color: var(--ink-light); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Age</th>
+            <th class="py-3 px-2" style="color: var(--ink-light); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Date of birth</th>
+            <th class="py-3 px-2" style="color: var(--ink-light); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Gender</th>
+            <th class="py-3 px-2" style="color: var(--ink-light); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Email</th>
+            <th class="py-3 px-2" style="color: var(--ink-light); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Status</th>
+            <th class="py-3 px-2" style="width: 40px;"></th>
           </tr>
         </thead>
         <tbody id="patients-tbody"></tbody>
@@ -1313,29 +1433,81 @@ function pill(s){ if(!s) return '<span class="pill">—</span>'; const c={active
 function fmt(d){ if(!d) return '—'; return (''+d).slice(0,10); }
 function esc(s){ return (s??'').toString().replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
+/* Helper: Generate avatar initials */
+function getInitials(first, last){
+  const f = (first||'').trim()[0]||'';
+  const l = (last||'').trim()[0]||'';
+  return (f+l).toUpperCase() || '?';
+}
+
+/* Helper: Calculate age from DOB */
+function calculateAge(dob){
+  if(!dob) return '-';
+  const birthDate = new Date(dob);
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+  return age + ' years';
+}
+
+/* Helper: Format date */
+function formatDate(date){
+  if(!date) return '-';
+  const d = new Date(date);
+  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
 /* DASHBOARD table (view-only) */
 if (<?php echo json_encode($page==='dashboard'); ?>){
   let rows=[];
   async function loadPatients(q=''){ const res=await api('action=patients&limit=50&q='+encodeURIComponent(q)); rows=res.rows||[]; render(); }
   function render(){
     const tb=$('#patients-tbody'); tb.innerHTML='';
-    if(!rows.length){ tb.innerHTML=`<tr><td colspan="8" class="py-6 text-center text-slate-500">No patients</td></tr>`; return; }
+    if(!rows.length){
+      tb.innerHTML=`<tr><td colspan="9" class="py-12 text-center" style="color: var(--muted);">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+          <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+          <div><div style="font-weight: 500; font-size: 1rem; color: var(--ink); margin-bottom: 0.25rem;">No patients found</div><div style="font-size: 0.875rem;">Add your first patient to get started</div></div>
+        </div>
+      </td></tr>`;
+      return;
+    }
     for(const p of rows){
+      const initials = getInitials(p.first_name, p.last_name);
+      const age = calculateAge(p.dob);
+      const dob = formatDate(p.dob);
+      const statusBadge = p.last_status ?
+        `<span class="badge badge-${p.last_status.toLowerCase()}">${esc(p.last_status)}</span>` :
+        `<span class="badge">Unknown</span>`;
+
       tb.insertAdjacentHTML('beforeend',`
-        <tr class="border-b hover:bg-slate-50">
-          <td class="py-2">${esc(p.first_name||'')} ${esc(p.last_name||'')}</td>
-          <td class="py-2">${esc(p.dob||'')}</td>
-          <td class="py-2">${esc(p.phone||'')}</td>
-          <td class="py-2">${esc(p.email||'')}</td>
-          <td class="py-2">${esc(p.city||'')}${p.state?', '+esc(p.state):''}</td>
-          <td class="py-2">${pill(p.last_status)}</td>
-          <td class="py-2">${p.last_remaining ?? '—'}</td>
-          <td class="py-2"><button class="btn" type="button" data-acc="${p.id}">View</button></td>
+        <tr style="border-bottom: 1px solid var(--border); transition: background 0.15s;">
+          <td class="py-3 px-2">
+            <input type="checkbox" style="width: 16px; height: 16px; cursor: pointer;">
+          </td>
+          <td class="py-3 px-2">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--brand); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.75rem; flex-shrink: 0;">
+                ${initials}
+              </div>
+              <span style="font-weight: 500; color: var(--ink);">${esc(p.first_name||'')} ${esc(p.last_name||'')}</span>
+            </div>
+          </td>
+          <td class="py-3 px-2" style="color: var(--ink-light);">${esc(p.mrn || 'Placeholder')}</td>
+          <td class="py-3 px-2" style="color: var(--ink-light);">${age}</td>
+          <td class="py-3 px-2" style="color: var(--ink-light);">${dob}</td>
+          <td class="py-3 px-2" style="color: var(--ink-light);">${esc(p.city && p.state ? p.city+', '+p.state : '-')}</td>
+          <td class="py-3 px-2" style="color: var(--ink-light);">${esc(p.email||'-')}</td>
+          <td class="py-3 px-2">${statusBadge}</td>
+          <td class="py-3 px-2 text-right">
+            <button class="icon-btn" type="button" data-acc="${p.id}" style="width: 32px; height: 32px;">
+              <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg>
+            </button>
+          </td>
         </tr>`);
     }
   }
-  $('#patient-search').addEventListener('input',e=>loadPatients(e.target.value.trim()));
-  $('#btn-new-order').addEventListener('click',()=>openOrderDialog());
   loadPatients('');
 }
 
