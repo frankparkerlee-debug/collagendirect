@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>CollagenDirect — Precision Collagen Therapies for Modern Medicine</title>
+<meta name="description" content="Evidence-backed collagen wound therapies with direct-to-manufacturer access, provider portal, and clinical resources." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="preload" as="image" imagesrcset="/assets/hero-collagen-sample.jpg 1280w" imagesizes="100vw" href="/assets/hero-collagen-sample.jpg">
+
+<style>
+:root{
+  --bg:#ffffff; --panel:#f6f8fb; --text:#1e2a38; --muted:#5c6b80; --line:rgba(0,0,0,.08);
+  --brand-teal:#47c6be; --brand-blue:#2a78ff; --brand-orange:#ff7a3d;
+  --radius:16px; --shadow:0 10px 24px rgba(7,16,40,.08); --max:1180px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+img{max-width:100%;display:block}
+a{text-decoration:none;color:inherit}
+.container{max-width:var(--max);margin:0 auto;padding:0 20px}
+.muted{color:var(--muted)}
+.btn{padding:14px 18px;border-radius:12px;font-weight:800;cursor:pointer;border:1px solid transparent;display:inline-flex;align-items:center;justify-content:center}
+.btn.primary{background:var(--brand-teal);color:#0a1b1a}
+.btn.ghost{background:#fff;border:1px solid var(--line);color:#1e2a38}
+.pill{display:inline-flex;margin-top:12px;padding:6px 10px;border-radius:999px;background:#eefaf8;color:#0b5f56;font-weight:700;font-size:.85rem;border:1px solid #cfeeea}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+.section{padding:56px 0}
+
+/* Header */
+header{position:sticky;top:0;z-index:40;background:rgba(255,255,255,.92);backdrop-filter:saturate(160%) blur(8px);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;justify-content:space-between;height:64px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand img{height:30px;width:auto}
+.brand .title{font-weight:900;letter-spacing:.4px;font-size:.98rem}
+.brand .subtitle{font-size:.78rem;color:var(--muted)}
+.nav ul{display:flex;gap:18px;list-style:none}
+.link{padding:10px 12px;border-radius:10px;font-weight:600;color:#3c4657}
+.link:hover{background:var(--panel)}
+.cta{display:flex;gap:10px;align-items:center}
+
+/* Mobile menu */
+.hamburger{display:none;border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 12px;font-weight:700}
+.mobile-menu{display:none;border-top:1px solid var(--line);background:#fff}
+.mobile-menu a{display:block;padding:16px 20px;border-bottom:1px solid var(--line);font-weight:700;color:#203047}
+.mobile-open .mobile-menu{display:block}
+
+/* Hero */
+.hero{
+  position:relative;min-height:480px;border-bottom:1px solid var(--line);
+  background:url("/assets/hero-collagen-sample.jpg") center/cover no-repeat;color:#1a2430;overflow:hidden
+}
+.hero::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(255,255,255,.96) 0%,rgba(255,255,255,.88) 46%,rgba(255,255,255,.34) 100%)}
+.hero-wrap{position:relative;z-index:1;min-height:480px;display:flex;align-items:center}
+.hero-content{width:clamp(320px,48vw,640px)}
+.hero h1{line-height:1.08;margin-bottom:8px;font-size:clamp(1.8rem,3.6vw,2.8rem)}
+.lead{margin:.5rem 0 1rem;color:var(--muted);font-size:1.04rem}
+
+/* Product teaser */
+.tools{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.filters{display:flex;gap:8px;flex-wrap:wrap}
+.filter{padding:8px 12px;border:1px solid var(--line);border-radius:999px;background:#fff;color:#334;cursor:pointer;font-weight:700}
+.filter.active{background:#eefaf8;border-color:#bfeee6;color:#0b5f56}
+.gallery{position:relative}
+.track{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(240px,1fr);gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 4px 14px;scrollbar-width:thin;mask-image:linear-gradient(to right,transparent,#000 24px,#000 calc(100% - 24px),transparent)}
+.card.prod{scroll-snap-align:center;padding:0;overflow:hidden}
+.prod .poster{aspect-ratio:4/3;object-fit:contain;background:#fbfcfe}
+.prod .body{padding:14px}
+.prod h4{font-size:1rem}
+
+/* Portal preview frame */
+.frame{position:relative;border:1px solid var(--line);border-radius:22px;background:#fff;box-shadow:var(--shadow);overflow:hidden}
+.frame .statusbar{height:42px;background:linear-gradient(180deg,#f9fbff,#fff);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;padding:0 12px;color:#6a7280;font-weight:700}
+.frame .screen{position:relative;aspect-ratio:16/9;background:#f2f5fb}
+.frame .screen img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+
+/* Footer */
+footer{margin-top:64px;background:linear-gradient(180deg,#f7fbfb,#f6f8fb);border-top:1px solid var(--line)}
+.footer-grid{display:grid;grid-template-columns:1.2fr .6fr .6fr .6fr;gap:24px;padding:36px 0}
+.foot-brand{display:flex;gap:14px}
+.foot-brand img{height:42px}
+.foot-small{color:#6e7a93;font-size:.92rem}
+
+/* Sticky mobile action bar (single source of truth for actions on phones) */
+.actionbar{
+  position:fixed;left:0;right:0;bottom:0;z-index:50;display:none;
+  padding:10px 14px calc(10px + var(--safe-bottom));
+  background:rgba(255,255,255,.96);backdrop-filter:saturate(160%) blur(8px);border-top:1px solid var(--line)
+}
+.actionbar .row{display:flex;gap:10px}
+.actionbar .btn{flex:1}
+
+/* Responsive */
+@media (max-width:1000px){
+  .grid-4{grid-template-columns:1fr 1fr}
+  .grid-3{grid-template-columns:1fr 1fr}
+  .hero,.hero-wrap{min-height:420px}
+}
+@media (max-width:860px){
+  .nav ul{display:none}
+  .hamburger{display:inline-flex;align-items:center;gap:8px}
+}
+@media (max-width:640px){
+  .grid-4,.grid-3{grid-template-columns:1fr}
+  .hero,.hero-wrap{min-height:340px}
+  .hero h1{font-size:1.7rem}
+  .lead{font-size:.98rem;margin:6px 0 8px}
+  /* Hide duplicate CTAs on small screens for a cleaner look */
+  .cta{display:none}
+  .hero .actions{display:none}
+  .pill{display:none}
+  .actionbar{display:block}
+  body{padding-bottom:86px}
+}
+
+/* Motion preference */
+@media (prefers-reduced-motion: reduce){
+  *{scroll-behavior:auto !important;animation:none !important;transition:none !important}
+}
+
+/* Keyboard-only focus ring */
+.user-tabbed a:focus, .user-tabbed button:focus, .user-tabbed select:focus {
+  outline:3px solid rgba(71,198,190,.35); outline-offset:2px;
+}
+
+/* Skip link */
+.skip{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden}
+.skip:focus{left:10px;top:10px;width:auto;height:auto;background:#fff;border:2px solid var(--brand-teal);padding:8px 10px;border-radius:10px;z-index:100}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header>
+  <div class="container nav">
+    <a href="/index.html" class="brand" aria-label="Go to homepage">
+      <img src="/assets/collagendirect.png" alt="CollagenDirect logo">
+      <div>
+        <div class="title">COLLAGEN <span style="color:var(--brand-teal)">DIRECT</span></div>
+        <div class="subtitle">Evidence-Backed Wound Therapies</div>
+      </div>
+    </a>
+
+    <ul aria-label="Primary">
+      <li><a class="link" href="/products">Products</a></li>
+      <li><a class="link" href="#value">About</a></li>
+      <li><a class="link" href="#resources">Resources</a></li>
+      <li><a class="link" href="/contact">Contact</a></li>
+    </ul>
+
+    <div class="cta">
+      <!-- Desktop-only CTAs (hidden on mobile by @media) -->
+      <a class="btn ghost" href="/portal">Provider Login</a>
+      <a class="btn primary" href="/register">Join Provider Network</a>
+      <button id="menuBtn" class="hamburger" aria-expanded="false" aria-controls="mobileNav">Menu ▾</button>
+    </div>
+  </div>
+
+  <nav id="mobileNav" class="mobile-menu" aria-label="Mobile">
+    <a href="/portal">Provider Login</a>
+    <a href="/register">Join Provider Network</a>
+    <a href="/products">Products</a>
+    <a href="#value">About</a>
+    <a href="#resources">Resources</a>
+    <a href="/contact">Contact</a>
+  </nav>
+</header>
+
+<!-- Sticky action bar (phones) -->
+<div class="actionbar" role="region" aria-label="Quick actions">
+  <div class="container row">
+    <a class="btn ghost" href="/portal" aria-label="Provider Login">Provider Login</a>
+    <a class="btn primary" href="/register" aria-label="Join Provider Network">Join Network</a>
+  </div>
+</div>
+
+<main id="main">
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="container hero-wrap">
+      <div class="hero-content">
+        <h1 id="hero-title">Precision Collagen Therapies for Modern Medicine</h1>
+        <p class="lead">Clinically validated collagen wound solutions that support faster healing and direct-to-manufacturer access for providers.</p>
+        <!-- Desktop-only hero buttons -->
+        <div class="actions" style="display:flex;gap:10px;flex-wrap:wrap">
+          <a class="btn primary" href="/register">Join Provider Network</a>
+          <a class="btn ghost" href="/portal">Provider Login</a>
+        </div>
+        <span class="pill" aria-label="HIPAA Secure">HIPAA-Secure Provider Portal</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="value" class="section" aria-labelledby="value-title">
+    <div class="container grid-4">
+      <h2 id="value-title" class="sr-only" style="position:absolute;left:-9999px">Why CollagenDirect</h2>
+      <div class="card"><h3>Reimbursement & Prior Auth Support</h3><p class="muted">COAs, usage guides, and coding tips for cleaner submissions.</p></div>
+      <div class="card"><h3>Clinical Confidence</h3><p class="muted">Peer-reviewed evidence in chronic and acute wound management.</p></div>
+      <div class="card"><h3>Seamless Ordering</h3><p class="muted">Reorders, documentation upload, and shipment tracking in one portal.</p></div>
+      <div class="card"><h3>Trusted by Providers</h3><p class="muted">Used in wound centers, hospitals, and outpatient clinics nationwide.</p></div>
+    </div>
+  </section>
+
+  <section id="products" class="section" aria-labelledby="products-title">
+    <div class="container">
+      <div class="tools">
+        <h2 id="products-title" style="margin:0">Explore Our Products</h2>
+        <div class="filters" role="tablist" aria-label="Product filters">
+          <button class="filter active" data-filter="all" role="tab" aria-selected="true">All</button>
+          <button class="filter" data-filter="matrix" role="tab" aria-selected="false">Matrix</button>
+          <button class="filter" data-filter="powder" role="tab" aria-selected="false">Powder</button>
+          <button class="filter" data-filter="antimicrobial" role="tab" aria-selected="false">Antimicrobial</button>
+        </div>
+        <a class="btn ghost" href="/products">View Full Catalog</a>
+      </div>
+
+      <div class="gallery">
+        <div id="prodTrack" class="track" tabindex="0" aria-label="Product carousel"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="research-title">
+    <div class="container">
+      <h2 id="research-title">Research Highlights</h2>
+      <div class="grid-3">
+        <div class="card">
+          <h3>Collagen Dressings in Chronic Wounds</h3>
+          <p class="muted">Meta-analyses and randomized studies show collagen dressings can accelerate healing in DFU, VLU, and pressure ulcers within comprehensive care plans.</p>
+          <small class="muted">Refs:
+            <a href="https://pubmed.ncbi.nlm.nih.gov/18005163" target="_blank" rel="noopener">Chaby 2007</a>;
+            <a href="https://pubmed.ncbi.nlm.nih.gov/30153164" target="_blank" rel="noopener">Yang 2018</a>.
+          </small>
+        </div>
+        <div class="card">
+          <h3>Silver-Containing Collagen Composites</h3>
+          <p class="muted">Reports of infection reduction and faster granulation vs. standard moist dressings, within antimicrobial stewardship protocols.</p>
+          <small class="muted">Refs:
+            <a href="https://pubmed.ncbi.nlm.nih.gov/12392133" target="_blank" rel="noopener">Lansdown 2002</a>;
+            <a href="https://pubmed.ncbi.nlm.nih.gov/31097092" target="_blank" rel="noopener">Zhao 2019</a>.
+          </small>
+        </div>
+        <div class="card">
+          <h3>Human Allograft Matrices (Research)</h3>
+          <p class="muted">Acellular dermal allografts provide structural cues aiding closure in complex wounds; controlled and cohort data available.</p>
+          <small class="muted">Refs:
+            <a href="https://pubmed.ncbi.nlm.nih.gov/15828944" target="_blank" rel="noopener">Mostow 2005</a>;
+            <a href="https://pubmed.ncbi.nlm.nih.gov/19325349" target="_blank" rel="noopener">Serena 2009</a>.
+          </small>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="portal" class="section" aria-labelledby="portal-title">
+    <div class="container">
+      <h2 id="portal-title">Provider Portal Preview</h2>
+      <p class="muted">Manage orders, upload documentation, and track deliveries with secure, role-based access.</p>
+
+      <figure class="frame" aria-label="Portal preview">
+        <div class="statusbar">● ● ● <span style="margin-left:8px">portal.collagendirect.health</span></div>
+        <div class="screen">
+          <img src="/assets/portal-screenshot.jpg" alt="CollagenDirect Physician Portal preview" loading="lazy">
+        </div>
+      </figure>
+
+      <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+        <a class="btn primary" href="/register">Join Provider Network</a>
+        <a class="btn ghost" href="/portal">Provider Login</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="resources" class="section" aria-labelledby="resources-title">
+    <div class="container">
+      <h2 id="resources-title">Explore Our Resource Library</h2>
+      <div class="grid-3">
+        <div class="card"><h3>Certificates of Analysis</h3><p class="muted">Batch-level documentation verifying purity and compliance.</p></div>
+        <div class="card"><h3>Clinical Briefs</h3><p class="muted">Summaries of current literature for collagen wound care.</p></div>
+        <div class="card"><h3>Usage Guides</h3><p class="muted">Application steps, frequency recommendations, and billing references.</p></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="container footer-grid">
+    <div class="foot-brand">
+      <img src="/assets/collagendirect.png" alt="CollagenDirect">
+      <div>
+        <div style="font-weight:900;letter-spacing:.4px">COLLAGEN <span style="color:var(--brand-teal)">DIRECT</span></div>
+        <p class="foot-small">Direct-to-manufacturer collagen therapies for modern wound care.</p>
+      </div>
+    </div>
+    <div>
+      <h4>Company</h4>
+      <a href="/index.html#value">About</a><br>
+      <a href="/contact">Contact</a>
+    </div>
+    <div>
+      <h4>Products</h4>
+      <a href="/products">Catalog</a><br>
+      <a href="/index.html#resources">Resources</a>
+    </div>
+    <div>
+      <h4>Legal</h4>
+      <a href="/terms">Terms</a><br>
+      <a href="/privacy">Privacy</a>
+    </div>
+  </div>
+  <div style="border-top:1px solid var(--line);padding:18px 0;text-align:center;color:#6e7a93;font-size:.9rem">
+    © <span id="year"></span> CollagenDirect. All rights reserved.
+  </div>
+</footer>
+
+<script>
+// Year
+document.addEventListener('DOMContentLoaded',()=>{ const y=document.getElementById('year'); if(y) y.textContent=new Date().getFullYear(); });
+
+// Mobile menu
+(function(){
+  const btn = document.getElementById('menuBtn');
+  const html = document.documentElement;
+  if(!btn) return;
+  btn.addEventListener('click', ()=>{
+    const open = html.classList.toggle('mobile-open');
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+})();
+
+// Lazy-load any <img data-src="...">
+(function lazyAll(){
+  const lazyImgs = Array.from(document.querySelectorAll('img.lazy, img[data-src]'));
+  function load(el){ el.src = el.dataset.src || el.src; el.removeAttribute('data-src'); el.classList.remove('lazy'); }
+  if(!lazyImgs.length) return;
+  if(!('IntersectionObserver' in window)){ lazyImgs.forEach(load); return; }
+  const io = new IntersectionObserver((entries, obs)=>{
+    entries.forEach(e=>{ if(e.isIntersecting){ load(e.target); obs.unobserve(e.target); } });
+  }, {rootMargin:'200px 0px'});
+  lazyImgs.forEach(i=>io.observe(i));
+})();
+
+// Keyboard-only focus ring
+(function a11y(){
+  function handleFirstTab(e){ if(e.key==='Tab'){ document.body.classList.add('user-tabbed'); window.removeEventListener('keydown', handleFirstTab); } }
+  window.addEventListener('keydown', handleFirstTab);
+})();
+
+/* ---------- Product gallery ---------- */
+const PRODUCTS = [
+  { id:'matrix-2x2', name:'Collagen Matrix 2×2', img:'/assets/products/collagen-matrix-2x2.png', category:'matrix', specs:['Sheet','2×2 in'], teaser:'Sheet dressing for DFU/VLU & pressure ulcers.' },
+  { id:'matrix-3x3', name:'Collagen Matrix 3×3', img:'/assets/products/collagen-matrix-3x3.png', category:'matrix', specs:['Sheet','3×3 in'], teaser:'Absorbent matrix supporting epithelialization.' },
+  { id:'powder-1g', name:'Collagen Powder 1 g', img:'/assets/products/collagen-powder-1g.png', category:'powder', specs:['Powder','1 g'], teaser:'Maintains moist wound environment for granulation.' },
+  { id:'ag-2x2', name:'Antimicrobial Collagen', img:'/assets/products/collagen-silver-2x2.png', category:'antimicrobial', specs:['Silver-composite','2×2 in'], teaser:'Silver-infused collagen for bioburden management.' },
+];
+
+(function productGallery(){
+  const track = document.getElementById('prodTrack');
+  if(!track) return;
+
+  function cardHTML(p){
+    return `
+      <article class="card prod" data-cat="${p.category}">
+        <img class="poster lazy" loading="lazy" data-src="${p.img}" alt="${p.name}">
+        <div class="body">
+          <h4>${p.name}</h4>
+          <p class="muted" style="margin-top:4px">${p.teaser}</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+            ${p.specs.map(s=>`<span class="pill" style="background:#f2f4f7;border-color:#e5e9f2;color:#3b455a">${s}</span>`).join('')}
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+            <a class="btn primary" href="/products#${p.id}" aria-label="View details for ${p.name}">Details</a>
+            <span class="muted" style="font-weight:600">${p.specs[p.specs.length-1] || ''}</span>
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
+  function render(list){ track.innerHTML = list.map(cardHTML).join(''); observeLazy(track.querySelectorAll('img.lazy')); }
+  function filter(cat){ render(cat==='all' ? PRODUCTS : PRODUCTS.filter(p=>p.category===cat)); }
+
+  const filters = Array.from(document.querySelectorAll('.filters .filter'));
+  filters.forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      filters.forEach(b=>{ b.classList.remove('active'); b.setAttribute('aria-selected','false'); });
+      btn.classList.add('active'); btn.setAttribute('aria-selected','true');
+      filter(btn.dataset.filter);
+    });
+  });
+
+  function observeLazy(nodes){
+    const els = Array.from(nodes); if(!els.length) return;
+    const load = el => { el.src = el.dataset.src; el.removeAttribute('data-src'); el.classList.remove('lazy'); };
+    if(!('IntersectionObserver' in window)){ els.forEach(load); return; }
+    const io = new IntersectionObserver((entries, obs)=>{
+      entries.forEach(e=>{ if(e.isIntersecting){ load(e.target); obs.unobserve(e.target); } });
+    }, {rootMargin:'200px 0px'});
+    els.forEach(i=>io.observe(i));
+  }
+
+  filter('all');
+})();
+</script>
+</body>
+</html>

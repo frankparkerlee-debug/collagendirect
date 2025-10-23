@@ -1,0 +1,964 @@
+[14-Oct-2025 20:48:20 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/portal/../db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 3
+[14-Oct-2025 20:48:20 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/portal/../db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/portal/index.php:3
+Stack trace:
+#0 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 3
+[14-Oct-2025 20:48:24 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/portal/../db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 3
+[14-Oct-2025 20:48:24 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/portal/../db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/portal/index.php:3
+Stack trace:
+#0 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 3
+[14-Oct-2025 20:48:26 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/portal/../db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 3
+[14-Oct-2025 20:48:26 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/portal/../db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/portal/index.php:3
+Stack trace:
+#0 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 3
+[14-Oct-2025 20:48:43 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/portal/../db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 3
+[14-Oct-2025 20:48:43 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/portal/../db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/portal/index.php:3
+Stack trace:
+#0 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 3
+[14-Oct-2025 20:48:44 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/portal/../db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 3
+[14-Oct-2025 20:48:44 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/portal/../db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/portal/index.php:3
+Stack trace:
+#0 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 3
+[14-Oct-2025 20:50:21 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/portal/../db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 3
+[14-Oct-2025 20:50:21 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/portal/../db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/portal/index.php:3
+Stack trace:
+#0 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 3
+[14-Oct-2025 20:50:24 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/portal/../db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 3
+[14-Oct-2025 20:50:24 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/portal/../db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/portal/index.php:3
+Stack trace:
+#0 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 3
+[14-Oct-2025 20:50:26 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/portal/../db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 3
+[14-Oct-2025 20:50:26 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/portal/../db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/portal/index.php:3
+Stack trace:
+#0 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 3
+[14-Oct-2025 20:50:27 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/portal/../db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 3
+[14-Oct-2025 20:50:27 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/portal/../db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/portal/index.php:3
+Stack trace:
+#0 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 3
+[14-Oct-2025 20:52:43 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/portal/../db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 3
+[14-Oct-2025 20:52:43 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/portal/../db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/portal/index.php:3
+Stack trace:
+#0 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 3
+[14-Oct-2025 20:52:44 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/portal/../db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 3
+[14-Oct-2025 20:52:44 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/portal/../db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/portal/index.php:3
+Stack trace:
+#0 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 3
+[14-Oct-2025 20:52:48 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/portal/../db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 3
+[14-Oct-2025 20:52:48 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/portal/../db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/portal/index.php:3
+Stack trace:
+#0 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 3
+[14-Oct-2025 20:52:49 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/portal/../db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 3
+[14-Oct-2025 20:52:49 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/portal/../db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/portal/index.php:3
+Stack trace:
+#0 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 3
+[14-Oct-2025 20:53:14 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/portal/../db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 3
+[14-Oct-2025 20:53:14 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/portal/../db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/portal/index.php:3
+Stack trace:
+#0 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 3
+[14-Oct-2025 20:54:42 UTC] PHP Fatal error:  strict_types declaration must be the very first statement in the script in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 8
+[14-Oct-2025 20:54:44 UTC] PHP Fatal error:  strict_types declaration must be the very first statement in the script in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 8
+[14-Oct-2025 20:54:45 UTC] PHP Fatal error:  strict_types declaration must be the very first statement in the script in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 8
+[14-Oct-2025 20:55:01 UTC] PHP Fatal error:  strict_types declaration must be the very first statement in the script in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 8
+[14-Oct-2025 20:55:02 UTC] PHP Fatal error:  strict_types declaration must be the very first statement in the script in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 8
+[14-Oct-2025 21:02:16 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/portal/api/db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/portal/health.php on line 25
+[14-Oct-2025 21:16:30 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/portal/api/db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/portal/health.php on line 25
+[14-Oct-2025 21:21:57 UTC] PHP Fatal error:  strict_types declaration must be the very first statement in the script in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 8
+[14-Oct-2025 21:21:58 UTC] PHP Fatal error:  strict_types declaration must be the very first statement in the script in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 8
+[14-Oct-2025 21:22:00 UTC] PHP Fatal error:  strict_types declaration must be the very first statement in the script in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 8
+[14-Oct-2025 21:22:14 UTC] PHP Fatal error:  strict_types declaration must be the very first statement in the script in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 8
+[14-Oct-2025 21:23:01 UTC] PHP Fatal error:  strict_types declaration must be the very first statement in the script in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 8
+[15-Oct-2025 16:06:53 UTC] PHP Fatal error:  strict_types declaration must be the very first statement in the script in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 8
+[15-Oct-2025 16:25:15 UTC] PHP Fatal error:  strict_types declaration must be the very first statement in the script in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 8
+[15-Oct-2025 16:25:19 UTC] PHP Fatal error:  strict_types declaration must be the very first statement in the script in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 8
+[17-Oct-2025 03:00:55 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:94
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(94): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 94
+[17-Oct-2025 03:00:57 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:94
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(94): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 94
+[17-Oct-2025 03:04:05 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:94
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(94): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 94
+[17-Oct-2025 03:04:06 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:94
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(94): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 94
+[17-Oct-2025 03:04:06 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:94
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(94): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 94
+[17-Oct-2025 03:04:06 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:94
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(94): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 94
+[17-Oct-2025 03:16:01 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:111
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(111): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 111
+[17-Oct-2025 03:16:02 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:111
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(111): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 111
+[17-Oct-2025 03:16:02 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:111
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(111): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 111
+[17-Oct-2025 03:27:25 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:111
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(111): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 111
+[17-Oct-2025 03:27:26 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:111
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(111): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 111
+[17-Oct-2025 03:39:25 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:111
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(111): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 111
+[17-Oct-2025 03:39:26 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:111
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(111): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 111
+[17-Oct-2025 03:39:27 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:111
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(111): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 111
+[17-Oct-2025 03:55:51 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:133
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(133): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 133
+[17-Oct-2025 03:55:52 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:133
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(133): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 133
+[17-Oct-2025 03:55:53 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:133
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(133): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 133
+[17-Oct-2025 03:59:25 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:133
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(133): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 133
+[17-Oct-2025 03:59:30 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:133
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(133): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 133
+[17-Oct-2025 03:59:30 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:133
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(133): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 133
+[17-Oct-2025 04:16:56 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:134
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(134): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 134
+[17-Oct-2025 04:16:58 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:134
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(134): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 134
+[17-Oct-2025 04:16:59 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:134
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(134): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 134
+[17-Oct-2025 04:16:59 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:134
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(134): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 134
+[17-Oct-2025 04:17:36 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:134
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(134): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 134
+[17-Oct-2025 04:17:41 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:134
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(134): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 134
+[17-Oct-2025 04:17:42 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:134
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(134): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 134
+[17-Oct-2025 04:18:29 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:134
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(134): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 134
+[17-Oct-2025 04:18:30 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:134
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(134): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 134
+[17-Oct-2025 04:18:31 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:134
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(134): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 134
+[17-Oct-2025 04:18:31 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:134
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(134): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 134
+[17-Oct-2025 04:18:32 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:134
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(134): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 134
+[17-Oct-2025 04:18:32 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:134
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(134): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 134
+[17-Oct-2025 04:22:51 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:134
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(134): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 134
+[17-Oct-2025 04:22:52 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:134
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(134): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 134
+[17-Oct-2025 04:22:52 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:134
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(134): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 134
+[17-Oct-2025 04:22:52 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:134
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(134): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 134
+[17-Oct-2025 04:22:53 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:134
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(134): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 134
+[17-Oct-2025 04:24:39 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:134
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(134): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 134
+[17-Oct-2025 04:24:39 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:134
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(134): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 134
+[17-Oct-2025 04:35:56 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY093]: Invalid parameter number: number of bound variables does not match number of tokens in /home/frxnaisp/collagendirect.health/public/portal/index.php:238
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(238): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 238
+[17-Oct-2025 04:35:58 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY093]: Invalid parameter number: number of bound variables does not match number of tokens in /home/frxnaisp/collagendirect.health/public/portal/index.php:238
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(238): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 238
+[17-Oct-2025 04:35:59 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY093]: Invalid parameter number: number of bound variables does not match number of tokens in /home/frxnaisp/collagendirect.health/public/portal/index.php:238
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(238): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 238
+[17-Oct-2025 04:35:59 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY093]: Invalid parameter number: number of bound variables does not match number of tokens in /home/frxnaisp/collagendirect.health/public/portal/index.php:238
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(238): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 238
+[17-Oct-2025 04:36:00 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY093]: Invalid parameter number: number of bound variables does not match number of tokens in /home/frxnaisp/collagendirect.health/public/portal/index.php:238
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(238): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 238
+[17-Oct-2025 04:36:00 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY093]: Invalid parameter number: number of bound variables does not match number of tokens in /home/frxnaisp/collagendirect.health/public/portal/index.php:238
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(238): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 238
+[17-Oct-2025 04:36:00 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY093]: Invalid parameter number: number of bound variables does not match number of tokens in /home/frxnaisp/collagendirect.health/public/portal/index.php:238
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(238): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 238
+[17-Oct-2025 04:36:00 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY093]: Invalid parameter number: number of bound variables does not match number of tokens in /home/frxnaisp/collagendirect.health/public/portal/index.php:238
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(238): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 238
+[17-Oct-2025 04:36:01 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY093]: Invalid parameter number: number of bound variables does not match number of tokens in /home/frxnaisp/collagendirect.health/public/portal/index.php:238
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(238): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 238
+[17-Oct-2025 04:44:36 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:77
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(77): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 77
+[17-Oct-2025 04:44:36 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:77
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(77): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 77
+[17-Oct-2025 04:44:37 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:77
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(77): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 77
+[17-Oct-2025 04:44:38 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:77
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(77): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 77
+[17-Oct-2025 04:44:38 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:77
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(77): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 77
+[17-Oct-2025 04:44:38 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:77
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(77): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 77
+[17-Oct-2025 04:44:39 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:77
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(77): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 77
+[17-Oct-2025 04:44:39 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:77
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(77): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 77
+[17-Oct-2025 04:44:39 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:77
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(77): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 77
+[17-Oct-2025 04:44:39 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:77
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(77): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 77
+[17-Oct-2025 04:44:40 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:77
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(77): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 77
+[17-Oct-2025 04:44:40 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:77
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(77): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 77
+[17-Oct-2025 04:44:41 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:77
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(77): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 77
+[17-Oct-2025 04:44:41 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:77
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(77): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 77
+[17-Oct-2025 04:44:41 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:77
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(77): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 77
+[17-Oct-2025 04:45:25 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:77
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(77): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 77
+[17-Oct-2025 04:45:59 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:77
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(77): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 77
+[17-Oct-2025 04:46:00 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:77
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(77): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 77
+[17-Oct-2025 04:49:28 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:77
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(77): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 77
+[17-Oct-2025 04:49:28 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:77
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(77): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 77
+[17-Oct-2025 04:52:15 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:77
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(77): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 77
+[17-Oct-2025 19:34:59 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:81
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(81): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 81
+[17-Oct-2025 19:35:00 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:81
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(81): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 81
+[17-Oct-2025 19:35:00 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:81
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(81): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 81
+[17-Oct-2025 19:35:00 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:81
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(81): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 81
+[17-Oct-2025 19:35:01 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:81
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(81): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 81
+[17-Oct-2025 19:35:01 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:81
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(81): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 81
+[17-Oct-2025 19:35:04 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:81
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(81): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 81
+[17-Oct-2025 19:35:05 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:81
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(81): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 81
+[17-Oct-2025 19:35:06 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:81
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(81): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 81
+[17-Oct-2025 22:33:21 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[28000] [1045] Access denied for user 'root'@'localhost' (using password: NO) in /home/frxnaisp/collagendirect.health/public/portal/index.php:12
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(12): PDO->__construct()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 12
+[17-Oct-2025 22:33:22 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[28000] [1045] Access denied for user 'root'@'localhost' (using password: NO) in /home/frxnaisp/collagendirect.health/public/portal/index.php:12
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(12): PDO->__construct()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 12
+[17-Oct-2025 22:34:13 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[28000] [1045] Access denied for user 'root'@'localhost' (using password: NO) in /home/frxnaisp/collagendirect.health/public/portal/index.php:12
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(12): PDO->__construct()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 12
+[17-Oct-2025 22:39:41 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[28000] [1045] Access denied for user 'root'@'localhost' (using password: NO) in /home/frxnaisp/collagendirect.health/public/portal/index.php:12
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(12): PDO->__construct()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 12
+[17-Oct-2025 23:07:17 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:78
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(78): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 78
+[17-Oct-2025 23:07:17 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:78
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(78): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 78
+[17-Oct-2025 23:07:18 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:78
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(78): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 78
+[17-Oct-2025 23:07:18 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:78
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(78): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 78
+[17-Oct-2025 23:07:18 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:78
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(78): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 78
+[17-Oct-2025 23:07:18 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:78
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(78): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 78
+[17-Oct-2025 23:07:19 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:78
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(78): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 78
+[17-Oct-2025 23:20:17 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:78
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(78): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 78
+[17-Oct-2025 23:20:17 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:78
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(78): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 78
+[17-Oct-2025 23:20:17 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:78
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(78): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 78
+[17-Oct-2025 23:20:54 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:78
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(78): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 78
+[17-Oct-2025 23:20:56 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:78
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(78): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 78
+[17-Oct-2025 23:20:57 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:78
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(78): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 78
+[17-Oct-2025 23:20:57 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:78
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(78): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 78
+[17-Oct-2025 23:29:56 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:78
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(78): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 78
+[17-Oct-2025 23:33:11 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:78
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(78): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 78
+[17-Oct-2025 23:33:11 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:78
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(78): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 78
+[17-Oct-2025 23:33:14 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:78
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(78): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 78
+[17-Oct-2025 23:33:16 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:78
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(78): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 78
+[17-Oct-2025 23:33:16 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:78
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(78): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 78
+[17-Oct-2025 23:33:16 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:78
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(78): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 78
+[17-Oct-2025 23:33:16 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:78
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(78): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 78
+[17-Oct-2025 23:33:16 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:78
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(78): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 78
+[17-Oct-2025 23:33:16 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:78
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(78): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 78
+[17-Oct-2025 23:33:17 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:78
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(78): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 78
+[18-Oct-2025 05:41:30 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:84
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(84): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 84
+[18-Oct-2025 05:41:33 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:84
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(84): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 84
+[18-Oct-2025 05:41:37 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:84
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(84): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 84
+[18-Oct-2025 05:43:38 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:84
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(84): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 84
+[18-Oct-2025 05:44:59 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:84
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(84): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 84
+[19-Oct-2025 00:41:20 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:84
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(84): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 84
+[19-Oct-2025 00:50:58 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:84
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(84): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 84
+[19-Oct-2025 00:53:18 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:84
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(84): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 84
+[19-Oct-2025 00:53:24 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:84
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(84): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 84
+[19-Oct-2025 00:55:13 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:84
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(84): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 84
+[19-Oct-2025 00:56:02 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:84
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(84): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 84
+[19-Oct-2025 01:57:52 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:84
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(84): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 84
+[19-Oct-2025 02:19:09 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:91
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(91): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 91
+[19-Oct-2025 02:19:14 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:262
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(262): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 262
+[19-Oct-2025 02:19:20 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:91
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(91): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 91
+[19-Oct-2025 02:20:09 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:91
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(91): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 91
+[19-Oct-2025 02:20:12 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:91
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(91): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 91
+[19-Oct-2025 02:30:47 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:91
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(91): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 91
+[19-Oct-2025 02:31:07 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:91
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(91): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 91
+[19-Oct-2025 02:40:43 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:88
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(88): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 88
+[19-Oct-2025 02:41:11 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:88
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(88): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 88
+[19-Oct-2025 02:42:31 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:240
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(240): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 240
+[19-Oct-2025 02:42:40 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:240
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(240): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 240
+[19-Oct-2025 02:42:45 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:240
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(240): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 240
+[19-Oct-2025 02:42:47 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:240
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(240): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 240
+[19-Oct-2025 02:43:49 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:88
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(88): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 88
+[19-Oct-2025 02:50:17 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:240
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(240): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 240
+[19-Oct-2025 02:52:20 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:240
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(240): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 240
+[19-Oct-2025 02:52:26 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:240
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(240): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 240
+[19-Oct-2025 04:41:42 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:99
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(99): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 99
+[19-Oct-2025 04:41:45 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:286
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(286): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 286
+[19-Oct-2025 04:41:53 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:99
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(99): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 99
+[19-Oct-2025 04:59:25 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:286
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(286): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 286
+[19-Oct-2025 05:01:56 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:99
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(99): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 99
+[19-Oct-2025 05:05:47 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:99
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(99): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 99
+[19-Oct-2025 05:05:51 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:99
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(99): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 99
+[19-Oct-2025 05:08:07 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:94
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(94): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 94
+[19-Oct-2025 05:08:11 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:94
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(94): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 94
+[19-Oct-2025 05:08:16 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:94
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(94): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 94
+[19-Oct-2025 05:08:19 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:279
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(279): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 279
+[19-Oct-2025 05:10:25 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:279
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(279): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 279
+[19-Oct-2025 05:10:41 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:94
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(94): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 94
+[19-Oct-2025 05:11:36 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'carrier' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/portal/index.php:279
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(279): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 279
+[19-Oct-2025 05:24:11 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/api/../db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:24:11 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/api/../db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/api/db.php:17
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(7): require()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:24:18 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/api/../db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:24:18 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/api/../db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/api/db.php:17
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(7): require()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:32:52 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/api/../db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:32:52 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/api/../db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/api/db.php:17
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(6): require()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:33:02 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/api/../db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:33:02 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/api/../db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/api/db.php:17
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(6): require()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:33:13 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/api/../db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:33:13 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/api/../db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/api/db.php:17
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(6): require()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:33:28 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/api/../db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:33:28 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/api/../db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/api/db.php:17
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(6): require()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:34:15 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/api/../db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:34:15 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/api/../db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/api/db.php:17
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(7): require()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:34:17 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/api/../db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:34:17 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/api/../db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/api/db.php:17
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(7): require()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:34:23 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/api/../db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:34:23 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/api/../db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/api/db.php:17
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(8): require()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:34:24 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/api/../db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:34:24 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/api/../db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/api/db.php:17
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(8): require()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:34:31 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/api/../db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:34:31 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/api/../db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/api/db.php:17
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(8): require()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:34:37 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/api/../db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:34:37 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/api/../db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/api/db.php:17
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(8): require()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:34:51 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/api/../db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:34:51 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/api/../db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/api/db.php:17
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(8): require()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:34:58 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/api/../db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:34:58 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/api/../db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/api/db.php:17
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(8): require()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:35:02 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/api/../db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:35:02 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/api/../db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/api/db.php:17
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(8): require()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:35:14 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/api/../db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:35:14 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/api/../db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/api/db.php:17
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(8): require()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:35:27 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/api/../db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:35:27 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/api/../db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/api/db.php:17
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(7): require()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:35:49 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/api/../db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:35:49 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/api/../db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/api/db.php:17
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(7): require()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[21-Oct-2025 19:05:10 UTC] PHP Parse error:  syntax error, unexpected token "catch", expecting end of file in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 496
+[21-Oct-2025 19:07:17 UTC] PHP Parse error:  Unclosed '{' on line 38 in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 1425
+[22-Oct-2025 01:14:09 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42000]: Syntax error or access violation: 1064 You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near '/scr
+      ) lo ON lo.patient_id=p.id
+          WHERE p.user_id='w4E1kvytO0za...' at line 9 in /home/frxnaisp/collagendirect.health/public/portal/index.php:70
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/portal/index.php(70): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 70
+[22-Oct-2025 01:30:06 UTC] PHP Parse error:  syntax error, unexpected token "\" in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 65
+[22-Oct-2025 01:30:09 UTC] PHP Parse error:  syntax error, unexpected token "\" in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 65
+[22-Oct-2025 01:30:35 UTC] PHP Parse error:  syntax error, unexpected token "\" in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 65
+[22-Oct-2025 01:31:25 UTC] PHP Parse error:  syntax error, unexpected token "\" in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 65
+[22-Oct-2025 03:44:37 UTC] PHP Parse error:  syntax error, unexpected token "\" in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 65
+[22-Oct-2025 13:26:32 UTC] PHP Parse error:  syntax error, unexpected token "\" in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 65
+[22-Oct-2025 13:26:34 UTC] PHP Parse error:  syntax error, unexpected token "\" in /home/frxnaisp/collagendirect.health/public/portal/index.php on line 65

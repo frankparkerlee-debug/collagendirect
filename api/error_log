@@ -1,0 +1,94 @@
+[14-Oct-2025 17:51:55 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42000]: Syntax error or access violation: 1064 You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near '('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT ...' at line 14 in /home/frxnaisp/collagendirect.health/public/api/db.php:40
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/api/db.php(40): PDO->exec()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/db.php on line 40
+[14-Oct-2025 17:56:16 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42000]: Syntax error or access violation: 1064 You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near '('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT ...' at line 14 in /home/frxnaisp/collagendirect.health/public/api/db.php:40
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/api/db.php(40): PDO->exec()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/db.php on line 40
+[14-Oct-2025 17:56:35 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42000]: Syntax error or access violation: 1064 You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near '('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT ...' at line 14 in /home/frxnaisp/collagendirect.health/public/api/db.php:40
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/api/db.php(40): PDO->exec()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/db.php on line 40
+[14-Oct-2025 17:57:11 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42000]: Syntax error or access violation: 1064 You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near '('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT ...' at line 14 in /home/frxnaisp/collagendirect.health/public/api/db.php:40
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/api/db.php(40): PDO->exec()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/db.php on line 40
+[14-Oct-2025 17:57:12 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42000]: Syntax error or access violation: 1064 You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near '('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT ...' at line 14 in /home/frxnaisp/collagendirect.health/public/api/db.php:40
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/api/db.php(40): PDO->exec()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/db.php on line 40
+[14-Oct-2025 20:13:40 UTC] PHP Warning:  session_set_cookie_params(): Session cookie parameters cannot be changed when a session is active in /home/frxnaisp/collagendirect.health/public/api/login.php on line 30
+[15-Oct-2025 16:25:40 UTC] DB connection failed: SQLSTATE[28000] [1045] Access denied for user 'YOUR_DB_USER'@'localhost' (using password: YES)
+[15-Oct-2025 16:26:03 UTC] DB connection failed: SQLSTATE[28000] [1045] Access denied for user 'YOUR_DB_USER'@'localhost' (using password: YES)
+[15-Oct-2025 16:26:49 UTC] DB connection failed: SQLSTATE[28000] [1045] Access denied for user 'YOUR_DB_USER'@'localhost' (using password: YES)
+[15-Oct-2025 16:26:52 UTC] DB connection failed: SQLSTATE[28000] [1045] Access denied for user 'YOUR_DB_USER'@'localhost' (using password: YES)
+[15-Oct-2025 16:26:53 UTC] DB connection failed: SQLSTATE[28000] [1045] Access denied for user 'YOUR_DB_USER'@'localhost' (using password: YES)
+[15-Oct-2025 16:29:56 UTC] DB connection failed: SQLSTATE[28000] [1045] Access denied for user 'YOUR_DB_USER'@'localhost' (using password: YES)
+[15-Oct-2025 16:31:51 UTC] DB connection failed: SQLSTATE[28000] [1045] Access denied for user 'YOUR_DB_USER'@'localhost' (using password: YES)
+[15-Oct-2025 16:31:51 UTC] DB connection failed: SQLSTATE[28000] [1045] Access denied for user 'YOUR_DB_USER'@'localhost' (using password: YES)
+[15-Oct-2025 16:31:52 UTC] DB connection failed: SQLSTATE[28000] [1045] Access denied for user 'YOUR_DB_USER'@'localhost' (using password: YES)
+[15-Oct-2025 16:31:53 UTC] DB connection failed: SQLSTATE[28000] [1045] Access denied for user 'YOUR_DB_USER'@'localhost' (using password: YES)
+[15-Oct-2025 16:34:43 UTC] DB connection failed: SQLSTATE[28000] [1045] Access denied for user 'YOUR_DB_USER'@'localhost' (using password: YES)
+[15-Oct-2025 16:35:53 UTC] DB connection failed: SQLSTATE[28000] [1045] Access denied for user 'YOUR_DB_USER'@'localhost' (using password: YES)
+[15-Oct-2025 16:36:08 UTC] DB connection failed: SQLSTATE[28000] [1045] Access denied for user 'YOUR_DB_USER'@'localhost' (using password: YES)
+[15-Oct-2025 16:36:13 UTC] DB connection failed: SQLSTATE[28000] [1045] Access denied for user 'YOUR_DB_USER'@'localhost' (using password: YES)
+[15-Oct-2025 16:37:32 UTC] PHP Parse error:  Unclosed '{' on line 22 in /home/frxnaisp/collagendirect.health/public/api/login.php on line 40
+[15-Oct-2025 16:37:34 UTC] PHP Parse error:  Unclosed '{' on line 22 in /home/frxnaisp/collagendirect.health/public/api/login.php on line 40
+[15-Oct-2025 16:41:51 UTC] PHP Parse error:  Unclosed '{' on line 22 in /home/frxnaisp/collagendirect.health/public/api/login.php on line 40
+[15-Oct-2025 16:41:52 UTC] PHP Parse error:  Unclosed '{' on line 22 in /home/frxnaisp/collagendirect.health/public/api/login.php on line 40
+[15-Oct-2025 16:42:05 UTC] DB connection failed: SQLSTATE[28000] [1045] Access denied for user 'YOUR_DB_USER'@'localhost' (using password: YES)
+[15-Oct-2025 16:42:06 UTC] DB connection failed: SQLSTATE[28000] [1045] Access denied for user 'YOUR_DB_USER'@'localhost' (using password: YES)
+[15-Oct-2025 17:38:55 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function npi_checksum_ok() in /home/frxnaisp/collagendirect.health/public/api/register.php:20
+Stack trace:
+#0 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/register.php on line 20
+[15-Oct-2025 17:38:59 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function npi_checksum_ok() in /home/frxnaisp/collagendirect.health/public/api/register.php:20
+Stack trace:
+#0 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/register.php on line 20
+[15-Oct-2025 17:39:53 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function npi_checksum_ok() in /home/frxnaisp/collagendirect.health/public/api/register.php:20
+Stack trace:
+#0 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/register.php on line 20
+[15-Oct-2025 17:43:08 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function npi_checksum_ok() in /home/frxnaisp/collagendirect.health/public/api/register.php:20
+Stack trace:
+#0 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/register.php on line 20
+[19-Oct-2025 05:22:00 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/api/../db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 05:22:00 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/api/../db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/api/db.php:17
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/api/csrf.php(4): require()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/db.php on line 17
+[19-Oct-2025 18:11:25 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/api/lib/fpdf.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/api/test_fpdf.php on line 3
+[19-Oct-2025 18:11:25 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/api/lib/fpdf.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/api/test_fpdf.php:3
+Stack trace:
+#0 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/test_fpdf.php on line 3
+[19-Oct-2025 18:11:33 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/api/lib/fpdf.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/api/test_fpdf.php on line 3
+[19-Oct-2025 18:11:33 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/api/lib/fpdf.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/api/test_fpdf.php:3
+Stack trace:
+#0 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/test_fpdf.php on line 3
+[19-Oct-2025 23:35:52 UTC] [test_template_reset] Using template_id=d-41ea629107c54e0abc1dcbd654c9e498

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Products — CollagenDirect (Mobile)</title>
+<meta name="description" content="Explore collagen wound products optimized for mobile: matrix sheets, powders, and antimicrobial composites." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fff;--panel:#f6f8fb;--text:#1e2a38;--muted:#5c6b80;--line:rgba(0,0,0,.08);--brand-teal:#47c6be;--radius:16px;--shadow:0 10px 24px rgba(7,16,40,.08);--max:1180px;--safe-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;padding-bottom:86px}
+a{text-decoration:none;color:inherit}
+img{max-width:100%;display:block}
+.container{max-width:var(--max);margin:0 auto;padding:0 16px}
+.btn{padding:14px 16px;border-radius:12px;font-weight:800;border:1px solid transparent;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.btn.primary{background:var(--brand-teal);color:#0a1b1a}
+.btn.ghost{background:#fff;border:1px solid var(--line);color:#1e2a38}
+.muted{color:var(--muted)}
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+
+header{position:sticky;top:0;z-index:40;background:rgba(255,255,255,.92);backdrop-filter:saturate(160%) blur(8px);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;justify-content:space-between;height:60px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand img{height:28px}
+.brand .title{font-weight:900;letter-spacing:.4px;font-size:.95rem}
+.brand .subtitle{display:none}
+.hamburger{border:1px solid var(--line);background:#fff;border-radius:12px;padding:8px 10px;font-weight:700}
+.mobile-menu{display:none;border-top:1px solid var(--line);background:#fff}
+.mobile-menu a{display:block;padding:16px;border-bottom:1px solid var(--line);font-weight:800;color:#203047}
+.mobile-open .mobile-menu{display:block}
+.cta{display:none} /* no header CTAs on mobile */
+
+.hero{padding:16px 0;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#fbfefe,#fff)}
+.hero h1{font-size:1.6rem;line-height:1.15}
+.lead{margin-top:6px;color:var(--muted);font-size:.98rem}
+
+.tools{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:10px 0;flex-wrap:wrap}
+.filters{display:flex;gap:6px;flex-wrap:wrap}
+.filter{padding:8px 12px;border:1px solid var(--line);border-radius:999px;background:#fff;color:#334;font-weight:800}
+.filter.active{background:#eefaf8;border-color:#bfeee6;color:#0b5f56}
+
+.grid{display:grid;grid-template-columns:1fr;gap:12px;margin:16px 0 24px}
+.prod .poster{aspect-ratio:4/3;background:#fbfcfe;object-fit:contain}
+.prod .body{padding:12px}
+.prod h3{font-size:1.02rem}
+.pill{display:inline-flex;padding:3px 8px;border-radius:999px;border:1px solid #e5e9f2;background:#f2f4f7;color:#3b455a;font-weight:700;font-size:.8rem}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.bottom{display:flex;gap:8px;margin-top:8px}
+.bottom .btn{flex:1}
+
+.actionbar{position:fixed;left:0;right:0;bottom:0;z-index:50;padding:10px 14px calc(10px + var(--safe-bottom));background:rgba(255,255,255,.96);backdrop-filter:saturate(160%) blur(8px);border-top:1px solid var(--line)}
+.actionbar .row{display:flex;gap:10px}
+.actionbar .btn{flex:1}
+
+footer{display:none} /* keep mobile page lean; show footer only if you want */
+</style>
+</head>
+<body>
+<header>
+  <div class="container nav">
+    <a href="/index.html" class="brand" aria-label="Go to homepage">
+      <img src="/assets/collagendirect.png" alt="CollagenDirect logo">
+      <div class="title">COLLAGEN <span style="color:#47c6be">DIRECT</span></div>
+    </a>
+    <button id="menuBtn" class="hamburger" aria-expanded="false" aria-controls="mobileNav">Menu ▾</button>
+  </div>
+  <nav id="mobileNav" class="mobile-menu" aria-label="Mobile">
+    <a href="/portal">Provider Login</a>
+    <a href="/register">Join Provider Network</a>
+    <a href="/products">Products</a>
+    <a href="/index.html#value">About</a>
+    <a href="/index.html#resources">Resources</a>
+    <a href="/contact">Contact</a>
+  </nav>
+</header>
+
+<!-- Sticky bottom action bar -->
+<div class="actionbar" role="region" aria-label="Quick actions">
+  <div class="container row">
+    <a class="btn ghost" href="/portal">Provider Login</a>
+    <a class="btn primary" href="/register">Join Network</a>
+  </div>
+</div>
+
+<main>
+  <section class="hero">
+    <div class="container">
+      <h1>Collagen Wound Products</h1>
+      <p class="lead">Matrix, powder, and silver-composite options for chronic and acute wounds.</p>
+      <div class="tools">
+        <div class="filters" role="tablist" aria-label="Filter products">
+          <button class="filter active" data-filter="all" role="tab" aria-selected="true">All</button>
+          <button class="filter" data-filter="matrix" role="tab">Matrix</button>
+          <button class="filter" data-filter="powder" role="tab">Powder</button>
+          <button class="filter" data-filter="antimicrobial" role="tab">Antimicrobial</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div id="grid" class="container grid" aria-live="polite"></div>
+  </section>
+</main>
+
+<script>
+document.getElementById('menuBtn')?.addEventListener('click',()=>{
+  const html=document.documentElement;const open=html.classList.toggle('mobile-open');
+  document.getElementById('menuBtn').setAttribute('aria-expanded',open?'true':'false');
+});
+
+/* 8 products */
+const PRODUCTS = [
+  { id:'matrix-2x2', name:'Collagen Matrix 2×2', img:'/assets/products/collagen-matrix-2x2.png', category:'matrix', specs:['Sheet','2×2 in'], desc:'Sheet matrix for DFU/VLU & pressure ulcers.' },
+  { id:'matrix-3x3', name:'Collagen Matrix 3×3', img:'/assets/products/collagen-matrix-3x3.png', category:'matrix', specs:['Sheet','3×3 in'], desc:'Absorbent matrix supporting epithelialization.' },
+  { id:'matrix-4x4', name:'Collagen Matrix 4×4', img:'/assets/products/collagen-matrix-4x4.png', category:'matrix', specs:['Sheet','4×4 in'], desc:'Larger coverage for exuding wounds.' },
+  { id:'powder-1g', name:'Collagen Powder 1 g', img:'/assets/products/collagen-powder-1g.png', category:'powder', specs:['Powder','1 g'], desc:'Maintains moist wound environment for granulation.' },
+  { id:'powder-3g', name:'Collagen Powder 3 g', img:'/assets/products/collagen-powder-3g.png', category:'powder', specs:['Powder','3 g'], desc:'Higher volume for large or tunneling wounds.' },
+  { id:'ag-2x2', name:'Antimicrobial Collagen 2×2', img:'/assets/products/collagen-silver-2x2.png', category:'antimicrobial', specs:['Silver-composite','2×2 in'], desc:'Silver-infused collagen for bioburden management.' },
+  { id:'ag-4x4', name:'Antimicrobial Collagen 4×4', img:'/assets/products/collagen-silver-4x4.png', category:'antimicrobial', specs:['Silver-composite','4×4 in'], desc:'Larger silver-collagen composite for infected/exuding wounds.' },
+  { id:'ag-powder-1g', name:'Antimicrobial Collagen Powder 1 g', img:'/assets/products/collagen-silver-powder-1g.png', category:'antimicrobial', specs:['Silver-composite','Powder 1 g'], desc:'Conforms to irregular topography; assists with bioburden.' },
+];
+
+const grid=document.getElementById('grid');
+function card(p){return `
+<article id="${p.id}" class="card prod" data-cat="${p.category}">
+  <img class="poster" loading="lazy" src="${p.img}" alt="${p.name}">
+  <div class="body">
+    <h3>${p.name}</h3>
+    <p class="muted" style="margin-top:4px">${p.desc}</p>
+    <div class="row">${p.specs.map(s=>`<span class="pill">${s}</span>`).join('')}</div>
+    <div class="bottom">
+      <a class="btn ghost" href="/register">Pricing</a>
+      <a class="btn primary" href="/portal">Order</a>
+    </div>
+  </div>
+</article>`}
+
+function render(list){grid.innerHTML=list.map(card).join('')}
+render(PRODUCTS);
+
+document.querySelectorAll('.filter').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.filter').forEach(x=>{x.classList.remove('active');x.setAttribute('aria-selected','false');});
+  b.classList.add('active'); b.setAttribute('aria-selected','true');
+  const f=b.dataset.filter;
+  render(f==='all'?PRODUCTS:PRODUCTS.filter(p=>p.category===f));
+}));
+</script>
+</body>
+</html>

@@ -1,0 +1,165 @@
+================================================================================
+    COLLAGENDIRECT - QUICK FILE UPLOAD GUIDE
+================================================================================
+
+✅ UI HAS BEEN ADDED! You can now upload files from the web interface!
+
+================================================================================
+WHERE TO FIND IT
+================================================================================
+
+1. Log in:  http://localhost:8000/portal
+   Email:    sparkingmatt@gmail.com
+   Password: TempPassword123!
+
+2. Click "Patients" tab
+
+3. Click "View / Edit" on any patient
+
+4. Scroll down - you'll see a new section:
+   "Required Documents for Insurance Orders"
+
+================================================================================
+WHAT YOU'LL SEE
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ Required Documents for Insurance Orders                             │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│ ID Card / Driver's License ✓ (or * if missing)                     │
+│ Current: [View]  (if already uploaded)                              │
+│ [Choose File]                                                        │
+│                                                                      │
+│ Insurance Card ✓ (or * if missing)                                  │
+│ Current: [View]  (if already uploaded)                              │
+│ [Choose File]                                                        │
+│                                                                      │
+│ Assignment of Benefits (AOB) ✓ Signed (or * Required)              │
+│ Signed: 2025-10-22  (if already signed)                             │
+│ [Generate & Sign AOB]                                                │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+HOW TO UPLOAD FILES
+================================================================================
+
+STEP 1: ID CARD
+───────────────
+1. Click [Choose File] under "ID Card / Driver's License"
+2. Select a PDF or image file from your computer
+3. File uploads automatically
+4. You'll see: "ID Card uploaded successfully!"
+5. Page reloads - you'll now see a green ✓ checkmark
+
+STEP 2: INSURANCE CARD
+──────────────────────
+1. Click [Choose File] under "Insurance Card"
+2. Select a PDF or image file
+3. File uploads automatically
+4. You'll see: "Insurance Card uploaded successfully!"
+5. Page reloads - you'll now see a green ✓ checkmark
+
+STEP 3: AOB (ASSIGNMENT OF BENEFITS)
+─────────────────────────────────────
+1. Click [Generate & Sign AOB]
+2. Click "OK" to confirm
+3. AOB is auto-generated
+4. You'll see: "AOB generated and signed successfully!"
+5. Page reloads - you'll now see "✓ Signed"
+
+DONE! All three should show green ✓ checkmarks
+
+================================================================================
+THEN CREATE AN ORDER
+================================================================================
+
+1. Click "New Order" button (top right)
+2. Select the patient you just uploaded files for
+3. Fill in ALL required fields:
+   - Product
+   - ICD-10 Primary: L97.412
+   - Wound Length: 3.5
+   - Wound Width: 2.0
+   - Last Eval Date: 2025-10-22
+   - Frequency/week: 3
+   - Signature Name: Dr. Matthew User
+   ☑ Check the e-signature box!
+4. Click "Submit Order"
+
+✅ No more error about "Patient ID and Insurance Card must be on file"!
+
+================================================================================
+ACCEPTED FILE TYPES
+================================================================================
+
+✓ PDF (.pdf)
+✓ JPEG (.jpg, .jpeg)
+✓ PNG (.png)
+✓ WebP (.webp)
+✓ HEIC (.heic)
+
+Maximum size: 25MB
+
+================================================================================
+QUICK TEST
+================================================================================
+
+Want to test with dummy files?
+
+1. Create test files on your Desktop:
+   - Right-click Desktop → New → Text Document
+   - Name it: test-id.txt
+   - Type anything in it (e.g., "Test ID Card")
+   - Save and close
+
+2. Repeat for insurance:
+   - Create: test-insurance.txt
+   - Type: "Test Insurance Card"
+   - Save
+
+3. Upload them:
+   - Go to patient profile
+   - Upload test-id.txt as ID Card
+   - Upload test-insurance.txt as Insurance Card
+   - Generate AOB
+
+4. Verify all show ✓ checkmarks
+
+5. Create an order - it will work!
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+Can't see the upload section?
+→ Make sure you clicked "View / Edit" on a patient
+→ Scroll down - it's below the patient details
+
+Upload doesn't work?
+→ Check file is under 25MB
+→ Use PDF or JPG/PNG format
+→ Check browser console (F12) for errors
+
+Files don't show after upload?
+→ Manually refresh the page
+→ Check /tmp/php-server.log for errors
+
+Still getting "files must be on file" error?
+→ Make sure all THREE files show green ✓
+→ ID Card ✓
+→ Insurance Card ✓
+→ AOB ✓
+
+================================================================================
+STATUS: ✅ READY TO USE!
+================================================================================
+
+The UI is now live. Go try it!
+
+http://localhost:8000/portal → Patients → View/Edit → Scroll Down
+
+Questions? See UI_ADDED.md for detailed documentation.
+
+================================================================================

@@ -1,0 +1,79 @@
+[17-Oct-2025 23:53:35 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/api/auth/../../portal/api/db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/api/auth/request_reset.php on line 3
+[17-Oct-2025 23:53:35 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/api/auth/../../portal/api/db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/api/auth/request_reset.php:3
+Stack trace:
+#0 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/auth/request_reset.php on line 3
+[17-Oct-2025 23:55:06 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/api/auth/../../portal/api/db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/api/auth/request_reset.php on line 3
+[17-Oct-2025 23:55:06 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/api/auth/../../portal/api/db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/api/auth/request_reset.php:3
+Stack trace:
+#0 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/auth/request_reset.php on line 3
+[17-Oct-2025 23:55:11 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/api/auth/../../portal/api/db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/api/auth/request_reset.php on line 3
+[17-Oct-2025 23:55:11 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/api/auth/../../portal/api/db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/api/auth/request_reset.php:3
+Stack trace:
+#0 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/auth/request_reset.php on line 3
+[17-Oct-2025 23:56:46 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/api/auth/../../portal/api/db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/api/auth/request_reset.php on line 3
+[17-Oct-2025 23:56:46 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/api/auth/../../portal/api/db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/api/auth/request_reset.php:3
+Stack trace:
+#0 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/auth/request_reset.php on line 3
+[19-Oct-2025 01:04:30 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/api/auth/../../portal/api/db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/api/auth/request_reset.php on line 3
+[19-Oct-2025 01:04:30 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/api/auth/../../portal/api/db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/api/auth/request_reset.php:3
+Stack trace:
+#0 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/auth/request_reset.php on line 3
+[19-Oct-2025 05:14:35 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/api/auth/../../portal/api/db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/api/auth/request_reset.php on line 18
+[19-Oct-2025 05:14:35 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/api/auth/../../portal/api/db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/api/auth/request_reset.php:18
+Stack trace:
+#0 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/auth/request_reset.php on line 18
+[19-Oct-2025 23:20:01 UTC] rate limit check failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'email' in 'WHERE'
+[19-Oct-2025 23:20:01 UTC] insert password_reset failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'consumed_at' in 'SET'
+[19-Oct-2025 23:24:45 UTC] rate limit check failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'email' in 'WHERE'
+[19-Oct-2025 23:24:45 UTC] insert password_reset failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'consumed_at' in 'SET'
+[19-Oct-2025 23:36:42 UTC] rate limit check failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'email' in 'WHERE'
+[19-Oct-2025 23:36:42 UTC] insert password_reset failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'consumed_at' in 'SET'
+[19-Oct-2025 23:39:17 UTC] rate limit check failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'email' in 'WHERE'
+[19-Oct-2025 23:39:17 UTC] insert password_reset failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'consumed_at' in 'SET'
+[19-Oct-2025 23:47:57 UTC] rate limit check failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'email' in 'WHERE'
+[19-Oct-2025 23:47:57 UTC] insert password_reset failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'consumed_at' in 'SET'
+[19-Oct-2025 23:58:47 UTC] rate limit check failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'email' in 'WHERE'
+[19-Oct-2025 23:58:47 UTC] insert password_reset failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'consumed_at' in 'SET'
+[20-Oct-2025 02:06:52 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/api/auth/../../portal/api/db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/api/auth/reset_password.php on line 3
+[20-Oct-2025 02:06:52 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/api/auth/../../portal/api/db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/api/auth/reset_password.php:3
+Stack trace:
+#0 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/auth/reset_password.php on line 3
+[20-Oct-2025 02:07:20 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/api/auth/../../portal/api/db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/api/auth/reset_password.php on line 3
+[20-Oct-2025 02:07:20 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/api/auth/../../portal/api/db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/api/auth/reset_password.php:3
+Stack trace:
+#0 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/auth/reset_password.php on line 3
+[20-Oct-2025 22:57:46 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/api/auth/../../portal/api/db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/api/auth/reset_password.php on line 3
+[20-Oct-2025 22:57:46 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/api/auth/../../portal/api/db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/api/auth/reset_password.php:3
+Stack trace:
+#0 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/auth/reset_password.php on line 3
+[20-Oct-2025 22:58:03 UTC] PHP Warning:  require(/home/frxnaisp/collagendirect.health/public/api/auth/../../portal/api/db.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/api/auth/reset_password.php on line 3
+[20-Oct-2025 22:58:03 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/api/auth/../../portal/api/db.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/api/auth/reset_password.php:3
+Stack trace:
+#0 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/auth/reset_password.php on line 3
+[21-Oct-2025 04:03:24 UTC] rate-limit check failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'email' in 'WHERE'
+[21-Oct-2025 04:03:24 UTC] insert password_resets failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'consumed_at' in 'SET'
+[21-Oct-2025 04:03:56 UTC] rate-limit check failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'email' in 'WHERE'
+[21-Oct-2025 04:03:56 UTC] insert password_resets failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'consumed_at' in 'SET'
+[21-Oct-2025 04:11:24 UTC] rate-limit check failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'email' in 'WHERE'
+[21-Oct-2025 04:11:24 UTC] insert password_resets failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'consumed_at' in 'SET'
+[21-Oct-2025 04:38:04 UTC] rate-limit check failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'email' in 'WHERE'
+[21-Oct-2025 04:38:04 UTC] insert password_resets failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'consumed_at' in 'SET'
+[21-Oct-2025 04:59:47 UTC] rate-limit check failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'email' in 'WHERE'
+[21-Oct-2025 04:59:47 UTC] insert password_resets failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'consumed_at' in 'SET'
+[21-Oct-2025 05:03:43 UTC] rate-limit check failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'email' in 'WHERE'
+[21-Oct-2025 05:03:43 UTC] insert password_resets failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'consumed_at' in 'SET'
+[21-Oct-2025 05:07:03 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'email' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/api/auth/reset_password.php:64
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/api/auth/reset_password.php(64): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/auth/reset_password.php on line 64

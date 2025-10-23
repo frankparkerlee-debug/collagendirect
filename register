@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Register — Physician Portal | CollagenDirect</title>
+  <meta name="description" content="Create a secure CollagenDirect physician account to access ordering, documentation, and patient workflows." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#ffffff; --panel:#f6f8fb; --text:#1e2a38; --muted:#5c6b80; --line:rgba(0,0,0,.08);
+      --brand-teal:#47c6be; --teal-50:#e9fbf8; --teal-100:#d2f6f1; --teal-700:#0b5f56;
+      --radius:16px; --shadow:0 14px 40px rgba(7,16,40,.10); --max:1180px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+    img{max-width:100%;display:block}
+    a{text-decoration:none;color:inherit}
+    .container{max-width:var(--max);margin:0 auto;padding:0 20px}
+
+    /* Header (matches Contact/Login) */
+    header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);backdrop-filter:saturate(160%) blur(8px);border-bottom:1px solid var(--line)}
+    .nav{display:flex;align-items:center;justify-content:space-between;height:74px}
+    .brand{display:flex;align-items:center;gap:14px}
+    .brand img{height:34px;width:auto}
+    .brand .title{font-weight:800;font-size:1.05rem;letter-spacing:.4px}
+    .brand .subtitle{font-size:.78rem;color:var(--muted)}
+    .nav ul{display:flex;gap:18px;list-style:none}
+    .link{padding:10px 12px;border-radius:10px;font-weight:600;color:#3c4657}
+    .link:hover{background:var(--teal-50)}
+    .cta{display:flex;gap:10px;align-items:center}
+    .btn{padding:12px 16px;border-radius:12px;font-weight:700;cursor:pointer;border:1px solid transparent;display:inline-flex;align-items:center;justify-content:center;transition:filter .2s ease, background-color .2s ease, border-color .2s ease}
+    .btn.primary{background:var(--brand-teal);color:#0a1b1a}
+    .btn.primary:hover{filter:brightness(.96)}
+    .btn.ghost{background:#fff;border:1px solid var(--brand-teal);color:#1e2a38}
+    .btn.ghost:hover{background:var(--teal-50)}
+
+    /* Hero */
+    .hero{background:linear-gradient(180deg,#fdfefe,#f4f7fb);border-bottom:1px solid var(--line)}
+    .hero-wrap{display:flex;align-items:center;min-height:220px;padding:26px 0}
+    .hero h1{font-size:2.2rem;font-weight:900;color:#1a2430}
+    .lead{color:var(--muted);font-size:1.02rem;margin-top:6px;max-width:62ch}
+
+    /* Auth layout */
+    .auth{display:grid;grid-template-columns:1.15fr .85fr;gap:24px;align-items:stretch;padding:48px 0}
+    .auth-card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:24px;box-shadow:var(--shadow)}
+    .auth-card h2{font-size:1.5rem;margin-bottom:8px}
+    .muted{color:var(--muted)}
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+    .span-2{grid-column:1 / -1}
+
+    /* Inputs (style without renaming anything) */
+    .auth-card input,.auth-card select,.auth-card textarea{
+      width:100%;padding:12px 14px;border-radius:12px;border:1px solid #dde2ec;background:#fbfcfe;color:#111;outline:none;font-size:1rem
+    }
+    .auth-card input:focus,.auth-card select:focus,.auth-card textarea:focus{
+      border-color:var(--brand-teal);box-shadow:0 0 0 3px rgba(71,198,190,.18)
+    }
+    label{display:block;font-weight:700;font-size:.95rem;margin:.2rem 0}
+    .row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+    .row a{color:var(--teal-700);text-decoration:underline}
+
+    .error{display:none;margin:0 0 4px;padding:.7rem .8rem;border-radius:12px;border:1px solid #ffc9c9;background:#fff5f5;color:#8a1f1f}
+    .success{display:none;margin:0 0 4px;padding:.7rem .8rem;border-radius:12px;border:1px solid #b8efe7;background:#e9fbf8;color:#0b5f56}
+
+    .toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:.9rem;color:#5c6b80;cursor:pointer;background:none;border:none}
+
+    /* Right-hand panel */
+    .panel{background:linear-gradient(135deg,#e9fbf8,#f6f8fb);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:22px}
+    .panel h3{margin:0 0 8px;color:#0b5f56}
+    .stat{display:flex;gap:10px;align-items:center;margin-top:10px}
+    .dot{width:9px;height:9px;border-radius:999px;background:var(--brand-teal)}
+
+    /* Footer */
+    footer{margin-top:0;background:linear-gradient(180deg,#f7fbfb,#f6f8fb);border-top:1px solid var(--line)}
+    .footer-grid{display:grid;grid-template-columns:1.2fr .6fr .6fr .6fr;gap:24px;padding:36px 0}
+    .foot-brand{display:flex;gap:14px}
+    .foot-brand img{height:42px}
+    .foot-small{color:#6e7a93;font-size:.92rem}
+
+    /* Responsive */
+    @media (max-width:980px){.auth{grid-template-columns:1fr}.panel{order:-1;margin-bottom:16px}}
+    @media (max-width:860px){.nav ul{display:none}}
+    @media (max-width:640px){.form-grid{grid-template-columns:1fr}.hero h1{font-size:1.9rem}}
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="container nav">
+      <a href="/index.html" class="brand" aria-label="Go to homepage">
+        <img src="/assets/collagendirect.png" alt="CollagenDirect logo">
+        <div>
+          <div class="title">COLLAGEN <span style="color:var(--brand-teal)">DIRECT</span></div>
+          <div class="subtitle">Evidence-Backed Wound Therapies</div>
+        </div>
+      </a>
+      <ul>
+        <li><a class="link" href="/products">Products</a></li>
+        <li><a class="link" href="/index.html#value">About</a></li>
+        <li><a class="link" href="/index.html#resources">Resources</a></li>
+        <li><a class="link" href="/contact">Contact</a></li>
+      </ul>
+      <div class="cta">
+        <a class="btn ghost" href="/portal">Provider Login</a>
+        <a class="btn primary" href="/register">Join Provider Network</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container hero-wrap">
+      <div>
+        <h1>Create Your Physician Account</h1>
+        <p class="lead">Register to access ordering, COAs, IFUs, coverage resources, and patient workflows in a HIPAA-secure portal.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Auth -->
+  <main class="container auth">
+    <!-- Registration Card with YOUR exact form -->
+    <section class="auth-card">
+      <h2>Register</h2>
+      <p class="muted">Already have an account? <a href="/portal">Sign in</a></p>
+
+      <!-- === YOUR ORIGINAL FORM & IDs (unchanged) === -->
+      <form id="registerForm" novalidate action="javascript:void(0)">
+        <section class="card" aria-labelledby="acct-title" style="border:none;box-shadow:none;padding:0">
+          <h2 id="acct-title" class="section-title" style="margin:0 0 8px">Account</h2>
+          <div class="form-grid">
+            <div>
+              <label for="email">Work Email</label>
+              <input id="email" type="email" required placeholder="name@practice.com" />
+              <div class="muted" style="font-size:.9rem">Used for login and agreement copies.</div>
+            </div>
+            <div>
+              <label for="password">Password</label>
+              <input id="password" type="password" minlength="8" required placeholder="••••••••" />
+              <div class="muted" style="font-size:.9rem">Min 8 chars, include a number.</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card" aria-labelledby="practice-title" style="border:none;box-shadow:none;padding:0;margin-top:18px">
+          <h2 id="practice-title" class="section-title" style="margin:0 0 8px">Practice Information</h2>
+          <div class="form-grid">
+            <div>
+              <label for="practiceName">Practice / Facility Name</label>
+              <input id="practiceName" required />
+            </div>
+            <div>
+              <label for="taxId">Tax ID (optional)</label>
+              <input id="taxId" placeholder="##-#######" />
+            </div>
+            <div>
+              <label for="address">Street Address</label>
+              <input id="address" required />
+            </div>
+            <div>
+              <label for="city">City</label>
+              <input id="city" required />
+            </div>
+            <div>
+              <label for="state">State</label>
+              <select id="state" required></select>
+            </div>
+            <div>
+              <label for="zip">ZIP</label>
+              <input id="zip" pattern="\d{5}(-\d{4})?" required placeholder="12345" />
+            </div>
+            <div>
+              <label for="phone">Practice Phone</label>
+              <input id="phone" type="tel" required placeholder="(555) 555-5555" />
+            </div>
+          </div>
+        </section>
+
+        <section class="card" aria-labelledby="cred-title" style="border:none;box-shadow:none;padding:0;margin-top:18px">
+          <h2 id="cred-title" class="section-title" style="margin:0 0 8px">Physician Credentials</h2>
+          <div class="form-grid">
+            <div><label for="firstName">First Name</label><input id="firstName" required /></div>
+            <div><label for="lastName">Last Name</label><input id="lastName" required /></div>
+            <div><label for="npi">NPI Number</label><input id="npi" inputmode="numeric" pattern="\d{10}" required placeholder="10 digits" /></div>
+          </div>
+          <div class="form-grid" style="margin-top:12px">
+            <div><label for="license">Medical License #</label><input id="license" required /></div>
+            <div><label for="licenseState">License State</label><select id="licenseState" required></select></div>
+            <div><label for="licenseExpiry">License Expiry</label><input id="licenseExpiry" type="date" required /></div>
+          </div>
+          <div class="row" style="margin-top:10px;gap:12px">
+            <button type="button" class="btn" id="btnValidateNPI">Validate NPI</button>
+            <span id="npiStatus" class="status" aria-live="polite" style="padding:.5rem .7rem;border-radius:10px;border:1px solid var(--line);background:#fff">NPI not validated</span>
+          </div>
+        </section>
+
+        <section class="card" aria-labelledby="type-title" style="border:none;box-shadow:none;padding:0;margin-top:18px">
+          <h2 id="type-title" class="section-title" style="margin:0 0 8px">Account Type</h2>
+          <fieldset style="border:1px solid var(--line);border-radius:14px;padding:16px">
+            <legend style="padding:0 .4rem;font-weight:700">Select one</legend>
+            <div class="form-grid">
+              <label style="display:flex;gap:.6rem;align-items:flex-start"><input type="radio" name="acctType" value="referral" required /><div><strong>Referral-Only</strong><div class="muted">You refer patients; we bill and ship.</div></div></label>
+              <label style="display:flex;gap:.6rem;align-items:flex-start"><input type="radio" name="acctType" value="wholesale" /><div><strong>Wholesale</strong><div class="muted">You hold a DME license and bill directly.</div></div></label>
+              <label style="display:flex;gap:.6rem;align-items:flex-start"><input type="radio" name="acctType" value="hybrid" /><div><strong>Hybrid</strong><div class="muted">Some patients billed by you, others by us.</div></div></label>
+            </div>
+          </fieldset>
+          <div id="dmeBlock" hidden style="margin-top:14px">
+            <div class="form-grid">
+              <div><label for="dmeNumber">DME License #</label><input id="dmeNumber" /></div>
+              <div><label for="dmeState">DME State</label><select id="dmeState"></select></div>
+              <div><label for="dmeExpiry">DME Expiry</label><input id="dmeExpiry" type="date" /></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card" aria-labelledby="agreements-title" style="border:none;box-shadow:none;padding:0;margin-top:18px">
+          <h2 id="agreements-title" class="section-title" style="margin:0 0 8px">Agreements & e-Sign</h2>
+          <div class="form-grid">
+            <div>
+              <label>Master Services & Supply Agreement</label>
+              <div class="row" style="gap:12px">
+                <button type="button" class="btn" data-open="msaa">Preview</button>
+                <label class="row" style="gap:8px"><input id="agreeMSA" type="checkbox" required /> <span>I agree</span></label>
+              </div>
+            </div>
+            <div>
+              <label>Business Associate Agreement (BAA)</label>
+              <div class="row" style="gap:12px">
+                <button type="button" class="btn" data-open="baa">Preview</button>
+                <label class="row" style="gap:8px"><input id="agreeBAA" type="checkbox" required /> <span>I agree</span></label>
+              </div>
+            </div>
+          </div>
+          <div class="form-grid" style="margin-top:10px">
+            <div><label for="signName">Full Legal Name (Signature)</label><input id="signName" required /></div>
+            <div><label for="signTitle">Title</label><input id="signTitle" required placeholder="MD, DO, etc." /></div>
+            <div><label for="signDate">Date</label><input id="signDate" type="date" required /></div>
+          </div>
+        </section>
+
+        <div class="row" style="margin-top:18px;gap:12px;flex-wrap:wrap">
+          <button id="submitBtn" type="button" class="btn primary" style="background:var(--brand-teal);color:#0a1b1a;border:1px solid transparent">Create Account</button>
+          <a class="btn ghost" href="/portal" style="border:1px solid var(--brand-teal)">Already registered? Log in</a>
+        </div>
+      </form>
+      <!-- === /YOUR ORIGINAL FORM === -->
+    </section>
+
+    <!-- Right panel (reassurance) -->
+    <aside class="panel" aria-label="Why CollagenDirect">
+      <h3>What you’ll get</h3>
+      <div class="stat"><span class="dot"></span><span>Order submission & tracking</span></div>
+      <div class="stat"><span class="dot"></span><span>COAs, IFUs, coding & coverage docs</span></div>
+      <div class="stat"><span class="dot"></span><span>Direct-to-manufacturer pricing & support</span></div>
+      <div class="stat"><span class="dot"></span><span>Role-based access and audit trail</span></div>
+      <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+        <a class="btn ghost" href="/portal">Back to Login</a>
+        <a class="btn" style="border:1px solid var(--line)" href="/contact">Contact Support</a>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container footer-grid">
+      <div class="foot-brand">
+        <img src="/assets/collagendirect.png" alt="CollagenDirect">
+        <div>
+          <div style="font-weight:900;letter-spacing:.4px">COLLAGEN <span style="color:var(--brand-teal)">DIRECT</span></div>
+          <p class="foot-small">Direct-to-manufacturer collagen therapies for modern wound care.</p>
+        </div>
+      </div>
+      <div>
+        <h4>Company</h4>
+        <a href="/index.html#">About</a><br>
+        <a href="/contact">Contact</a>
+      </div>
+      <div>
+        <h4>Products</h4>
+        <a href="/products">Catalog</a><br>
+        <a href="/index.html#resources">Resources</a>
+      </div>
+      <div>
+        <h4>Legal</h4>
+        <a href="/terms">Terms</a><br>
+        <a href="/privacy">Privacy</a>
+      </div>
+    </div>
+    <div style="border-top:1px solid var(--line);padding:18px 0;text-align:center;color:#6e7a93;font-size:.9rem">
+      © <span id="year"></span> CollagenDirect. All rights reserved.
+    </div>
+  </footer>
+
+  <!-- === YOUR ORIGINAL JS (unchanged) === -->
+  <script>
+  (function () {
+    // Populate state selects
+    const states = ["AL","AK","AZ","AR","CA","CO","CT","DC","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","MA","MD","ME","MI","MN","MO","MS","MT","NC","ND","NE","NH","NJ","NM","NV","NY","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VA","VT","WA","WI","WV","WY"];
+    for (const id of ["state","licenseState","dmeState"]) {
+      const el = document.getElementById(id);
+      if (!el) continue;
+      el.append(new Option("Select",""));
+      states.forEach(s => el.append(new Option(s, s)));
+    }
+
+    // Default sign date
+    const today = new Date().toISOString().slice(0,10);
+    const signDate = document.getElementById('signDate');
+    if (signDate) signDate.value = today;
+
+    // DME toggle
+    const dmeBlock = document.getElementById('dmeBlock');
+    document.querySelectorAll('input[name="acctType"]').forEach(r=>{
+      r.addEventListener('change',()=>{ dmeBlock.hidden = !(r.value !== 'referral' && r.checked); });
+    });
+
+    // NPI validation
+    function isValidNPI(npi){
+      if(!/^\d{10}$/.test(npi)) return false;
+      const prefix = '80840' + npi.slice(0,9);
+      const digits = prefix.split('').map(Number);
+      for (let i = digits.length - 1; i >= 0; i -= 2){ digits[i] *= 2; if (digits[i] > 9) digits[i] -= 9; }
+      const sum = digits.reduce((a,b)=>a+b,0);
+      const check = (10 - (sum % 10)) % 10;
+      return check === Number(npi[9]);
+    }
+
+    const btnValidate = document.getElementById('btnValidateNPI');
+    const npiInput = document.getElementById('npi');
+    const npiStatus = document.getElementById('npiStatus');
+    btnValidate?.addEventListener('click',()=>{
+      const ok = isValidNPI(npiInput.value.trim());
+      npiStatus.textContent = ok ? 'NPI format valid (checksum passed).' : 'Invalid NPI number';
+      npiStatus.className = 'status ' + (ok ? 'ok' : 'bad');
+    });
+
+    // CSRF helper
+    async function csrf(){ const r = await fetch('/api/csrf.php',{credentials:'include'}); return (await r.json()).csrfToken; }
+
+    // Submit handler -> POST /api/register.php
+    const form = document.getElementById('registerForm');
+    const submitBtn = document.getElementById('submitBtn');
+
+    submitBtn?.addEventListener('click', async () => {
+      if (!form.checkValidity()) { alert('Please complete all required fields.'); return; }
+      if (!isValidNPI(npiInput.value.trim())) { alert('Please validate your NPI.'); return; }
+      if (!document.getElementById('agreeMSA').checked || !document.getElementById('agreeBAA').checked) {
+        alert('You must agree to the MSA and BAA.'); return;
+      }
+
+      const payload = {
+        email: document.getElementById('email').value.trim(),
+        password: document.getElementById('password').value,
+        practiceName: document.getElementById('practiceName').value.trim(),
+        firstName: document.getElementById('firstName').value.trim(),
+        lastName: document.getElementById('lastName').value.trim(),
+        npi: document.getElementById('npi').value.trim(),
+        license: document.getElementById('license').value.trim(),
+        licenseState: document.getElementById('licenseState').value,
+        licenseExpiry: document.getElementById('licenseExpiry').value,
+        accountType: document.querySelector('input[name="acctType"]:checked').value,
+        dmeNumber: document.getElementById('dmeNumber')?.value || null,
+        dmeState: document.getElementById('dmeState')?.value || null,
+        dmeExpiry: document.getElementById('dmeExpiry')?.value || null,
+        agreeMSA: document.getElementById('agreeMSA').checked,
+        agreeBAA: document.getElementById('agreeBAA').checked,
+        signName: document.getElementById('signName').value.trim(),
+        signTitle: document.getElementById('signTitle').value.trim(),
+        signDate: document.getElementById('signDate').value,
+        phone: document.getElementById('phone')?.value || null
+      };
+
+      try {
+        const token = await csrf();
+        const res = await fetch('/api/register.php', {
+          method:'POST',
+          headers:{'Content-Type':'application/json','x-csrf-token':token},
+          credentials:'include',
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json().catch(()=>({}));
+        if (res.status === 201 || data.ok) {
+          alert('Registration submitted successfully!');
+          location.href = '/portal';
+        } else {
+          alert('Registration error: ' + (data.error || JSON.stringify(data)));
+        }
+      } catch (err) {
+        alert('Network error. Please try again.');
+        console.error(err);
+      }
+    });
+  })();
+  </script>
+  <!-- === /YOUR ORIGINAL JS === -->
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>

@@ -1,0 +1,235 @@
+// Prisma schema for CollagenDirect
+// Generated from frxnaisp_collagendirect.sql
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model AdminUser {
+  id            Int       @id @default(autoincrement())
+  email         String    @unique @db.VarChar(255)
+  passwordHash  String    @map("password_hash") @db.VarChar(255)
+  name          String    @db.VarChar(120)
+  role          String    @default("admin") @db.VarChar(50)
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  physicians    AdminPhysician[]
+
+  @@map("admin_users")
+}
+
+model AdminPhysician {
+  adminId          Int    @map("admin_id")
+  physicianUserId  String @map("physician_user_id") @db.VarChar(64)
+
+  admin            AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@id([adminId, physicianUserId])
+  @@index([physicianUserId], map: "ap_physician")
+  @@map("admin_physicians")
+}
+
+model LoginAttempt {
+  id        Int       @id @default(autoincrement()) @db.UnsignedInt
+  email     String?   @db.VarChar(255)
+  ipHash    String?   @map("ip_hash") @db.VarChar(255)
+  success   Boolean?  @db.TinyInt
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(0)
+
+  @@map("login_attempts")
+}
+
+model Order {
+  id                       String    @id @db.VarChar(64)
+  patientId                String    @map("patient_id") @db.VarChar(64)
+  userId                   String    @map("user_id") @db.VarChar(64)
+  product                  String?   @db.VarChar(255)
+  productId                Int?      @map("product_id")
+  productPrice             Decimal?  @map("product_price") @db.Decimal(10, 2)
+  frequency                String?   @db.VarChar(100)
+  deliveryMode             String?   @map("delivery_mode") @db.VarChar(100)
+  status                   String    @default("submitted") @db.VarChar(40)
+  shipmentsRemaining       Int?      @map("shipments_remaining")
+  createdAt                DateTime  @default(now()) @map("created_at")
+  updatedAt                DateTime  @default(now()) @updatedAt @map("updated_at")
+  shippedAt                DateTime? @map("shipped_at")
+  deliveredAt              DateTime? @map("delivered_at")
+  insurerName              String?   @map("insurer_name") @db.VarChar(255)
+  memberId                 String?   @map("member_id") @db.VarChar(100)
+  groupId                  String?   @map("group_id") @db.VarChar(100)
+  payerPhone               String?   @map("payer_phone") @db.VarChar(50)
+  signName                 String?   @map("sign_name") @db.VarChar(255)
+  signTitle                String?   @map("sign_title") @db.VarChar(255)
+  signedAt                 DateTime? @map("signed_at")
+  priorAuth                String?   @map("prior_auth") @db.VarChar(100)
+  paymentType              String    @default("insurance") @map("payment_type")
+  woundLocation            String?   @map("wound_location") @db.VarChar(120)
+  woundLaterality          String?   @map("wound_laterality") @db.VarChar(30)
+  woundNotes               String?   @map("wound_notes") @db.Text
+  shippingName             String?   @map("shipping_name") @db.VarChar(255)
+  shippingPhone            String?   @map("shipping_phone") @db.VarChar(50)
+  shippingAddress          String?   @map("shipping_address") @db.VarChar(255)
+  shippingCity             String?   @map("shipping_city") @db.VarChar(120)
+  shippingState            String?   @map("shipping_state") @db.VarChar(10)
+  shippingZip              String?   @map("shipping_zip") @db.VarChar(15)
+  rxNotePath               String?   @map("rx_note_path") @db.VarChar(255)
+  rxNoteName               String?   @map("rx_note_name") @db.VarChar(255)
+  rxNoteMime               String?   @map("rx_note_mime") @db.VarChar(100)
+  carrierStatus            String?   @map("carrier_status") @db.VarChar(50)
+  carrierEta               DateTime? @map("carrier_eta")
+  expiresAt                DateTime? @map("expires_at")
+  insCardPath              String?   @map("ins_card_path") @db.VarChar(255)
+  insCardName              String?   @map("ins_card_name") @db.VarChar(255)
+  insCardMime              String?   @map("ins_card_mime") @db.VarChar(100)
+  patientIdPath            String?   @map("patient_id_path") @db.VarChar(255)
+  patientIdName            String?   @map("patient_id_name") @db.VarChar(255)
+  patientIdMime            String?   @map("patient_id_mime") @db.VarChar(100)
+  icd10Primary             String?   @map("icd10_primary") @db.VarChar(10)
+  icd10Secondary           String?   @map("icd10_secondary") @db.VarChar(10)
+  woundLengthCm            Decimal?  @map("wound_length_cm") @db.Decimal(6, 2)
+  woundWidthCm             Decimal?  @map("wound_width_cm") @db.Decimal(6, 2)
+  woundDepthCm             Decimal?  @map("wound_depth_cm") @db.Decimal(6, 2)
+  woundType                String?   @map("wound_type") @db.VarChar(50)
+  woundStage               String?   @map("wound_stage") @db.VarChar(20)
+  lastEvalDate             DateTime? @map("last_eval_date") @db.Date
+  startDate                DateTime? @map("start_date") @db.Date
+  frequencyPerWeek         Int?      @map("frequency_per_week")
+  qtyPerChange             Int?      @map("qty_per_change")
+  durationDays             Int?      @map("duration_days")
+  refillsAllowed           Int?      @map("refills_allowed")
+  additionalInstructions   String?   @map("additional_instructions") @db.Text
+
+  patient                  Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  user                     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "idx_ord_user")
+  @@index([status], map: "idx_ord_status")
+  @@index([patientId], map: "idx_ord_patient")
+  @@index([status], map: "idx_orders_status")
+  @@index([updatedAt], map: "idx_orders_updated")
+  @@index([shippedAt], map: "idx_orders_shipped")
+  @@index([userId], map: "idx_orders_physician")
+  @@index([productId], map: "idx_orders_product_id")
+  @@map("orders")
+}
+
+model PasswordReset {
+  id           BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  userId       String?   @map("user_id") @db.VarChar(64)
+  selector     String    @db.Char(16)
+  verifierHash String    @map("verifier_hash") @db.Char(64)
+  expiresAt    DateTime  @map("expires_at")
+  usedAt       DateTime? @map("used_at")
+  ip           Bytes?    @db.VarBinary(16)
+  userAgent    String?   @map("user_agent") @db.VarChar(255)
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@index([selector], map: "idx_selector")
+  @@index([expiresAt], map: "idx_expires")
+  @@index([userId], map: "user_id")
+  @@map("password_resets")
+}
+
+model Patient {
+  id                    String    @id @db.VarChar(64)
+  userId                String    @map("user_id") @db.VarChar(64)
+  firstName             String    @map("first_name") @db.VarChar(100)
+  lastName              String    @map("last_name") @db.VarChar(100)
+  dob                   DateTime? @db.Date
+  mrn                   String?   @db.VarChar(100)
+  city                  String?   @db.VarChar(120)
+  state                 String?   @db.VarChar(10)
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at")
+  phone                 String?   @db.VarChar(50)
+  email                 String?   @db.VarChar(255)
+  address               String?   @db.VarChar(255)
+  zip                   String?   @db.VarChar(15)
+  patientIdName         String?   @map("patient_id_name") @db.VarChar(255)
+  patientIdMime         String?   @map("patient_id_mime") @db.VarChar(120)
+  patientIdPath         String?   @map("patient_id_path") @db.VarChar(255)
+  insCardName           String?   @map("ins_card_name") @db.VarChar(255)
+  insCardMime           String?   @map("ins_card_mime") @db.VarChar(120)
+  insCardPath           String?   @map("ins_card_path") @db.VarChar(255)
+  sex                   String?   @db.VarChar(20)
+  billingType           String?   @map("billing_type")
+  directBillAck         Boolean   @default(false) @map("direct_bill_ack") @db.TinyInt
+  insuranceProvider     String?   @map("insurance_provider") @db.VarChar(255)
+  insuranceMemberId     String?   @map("insurance_member_id") @db.VarChar(100)
+  insuranceGroupId      String?   @map("insurance_group_id") @db.VarChar(100)
+  insurancePayerPhone   String?   @map("insurance_payer_phone") @db.VarChar(50)
+  idCardPath            String?   @map("id_card_path") @db.VarChar(255)
+  idCardMime            String?   @map("id_card_mime") @db.VarChar(100)
+  aobPath               String?   @map("aob_path") @db.VarChar(255)
+  aobSignedAt           DateTime? @map("aob_signed_at")
+  aobIp                 String?   @map("aob_ip") @db.VarChar(64)
+
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders                Order[]
+
+  @@index([userId], map: "idx_pat_user")
+  @@index([lastName, firstName], map: "idx_pat_name")
+  @@map("patients")
+}
+
+model Product {
+  id         Int       @id @default(autoincrement())
+  sku        String?   @unique @db.VarChar(64)
+  name       String    @db.VarChar(120)
+  size       String?   @db.VarChar(50)
+  cptCode    String?   @map("cpt_code") @db.VarChar(20)
+  uom        String    @default("each") @db.VarChar(20)
+  priceAdmin Decimal?  @map("price_admin") @db.Decimal(10, 2)
+  active     Boolean   @default(true) @db.TinyInt
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@map("products")
+}
+
+model ReimbursementRate {
+  cptCode       String    @id @map("cpt_code") @db.VarChar(20)
+  description   String?   @db.VarChar(255)
+  rateNonRural  Decimal?  @map("rate_non_rural") @db.Decimal(10, 2)
+  rateRural     Decimal?  @map("rate_rural") @db.Decimal(10, 2)
+  effectiveDate DateTime? @map("effective_date") @db.Date
+
+  @@map("reimbursement_rates")
+}
+
+model User {
+  id                 String    @id @db.VarChar(64)
+  email              String    @unique @db.VarChar(255)
+  passwordHash       String    @map("password_hash") @db.VarChar(255)
+  passwordUpdatedAt  DateTime? @map("password_updated_at")
+  firstName          String?   @map("first_name") @db.VarChar(100)
+  lastName           String?   @map("last_name") @db.VarChar(100)
+  accountType        String    @default("referral") @map("account_type")
+  practiceName       String?   @map("practice_name") @db.VarChar(255)
+  phone              String?   @db.VarChar(50)
+  npi                String?   @db.VarChar(20)
+  license            String?   @db.VarChar(100)
+  licenseState       String?   @map("license_state") @db.VarChar(10)
+  licenseExpiry      DateTime? @map("license_expiry") @db.Date
+  dmeNumber          String?   @map("dme_number") @db.VarChar(100)
+  dmeState           String?   @map("dme_state") @db.VarChar(10)
+  dmeExpiry          DateTime? @map("dme_expiry") @db.Date
+  agreeMsa           Boolean   @default(false) @map("agree_msa") @db.TinyInt
+  agreeBaa           Boolean   @default(false) @map("agree_baa") @db.TinyInt
+  signName           String?   @map("sign_name") @db.VarChar(255)
+  signTitle          String?   @map("sign_title") @db.VarChar(255)
+  signDate           DateTime? @map("sign_date") @db.Date
+  status             String    @default("active") @db.VarChar(20)
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  patients           Patient[]
+  orders             Order[]
+
+  @@index([createdAt], map: "idx_users_created")
+  @@map("users")
+}

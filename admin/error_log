@@ -1,0 +1,300 @@
+[16-Oct-2025 19:45:34 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'quantity' in 'SET' in /home/frxnaisp/collagendirect.health/public/admin/orders.php:37
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/orders.php(37): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/orders.php on line 37
+[16-Oct-2025 19:50:56 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'quantity' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/admin/index.php:12
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/index.php(12): PDO->query()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/index.php on line 12
+[16-Oct-2025 19:50:57 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'quantity' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/admin/index.php:12
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/index.php(12): PDO->query()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/index.php on line 12
+[16-Oct-2025 19:51:17 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'quantity' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/admin/index.php:12
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/index.php(12): PDO->query()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/index.php on line 12
+[16-Oct-2025 19:55:34 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'quantity' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/admin/index.php:19
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/index.php(19): PDO->query()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/index.php on line 19
+[16-Oct-2025 19:55:39 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'quantity' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/admin/index.php:19
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/index.php(19): PDO->query()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/index.php on line 19
+[16-Oct-2025 19:56:03 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'quantity' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/admin/index.php:19
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/index.php(19): PDO->query()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/index.php on line 19
+[16-Oct-2025 19:56:04 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'quantity' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/admin/index.php:19
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/index.php(19): PDO->query()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/index.php on line 19
+[16-Oct-2025 19:56:54 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'quantity' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/admin/index.php:19
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/index.php(19): PDO->query()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/index.php on line 19
+[16-Oct-2025 19:56:55 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'quantity' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/admin/index.php:19
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/index.php(19): PDO->query()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/index.php on line 19
+[16-Oct-2025 19:59:32 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'quantity' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/admin/index.php:19
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/index.php(19): PDO->query()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/index.php on line 19
+[16-Oct-2025 21:29:02 UTC] PHP Fatal error:  Uncaught TypeError: e(): Argument #1 ($s) must be of type string, int given, called in /home/frxnaisp/collagendirect.health/public/admin/orders.php on line 202 and defined in /home/frxnaisp/collagendirect.health/public/admin/db.php:24
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/orders.php(202): e()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/db.php on line 24
+[16-Oct-2025 21:29:06 UTC] PHP Fatal error:  Uncaught TypeError: e(): Argument #1 ($s) must be of type string, int given, called in /home/frxnaisp/collagendirect.health/public/admin/orders.php on line 202 and defined in /home/frxnaisp/collagendirect.health/public/admin/db.php:24
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/orders.php(202): e()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/db.php on line 24
+[16-Oct-2025 21:29:09 UTC] PHP Fatal error:  Uncaught TypeError: e(): Argument #1 ($s) must be of type string, int given, called in /home/frxnaisp/collagendirect.health/public/admin/orders.php on line 202 and defined in /home/frxnaisp/collagendirect.health/public/admin/db.php:24
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/orders.php(202): e()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/db.php on line 24
+[16-Oct-2025 21:29:46 UTC] PHP Fatal error:  Uncaught TypeError: e(): Argument #1 ($s) must be of type string, int given, called in /home/frxnaisp/collagendirect.health/public/admin/orders.php on line 202 and defined in /home/frxnaisp/collagendirect.health/public/admin/db.php:24
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/orders.php(202): e()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/db.php on line 24
+[16-Oct-2025 21:31:16 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'o.quantity' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/admin/billing.php:27
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/billing.php(27): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/billing.php on line 27
+[16-Oct-2025 21:31:24 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'o.quantity' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/admin/billing.php:27
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/billing.php(27): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/billing.php on line 27
+[16-Oct-2025 21:32:58 UTC] PHP Fatal error:  Uncaught TypeError: e(): Argument #1 ($s) must be of type string, int given, called in /home/frxnaisp/collagendirect.health/public/admin/orders.php on line 202 and defined in /home/frxnaisp/collagendirect.health/public/admin/db.php:24
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/orders.php(202): e()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/db.php on line 24
+[16-Oct-2025 21:33:04 UTC] PHP Fatal error:  Uncaught TypeError: e(): Argument #1 ($s) must be of type string, int given, called in /home/frxnaisp/collagendirect.health/public/admin/orders.php on line 202 and defined in /home/frxnaisp/collagendirect.health/public/admin/db.php:24
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/orders.php(202): e()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/db.php on line 24
+[16-Oct-2025 21:33:06 UTC] PHP Fatal error:  Uncaught TypeError: e(): Argument #1 ($s) must be of type string, int given, called in /home/frxnaisp/collagendirect.health/public/admin/orders.php on line 202 and defined in /home/frxnaisp/collagendirect.health/public/admin/db.php:24
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/orders.php(202): e()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/db.php on line 24
+[16-Oct-2025 21:33:26 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'o.quantity' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/admin/billing.php:27
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/billing.php(27): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/billing.php on line 27
+[16-Oct-2025 21:34:25 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'o.quantity' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/admin/billing.php:27
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/billing.php(27): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/billing.php on line 27
+[16-Oct-2025 21:34:36 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'o.quantity' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/admin/billing.php:27
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/billing.php(27): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/billing.php on line 27
+[16-Oct-2025 21:34:47 UTC] PHP Fatal error:  Uncaught TypeError: e(): Argument #1 ($s) must be of type string, int given, called in /home/frxnaisp/collagendirect.health/public/admin/orders.php on line 202 and defined in /home/frxnaisp/collagendirect.health/public/admin/db.php:24
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/orders.php(202): e()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/db.php on line 24
+[16-Oct-2025 21:34:55 UTC] PHP Fatal error:  Uncaught TypeError: e(): Argument #1 ($s) must be of type string, int given, called in /home/frxnaisp/collagendirect.health/public/admin/orders.php on line 202 and defined in /home/frxnaisp/collagendirect.health/public/admin/db.php:24
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/orders.php(202): e()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/db.php on line 24
+[16-Oct-2025 21:35:07 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'o.quantity' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/admin/billing.php:27
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/billing.php(27): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/billing.php on line 27
+[16-Oct-2025 21:35:11 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'o.quantity' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/admin/billing.php:27
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/billing.php(27): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/billing.php on line 27
+[16-Oct-2025 21:35:16 UTC] PHP Fatal error:  Uncaught TypeError: e(): Argument #1 ($s) must be of type string, int given, called in /home/frxnaisp/collagendirect.health/public/admin/orders.php on line 202 and defined in /home/frxnaisp/collagendirect.health/public/admin/db.php:24
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/orders.php(202): e()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/db.php on line 24
+[16-Oct-2025 21:35:27 UTC] PHP Fatal error:  Uncaught TypeError: e(): Argument #1 ($s) must be of type string, int given, called in /home/frxnaisp/collagendirect.health/public/admin/orders.php on line 202 and defined in /home/frxnaisp/collagendirect.health/public/admin/db.php:24
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/orders.php(202): e()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/db.php on line 24
+[16-Oct-2025 21:36:04 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'o.quantity' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/admin/billing.php:27
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/billing.php(27): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/billing.php on line 27
+[16-Oct-2025 21:36:16 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'o.quantity' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/admin/billing.php:27
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/billing.php(27): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/billing.php on line 27
+[16-Oct-2025 22:18:22 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'o.quantity' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/admin/billing.php:27
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/billing.php(27): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/billing.php on line 27
+[16-Oct-2025 22:18:29 UTC] PHP Fatal error:  Uncaught TypeError: e(): Argument #1 ($s) must be of type string, int given, called in /home/frxnaisp/collagendirect.health/public/admin/orders.php on line 202 and defined in /home/frxnaisp/collagendirect.health/public/admin/db.php:24
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/orders.php(202): e()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/db.php on line 24
+[16-Oct-2025 22:18:39 UTC] PHP Fatal error:  Uncaught TypeError: e(): Argument #1 ($s) must be of type string, int given, called in /home/frxnaisp/collagendirect.health/public/admin/orders.php on line 202 and defined in /home/frxnaisp/collagendirect.health/public/admin/db.php:24
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/orders.php(202): e()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/db.php on line 24
+[16-Oct-2025 22:18:53 UTC] PHP Fatal error:  Uncaught TypeError: e(): Argument #1 ($s) must be of type string, int given, called in /home/frxnaisp/collagendirect.health/public/admin/orders.php on line 202 and defined in /home/frxnaisp/collagendirect.health/public/admin/db.php:24
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/orders.php(202): e()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/db.php on line 24
+[16-Oct-2025 22:47:46 UTC] PHP Fatal error:  Uncaught TypeError: e(): Argument #1 ($s) must be of type string, int given, called in /home/frxnaisp/collagendirect.health/public/admin/orders.php on line 202 and defined in /home/frxnaisp/collagendirect.health/public/admin/db.php:24
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/orders.php(202): e()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/db.php on line 24
+[16-Oct-2025 22:47:46 UTC] PHP Fatal error:  Uncaught TypeError: e(): Argument #1 ($s) must be of type string, int given, called in /home/frxnaisp/collagendirect.health/public/admin/orders.php on line 202 and defined in /home/frxnaisp/collagendirect.health/public/admin/db.php:24
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/orders.php(202): e()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/db.php on line 24
+[16-Oct-2025 22:54:01 UTC] PHP Fatal error:  Uncaught TypeError: e(): Argument #1 ($s) must be of type string, int given, called in /home/frxnaisp/collagendirect.health/public/admin/orders.php on line 202 and defined in /home/frxnaisp/collagendirect.health/public/admin/db.php:24
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/orders.php(202): e()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/db.php on line 24
+[16-Oct-2025 22:54:03 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'o.quantity' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/admin/billing.php:27
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/billing.php(27): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/billing.php on line 27
+[16-Oct-2025 23:01:20 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'o.quantity' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/admin/billing.php:28
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/billing.php(28): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/billing.php on line 28
+[16-Oct-2025 23:01:22 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'o.quantity' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/admin/billing.php:28
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/billing.php(28): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/billing.php on line 28
+[16-Oct-2025 23:18:34 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'o.quantity' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/admin/billing.php:28
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/billing.php(28): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/billing.php on line 28
+[16-Oct-2025 23:20:46 UTC] PHP Fatal error:  Uncaught TypeError: e(): Argument #1 ($s) must be of type string, int given, called in /home/frxnaisp/collagendirect.health/public/admin/orders.php on line 202 and defined in /home/frxnaisp/collagendirect.health/public/admin/db.php:24
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/orders.php(202): e()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/db.php on line 24
+[16-Oct-2025 23:20:52 UTC] PHP Fatal error:  Uncaught TypeError: e(): Argument #1 ($s) must be of type string, int given, called in /home/frxnaisp/collagendirect.health/public/admin/orders.php on line 202 and defined in /home/frxnaisp/collagendirect.health/public/admin/db.php:24
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/orders.php(202): e()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/db.php on line 24
+[16-Oct-2025 23:20:55 UTC] PHP Fatal error:  Uncaught TypeError: e(): Argument #1 ($s) must be of type string, int given, called in /home/frxnaisp/collagendirect.health/public/admin/orders.php on line 202 and defined in /home/frxnaisp/collagendirect.health/public/admin/db.php:24
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/orders.php(202): e()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/db.php on line 24
+[16-Oct-2025 23:20:57 UTC] PHP Fatal error:  Uncaught TypeError: e(): Argument #1 ($s) must be of type string, int given, called in /home/frxnaisp/collagendirect.health/public/admin/orders.php on line 202 and defined in /home/frxnaisp/collagendirect.health/public/admin/db.php:24
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/orders.php(202): e()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/db.php on line 24
+[16-Oct-2025 23:22:55 UTC] PHP Fatal error:  Uncaught TypeError: e(): Argument #1 ($s) must be of type string, int given, called in /home/frxnaisp/collagendirect.health/public/admin/orders.php on line 202 and defined in /home/frxnaisp/collagendirect.health/public/admin/db.php:24
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/orders.php(202): e()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/db.php on line 24
+[17-Oct-2025 02:39:14 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'o.quantity' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/admin/billing.php:28
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/billing.php(28): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/billing.php on line 28
+[17-Oct-2025 02:40:54 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'o.quantity' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/admin/billing.php:27
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/billing.php(27): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/billing.php on line 27
+[17-Oct-2025 02:41:27 UTC] PHP Warning:  require_once(/home/frxnaisp/collagendirect.health/public/admin/lib/shipping.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/admin/shipments.php on line 5
+[17-Oct-2025 02:41:27 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/admin/lib/shipping.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/admin/shipments.php:5
+Stack trace:
+#0 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/shipments.php on line 5
+[17-Oct-2025 02:41:31 UTC] PHP Warning:  require_once(/home/frxnaisp/collagendirect.health/public/admin/lib/shipping.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/admin/shipments.php on line 5
+[17-Oct-2025 02:41:31 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/admin/lib/shipping.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/admin/shipments.php:5
+Stack trace:
+#0 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/shipments.php on line 5
+[17-Oct-2025 02:42:16 UTC] PHP Warning:  require_once(/home/frxnaisp/collagendirect.health/public/admin/lib/shipping.php): Failed to open stream: No such file or directory in /home/frxnaisp/collagendirect.health/public/admin/orders.php on line 5
+[17-Oct-2025 02:42:16 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/frxnaisp/collagendirect.health/public/admin/lib/shipping.php' (include_path='.:/opt/alt/php82/usr/share/pear:/opt/alt/php82/usr/share/php:/usr/share/pear:/usr/share/php') in /home/frxnaisp/collagendirect.health/public/admin/orders.php:5
+Stack trace:
+#0 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/orders.php on line 5
+[17-Oct-2025 03:35:13 UTC] PHP Fatal error:  Uncaught TypeError: e(): Argument #1 ($s) must be of type string, int given, called in /home/frxnaisp/collagendirect.health/public/admin/orders.php on line 129 and defined in /home/frxnaisp/collagendirect.health/public/admin/db.php:26
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/orders.php(129): e()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/db.php on line 26
+[17-Oct-2025 03:35:21 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'o.quantity' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/admin/billing.php:27
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/billing.php(27): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/billing.php on line 27
+[17-Oct-2025 03:35:43 UTC] PHP Fatal error:  Uncaught TypeError: e(): Argument #1 ($s) must be of type string, int given, called in /home/frxnaisp/collagendirect.health/public/admin/orders.php on line 129 and defined in /home/frxnaisp/collagendirect.health/public/admin/db.php:26
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/orders.php(129): e()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/db.php on line 26
+[17-Oct-2025 03:35:46 UTC] PHP Fatal error:  Uncaught TypeError: e(): Argument #1 ($s) must be of type string, int given, called in /home/frxnaisp/collagendirect.health/public/admin/orders.php on line 129 and defined in /home/frxnaisp/collagendirect.health/public/admin/db.php:26
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/orders.php(129): e()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/db.php on line 26
+[17-Oct-2025 03:35:48 UTC] PHP Fatal error:  Uncaught TypeError: e(): Argument #1 ($s) must be of type string, int given, called in /home/frxnaisp/collagendirect.health/public/admin/orders.php on line 129 and defined in /home/frxnaisp/collagendirect.health/public/admin/db.php:26
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/orders.php(129): e()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/db.php on line 26
+[17-Oct-2025 03:37:13 UTC] PHP Fatal error:  Uncaught TypeError: e(): Argument #1 ($s) must be of type string, int given, called in /home/frxnaisp/collagendirect.health/public/admin/orders.php on line 129 and defined in /home/frxnaisp/collagendirect.health/public/admin/db.php:26
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/orders.php(129): e()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/db.php on line 26
+[17-Oct-2025 03:37:51 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'o.quantity' in 'SELECT' in /home/frxnaisp/collagendirect.health/public/admin/billing.php:27
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/billing.php(27): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/billing.php on line 27
+[17-Oct-2025 03:46:12 UTC] PHP Fatal error:  Uncaught TypeError: e(): Argument #1 ($s) must be of type string, int given, called in /home/frxnaisp/collagendirect.health/public/admin/orders.php on line 129 and defined in /home/frxnaisp/collagendirect.health/public/admin/db.php:26
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/admin/orders.php(129): e()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/admin/db.php on line 26

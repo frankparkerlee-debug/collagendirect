@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title><!-- Page Title — CollagenDirect --></title>
+  <meta name="description" content="<!-- Short description for this page -->" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    /* ==============================
+       1) DESIGN TOKENS (Brand System)
+       ============================== */
+    :root{
+      /* Core palette (from logo) */
+      --brand-teal:#47c6be;    /* primary accent */
+      --brand-blue:#2a78ff;    /* secondary accent */
+      --brand-orange:#ff7a3d;  /* highlight/warn accent */
+
+      /* Base */
+      --bg:#ffffff;
+      --panel:#f6f8fb;
+      --text:#1e2a38;
+      --muted:#5c6b80;
+      --line:rgba(0,0,0,.08);
+
+      /* Effects & layout */
+      --radius:16px;
+      --radius-sm:12px;
+      --shadow:0 10px 24px rgba(7,16,40,.08);
+      --max:1180px;
+
+      /* Spacing scale (rem) */
+      --s-1:.25rem; --s-2:.5rem; --s-3:.75rem; --s-4:1rem;
+      --s-5:1.25rem; --s-6:1.5rem; --s-7:2rem; --s-8:3rem;
+    }
+
+    /* Global reset / base */
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      background:var(--bg);
+      color:var(--text);
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,sans-serif;
+      line-height:1.5; -webkit-font-smoothing:antialiased;
+    }
+    img{max-width:100%;display:block}
+    a{text-decoration:none;color:inherit}
+    a[target="_blank"]{text-decoration:underline}
+    .container{max-width:var(--max);margin:0 auto;padding:0 20px}
+    .section{padding:64px 0}
+    .muted{color:var(--muted)}
+    .hr{border-top:1px solid var(--line);}
+
+    /* ==============================
+       2) HEADER (kept consistent)
+       ============================== */
+    header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);backdrop-filter:saturate(160%) blur(8px);border-bottom:1px solid var(--line)}
+    .nav{display:flex;align-items:center;justify-content:space-between;height:74px}
+    .brand{display:flex;align-items:center;gap:14px}
+    .brand img{height:34px;width:auto}
+    .brand .title{font-weight:800;font-size:1.05rem;letter-spacing:.4px}
+    .brand .subtitle{font-size:.78rem;color:var(--muted)}
+    .nav ul{display:flex;gap:18px;list-style:none}
+    .nav .link{padding:10px 12px;border-radius:10px;font-weight:600;color:#3c4657}
+    .nav .link:hover{background:var(--panel)}
+    .cta{display:flex;gap:10px;align-items:center}
+    .btn{padding:12px 16px;border-radius:12px;font-weight:700;cursor:pointer;border:1px solid transparent;display:inline-flex;align-items:center;justify-content:center}
+    .btn.primary{background:var(--brand-teal);color:#0a1b1a}
+    .btn.ghost{background:#fff;border:1px solid var(--line);color:#1e2a38}
+
+    /* Mobile menu */
+    .hamburger{display:none;border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 12px}
+    .mobile-menu{display:none;border-top:1px solid var(--line);background:#fff}
+    .mobile-menu a{display:block;padding:14px 20px;border-bottom:1px solid var(--line);font-weight:600;color:#3c4657}
+    .mobile-open .mobile-menu{display:block}
+
+    /* ==============================
+       3) FOOTER (kept consistent)
+       ============================== */
+    footer{margin-top:64px;background:linear-gradient(180deg,#f7fbfb,#f6f8fb);border-top:1px solid var(--line)}
+    .footer-grid{display:grid;grid-template-columns:1.2fr .6fr .6fr .6fr;gap:24px;padding:36px 0}
+    .foot-brand{display:flex;gap:14px}
+    .foot-brand img{height:42px}
+    .foot-small{color:#6e7a93;font-size:.92rem}
+
+    /* ==============================
+       4) TYPOGRAPHY HELPERS
+       ============================== */
+    h1{font-size:clamp(2rem,3.2vw,2.6rem);line-height:1.12}
+    h2{font-size:clamp(1.6rem,2.4vw,2rem);line-height:1.18;margin-bottom:var(--s-3)}
+    h3{font-size:1.25rem;line-height:1.2;margin-bottom:var(--s-2)}
+    p{margin: .25rem 0}
+    .lead{color:var(--muted);font-size:1.05rem}
+
+    /* ==============================
+       5) LAYOUT & COMPONENTS
+       ============================== */
+    /* Grids */
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+    .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+
+    /* Cards */
+    .card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+
+    /* Pills / Chips / Badges */
+    .pill{display:inline-flex;padding:6px 10px;border-radius:999px;background:#eefaf8;color:#0b5f56;font-weight:700;font-size:.85rem;border:1px solid #cfeeea}
+    .chip{display:inline-flex;gap:8px;align-items:center;padding:6px 10px;border-radius:999px;background:#eef4ff;color:#2753ff;font-weight:600;font-size:.85rem;border:1px solid #d7e3ff}
+    .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;background:#f2f4f7;color:#3b455a;font-weight:700;font-size:.78rem}
+
+    /* Hero (optional background image) */
+    .hero{position:relative;min-height:460px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#fdfefe,#f4f7fb);overflow:hidden}
+    .hero.bg{background-position:center;background-size:cover}
+    .hero.bg::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(255,255,255,.96),rgba(255,255,255,.6))}
+    .hero-wrap{min-height:460px;display:flex;align-items:center;position:relative}
+    .hero-content{width:clamp(320px,48vw,640px)}
+
+    /* Portal “device” frame */
+    .frame{position:relative;border:1px solid var(--line);border-radius:22px;background:#fff;box-shadow:var(--shadow);overflow:hidden}
+    .frame .statusbar{height:42px;background:linear-gradient(180deg,#f9fbff,#fff);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;padding:0 12px;color:#6a7280;font-weight:700}
+    .frame .screen{position:relative;aspect-ratio:16/9;background:#f2f5fb}
+
+    /* Forms */
+    label{display:block;font-weight:700;font-size:.92rem;margin:.25rem 0;color:#293241}
+    input,select,textarea{width:100%;padding:12px;border-radius:12px;border:1px solid #dde2ec;background:#fbfcfe;color:#111;outline:none}
+    input:focus,select:focus,textarea:focus{border-color:var(--brand-teal);box-shadow:0 0 0 3px rgba(71,198,190,.18)}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+    /* Tables (for resources/portal lists) */
+    .table{width:100%;border-collapse:separate;border-spacing:0;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+    .table th{background:#f8fafc;text-align:left;font-weight:700;padding:12px;color:#3c4657;border-bottom:1px solid var(--line)}
+    .table td{padding:12px;border-bottom:1px solid var(--line)}
+    .table tr:last-child td{border-bottom:none}
+
+    /* ==============================
+       6) RESPONSIVE
+       ============================== */
+    @media (max-width:1000px){
+      .grid-4{grid-template-columns:1fr 1fr}
+      .grid-3{grid-template-columns:1fr 1fr}
+      .hero,.hero-wrap{min-height:400px}
+    }
+    @media (max-width:860px){
+      .nav ul{display:none}
+      .hamburger{display:inline-flex;align-items:center;gap:8px}
+      .form-row{grid-template-columns:1fr}
+    }
+    @media (max-width:640px){
+      .grid-4,.grid-3,.grid-2{grid-template-columns:1fr}
+      .hero,.hero-wrap{min-height:340px}
+      .btn{padding:12px 14px}
+    }
+
+    /* Better focus when keyboard navigating */
+    .user-tabbed a:focus, .user-tabbed button:focus, .user-tabbed select:focus, .user-tabbed input:focus{
+      outline:3px solid rgba(71,198,190,.35);outline-offset:2px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ========= Header (DO NOT CHANGE LINKS/LOGO NAMES) ========= -->
+  <header>
+    <div class="container nav">
+      <a href="/index.html" class="brand" aria-label="Go to homepage">
+        <img src="/assets/collagendirect.png" alt="CollagenDirect logo">
+        <div>
+          <div class="title">COLLAGEN <span style="color:var(--brand-teal)">DIRECT</span></div>
+          <div class="subtitle">Evidence-Backed Wound Therapies</div>
+        </div>
+      </a>
+
+      <ul aria-label="Primary">
+        <li><a class="link" href="/products">Products</a></li>
+        <li><a class="link" href="/index.html#value">About</a></li>
+        <li><a class="link" href="/index.html#resources">Resources</a></li>
+        <li><a class="link" href="/contact">Contact</a></li>
+      </ul>
+
+      <div class="cta">
+        <a class="btn ghost" href="/portal">Provider Login</a>
+        <a class="btn primary" href="/register">Join Provider Network</a>
+        <button id="menuBtn" class="hamburger" aria-expanded="false" aria-controls="mobileNav">Menu ▾</button>
+      </div>
+    </div>
+
+    <!-- Mobile menu (auto-collapses) -->
+    <nav id="mobileNav" class="mobile-menu" aria-label="Mobile">
+      <a href="/products">Products</a>
+      <a href="/index.html#value">About</a>
+      <a href="/index.html#resources">Resources</a>
+      <a href="/contact">Contact</a>
+      <a href="/portal">Provider Login</a>
+      <a href="/register">Join Provider Network</a>
+    </nav>
+  </header>
+
+  <!-- ========= PAGE CONTENT STARTS HERE ========= -->
+  <main>
+
+    <!-- HERO (example; add bg image by setting style on .hero) -->
+    <section class="hero bg" style="background-image:url('/assets/hero-collagen-sample.jpg')">
+      <div class="container hero-wrap">
+        <div class="hero-content">
+          <h1><!-- Page Headline -->CollagenDirect Component Library</h1>
+          <p class="lead">Use these tokens and components to build pages with a consistent, high-end look.</p>
+          <div style="margin-top:var(--s-3);display:flex;gap:10px;flex-wrap:wrap">
+            <a class="btn primary" href="/products">View Products</a>
+            <a class="btn ghost" href="/portal">Provider Portal</a>
+            <span class="pill">Brand Toolkit</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VALUE CARDS (example) -->
+    <section id="value" class="section">
+      <div class="container grid-4">
+        <div class="card"><h3>Evidence-Backed</h3><p class="muted">Clinical literature and quality controls for confidence.</p></div>
+        <div class="card"><h3>Direct Access</h3><p class="muted">Manufacturer-level pricing and transparent fulfillment.</p></div>
+        <div class="card"><h3>Portal-First</h3><p class="muted">Fast ordering, status tracking, documentation uploads.</p></div>
+        <div class="card"><h3>Provider-Centric</h3><p class="muted">Built around real clinic workflows and constraints.</p></div>
+      </div>
+    </section>
+
+    <!-- COMPONENTS LIBRARY (copy/paste patterns) -->
+    <section class="section">
+      <div class="container">
+        <h2>Reusable Components</h2>
+
+        <!-- Buttons -->
+        <div class="card" style="margin-top:var(--s-3)">
+          <h3>Buttons</h3>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:var(--s-3)">
+            <a class="btn primary" href="#">Primary</a>
+            <a class="btn ghost" href="#">Ghost</a>
+            <a class="btn" style="background:#fff;border:1px solid var(--brand-blue);color:var(--brand-blue)" href="#">Outline (Blue)</a>
+            <span class="badge">Badge</span>
+            <span class="chip">Chip</span>
+          </div>
+        </div>
+
+        <!-- Form block -->
+        <div class="card" style="margin-top:var(--s-3)">
+          <h3>Form Elements</h3>
+          <div class="form-row" style="margin-top:var(--s-3)">
+            <div>
+              <label for="ex1">Work Email</label>
+              <input id="ex1" type="email" placeholder="name@practice.com" />
+            </div>
+            <div>
+              <label for="ex2">Phone</label>
+              <input id="ex2" type="tel" placeholder="(555) 555-5555" />
+            </div>
+          </div>
+          <div style="margin-top:var(--s-3)">
+            <label for="ex3">Message</label>
+            <textarea id="ex3" rows="4" placeholder="How can we help?"></textarea>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="card" style="margin-top:var(--s-3)">
+          <h3>Table</h3>
+          <table class="table" style="margin-top:var(--s-3)">
+            <thead><tr><th>Product</th><th>Form</th><th>Size</th></tr></thead>
+            <tbody>
+              <tr><td>Collagen Matrix</td><td>Sheet</td><td>2×2 in</td></tr>
+              <tr><td>Collagen Matrix</td><td>Sheet</td><td>3×3 in</td></tr>
+              <tr><td>Collagen Powder</td><td>Powder</td><td>1 g</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Portal frame -->
+        <div class="card" style="margin-top:var(--s-3)">
+          <h3>Portal Preview Frame</h3>
+          <figure class="frame" style="margin-top:var(--s-3)">
+            <div class="statusbar">● ● ● <span style="margin-left:8px">portal.collagendirect.health</span></div>
+            <div class="screen">
+              <img src="/assets/portal-screenshot.jpg" alt="Portal screenshot" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" loading="lazy">
+            </div>
+          </figure>
+          <div style="margin-top:var(--s-3);display:flex;gap:10px;flex-wrap:wrap">
+            <a class="btn primary" href="/portal">Provider Login</a>
+            <a class="btn ghost" href="/register">Join Provider Network</a>
+          </div>
+        </div>
+
+        <!-- Product card -->
+        <div class="card" style="margin-top:var(--s-3)">
+          <h3>Product Card</h3>
+          <div class="grid-3" style="margin-top:var(--s-3)">
+            <article class="card" style="padding:0;overflow:hidden">
+              <img src="/assets/products/collagen-matrix-2x2.png" alt="Collagen Matrix 2×2" style="aspect-ratio:4/3;object-fit:contain;background:#fbfcfe" loading="lazy">
+              <div style="padding:14px">
+                <h4>Collagen Matrix 2×2</h4>
+                <p class="muted" style="margin-top:4px">Sheet dressing for DFU/VLU & pressure ulcers.</p>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+                  <span class="badge">Sheet</span>
+                  <span class="badge">2×2 in</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+                  <a class="btn primary" href="/products#matrix-2x2">Details</a>
+                  <span class="muted" style="font-weight:600">SKU • 2×2</span>
+                </div>
+              </div>
+            </article>
+
+            <!-- Duplicate article for more products; keep one per unique product (skip simple variants) -->
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+  <!-- ========= PAGE CONTENT ENDS HERE ========= -->
+
+  <!-- ========= Footer (DO NOT CHANGE LINKS/LOGO NAMES) ========= -->
+  <footer>
+    <div class="container footer-grid">
+      <div class="foot-brand">
+        <img src="/assets/collagendirect.png" alt="CollagenDirect">
+        <div>
+          <div style="font-weight:900;letter-spacing:.4px">COLLAGEN <span style="color:var(--brand-teal)">DIRECT</span></div>
+          <p class="foot-small">Direct-to-manufacturer collagen therapies for modern wound care.</p>
+        </div>
+      </div>
+      <div>
+        <h4>Company</h4>
+        <a href="/index.html#value">About</a><br>
+        <a href="/contact">Contact</a>
+      </div>
+      <div>
+        <h4>Products</h4>
+        <a href="/products">Catalog</a><br>
+        <a href="/index.html#resources">Resources</a>
+      </div>
+      <div>
+        <h4>Legal</h4>
+        <a href="/terms">Terms</a><br>
+        <a href="/privacy">Privacy</a>
+      </div>
+    </div>
+    <div style="border-top:1px solid var(--line);padding:18px 0;text-align:center;color:#6e7a93;font-size:.9rem">
+      © <span id="year"></span> CollagenDirect. All rights reserved.
+    </div>
+  </footer>
+
+  <script>
+    // Year
+    document.addEventListener('DOMContentLoaded',()=>{ const y=document.getElementById('year'); if(y) y.textContent=new Date().getFullYear(); });
+
+    // Mobile menu toggle
+    (function(){
+      const btn = document.getElementById('menuBtn');
+      const html = document.documentElement;
+      if(!btn) return;
+      btn.addEventListener('click', ()=>{
+        const open = html.classList.toggle('mobile-open');
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+    })();
+
+    // Lazy-load any <img data-src="...">
+    (function lazyAll(){
+      const els = [].slice.call(document.querySelectorAll('img[data-src], img.lazy'));
+      function load(el){ el.src = el.dataset.src || el.src; el.removeAttribute('data-src'); el.classList.remove('lazy'); }
+      if(!els.length) return;
+      if(!('IntersectionObserver' in window)){ els.forEach(load); return; }
+      const io = new IntersectionObserver((entries, obs)=>{
+        entries.forEach(e=>{ if(e.isIntersecting){ load(e.target); obs.unobserve(e.target); } });
+      }, {rootMargin:'200px 0px'});
+      els.forEach(i=>io.observe(i));
+    })();
+
+    // Keyboard focus ring for accessibility
+    (function a11y(){
+      function handleFirstTab(e){
+        if(e.key==='Tab'){ document.body.classList.add('user-tabbed'); window.removeEventListener('keydown', handleFirstTab); }
+      }
+      window.addEventListener('keydown', handleFirstTab);
+    })();
+  </script>
+</body>
+</html>

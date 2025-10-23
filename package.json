@@ -1,0 +1,28 @@
+{
+  "name": "collagendirect",
+  "version": "1.0.0",
+  "description": "CollagenDirect - Healthcare platform for wound care management",
+  "main": "index.js",
+  "scripts": {
+    "postinstall": "prisma generate",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:pull": "prisma db pull",
+    "db:studio": "prisma studio",
+    "db:seed": "node prisma/seed.js"
+  },
+  "keywords": [
+    "healthcare",
+    "medical",
+    "wound-care"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@prisma/client": "^5.22.0",
+    "prisma": "^5.22.0"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0"
+  }
+}

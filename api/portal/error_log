@@ -1,0 +1,132 @@
+[15-Oct-2025 19:10:19 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY093]: Invalid parameter number: number of bound variables does not match number of tokens in /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php:137
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php(137): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php on line 137
+[15-Oct-2025 19:33:42 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY093]: Invalid parameter number: number of bound variables does not match number of tokens in /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php:117
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php(117): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php on line 117
+[15-Oct-2025 19:39:48 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY093]: Invalid parameter number: number of bound variables does not match number of tokens in /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php:117
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php(117): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php on line 117
+[15-Oct-2025 19:39:49 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY093]: Invalid parameter number: number of bound variables does not match number of tokens in /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php:117
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php(117): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php on line 117
+[16-Oct-2025 12:09:14 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY093]: Invalid parameter number: number of bound variables does not match number of tokens in /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php:117
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php(117): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php on line 117
+[16-Oct-2025 12:09:14 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY093]: Invalid parameter number: number of bound variables does not match number of tokens in /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php:117
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php(117): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php on line 117
+[16-Oct-2025 13:07:46 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY093]: Invalid parameter number: number of bound variables does not match number of tokens in /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php:117
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php(117): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php on line 117
+[16-Oct-2025 13:08:48 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY093]: Invalid parameter number: number of bound variables does not match number of tokens in /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php:148
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php(148): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php on line 148
+[16-Oct-2025 13:09:32 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY093]: Invalid parameter number: number of bound variables does not match number of tokens in /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php:148
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php(148): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php on line 148
+[16-Oct-2025 13:14:24 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY093]: Invalid parameter number: number of bound variables does not match number of tokens in /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php:168
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php(168): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php on line 168
+[16-Oct-2025 13:21:51 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY093]: Invalid parameter number: number of bound variables does not match number of tokens in /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php:168
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php(168): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php on line 168
+[16-Oct-2025 13:21:53 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY093]: Invalid parameter number: number of bound variables does not match number of tokens in /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php:168
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php(168): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php on line 168
+[16-Oct-2025 13:21:56 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY093]: Invalid parameter number: number of bound variables does not match number of tokens in /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php:168
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php(168): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php on line 168
+[16-Oct-2025 13:21:57 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY093]: Invalid parameter number: number of bound variables does not match number of tokens in /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php:168
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php(168): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php on line 168
+[16-Oct-2025 13:21:59 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY093]: Invalid parameter number: number of bound variables does not match number of tokens in /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php:168
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php(168): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php on line 168
+[16-Oct-2025 13:22:49 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY093]: Invalid parameter number: number of bound variables does not match number of tokens in /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php:168
+Stack trace:
+#0 /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php(168): PDOStatement->execute()
+#1 {main}
+  thrown in /home/frxnaisp/collagendirect.health/public/api/portal/orders.create.php on line 168
+[16-Oct-2025 14:13:03 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:7) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 14:14:05 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:7) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 14:18:24 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:6) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 14:18:59 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:7) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 14:19:02 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:7) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 14:22:55 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:6) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 14:23:53 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:6) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 14:24:01 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:7) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 14:24:02 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:7) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 14:24:08 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:7) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 14:34:13 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:7) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 14:36:33 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:7) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 14:36:35 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:7) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 14:38:31 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:7) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 14:38:36 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:7) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 14:39:19 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:7) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 14:39:22 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:7) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 14:40:25 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:7) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 14:40:28 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:7) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 15:44:15 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:8) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 15:57:34 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:8) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 16:19:57 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:8) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 16:22:50 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:8) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 16:23:36 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:8) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 16:23:37 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:8) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 17:06:18 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:25) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 17:07:04 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/metrics.php:24) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 17:07:04 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:25) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 17:07:06 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/metrics.php:24) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 17:07:06 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:25) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 17:07:54 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:25) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 17:07:57 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:25) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 17:08:18 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:25) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 17:08:40 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:25) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 17:11:19 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:25) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 17:34:17 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:25) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 17:35:00 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:22) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 17:36:02 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:25) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 17:36:22 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:25) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 17:36:23 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:25) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 17:37:08 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:22) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 17:38:33 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:22) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 17:41:39 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:22) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 18:59:25 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:22) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 19:14:27 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:22) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 20:22:12 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:22) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 20:22:14 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:22) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 20:23:52 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/metrics.php:21) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 20:23:52 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:22) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 20:24:08 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:22) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 21:13:21 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:22) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
+[16-Oct-2025 21:15:00 UTC] PHP Fatal error:  Cannot redeclare json_out() (previously declared in /home/frxnaisp/collagendirect.health/public/api/portal/patients.php:22) in /home/frxnaisp/collagendirect.health/public/api/db.php on line 24
