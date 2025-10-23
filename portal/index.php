@@ -2632,15 +2632,14 @@ if (<?php echo json_encode($page==='admin'); ?>){
   };
 }
 
-/* Global click -> accordion */
+/* Global click -> navigate to full-page patient detail view (no more accordion) */
 document.addEventListener('click', async (e)=>{
   const btn = e.target.closest('[data-acc]');
   if (!btn) return;
   e.preventDefault();
   const pid = btn.getAttribute('data-acc');
-  const row = btn.closest('tr');
-  try { await toggleAccordion(row, pid, <?php echo json_encode($page); ?>); }
-  catch(err){ alert('Server error'); }
+  // Navigate to full-page patient detail view instead of accordion
+  window.location.href = `?page=patient-detail&id=${encodeURIComponent(pid)}`;
 });
 
 /* Accordion details */
