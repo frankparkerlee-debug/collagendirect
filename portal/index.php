@@ -1275,16 +1275,18 @@ if ($page==='logout'){
   </section>
 
 <?php elseif ($page==='patients'): ?>
+  <!-- Top-level actions -->
+  <div class="flex items-center gap-3 mb-4">
+    <h2 class="text-lg font-semibold">Manage Patients</h2>
+    <input id="q" class="ml-auto w-full sm:w-96" placeholder="Search name, phone, email, MRN…">
+    <button class="btn btn-outline" id="btn-add-patient" type="button">
+      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+      Add Patient
+    </button>
+    <button class="btn btn-primary" id="btn-new-order" type="button">New Order</button>
+  </div>
+
   <section class="card p-5">
-    <div class="flex items-center gap-3 mb-4">
-      <h2 class="text-lg font-semibold">Manage Patients</h2>
-      <input id="q" class="ml-auto w-full sm:w-96" placeholder="Search name, phone, email, MRN…">
-      <button class="btn btn-outline" id="btn-add-patient" type="button">
-        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-        Add Patient
-      </button>
-      <button class="btn btn-primary" id="btn-new-order" type="button">New Order</button>
-    </div>
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead class="border-b">
@@ -1299,11 +1301,11 @@ if ($page==='logout'){
   </section>
 
 <?php elseif ($page==='orders'): ?>
-  <section class="card p-5">
-    <div class="flex items-center gap-3 mb-4">
-      <h2 class="text-lg font-semibold">Manage Orders</h2>
-      <input id="oq" class="ml-auto w-full sm:w-80" placeholder="Search product or recipient…">
-      <select id="of">
+  <!-- Top-level actions -->
+  <div class="flex items-center gap-3 mb-4">
+    <h2 class="text-lg font-semibold">Manage Orders</h2>
+    <input id="oq" class="ml-auto w-full sm:w-80" placeholder="Search product or recipient…">
+    <select id="of">
         <option value="">All Status</option>
         <option value="submitted">Submitted</option>
         <option value="pending">Pending</option>
@@ -1313,7 +1315,9 @@ if ($page==='logout'){
         <option value="stopped">Stopped</option>
       </select>
       <button class="btn btn-primary" id="btn-new-order2" type="button">New Order</button>
-    </div>
+  </div>
+
+  <section class="card p-5">
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead class="border-b">
@@ -1327,18 +1331,19 @@ if ($page==='logout'){
   </section>
 
 <?php elseif ($page==='messages'): ?>
-  <section class="card p-5">
-    <div class="flex items-center gap-3 mb-4">
-      <h2 class="text-lg font-semibold">Messages</h2>
-      <div class="ml-auto flex gap-2">
-        <input id="msg-search" class="w-full sm:w-80" placeholder="Search messages…">
-        <button class="btn btn-primary" id="btn-compose" type="button">
-          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right: 0.5rem;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-          Compose
-        </button>
-      </div>
+  <!-- Top-level actions -->
+  <div class="flex items-center gap-3 mb-4">
+    <h2 class="text-lg font-semibold">Messages</h2>
+    <div class="ml-auto flex gap-2">
+      <input id="msg-search" class="w-full sm:w-80" placeholder="Search messages…">
+      <button class="btn btn-primary" id="btn-compose" type="button">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right: 0.5rem;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+        Compose
+      </button>
     </div>
+  </div>
 
+  <section class="card p-5">
     <div style="display: grid; grid-template-columns: 320px 1fr; gap: 1rem; min-height: 600px;">
       <!-- Message List -->
       <div style="border-right: 1px solid var(--border); overflow-y: auto;">
@@ -1447,20 +1452,21 @@ if ($page==='logout'){
   </section>
 
 <?php elseif ($page==='billing'): ?>
-  <section class="card p-5">
-    <div class="flex items-center gap-3 mb-4">
-      <h2 class="text-lg font-semibold">Billing & Invoices</h2>
-      <div class="ml-auto flex gap-2">
-        <input id="bill-search" class="w-full sm:w-80" placeholder="Search invoices…">
-        <select id="bill-filter">
-          <option value="">All Status</option>
-          <option value="paid">Paid</option>
-          <option value="pending">Pending</option>
-          <option value="overdue">Overdue</option>
-        </select>
-      </div>
+  <!-- Top-level actions -->
+  <div class="flex items-center gap-3 mb-4">
+    <h2 class="text-lg font-semibold">Billing & Invoices</h2>
+    <div class="ml-auto flex gap-2">
+      <input id="bill-search" class="w-full sm:w-80" placeholder="Search invoices…">
+      <select id="bill-filter">
+        <option value="">All Status</option>
+        <option value="paid">Paid</option>
+        <option value="pending">Pending</option>
+        <option value="overdue">Overdue</option>
+      </select>
     </div>
+  </div>
 
+  <section class="card p-5">
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead class="border-b">
@@ -1556,24 +1562,25 @@ if ($page==='logout'){
   </section>
 
 <?php elseif ($page==='transactions'): ?>
-  <section class="card p-5">
-    <div class="flex items-center gap-3 mb-4">
-      <h2 class="text-lg font-semibold">Transaction History</h2>
-      <div class="ml-auto flex gap-2">
-        <input id="txn-search" class="w-full sm:w-80" placeholder="Search transactions…">
-        <select id="txn-filter">
-          <option value="">All Types</option>
-          <option value="payment">Payment</option>
-          <option value="refund">Refund</option>
-          <option value="invoice">Invoice</option>
-        </select>
-        <button class="btn btn-ghost">
-          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right: 0.5rem;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-          Export CSV
-        </button>
-      </div>
+  <!-- Top-level actions -->
+  <div class="flex items-center gap-3 mb-4">
+    <h2 class="text-lg font-semibold">Transaction History</h2>
+    <div class="ml-auto flex gap-2">
+      <input id="txn-search" class="w-full sm:w-80" placeholder="Search transactions…">
+      <select id="txn-filter">
+        <option value="">All Types</option>
+        <option value="payment">Payment</option>
+        <option value="refund">Refund</option>
+        <option value="invoice">Invoice</option>
+      </select>
+      <button class="btn btn-ghost">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right: 0.5rem;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+        Export CSV
+      </button>
     </div>
+  </div>
 
+  <section class="card p-5">
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead class="border-b">
@@ -3264,8 +3271,7 @@ function renderPatientDetailPage(p, orders, isEditing) {
             </svg>
             Edit Patient
           </a>
-          <button class="btn" type="button">Message</button>
-          <button class="btn" type="button">•••</button>
+          <button class="btn btn-primary" type="button" onclick="openOrderDialog('${esc(p.id)}')">New Order</button>
         </div>
       ` : ''}
 
@@ -3372,79 +3378,90 @@ function renderPatientDetailPage(p, orders, isEditing) {
     </div>
   `;
 
-  // Right column - Appointments and History
+  // Right column - Wound Care Orders
   const rightColumn = `
-    <div class="space-y-6">
-      <!-- Appointments Section -->
+    <div class="lg:col-span-2">
       <div class="card p-6">
-        <h4 class="font-semibold text-lg mb-4">Appointments</h4>
-        <div class="mb-4">
-          <div class="text-sm text-slate-500 mb-3">Upcoming appointment</div>
-          <div class="space-y-2">
-            ${orders.filter(o=>o.status==='active').slice(0,2).map((o,i)=>{
-              const colors = ['bg-blue-50 border-l-4 border-l-blue-500', 'bg-green-50 border-l-4 border-l-green-500'];
-              return `
-                <div class="${colors[i%2]} p-3 rounded">
-                  <div class="flex items-center justify-between">
-                    <div>
-                      <div class="font-medium text-sm">Order: ${esc(o.product||'Wound Care')}</div>
-                      <div class="text-xs text-slate-600">${fmt(o.created_at)} • ${pill(o.status||'')}</div>
-                    </div>
-                    <button class="btn text-xs" style="background: var(--brand); color: white;">View</button>
-                  </div>
-                </div>
-              `;
-            }).join('') || '<div class="text-sm text-slate-500">No upcoming appointments</div>'}
-          </div>
+        <div class="flex items-center justify-between mb-6">
+          <h4 class="font-semibold text-lg">Wound Care Orders</h4>
+          <button class="btn btn-primary" type="button" onclick="openOrderDialog('${esc(p.id)}')">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: inline; margin-right: 4px; vertical-align: middle;">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            New Order
+          </button>
         </div>
-        <div>
-          <div class="text-sm text-slate-500 mb-3">Previous orders</div>
-          <div class="space-y-2">
-            ${orders.filter(o=>o.status!=='active').slice(0,3).map((o,i)=>{
-              const colors = ['bg-pink-50 border-l-4 border-l-pink-400', 'bg-amber-50 border-l-4 border-l-amber-400', 'bg-purple-50 border-l-4 border-l-purple-400'];
-              return `
-                <div class="${colors[i%3]} p-3 rounded">
-                  <div class="flex items-center justify-between">
-                    <div>
-                      <div class="font-medium text-sm">Order: ${esc(o.product||'Wound Care')}</div>
-                      <div class="text-xs text-slate-600">${fmt(o.created_at)} • ${pill(o.status||'')}</div>
-                    </div>
-                    <button class="btn text-xs">View</button>
-                  </div>
-                </div>
-              `;
-            }).join('') || '<div class="text-sm text-slate-500">No previous orders</div>'}
-          </div>
-        </div>
-      </div>
 
-      <!-- History/Orders Section -->
-      <div class="card p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h4 class="font-semibold text-lg">Order History</h4>
-          <button class="btn btn-primary" type="button" onclick="openOrderDialog('${esc(p.id)}')">Create Order</button>
-        </div>
         ${orders.length > 0 ? `
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead class="border-b"><tr class="text-left">
-                <th class="py-2">Created</th><th class="py-2">Product</th><th class="py-2">Status</th>
-                <th class="py-2">Remaining</th><th class="py-2">Expires</th>
-              </tr></thead>
-              <tbody>
-                ${orders.slice(0,5).map(o=>`
-                  <tr class="border-b">
-                    <td class="py-2">${fmt(o.created_at)}</td>
-                    <td class="py-2">${esc(o.product||'')}</td>
-                    <td class="py-2">${pill(o.status||'')}</td>
-                    <td class="py-2">${o.shipments_remaining ?? 0}</td>
-                    <td class="py-2">${fmt(o.expires_at)}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
+          <!-- Active Orders -->
+          ${orders.filter(o=>o.status==='active' || o.status==='submitted' || o.status==='approved').length > 0 ? `
+            <div class="mb-6">
+              <h5 class="text-sm font-semibold text-slate-700 mb-3">Active Orders</h5>
+              <div class="space-y-3">
+                ${orders.filter(o=>o.status==='active' || o.status==='submitted' || o.status==='approved').map((o,i)=>{
+                  const colors = ['bg-blue-50 border-l-4 border-l-blue-500', 'bg-green-50 border-l-4 border-l-green-500', 'bg-teal-50 border-l-4 border-l-teal-500'];
+                  return `
+                    <div class="${colors[i%3]} p-4 rounded">
+                      <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                          <div class="font-medium mb-1">${esc(o.product||'Wound Care Product')}</div>
+                          <div class="text-sm text-slate-600 space-y-1">
+                            <div>Status: ${pill(o.status||'')} • ${o.shipments_remaining ?? 0} shipments remaining</div>
+                            <div>Frequency: ${esc(o.frequency||'N/A')} • Delivery: ${o.delivery_mode==='office'?'Office':'Patient'}</div>
+                            <div>Created: ${fmt(o.created_at)}${o.expires_at ? ` • Expires: ${fmt(o.expires_at)}` : ''}</div>
+                          </div>
+                        </div>
+                        <div class="flex gap-2">
+                          ${o.rx_note_path ? `<a href="?action=file.dl&order_id=${esc(o.id)}" target="_blank" class="btn text-xs">View Rx</a>` : ''}
+                          ${o.status !== 'stopped' ? `<button class="btn text-xs" onclick="if(confirm('Stop this order?')) stopOrder('${esc(o.id)}')">Stop</button>` : ''}
+                        </div>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          <!-- Completed/Stopped Orders -->
+          ${orders.filter(o=>o.status==='completed' || o.status==='stopped' || o.status==='delivered').length > 0 ? `
+            <div class="mb-4">
+              <h5 class="text-sm font-semibold text-slate-700 mb-3">Order History</h5>
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead class="border-b"><tr class="text-left text-slate-600">
+                    <th class="py-2 font-medium">Product</th>
+                    <th class="py-2 font-medium">Status</th>
+                    <th class="py-2 font-medium">Created</th>
+                    <th class="py-2 font-medium">Delivery</th>
+                    <th class="py-2 font-medium">Actions</th>
+                  </tr></thead>
+                  <tbody>
+                    ${orders.filter(o=>o.status==='completed' || o.status==='stopped' || o.status==='delivered').slice(0,10).map(o=>`
+                      <tr class="border-b">
+                        <td class="py-3">${esc(o.product||'')}</td>
+                        <td class="py-3">${pill(o.status||'')}</td>
+                        <td class="py-3">${fmt(o.created_at)}</td>
+                        <td class="py-3">${o.delivery_mode==='office'?'Office':'Patient'}</td>
+                        <td class="py-3">
+                          ${o.rx_note_path ? `<a href="?action=file.dl&order_id=${esc(o.id)}" target="_blank" class="text-blue-600 hover:underline text-xs">View Rx</a>` : '—'}
+                        </td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ` : ''}
+        ` : `
+          <div class="text-center py-12">
+            <svg class="w-16 h-16 mx-auto mb-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            <p class="text-slate-500 mb-4">No wound care orders yet</p>
+            <button class="btn btn-primary" type="button" onclick="openOrderDialog('${esc(p.id)}')">Create First Order</button>
           </div>
-        ` : '<div class="text-sm text-slate-500">No order history</div>'}
+        `}
       </div>
     </div>
   `;
