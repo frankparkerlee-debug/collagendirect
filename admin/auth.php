@@ -9,10 +9,10 @@ function current_admin() {
     return $_SESSION['admin'];
   }
 
-  // Check if logged in as physician with practice_admin role
+  // Check if logged in as physician with practice_admin or superadmin role
   if (isset($_SESSION['user_id'])) {
     global $pdo;
-    $stmt = $pdo->prepare("SELECT id, email, first_name, last_name, role FROM users WHERE id = ? AND role = 'practice_admin'");
+    $stmt = $pdo->prepare("SELECT id, email, first_name, last_name, role FROM users WHERE id = ? AND role IN ('practice_admin', 'superadmin')");
     $stmt->execute([$_SESSION['user_id']]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($user) {
@@ -21,7 +21,7 @@ function current_admin() {
         'id' => $user['id'],
         'email' => $user['email'],
         'name' => trim($user['first_name'] . ' ' . $user['last_name']),
-        'role' => 'practice_admin'
+        'role' => $user['role'] // Return actual role (practice_admin or superadmin)
       ];
     }
   }
