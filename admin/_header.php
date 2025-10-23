@@ -334,6 +334,13 @@ function cd_active($path, $match){
             </svg>
             System Settings
           </a>
+          <div style="margin: 1.5rem 0 0.5rem; padding: 0 1rem; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted);">Order Management</div>
+          <a href="/admin/order-review.php" class="<?=cd_active($path,'/admin/order-review')?>" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; color: var(--ink-light); font-weight: 500; font-size: 0.875rem; transition: all 0.2s; margin-bottom: 0.25rem; <?=cd_active($path,'/admin/order-review') ? 'background: #ffffff; color: var(--ink); font-weight: 600; border: 1px solid var(--border-sidebar);' : ''?>">
+            <svg class="sidebar-nav-icon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+            </svg>
+            Order Review Queue
+          </a>
         <?php else: ?>
           <!-- Practice Admin Navigation -->
           <a href="/admin/index.php" class="<?=cd_active($path,'/admin/index.php')?>" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; color: var(--ink-light); font-weight: 500; font-size: 0.875rem; transition: all 0.2s; margin-bottom: 0.25rem; <?=cd_active($path,'/admin/index.php') ? 'background: #ffffff; color: var(--ink); font-weight: 600; border: 1px solid var(--border-sidebar);' : ''?>">Dashboard</a>
