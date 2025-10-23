@@ -6,9 +6,10 @@ RewriteEngine On
 RewriteBase /
 
 # Force HTTPS and remove "www"
-RewriteCond %{HTTPS} !=on [OR]
+RewriteCond %{HTTPS} !=on
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 RewriteCond %{HTTP_HOST} ^www\. [NC]
-RewriteRule ^ https://collagendirect.health%{REQUEST_URI} [L,R=301]
+RewriteRule ^ https://%{HTTP_HOST:3}%{REQUEST_URI} [L,R=301]
 
 # If someone hits a URL that *includes* /public, strip it out
 RewriteCond %{THE_REQUEST} \s/+public/([^\s?]*) [NC]
