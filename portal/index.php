@@ -1023,6 +1023,7 @@ if ($page==='logout'){
     flex: 1;
     padding: 2rem;
     overflow-y: auto;
+    overflow-x: hidden;
   }
 
   /* ========== MOBILE RESPONSIVE & TOUCH OPTIMIZATIONS ========== */

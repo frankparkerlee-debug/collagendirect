@@ -356,9 +356,9 @@ function cd_active($path, $match){
         </form>
       </div>
     </aside>
-    <main style="flex: 1; display: flex; flex-direction: column; margin-left: 260px; height: 100vh; overflow: hidden;">
+    <main style="flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden;">
       <header style="height: 60px; max-height: 60px; background: white; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; position: sticky; top: 0; z-index: 10; flex-shrink: 0;">
         <div style="font-size: 1.25rem; font-weight: 600; color: var(--ink);">CollagenDirect Admin</div>
         <div style="font-size: 0.75rem; color: var(--muted);">collagendirect.health</div>
       </header>
-      <div style="padding: 2rem; max-width: 1400px; margin: 0 auto; width: 100%; overflow-y: auto; flex: 1;">
+      <div style="padding: 2rem; overflow-y: auto; overflow-x: hidden; flex: 1;">
