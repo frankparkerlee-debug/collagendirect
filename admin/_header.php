@@ -227,7 +227,7 @@ function cd_active($path, $match){
     }
     .sidebar-nav a.active {
       background: #ffffff !important;
-      color: var(--ink) !important;
+      color: #1B1B1B !important;
       border: 1px solid var(--border-sidebar) !important;
     }
     .sidebar-nav-icon {
@@ -361,4 +361,4 @@ function cd_active($path, $match){
         <div style="font-size: 1.25rem; font-weight: 600; color: var(--ink);">CollagenDirect Admin</div>
         <div style="font-size: 0.75rem; color: var(--muted);">collagendirect.health</div>
       </header>
-      <div style="padding: 2rem; overflow-y: auto; overflow-x: hidden; flex: 1;">
+      <div style="padding: 20px; overflow-y: auto; overflow-x: hidden; flex: 1;">

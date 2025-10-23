@@ -848,7 +848,7 @@ if ($page==='logout'){
     gap: 0.75rem;
     padding: 0.75rem 1rem;
     border-radius: 8px;
-    color: var(--ink-light);
+    color: #5A5B60;
     font-weight: 500;
     font-size: 0.875rem;
     transition: all 0.2s;
@@ -864,7 +864,7 @@ if ($page==='logout'){
 
   .sidebar-nav a.active {
     background: #ffffff;
-    color: var(--ink);
+    color: #1B1B1B;
     font-weight: 600;
     border: 1px solid var(--border-sidebar);
   }
@@ -1021,7 +1021,7 @@ if ($page==='logout'){
 
   .content-area {
     flex: 1;
-    padding: 2rem;
+    padding: 20px;
     overflow-y: auto;
     overflow-x: hidden;
   }
@@ -1608,7 +1608,6 @@ if ($page==='logout'){
       <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
       Add Patient
     </button>
-    <button class="btn btn-primary" id="btn-new-order" type="button">New Order</button>
   </div>
 
   <section class="card p-5">
@@ -1639,7 +1638,6 @@ if ($page==='logout'){
         <option value="shipped">Shipped</option>
         <option value="stopped">Stopped</option>
       </select>
-      <button class="btn btn-primary" id="btn-new-order2" type="button">New Order</button>
   </div>
 
   <section class="card p-5">
@@ -2934,7 +2932,7 @@ if (<?php echo json_encode($page==='patients'); ?>){
     }
   }
   $('#q').addEventListener('input',e=>load(e.target.value.trim()));
-  document.getElementById('btn-new-order').addEventListener('click',()=>openOrderDialog());
+  // Removed btn-new-order - using global-new-order-btn in header instead
 
   // Add Patient button
   document.getElementById('btn-add-patient').addEventListener('click',()=>{
@@ -3014,7 +3012,7 @@ if (<?php echo json_encode($page==='orders'); ?>){
   }
   $('#oq').addEventListener('input',loadOrders);
   $('#of').addEventListener('change',loadOrders);
-  $('#btn-new-order2').addEventListener('click',()=>openOrderDialog());
+  // Removed btn-new-order2 - using global-new-order-btn in header instead
   tb.addEventListener('click',async(e)=>{
     const b=e.target.closest('button'); if(!b) return;
     if(b.dataset.stop){ openStopDialog(b.dataset.stop, loadOrders); }
