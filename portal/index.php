@@ -1697,6 +1697,183 @@ if ($page==='logout'){
       </div>
     </div>
   </section>
+
+<?php elseif ($page==='patient-detail' || $page==='patient-edit'): ?>
+  <?php
+    $patientId = $_GET['id'] ?? '';
+    if (!$patientId) {
+      echo '<div class="card p-6"><p class="text-red-600">Patient ID is required</p><a href="?page=patients" class="btn mt-3">Back to Patients</a></div>';
+    } else {
+      // Patient data will be loaded via JavaScript
+      $isEditing = ($page === 'patient-edit');
+  ?>
+  <!-- Breadcrumb -->
+  <div class="mb-4 text-sm text-slate-600">
+    <a href="?page=patients" class="hover:underline">Patient</a>
+    <span class="mx-2">/</span>
+    <span><?php echo $isEditing ? 'Edit' : 'Detail'; ?> patient</span>
+  </div>
+
+  <div id="patient-detail-container" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Loading state -->
+    <div class="lg:col-span-3 text-center py-12">
+      <div class="text-slate-500">Loading patient information...</div>
+    </div>
+  </div>
+
+  <script>
+  // Load patient detail on page load
+  (async () => {
+    const patientId = <?php echo json_encode($patientId); ?>;
+    const isEditing = <?php echo json_encode($isEditing); ?>;
+
+    try {
+      const data = await api('action=patient.get&id=' + encodeURIComponent(patientId));
+      const p = data.patient;
+      const orders = data.orders || [];
+
+      renderPatientDetailPage(p, orders, isEditing);
+    } catch (e) {
+      document.getElementById('patient-detail-container').innerHTML = `
+        <div class="lg:col-span-3 card p-6">
+          <p class="text-red-600 mb-3">Failed to load patient: ${esc(e.message || 'Unknown error')}</p>
+          <a href="?page=patients" class="btn">Back to Patients</a>
+        </div>
+      `;
+    }
+  })();
+  </script>
+  <?php } ?>
+
+<?php elseif ($page==='patient-add'): ?>
+  <!-- Breadcrumb -->
+  <div class="mb-4 text-sm text-slate-600">
+    <a href="?page=patients" class="hover:underline">Patient</a>
+    <span class="mx-2">/</span>
+    <span>Add new patient</span>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Left Column - Patient Form -->
+    <div class="card p-6 lg:col-span-1">
+      <h2 class="text-2xl font-bold mb-6">Add New Patient</h2>
+
+      <form id="add-patient-form" class="space-y-4">
+        <!-- Basic Information -->
+        <div>
+          <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-2">First Name *</label>
+          <input type="text" id="new-first-name" class="w-full" required>
+        </div>
+
+        <div>
+          <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-2">Last Name *</label>
+          <input type="text" id="new-last-name" class="w-full" required>
+        </div>
+
+        <div>
+          <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-2">Date of Birth *</label>
+          <input type="date" id="new-dob" class="w-full" required>
+        </div>
+
+        <div>
+          <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-2">Sex</label>
+          <select id="new-sex" class="w-full">
+            <option value="">Select...</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-2">Phone</label>
+          <input type="tel" id="new-phone" class="w-full" maxlength="10" placeholder="10 digits">
+        </div>
+
+        <div>
+          <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-2">Email</label>
+          <input type="email" id="new-email" class="w-full">
+        </div>
+
+        <div class="pt-4 border-t">
+          <h3 class="font-semibold mb-3">Address</h3>
+          <div class="space-y-3">
+            <input type="text" id="new-address" class="w-full" placeholder="Street address">
+            <div class="grid grid-cols-2 gap-2">
+              <input type="text" id="new-city" class="w-full" placeholder="City">
+              <select id="new-state" class="w-full">
+                <option value="">State</option>
+                <?php foreach(usStates() as $s): ?>
+                  <option value="<?php echo htmlspecialchars($s); ?>"><?php echo htmlspecialchars($s); ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <input type="text" id="new-zip" class="w-full" placeholder="ZIP code">
+          </div>
+        </div>
+
+        <div class="pt-4 border-t">
+          <h3 class="font-semibold mb-3">Insurance Information (Optional)</h3>
+          <div class="space-y-3">
+            <input type="text" id="new-insurance-provider" class="w-full" placeholder="Insurance provider">
+            <input type="text" id="new-insurance-member-id" class="w-full" placeholder="Member ID">
+            <input type="text" id="new-insurance-group-id" class="w-full" placeholder="Group ID">
+            <input type="tel" id="new-insurance-phone" class="w-full" placeholder="Insurance phone">
+          </div>
+        </div>
+
+        <div id="add-patient-error" class="text-sm text-red-600 hidden"></div>
+
+        <div class="flex gap-2 pt-4">
+          <button type="submit" class="btn flex-1 text-white" style="background: var(--brand);">Create Patient</button>
+          <a href="?page=patients" class="btn">Cancel</a>
+        </div>
+      </form>
+    </div>
+
+    <!-- Right Column - Information -->
+    <div class="lg:col-span-2 space-y-6">
+      <div class="card p-6">
+        <h3 class="font-semibold text-lg mb-3">Required Information</h3>
+        <p class="text-sm text-slate-600 mb-4">
+          Please fill out at least the required fields marked with an asterisk (*).
+          You can add additional information like insurance details and documents after creating the patient.
+        </p>
+        <div class="space-y-2 text-sm">
+          <div class="flex items-start gap-2">
+            <svg class="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span>Basic demographic information required</span>
+          </div>
+          <div class="flex items-start gap-2">
+            <svg class="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span>Documents can be uploaded after patient creation</span>
+          </div>
+          <div class="flex items-start gap-2">
+            <svg class="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span>MRN will be auto-generated if not provided</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card p-6">
+        <h3 class="font-semibold text-lg mb-3">Next Steps</h3>
+        <p class="text-sm text-slate-600 mb-3">After creating the patient, you'll be able to:</p>
+        <ol class="list-decimal list-inside space-y-2 text-sm text-slate-600">
+          <li>Upload required documents (ID card, insurance card)</li>
+          <li>Generate and sign Assignment of Benefits (AOB)</li>
+          <li>Create wound care orders</li>
+          <li>Schedule appointments</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
 <?php endif; ?>
 </main>
 
@@ -2832,14 +3009,20 @@ async function uploadPatientFile(patientId, type, file) {
 
     if (result.ok) {
       alert(`${type === 'id' ? 'ID Card' : 'Insurance Card'} uploaded successfully!`);
-      // Refresh just the accordion view to show the new file
-      const rowEl = document.querySelector(`tr[data-patient-id="${patientId}"]`);
-      if (rowEl) {
-        const nextRow = rowEl.nextElementSibling;
-        if (nextRow && nextRow.classList.contains('acc-row')) {
-          // Re-trigger the accordion to refresh data
-          toggleAccordion(rowEl, patientId, '<?php echo $page; ?>');
-          setTimeout(() => toggleAccordion(rowEl, patientId, '<?php echo $page; ?>'), 100);
+      // Check if we're on a full-page detail view or accordion
+      if (window.location.search.includes('page=patient-detail') || window.location.search.includes('page=patient-edit')) {
+        // Reload the current page
+        window.location.reload();
+      } else {
+        // Refresh just the accordion view to show the new file
+        const rowEl = document.querySelector(`tr[data-patient-id="${patientId}"]`);
+        if (rowEl) {
+          const nextRow = rowEl.nextElementSibling;
+          if (nextRow && nextRow.classList.contains('acc-row')) {
+            // Re-trigger the accordion to refresh data
+            toggleAccordion(rowEl, patientId, '<?php echo $page; ?>');
+            setTimeout(() => toggleAccordion(rowEl, patientId, '<?php echo $page; ?>'), 100);
+          }
         }
       }
     } else {
@@ -2866,14 +3049,20 @@ async function generateAOB(patientId) {
 
     if (result.ok) {
       alert('AOB generated and signed successfully!');
-      // Refresh just the accordion view to show the new AOB status
-      const rowEl = document.querySelector(`tr[data-patient-id="${patientId}"]`);
-      if (rowEl) {
-        const nextRow = rowEl.nextElementSibling;
-        if (nextRow && nextRow.classList.contains('acc-row')) {
-          // Re-trigger the accordion to refresh data
-          toggleAccordion(rowEl, patientId, '<?php echo $page; ?>');
-          setTimeout(() => toggleAccordion(rowEl, patientId, '<?php echo $page; ?>'), 100);
+      // Check if we're on a full-page detail view or accordion
+      if (window.location.search.includes('page=patient-detail') || window.location.search.includes('page=patient-edit')) {
+        // Reload the current page
+        window.location.reload();
+      } else {
+        // Refresh just the accordion view to show the new AOB status
+        const rowEl = document.querySelector(`tr[data-patient-id="${patientId}"]`);
+        if (rowEl) {
+          const nextRow = rowEl.nextElementSibling;
+          if (nextRow && nextRow.classList.contains('acc-row')) {
+            // Re-trigger the accordion to refresh data
+            toggleAccordion(rowEl, patientId, '<?php echo $page; ?>');
+            setTimeout(() => toggleAccordion(rowEl, patientId, '<?php echo $page; ?>'), 100);
+          }
         }
       }
     } else {
@@ -3033,6 +3222,338 @@ document.addEventListener('click', (e)=>{
   const stopBtn=e.target.closest('[data-stop]'); if(stopBtn) openStopDialog(stopBtn.dataset.stop, ()=>location.reload());
   const reBtn=e.target.closest('[data-restart]'); if(reBtn) openRestartDialog(reBtn.dataset.restart, ()=>location.reload());
 });
+
+/* ========== FULL-PAGE PATIENT DETAIL/EDIT RENDERING ========== */
+
+function renderPatientDetailPage(p, orders, isEditing) {
+  const container = document.getElementById('patient-detail-container');
+  if (!container) return;
+
+  // Calculate age
+  const calcAge = (dob) => {
+    if (!dob) return 'N/A';
+    const years = Math.floor((new Date() - new Date(dob)) / 31557600000);
+    const months = Math.floor(((new Date() - new Date(dob)) % 31557600000) / 2629800000);
+    return `${years} years ${months} month`;
+  };
+
+  // Left column - Patient profile
+  const leftColumn = `
+    <div class="card p-6">
+      <!-- Patient Profile Header with Avatar -->
+      <div class="text-center mb-6">
+        <div class="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white text-3xl font-bold shadow-lg">
+          ${(p.first_name||'').charAt(0).toUpperCase()}${(p.last_name||'').charAt(0).toUpperCase()}
+        </div>
+        <h2 class="text-2xl font-bold mb-2">${esc(p.first_name||'')} ${esc(p.last_name||'')}</h2>
+        <div class="text-slate-500 text-sm flex items-center justify-center gap-3">
+          <span>${esc(p.sex||'Female')}</span>
+          <span>•</span>
+          <span>#${esc(p.mrn||'N/A')}</span>
+          <span>•</span>
+          <span>+1 ${esc(p.phone||'')}</span>
+        </div>
+      </div>
+
+      ${!isEditing ? `
+        <!-- View Mode - Action Buttons -->
+        <div class="flex gap-2 mb-6">
+          <a href="?page=patient-edit&id=${esc(p.id)}" class="btn flex-1 text-white" style="background: var(--brand);">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: inline; margin-right: 4px; vertical-align: middle;">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+            </svg>
+            Edit Patient
+          </a>
+          <button class="btn" type="button">Message</button>
+          <button class="btn" type="button">•••</button>
+        </div>
+      ` : ''}
+
+      <!-- Demographics Section -->
+      <div class="space-y-4 mb-6">
+        <div>
+          <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-2">Date of birth</label>
+          ${isEditing
+            ? `<input type="date" class="w-full mb-1" id="edit-dob" value="${esc(p.dob||'')}">`
+            : `<div class="px-3 py-2 bg-amber-50 text-amber-800 rounded text-sm inline-block">${fmt(p.dob)} <span class="ml-2 text-xs">(${calcAge(p.dob)})</span></div>`
+          }
+        </div>
+
+        <div>
+          <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-2">Address</label>
+          ${isEditing
+            ? `<input class="w-full mb-2" id="edit-address" value="${esc(p.address||'')}" placeholder="Street address">`
+            : `<div class="text-sm">${esc(p.address||'')}, ${esc(p.city||'')}, ${esc(p.state||'')} ${esc(p.zip||'')}, United States</div>`
+          }
+        </div>
+
+        <div>
+          <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-2">Email</label>
+          ${isEditing
+            ? `<input class="w-full" id="edit-email" value="${esc(p.email||'')}">`
+            : `<div class="text-sm">${esc(p.email||'')}</div>`
+          }
+        </div>
+
+        ${isEditing ? `
+          <input type="hidden" id="edit-city" value="${esc(p.city||'')}">
+          <input type="hidden" id="edit-state" value="${esc(p.state||'')}">
+          <input type="hidden" id="edit-zip" value="${esc(p.zip||'')}">
+          <input type="hidden" id="edit-phone" value="${esc(p.phone||'')}">
+        ` : ''}
+
+        <div>
+          <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-2">Blood group</label>
+          <div class="text-sm font-medium">A+</div>
+        </div>
+      </div>
+
+      <!-- Medical History -->
+      <div class="mb-6 pb-6 border-t pt-6">
+        <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-3">Medical history</label>
+        <div class="flex flex-wrap gap-2">
+          <span class="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs">Hypertension</span>
+          <span class="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs">Asthma</span>
+          <span class="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs">Diabetes</span>
+        </div>
+      </div>
+
+      <!-- Insurance Information -->
+      <div class="mb-6 pb-6 border-t pt-6">
+        <h4 class="font-semibold text-lg mb-4">Insurance information</h4>
+        <div class="space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <div class="text-slate-500 text-xs mb-1">Type of insurance</div>
+              <div class="font-medium text-sm">${esc(p.insurance_provider||'Not provided')}</div>
+            </div>
+            <div>
+              <div class="text-slate-500 text-xs mb-1">Member ID</div>
+              <div class="font-medium text-sm">${esc(p.insurance_member_id||'N/A')}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      ${isEditing ? `
+        <!-- Required Documents Section -->
+        <div class="mb-6 pb-6 border-t pt-6">
+          <h5 class="font-semibold text-sm mb-3">Required Documents</h5>
+          <div class="space-y-3">
+            <div>
+              <label class="text-xs">ID Card ${p.id_card_path ? '<span class="text-green-600">✓</span>' : '<span class="text-red-600">*</span>'}</label>
+              ${p.id_card_path ? `<div class="text-xs text-slate-600 mb-1"><a href="${esc(p.id_card_path)}" target="_blank" class="underline">View current file</a></div>` : ''}
+              <input type="file" class="w-full text-sm" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic" onchange="uploadPatientFile('${esc(p.id)}', 'id', this.files[0])">
+            </div>
+            <div>
+              <label class="text-xs">Insurance Card ${p.ins_card_path ? '<span class="text-green-600">✓</span>' : '<span class="text-red-600">*</span>'}</label>
+              ${p.ins_card_path ? `<div class="text-xs text-slate-600 mb-1"><a href="${esc(p.ins_card_path)}" target="_blank" class="underline">View current file</a></div>` : ''}
+              <input type="file" class="w-full text-sm" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic" onchange="uploadPatientFile('${esc(p.id)}', 'ins', this.files[0])">
+            </div>
+            <div>
+              <label class="text-xs">AOB ${p.aob_path ? '<span class="text-green-600">✓</span>' : '<span class="text-red-600">*</span>'}</label>
+              ${p.aob_path ? `<div class="text-xs text-slate-600 mb-1">Signed: ${fmt(p.aob_signed_at)}</div>` : ''}
+              <button type="button" class="btn text-sm mt-1" onclick="generateAOB('${esc(p.id)}')">${p.aob_path ? 'Re-generate' : 'Generate & Sign'} AOB</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Save/Cancel Actions -->
+        <div class="flex gap-2">
+          <button class="btn flex-1 text-white" type="button" onclick="savePatientFromDetail('${esc(p.id)}')" style="background: var(--brand);">Save Changes</button>
+          <a href="?page=patient-detail&id=${esc(p.id)}" class="btn">Cancel</a>
+        </div>
+      ` : `
+        <div class="flex gap-2">
+          <a href="?page=patient-edit&id=${esc(p.id)}" class="btn flex-1 text-white" style="background: var(--brand);">Edit Patient</a>
+          <button class="btn" type="button" onclick="if(confirm('Delete this patient?')) deletePatient('${esc(p.id)}')">Delete</button>
+        </div>
+      `}
+    </div>
+  `;
+
+  // Right column - Appointments and History
+  const rightColumn = `
+    <div class="space-y-6">
+      <!-- Appointments Section -->
+      <div class="card p-6">
+        <h4 class="font-semibold text-lg mb-4">Appointments</h4>
+        <div class="mb-4">
+          <div class="text-sm text-slate-500 mb-3">Upcoming appointment</div>
+          <div class="space-y-2">
+            ${orders.filter(o=>o.status==='active').slice(0,2).map((o,i)=>{
+              const colors = ['bg-blue-50 border-l-4 border-l-blue-500', 'bg-green-50 border-l-4 border-l-green-500'];
+              return `
+                <div class="${colors[i%2]} p-3 rounded">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <div class="font-medium text-sm">Order: ${esc(o.product||'Wound Care')}</div>
+                      <div class="text-xs text-slate-600">${fmt(o.created_at)} • ${pill(o.status||'')}</div>
+                    </div>
+                    <button class="btn text-xs" style="background: var(--brand); color: white;">View</button>
+                  </div>
+                </div>
+              `;
+            }).join('') || '<div class="text-sm text-slate-500">No upcoming appointments</div>'}
+          </div>
+        </div>
+        <div>
+          <div class="text-sm text-slate-500 mb-3">Previous orders</div>
+          <div class="space-y-2">
+            ${orders.filter(o=>o.status!=='active').slice(0,3).map((o,i)=>{
+              const colors = ['bg-pink-50 border-l-4 border-l-pink-400', 'bg-amber-50 border-l-4 border-l-amber-400', 'bg-purple-50 border-l-4 border-l-purple-400'];
+              return `
+                <div class="${colors[i%3]} p-3 rounded">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <div class="font-medium text-sm">Order: ${esc(o.product||'Wound Care')}</div>
+                      <div class="text-xs text-slate-600">${fmt(o.created_at)} • ${pill(o.status||'')}</div>
+                    </div>
+                    <button class="btn text-xs">View</button>
+                  </div>
+                </div>
+              `;
+            }).join('') || '<div class="text-sm text-slate-500">No previous orders</div>'}
+          </div>
+        </div>
+      </div>
+
+      <!-- History/Orders Section -->
+      <div class="card p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h4 class="font-semibold text-lg">Order History</h4>
+          <button class="btn btn-primary" type="button" onclick="openOrderDialog('${esc(p.id)}')">Create Order</button>
+        </div>
+        ${orders.length > 0 ? `
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="border-b"><tr class="text-left">
+                <th class="py-2">Created</th><th class="py-2">Product</th><th class="py-2">Status</th>
+                <th class="py-2">Remaining</th><th class="py-2">Expires</th>
+              </tr></thead>
+              <tbody>
+                ${orders.slice(0,5).map(o=>`
+                  <tr class="border-b">
+                    <td class="py-2">${fmt(o.created_at)}</td>
+                    <td class="py-2">${esc(o.product||'')}</td>
+                    <td class="py-2">${pill(o.status||'')}</td>
+                    <td class="py-2">${o.shipments_remaining ?? 0}</td>
+                    <td class="py-2">${fmt(o.expires_at)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        ` : '<div class="text-sm text-slate-500">No order history</div>'}
+      </div>
+    </div>
+  `;
+
+  container.innerHTML = leftColumn + rightColumn;
+}
+
+async function savePatientFromDetail(patientId) {
+  const body = fd({
+    id: patientId,
+    dob: $('#edit-dob')?.value || '',
+    address: $('#edit-address')?.value || '',
+    email: $('#edit-email')?.value || '',
+    city: $('#edit-city')?.value || '',
+    state: $('#edit-state')?.value || '',
+    zip: $('#edit-zip')?.value || '',
+    phone: $('#edit-phone')?.value || ''
+  });
+
+  try {
+    const r = await fetch('?action=patient.save', {method: 'POST', body});
+    const j = await r.json();
+    if (j.ok) {
+      window.location.href = '?page=patient-detail&id=' + encodeURIComponent(patientId);
+    } else {
+      alert('Save failed: ' + (j.error || 'Unknown error'));
+    }
+  } catch (e) {
+    alert('Error saving patient: ' + e.message);
+  }
+}
+
+async function deletePatient(patientId) {
+  try {
+    const r = await fetch('?action=patient.delete', {method: 'POST', body: fd({id: patientId})});
+    const j = await r.json();
+    if (j.ok) {
+      window.location.href = '?page=patients';
+    } else {
+      alert('Delete failed: ' + (j.error || 'Unknown error'));
+    }
+  } catch (e) {
+    alert('Error deleting patient: ' + e.message);
+  }
+}
+
+/* ========== ADD PATIENT FORM HANDLER ========== */
+
+if (document.getElementById('add-patient-form')) {
+  document.getElementById('add-patient-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const errorDiv = $('#add-patient-error');
+    errorDiv.classList.add('hidden');
+
+    const body = fd({
+      first_name: $('#new-first-name').value.trim(),
+      last_name: $('#new-last-name').value.trim(),
+      dob: $('#new-dob').value,
+      sex: $('#new-sex').value,
+      phone: $('#new-phone').value,
+      email: $('#new-email').value,
+      address: $('#new-address').value,
+      city: $('#new-city').value,
+      state: $('#new-state').value,
+      zip: $('#new-zip').value,
+      insurance_provider: $('#new-insurance-provider').value,
+      insurance_member_id: $('#new-insurance-member-id').value,
+      insurance_group_id: $('#new-insurance-group-id').value,
+      insurance_payer_phone: $('#new-insurance-phone').value
+    });
+
+    try {
+      const r = await fetch('?action=patient.save', {method: 'POST', body});
+      const j = await r.json();
+      if (j.ok) {
+        // Redirect to the new patient's detail page
+        window.location.href = '?page=patient-detail&id=' + encodeURIComponent(j.id);
+      } else {
+        errorDiv.textContent = j.error || 'Failed to create patient';
+        errorDiv.classList.remove('hidden');
+      }
+    } catch (e) {
+      errorDiv.textContent = 'Error: ' + e.message;
+      errorDiv.classList.remove('hidden');
+    }
+  });
+}
+
+/* ========== UPDATE PATIENT TABLE TO USE NEW PAGES ========== */
+
+// Update the "Add Patient" button to go to the new page instead of modal
+const addPatientBtn = document.getElementById('btn-add-patient');
+if (addPatientBtn) {
+  addPatientBtn.onclick = () => {
+    window.location.href = '?page=patient-add';
+  };
+}
+
+// Update patient row clicks to go to detail page instead of accordion
+document.addEventListener('click', (e) => {
+  const accBtn = e.target.closest('[data-acc]');
+  if (accBtn && <?php echo json_encode($page === 'patients'); ?>) {
+    e.preventDefault();
+    const patientId = accBtn.dataset.acc;
+    window.location.href = '?page=patient-detail&id=' + encodeURIComponent(patientId);
+  }
+});
+
 </script>
 
     </main>
