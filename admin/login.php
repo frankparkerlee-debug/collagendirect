@@ -4,13 +4,13 @@ declare(strict_types=1);
 require __DIR__ . '/db.php';
 
 $pdo->exec("CREATE TABLE IF NOT EXISTS admin_users (
-  id INT AUTO_INCREMENT PRIMARY KEY,
+  id SERIAL PRIMARY KEY,
   email VARCHAR(255) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
   name VARCHAR(120) NOT NULL,
   role VARCHAR(50) DEFAULT 'admin',
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)");
 
 $err = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -32,9 +32,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $cnt = (int)$pdo->query("SELECT COUNT(*) c FROM admin_users")->fetch()['c'];
 if ($cnt === 0) {
   $bootstrapPass = password_hash('ChangeMe123!', PASSWORD_DEFAULT);
-  $pdo->prepare("INSERT IGNORE INTO admin_users(email,password_hash,name,role) VALUES(?,?,?,?)")
-      ->execute(['admin@collagen.health',$bootstrapPass,'System Admin','owner']);
-  $bootnote = "Bootstrap admin created: admin@collagen.health / ChangeMe123!  (change after login)";
+  try {
+    $pdo->prepare("INSERT INTO admin_users(email,password_hash,name,role) VALUES(?,?,?,?) ON CONFLICT (email) DO NOTHING")
+        ->execute(['admin@collagen.health',$bootstrapPass,'System Admin','owner']);
+    $bootnote = "Bootstrap admin created: admin@collagen.health / ChangeMe123!  (change after login)";
+  } catch (Exception $e) {
+    // Already exists, that's okay
+  }
 }
 ?>
 <!DOCTYPE html>
