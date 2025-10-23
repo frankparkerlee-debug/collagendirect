@@ -18,7 +18,7 @@ function cd_active($path, $match){
     tailwind.config = {
       theme: {
         extend: {
-          colors: { brand: { DEFAULT: '#2a78ff', 600:'#2565d8', 700:'#1e54b6' } },
+          colors: { brand: { DEFAULT: '#4DB8A8', 600:'#3A9688', 700:'#2D7A6E' } },
           boxShadow: { soft:'0 12px 30px rgba(10,37,64,.07)' },
           borderRadius: { xl:'14px', '2xl':'18px' }
         }
