@@ -469,8 +469,9 @@ if ($page==='logout'){
     --ink-light: #6B7280;
     --muted: #9CA3AF;
     --bg-gray: #F9FAFB;
-    --bg-sidebar: #F8F9FA;
+    --bg-sidebar: #F6F6F6;
     --border: #E5E7EB;
+    --border-sidebar: #E8E8E9;
     --ring: rgba(77, 184, 168, 0.2);
     --radius: 0.5rem;
     --radius-lg: 0.75rem;
@@ -489,7 +490,7 @@ if ($page==='logout'){
     font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
     color: var(--ink);
     -webkit-font-smoothing: antialiased;
-    background: var(--bg-gray);
+    background: #ffffff;
   }
 
   /* Card Component */
@@ -790,7 +791,7 @@ if ($page==='logout'){
   .sidebar {
     width: 240px;
     background: var(--bg-sidebar);
-    border-right: 1px solid var(--border);
+    border-right: 1px solid var(--border-sidebar);
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
@@ -802,8 +803,12 @@ if ($page==='logout'){
   }
 
   .sidebar-header {
-    padding: 1.5rem 1rem;
-    border-bottom: 1px solid var(--border);
+    max-height: 60px;
+    height: 60px;
+    padding: 0.625rem 1rem;
+    border-bottom: 1px solid var(--border-sidebar);
+    display: flex;
+    align-items: center;
   }
 
   .sidebar-user {
@@ -876,7 +881,8 @@ if ($page==='logout'){
   }
 
   .top-bar {
-    height: 64px;
+    height: 60px;
+    max-height: 60px;
     background: white;
     border-bottom: 1px solid var(--border);
     display: flex;

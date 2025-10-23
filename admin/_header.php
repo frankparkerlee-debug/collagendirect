@@ -26,8 +26,9 @@ function cd_active($path, $match){
       --ink-light: #6B7280;
       --muted: #9CA3AF;
       --bg-gray: #F9FAFB;
-      --bg-sidebar: #F8F9FA;
+      --bg-sidebar: #F6F6F6;
       --border: #E5E7EB;
+      --border-sidebar: #E8E8E9;
       --ring: rgba(77, 184, 168, 0.2);
       --radius: 0.5rem;
       --radius-lg: 0.75rem;
@@ -46,7 +47,7 @@ function cd_active($path, $match){
       font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
       color: var(--ink);
       -webkit-font-smoothing: antialiased;
-      background: var(--bg-gray);
+      background: #ffffff;
       margin: 0;
       padding: 0;
     }
@@ -177,7 +178,7 @@ function cd_active($path, $match){
     .sidebar {
       width: 260px;
       background: var(--bg-sidebar);
-      border-right: 1px solid var(--border);
+      border-right: 1px solid var(--border-sidebar);
       flex-shrink: 0;
       display: flex;
       flex-direction: column;
@@ -186,6 +187,14 @@ function cd_active($path, $match){
       top: 0;
       bottom: 0;
       overflow-y: auto;
+    }
+    .sidebar-header {
+      max-height: 60px;
+      height: 60px;
+      padding: 0.625rem 1rem;
+      border-bottom: 1px solid var(--border-sidebar);
+      display: flex;
+      align-items: center;
     }
     .sidebar-nav a:hover {
       background: rgba(0,0,0,0.04) !important;
@@ -215,8 +224,8 @@ function cd_active($path, $match){
 </head>
 <body style="margin: 0; padding: 0;">
   <div style="display: flex; height: 100vh; overflow: hidden;">
-    <aside class="sidebar" style="width: 260px;">
-      <div class="sidebar-header" style="padding: 1.5rem 1rem; border-bottom: 1px solid var(--border);">
+    <aside class="sidebar">
+      <div class="sidebar-header">
         <?php
         $isSuperAdmin = in_array(($admin['role'] ?? ''), ['owner', 'superadmin']);
         $currentContext = $_SESSION['admin_context'] ?? 'practice';
@@ -318,7 +327,7 @@ function cd_active($path, $match){
       </div>
     </aside>
     <main style="flex: 1; display: flex; flex-direction: column; margin-left: 260px; height: 100vh; overflow: hidden;">
-      <header style="height: 64px; background: white; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; position: sticky; top: 0; z-index: 10; flex-shrink: 0;">
+      <header style="height: 60px; max-height: 60px; background: white; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; position: sticky; top: 0; z-index: 10; flex-shrink: 0;">
         <div style="font-size: 1.25rem; font-weight: 600; color: var(--ink);">CollagenDirect Admin</div>
         <div style="font-size: 0.75rem; color: var(--muted);">collagendirect.health</div>
       </header>
