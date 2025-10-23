@@ -1311,7 +1311,7 @@ if ($page==='logout'){
   <!-- Sidebar -->
   <aside class="sidebar">
     <div class="sidebar-header">
-      <div class="sidebar-user">
+      <div class="sidebar-user" id="sidebar-profile-trigger" style="cursor: pointer; transition: background 0.2s;">
         <div class="sidebar-avatar">
           <?php echo strtoupper(substr($user['first_name'] ?? 'U', 0, 1) . substr($user['last_name'] ?? 'S', 0, 1)); ?>
         </div>
@@ -1373,14 +1373,6 @@ if ($page==='logout'){
         <!-- Search Button -->
         <button class="icon-btn" id="search-btn">
           <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-        </button>
-
-        <!-- New Order Button -->
-        <button class="btn btn-primary" id="global-new-order-btn" style="display: flex; align-items: center; gap: 0.5rem;">
-          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-          </svg>
-          <span class="new-order-text">New Order</span>
         </button>
 
         <!-- Notifications Dropdown -->
@@ -1456,6 +1448,14 @@ if ($page==='logout'){
             </div>
           </div>
         </div>
+
+        <!-- New Order Button -->
+        <button class="btn btn-primary" id="global-new-order-btn" style="display: flex; align-items: center; gap: 0.5rem;">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+          </svg>
+          <span class="new-order-text">New Order</span>
+        </button>
       </div>
     </div>
 
@@ -2722,6 +2722,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const profileBtn = document.getElementById('profile-btn');
   const profileMenu = document.getElementById('profile-menu');
   const globalNewOrderBtn = document.getElementById('global-new-order-btn');
+  const sidebarProfileTrigger = document.getElementById('sidebar-profile-trigger');
 
   // Global New Order button - opens patient selector
   if (globalNewOrderBtn) {
@@ -2739,13 +2740,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Toggle profile dropdown
+  // Function to toggle profile menu
+  const toggleProfileMenu = (e) => {
+    e.stopPropagation();
+    profileMenu.classList.toggle('show');
+    if (notificationsMenu) notificationsMenu.classList.remove('show');
+  };
+
+  // Toggle profile dropdown from header button
   if (profileBtn) {
-    profileBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      profileMenu.classList.toggle('show');
-      if (notificationsMenu) notificationsMenu.classList.remove('show');
-    });
+    profileBtn.addEventListener('click', toggleProfileMenu);
+  }
+
+  // Toggle profile dropdown from sidebar user profile
+  if (sidebarProfileTrigger) {
+    sidebarProfileTrigger.addEventListener('click', toggleProfileMenu);
   }
 
   // Close dropdowns when clicking outside
