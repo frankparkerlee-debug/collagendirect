@@ -1081,6 +1081,17 @@ if ($page==='logout'){
       font-size: 1rem;
     }
 
+    /* Hide "New Order" text on mobile, show only icon */
+    .new-order-text {
+      display: none;
+    }
+
+    #global-new-order-btn {
+      padding: 0.75rem;
+      min-width: 44px;
+      justify-content: center;
+    }
+
     /* Content area padding */
     .content-area {
       padding: 1rem;
@@ -1362,6 +1373,14 @@ if ($page==='logout'){
         <!-- Search Button -->
         <button class="icon-btn" id="search-btn">
           <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        </button>
+
+        <!-- New Order Button -->
+        <button class="btn btn-primary" id="global-new-order-btn" style="display: flex; align-items: center; gap: 0.5rem;">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+          </svg>
+          <span class="new-order-text">New Order</span>
         </button>
 
         <!-- Notifications Dropdown -->
@@ -2702,6 +2721,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const notificationsMenu = document.getElementById('notifications-menu');
   const profileBtn = document.getElementById('profile-btn');
   const profileMenu = document.getElementById('profile-menu');
+  const globalNewOrderBtn = document.getElementById('global-new-order-btn');
+
+  // Global New Order button - opens patient selector
+  if (globalNewOrderBtn) {
+    globalNewOrderBtn.addEventListener('click', () => {
+      openOrderDialog();
+    });
+  }
 
   // Toggle notifications dropdown
   if (notificationsBtn) {
