@@ -1729,27 +1729,11 @@ if ($page==='logout'){
   </div>
 
   <script>
-  // Load patient detail on page load
-  (async () => {
-    const patientId = <?php echo json_encode($patientId); ?>;
-    const isEditing = <?php echo json_encode($isEditing); ?>;
-
-    try {
-      const data = await api('action=patient.get&id=' + encodeURIComponent(patientId));
-      const p = data.patient;
-      const orders = data.orders || [];
-
-      renderPatientDetailPage(p, orders, isEditing);
-    } catch (e) {
-      document.getElementById('patient-detail-container').innerHTML = `
-        <div class="lg:col-span-3 card p-6">
-          <p class="text-red-600 mb-3">Failed to load patient information</p>
-          <a href="?page=patients" class="btn">Back to Patients</a>
-        </div>
-      `;
-      console.error('Patient load error:', e);
-    }
-  })();
+  // Store patient data for loading after main script is ready
+  window._patientDetailData = {
+    patientId: <?php echo json_encode($patientId); ?>,
+    isEditing: <?php echo json_encode($isEditing); ?>
+  };
   </script>
   <?php } ?>
 
@@ -3562,6 +3546,27 @@ document.addEventListener('click', (e) => {
     window.location.href = '?page=patient-detail&id=' + encodeURIComponent(patientId);
   }
 });
+
+// Load patient detail if on patient-detail or patient-edit page
+if (window._patientDetailData) {
+  (async () => {
+    const { patientId, isEditing } = window._patientDetailData;
+    try {
+      const data = await api('action=patient.get&id=' + encodeURIComponent(patientId));
+      const p = data.patient;
+      const orders = data.orders || [];
+      renderPatientDetailPage(p, orders, isEditing);
+    } catch (e) {
+      document.getElementById('patient-detail-container').innerHTML = `
+        <div class="lg:col-span-3 card p-6">
+          <p class="text-red-600 mb-3">Failed to load patient information</p>
+          <a href="?page=patients" class="btn">Back to Patients</a>
+        </div>
+      `;
+      console.error('Patient load error:', e);
+    }
+  })();
+}
 
 </script>
 
