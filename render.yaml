@@ -23,4 +23,5 @@ services:
 databases:
   - name: collagendirect-db
     databaseName: collagen_db
-    plan: starter
+    plan: free
+    ipAllowList: []
