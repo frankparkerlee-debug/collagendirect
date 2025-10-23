@@ -2,16 +2,20 @@
 // API endpoint to create demo data
 require __DIR__ . '/db.php';
 
-// Get Parker's user ID
-$stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
-$stmt->execute(['parker@senecawest.com']);
-$parker = $stmt->fetch(PDO::FETCH_ASSOC);
+// Get email from POST data or default to Parker
+$input = json_decode(file_get_contents('php://input'), true);
+$email = $input['email'] ?? 'parker@senecawest.com';
 
-if (!$parker) {
-    json_out(404, ['error' => 'Parker user not found']);
+// Get user ID
+$stmt = $pdo->prepare("SELECT id, email FROM users WHERE email = ?");
+$stmt->execute([$email]);
+$user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$user) {
+    json_out(404, ['error' => 'User not found: ' . $email]);
 }
 
-$userId = $parker['id'];
+$userId = $user['id'];
 $results = ['user_id' => $userId, 'patients' => [], 'orders' => []];
 
 // Helper function to generate ID
@@ -120,6 +124,8 @@ try {
     json_out(201, [
         'success' => true,
         'message' => 'Demo data created successfully',
+        'email' => $email,
+        'user_id' => $userId,
         'patients_created' => count($results['patients']),
         'orders_created' => count($results['orders']),
         'results' => $results
