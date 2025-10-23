@@ -96,7 +96,7 @@ try {
 
             $orderStmt = $pdo->prepare("
                 INSERT INTO orders (
-                    id, patient_id, user_id, product, product_id, price, status,
+                    id, patient_id, user_id, product, product_id, product_price, status,
                     shipments_remaining, delivery_mode, frequency, payment_type,
                     created_at, updated_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
