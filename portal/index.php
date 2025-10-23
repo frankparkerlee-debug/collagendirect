@@ -1279,6 +1279,10 @@ if ($page==='logout'){
     <div class="flex items-center gap-3 mb-4">
       <h2 class="text-lg font-semibold">Manage Patients</h2>
       <input id="q" class="ml-auto w-full sm:w-96" placeholder="Search name, phone, email, MRN…">
+      <button class="btn btn-outline" id="btn-add-patient" type="button">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+        Add Patient
+      </button>
       <button class="btn btn-primary" id="btn-new-order" type="button">New Order</button>
     </div>
     <div class="overflow-x-auto">
@@ -1901,6 +1905,66 @@ if ($page==='logout'){
   </form>
 </dialog>
 
+<!-- ADD PATIENT dialog -->
+<dialog id="dlg-patient" class="rounded-2xl w-full max-w-2xl">
+  <form method="dialog" class="p-0">
+    <div class="p-5 border-b flex items-center justify-between">
+      <h3 class="text-lg font-semibold">Add New Patient</h3>
+      <button class="btn" type="button" onclick="document.getElementById('dlg-patient').close()">Close</button>
+    </div>
+
+    <div class="p-5">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="text-sm font-medium">First Name <span class="text-red-600">*</span></label>
+          <input id="patient-first" class="w-full" placeholder="First name" required>
+        </div>
+        <div>
+          <label class="text-sm font-medium">Last Name <span class="text-red-600">*</span></label>
+          <input id="patient-last" class="w-full" placeholder="Last name" required>
+        </div>
+        <div>
+          <label class="text-sm font-medium">Date of Birth <span class="text-red-600">*</span></label>
+          <input id="patient-dob" type="date" class="w-full" required>
+        </div>
+        <div>
+          <label class="text-sm font-medium">Phone</label>
+          <input id="patient-phone" class="w-full" placeholder="(555) 123-4567">
+        </div>
+        <div class="md:col-span-2">
+          <label class="text-sm font-medium">Email</label>
+          <input id="patient-email" type="email" class="w-full" placeholder="patient@example.com">
+        </div>
+        <div class="md:col-span-2">
+          <label class="text-sm font-medium">Street Address</label>
+          <input id="patient-address" class="w-full" placeholder="123 Main St">
+        </div>
+        <div>
+          <label class="text-sm font-medium">City</label>
+          <input id="patient-city" class="w-full" placeholder="City">
+        </div>
+        <div>
+          <label class="text-sm font-medium">State</label>
+          <select id="patient-state" class="w-full">
+            <option value="">Select State</option>
+            <?php foreach(usStates() as $s) echo "<option>$s</option>"; ?>
+          </select>
+        </div>
+        <div>
+          <label class="text-sm font-medium">ZIP</label>
+          <input id="patient-zip" class="w-full" placeholder="12345">
+        </div>
+      </div>
+      <div id="patient-hint" class="text-xs text-slate-500 mt-3"></div>
+    </div>
+
+    <div class="p-5 border-t flex items-center justify-end gap-2">
+      <button type="button" class="btn" onclick="document.getElementById('dlg-patient').close()">Cancel</button>
+      <button type="button" id="btn-save-patient" class="btn btn-primary">Save Patient</button>
+    </div>
+  </form>
+</dialog>
+
 <!-- Stop / Restart prompts -->
 <dialog id="dlg-stop" class="rounded-2xl w-full max-w-md">
   <form method="dialog" class="p-0">
@@ -2287,6 +2351,58 @@ if (<?php echo json_encode($page==='patients'); ?>){
   }
   $('#q').addEventListener('input',e=>load(e.target.value.trim()));
   document.getElementById('btn-new-order').addEventListener('click',()=>openOrderDialog());
+
+  // Add Patient button
+  document.getElementById('btn-add-patient').addEventListener('click',()=>{
+    // Clear form
+    $('#patient-first').value='';
+    $('#patient-last').value='';
+    $('#patient-dob').value='';
+    $('#patient-phone').value='';
+    $('#patient-email').value='';
+    $('#patient-address').value='';
+    $('#patient-city').value='';
+    $('#patient-state').value='';
+    $('#patient-zip').value='';
+    $('#patient-hint').textContent='';
+    // Open dialog
+    document.getElementById('dlg-patient').showModal();
+  });
+
+  // Save Patient button
+  document.getElementById('btn-save-patient').addEventListener('click',async()=>{
+    const first=$('#patient-first').value.trim();
+    const last=$('#patient-last').value.trim();
+    const dob=$('#patient-dob').value;
+    const phone=$('#patient-phone').value.trim();
+    const email=$('#patient-email').value.trim();
+    const address=$('#patient-address').value.trim();
+    const city=$('#patient-city').value.trim();
+    const state=$('#patient-state').value;
+    const zip=$('#patient-zip').value.trim();
+
+    if(!first||!last||!dob){
+      $('#patient-hint').textContent='Please fill in required fields (First Name, Last Name, DOB)';
+      $('#patient-hint').style.color='var(--error)';
+      return;
+    }
+
+    try {
+      const body=fd({first_name:first,last_name:last,dob,phone,email,address,city,state,zip});
+      const res=await api('action=patient_create',{method:'POST',body});
+      if(res.ok){
+        document.getElementById('dlg-patient').close();
+        load(''); // Reload patients list
+      }else{
+        $('#patient-hint').textContent=res.error||'Failed to save patient';
+        $('#patient-hint').style.color='var(--error)';
+      }
+    }catch(e){
+      $('#patient-hint').textContent='Network error';
+      $('#patient-hint').style.color='var(--error)';
+    }
+  });
+
   load('');
 }
 
