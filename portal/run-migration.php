@@ -224,7 +224,15 @@ BEGIN
 END \$\$;
 
 -- =====================================================
--- 4. CREATE ORDER STATUS TYPE
+-- 4. UPDATE EXISTING ORDER STATUSES FIRST
+-- =====================================================
+-- Update existing order statuses to new format BEFORE adding constraint
+UPDATE orders SET status = 'submitted' WHERE status = 'pending' OR status IS NULL;
+UPDATE orders SET status = 'draft' WHERE status = 'new';
+UPDATE orders SET status = 'delivered' WHERE status = 'completed';
+
+-- =====================================================
+-- 5. CREATE ORDER STATUS CONSTRAINT
 -- =====================================================
 DO \$\$
 BEGIN
@@ -252,7 +260,7 @@ BEGIN
 END \$\$;
 
 -- =====================================================
--- 5. CREATE ORDER STATUS HISTORY TABLE
+-- 6. CREATE ORDER STATUS HISTORY TABLE
 -- =====================================================
 CREATE TABLE IF NOT EXISTS order_status_history (
   id SERIAL PRIMARY KEY,
@@ -270,7 +278,7 @@ CREATE INDEX IF NOT EXISTS osh_order ON order_status_history(order_id);
 CREATE INDEX IF NOT EXISTS osh_created ON order_status_history(created_at DESC);
 
 -- =====================================================
--- 6. CREATE ORDER ALERTS/NOTIFICATIONS TABLE
+-- 7. CREATE ORDER ALERTS/NOTIFICATIONS TABLE
 -- =====================================================
 CREATE TABLE IF NOT EXISTS order_alerts (
   id SERIAL PRIMARY KEY,
@@ -295,7 +303,7 @@ COMMENT ON COLUMN order_alerts.severity IS 'Severity: info, warning, critical';
 COMMENT ON COLUMN order_alerts.recipient_role IS 'Who needs to see this: physician, practice_admin, superadmin';
 
 -- =====================================================
--- 7. ADD INDEXES FOR PERFORMANCE
+-- 8. ADD INDEXES FOR PERFORMANCE
 -- =====================================================
 CREATE INDEX IF NOT EXISTS ord_delivery_location ON orders(delivery_location);
 CREATE INDEX IF NOT EXISTS ord_payment_method ON orders(payment_method);
@@ -305,7 +313,7 @@ CREATE INDEX IF NOT EXISTS users_role ON users(role);
 CREATE INDEX IF NOT EXISTS users_dme_license ON users(has_dme_license);
     ");
 
-    echo "✓ Step 1-7 completed (schema changes)\n\n";
+    echo "✓ Steps 1-8 completed (schema changes)\n\n";
 
     // Create the completeness function
     $pdo->exec("
@@ -397,7 +405,7 @@ END;
 \$\$ LANGUAGE plpgsql;
     ");
 
-    echo "✓ Step 8 completed (completeness function)\n\n";
+    echo "✓ Step 9 completed (completeness function)\n\n";
 
     // Create the trigger function
     $pdo->exec("
@@ -425,9 +433,9 @@ CREATE TRIGGER order_status_change_trigger
     EXECUTE FUNCTION log_order_status_change();
     ");
 
-    echo "✓ Step 9 completed (status change trigger)\n\n";
+    echo "✓ Step 10 completed (status change trigger)\n\n";
 
-    // Update existing data
+    // Update existing user data
     $pdo->exec("
 -- Set default role for existing users without role
 UPDATE users SET role = 'physician' WHERE role IS NULL;
@@ -435,17 +443,13 @@ UPDATE users SET role = 'physician' WHERE role IS NULL;
 -- Set has_dme_license to FALSE for all existing practices (can be updated via admin)
 UPDATE users SET has_dme_license = FALSE WHERE has_dme_license IS NULL;
 
--- Update existing order statuses to new format if needed
-UPDATE orders SET status = 'submitted' WHERE status = 'pending';
-UPDATE orders SET status = 'draft' WHERE status = 'new';
-
 COMMENT ON TABLE users IS 'Physician users and practice administrators';
 COMMENT ON TABLE orders IS 'DME orders with full compliance tracking';
 COMMENT ON TABLE order_status_history IS 'Audit trail of all order status changes';
 COMMENT ON TABLE order_alerts IS 'Notifications for physicians and super admins requiring action';
     ");
 
-    echo "✓ Step 10 completed (data updates)\n\n";
+    echo "✓ Step 11 completed (final data updates)\n\n";
 
     echo "✓ Migration completed successfully!\n\n";
 
