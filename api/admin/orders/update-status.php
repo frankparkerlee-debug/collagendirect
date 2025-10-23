@@ -112,7 +112,13 @@ try {
     ]);
 
 } catch (Exception $e) {
-    $pdo->rollBack();
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     error_log("Status update error: " . $e->getMessage());
-    json_out(500, ['error' => 'Server error']);
+    json_out(500, [
+        'error' => 'Database error',
+        'message' => $e->getMessage(),
+        'trace' => $e->getTraceAsString()
+    ]);
 }

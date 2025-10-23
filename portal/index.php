@@ -22,8 +22,9 @@ if (!$user) {
   exit;
 }
 
-// Check if user is a practice admin (has access to /admin)
-$isPracticeAdmin = (($user['role'] ?? 'physician') === 'practice_admin');
+// Check if user is a practice admin or superadmin (has access to /admin)
+$userRole = $user['role'] ?? 'physician';
+$isPracticeAdmin = in_array($userRole, ['practice_admin', 'superadmin']);
 
 /* ------------ Upload roots (keep structure) ------------ */
 $UPLOAD_ROOT = realpath(__DIR__ . '/../uploads') ?: (__DIR__ . '/../uploads');

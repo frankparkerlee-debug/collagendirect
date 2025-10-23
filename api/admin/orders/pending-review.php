@@ -71,5 +71,9 @@ try {
 
 } catch (Exception $e) {
     error_log("Pending review error: " . $e->getMessage());
-    json_out(500, ['error' => 'Server error']);
+    json_out(500, [
+        'error' => 'Database error',
+        'message' => $e->getMessage(),
+        'trace' => $e->getTraceAsString()
+    ]);
 }
