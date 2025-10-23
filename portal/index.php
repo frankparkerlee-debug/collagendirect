@@ -11,6 +11,17 @@ if (empty($_SESSION['user_id'])) {
 }
 $userId = (string)$_SESSION['user_id'];
 
+// Load user data
+$stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
+$stmt->execute([$userId]);
+$user = $stmt->fetch(PDO::FETCH_ASSOC);
+if (!$user) {
+  // User not found, destroy session and redirect to login
+  session_destroy();
+  header('Location: /login');
+  exit;
+}
+
 /* ------------ Upload roots (keep structure) ------------ */
 $UPLOAD_ROOT = realpath(__DIR__ . '/../uploads') ?: (__DIR__ . '/../uploads');
 $DIRS = [
