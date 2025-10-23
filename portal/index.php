@@ -1743,10 +1743,11 @@ if ($page==='logout'){
     } catch (e) {
       document.getElementById('patient-detail-container').innerHTML = `
         <div class="lg:col-span-3 card p-6">
-          <p class="text-red-600 mb-3">Failed to load patient: ${esc(e.message || 'Unknown error')}</p>
+          <p class="text-red-600 mb-3">Failed to load patient information</p>
           <a href="?page=patients" class="btn">Back to Patients</a>
         </div>
       `;
+      console.error('Patient load error:', e);
     }
   })();
   </script>
