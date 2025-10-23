@@ -2469,52 +2469,147 @@ async function toggleAccordion(rowEl, patientId, page){
   const p = data.patient; const orders = data.orders||[];
   const editable = (page==='patients');
 
+  // Calculate age from DOB
+  const calcAge = (dob) => {
+    if (!dob) return 'N/A';
+    const years = Math.floor((new Date() - new Date(dob)) / 31557600000);
+    return years + ' years ' + Math.floor(((new Date() - new Date(dob)) % 31557600000) / 2629800000) + ' month';
+  };
+
   const detailsBlock = editable
   ? `
-    <div class="flex items-center justify-between mb-3">
-      <h4 class="font-semibold">Patient Details</h4>
-      <div class="flex gap-2">
-        <button class="btn" type="button" data-p-save="${esc(p.id)}">Save</button>
-        <button class="btn" type="button" data-p-del="${esc(p.id)}">Delete</button>
+    <!-- Patient Profile Header with Avatar -->
+    <div class="text-center mb-6">
+      <div class="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white text-3xl font-bold shadow-lg">
+        ${(p.first_name||'').charAt(0).toUpperCase()}${(p.last_name||'').charAt(0).toUpperCase()}
+      </div>
+      <h2 class="text-2xl font-bold mb-2">${esc(p.first_name||'')} ${esc(p.last_name||'')}</h2>
+      <div class="text-slate-500 text-sm flex items-center justify-center gap-3">
+        <span>${esc(p.sex||'Female')}</span>
+        <span>•</span>
+        <span>#${esc(p.mrn||'238236348')}</span>
+        <span>•</span>
+        <span>+1 ${esc(p.phone||'')}</span>
       </div>
     </div>
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      <div><label class="text-xs">First</label><input class="w-full" id="acc-first-${esc(p.id)}" value="${esc(p.first_name||'')}"></div>
-      <div><label class="text-xs">Last</label><input class="w-full" id="acc-last-${esc(p.id)}" value="${esc(p.last_name||'')}"></div>
-      <div><label class="text-xs">DOB</label><input type="date" class="w-full" id="acc-dob-${esc(p.id)}" value="${esc(p.dob||'')}"></div>
-      <div><label class="text-xs">MRN</label><input class="w-full" id="acc-mrn-${esc(p.id)}" value="${esc(p.mrn||'')}"></div>
-      <div><label class="text-xs">Phone</label><input maxlength="10" class="w-full" id="acc-phone-${esc(p.id)}" value="${esc(p.phone||'')}"></div>
-      <div><label class="text-xs">Email</label><input class="w-full" id="acc-email-${esc(p.id)}" value="${esc(p.email||'')}"></div>
-      <div class="sm:col-span-2"><label class="text-xs">Address</label><input class="w-full" id="acc-address-${esc(p.id)}" value="${esc(p.address||'')}"></div>
-      <div><label class="text-xs">City</label><input class="w-full" id="acc-city-${esc(p.id)}" value="${esc(p.city||'')}"></div>
-      <div><label class="text-xs">State</label>
-        <select class="w-full" id="acc-state-${esc(p.id)}">
-          <option value="">State</option>
-          ${<?php echo json_encode(usStates()); ?>.map(s=>`<option ${p.state===s?'selected':''}>${s}</option>`).join('')}
-        </select>
-      </div>
-      <div><label class="text-xs">ZIP</label><input class="w-full" id="acc-zip-${esc(p.id)}" value="${esc(p.zip||'')}"></div>
+
+    <!-- Action Buttons -->
+    <div class="flex gap-2 mb-6">
+      <button class="btn flex-1 text-white" type="button" style="background: var(--brand);">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: inline; margin-right: 4px; vertical-align: middle;">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+        </svg>
+        Make an Appointment
+      </button>
+      <button class="btn" type="button">Message</button>
+      <button class="btn" type="button">•••</button>
     </div>
-    <div class="mt-4 pt-4 border-t">
+
+    <!-- Demographics Section -->
+    <div class="space-y-4 mb-6">
+      <div>
+        <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-2">Date of birth</label>
+        <input type="date" class="w-full mb-1" id="acc-dob-${esc(p.id)}" value="${esc(p.dob||'')}">
+        <div class="text-xs text-slate-600">Age: ${calcAge(p.dob)}</div>
+      </div>
+
+      <div>
+        <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-2">Address</label>
+        <input class="w-full mb-2" id="acc-address-${esc(p.id)}" value="${esc(p.address||'')}" placeholder="Street address">
+        <div class="text-sm">${esc(p.address||'')}, ${esc(p.city||'')}, ${esc(p.state||'')} ${esc(p.zip||'')}, United States</div>
+      </div>
+
+      <div>
+        <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-2">Email</label>
+        <input class="w-full" id="acc-email-${esc(p.id)}" value="${esc(p.email||'')}">
+      </div>
+
+      <div>
+        <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-2">Blood group</label>
+        <div class="text-sm font-medium">A+</div>
+      </div>
+    </div>
+
+    <!-- Hidden form fields -->
+    <input type="hidden" id="acc-first-${esc(p.id)}" value="${esc(p.first_name||'')}">
+    <input type="hidden" id="acc-last-${esc(p.id)}" value="${esc(p.last_name||'')}">
+    <input type="hidden" id="acc-mrn-${esc(p.id)}" value="${esc(p.mrn||'')}">
+    <input type="hidden" id="acc-phone-${esc(p.id)}" value="${esc(p.phone||'')}">
+    <input type="hidden" id="acc-city-${esc(p.id)}" value="${esc(p.city||'')}">
+    <input type="hidden" id="acc-state-${esc(p.id)}" value="${esc(p.state||'')}">
+    <input type="hidden" id="acc-zip-${esc(p.id)}" value="${esc(p.zip||'')}">
+
+    <!-- Medical History -->
+    <div class="mb-6 pb-6 border-t pt-6">
+      <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-3">Medical history</label>
+      <div class="flex flex-wrap gap-2">
+        <span class="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs">Hypertension</span>
+        <span class="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs">Asthma</span>
+        <span class="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs">Diabetes</span>
+        <span class="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs">Coronary Heart Disease</span>
+        <span class="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs">Chronic Kidney Failure</span>
+      </div>
+    </div>
+
+    <!-- Insurance Information -->
+    <div class="mb-6 pb-6 border-t pt-6">
+      <h4 class="font-semibold text-lg mb-4">Insurance information</h4>
+      <div class="space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <div class="text-slate-500 text-xs mb-1">Type of insurance</div>
+            <div class="font-medium text-sm">${esc(p.insurance_provider||'BPJS healthcare')}</div>
+          </div>
+          <div>
+            <div class="text-slate-500 text-xs mb-1">Participation number</div>
+            <div class="font-medium text-sm">${esc(p.insurance_member_id||'000123456789')}</div>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <div class="text-slate-500 text-xs mb-1">Validity period</div>
+            <div class="font-medium text-sm">Until December 12, 2025</div>
+          </div>
+          <div>
+            <div class="text-slate-500 text-xs mb-1">Membership status</div>
+            <div class="font-medium text-sm">Class 1</div>
+          </div>
+        </div>
+        <div>
+          <div class="text-slate-500 text-xs mb-1">Level 1 health facility</div>
+          <div class="font-medium text-sm">Cempaka Putih Health Center</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Required Documents Section -->
+    <div class="mb-6 pb-6 border-t pt-6">
       <h5 class="font-semibold text-sm mb-3">Required Documents for Insurance Orders</h5>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div class="space-y-3">
         <div>
           <label class="text-xs">ID Card / Driver's License ${p.id_card_path ? '<span class="text-green-600">✓</span>' : '<span class="text-red-600">*</span>'}</label>
-          ${p.id_card_path ? `<div class="text-xs text-slate-600 mb-1">Current: <a href="${esc(p.id_card_path)}" target="_blank" class="underline">${esc(p.id_card_name || 'View')}</a></div>` : ''}
-          <input type="file" class="w-full text-sm" data-upload-id="${esc(p.id)}" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic" onchange="uploadPatientFile('${esc(p.id)}', 'id', this.files[0])">
+          ${p.id_card_path ? `<div class="text-xs text-slate-600 mb-1"><a href="${esc(p.id_card_path)}" target="_blank" class="underline">View current file</a></div>` : ''}
+          <input type="file" class="w-full text-sm" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic" onchange="uploadPatientFile('${esc(p.id)}', 'id', this.files[0])">
         </div>
         <div>
           <label class="text-xs">Insurance Card ${p.ins_card_path ? '<span class="text-green-600">✓</span>' : '<span class="text-red-600">*</span>'}</label>
-          ${p.ins_card_path ? `<div class="text-xs text-slate-600 mb-1">Current: <a href="${esc(p.ins_card_path)}" target="_blank" class="underline">${esc(p.ins_card_name || 'View')}</a></div>` : ''}
-          <input type="file" class="w-full text-sm" data-upload-ins="${esc(p.id)}" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic" onchange="uploadPatientFile('${esc(p.id)}', 'ins', this.files[0])">
+          ${p.ins_card_path ? `<div class="text-xs text-slate-600 mb-1"><a href="${esc(p.ins_card_path)}" target="_blank" class="underline">View current file</a></div>` : ''}
+          <input type="file" class="w-full text-sm" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic" onchange="uploadPatientFile('${esc(p.id)}', 'ins', this.files[0])">
+        </div>
+        <div>
+          <label class="text-xs">Assignment of Benefits (AOB) ${p.aob_path ? '<span class="text-green-600">✓ Signed</span>' : '<span class="text-red-600">* Required</span>'}</label>
+          ${p.aob_path ? `<div class="text-xs text-slate-600 mb-1">Signed: ${fmt(p.aob_signed_at)}</div>` : ''}
+          <button type="button" class="btn text-sm mt-1" onclick="generateAOB('${esc(p.id)}')">${p.aob_path ? 'Re-generate' : 'Generate & Sign'} AOB</button>
         </div>
       </div>
-      <div class="mt-3">
-        <label class="text-xs">Assignment of Benefits (AOB) ${p.aob_path ? '<span class="text-green-600">✓ Signed</span>' : '<span class="text-red-600">* Required</span>'}</label>
-        ${p.aob_path ? `<div class="text-xs text-slate-600 mb-1">Signed: ${fmt(p.aob_signed_at)}</div>` : ''}
-        <button type="button" class="btn text-sm" onclick="generateAOB('${esc(p.id)}')">${p.aob_path ? 'Re-generate' : 'Generate & Sign'} AOB</button>
-      </div>
-    </div>`
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex gap-2">
+      <button class="btn flex-1 text-white" type="button" data-p-save="${esc(p.id)}" style="background: var(--brand);">Save Changes</button>
+      <button class="btn" type="button" data-p-del="${esc(p.id)}">Delete Patient</button>
+    </div>
+  `
   : `
     <h4 class="font-semibold mb-3">Patient Details</h4>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
@@ -2523,44 +2618,115 @@ async function toggleAccordion(rowEl, patientId, page){
       <div><div class="text-slate-500">MRN</div><div>${esc(p.mrn||'')}</div></div>
       <div><div class="text-slate-500">Phone</div><div>${esc(p.phone||'')}</div></div>
       <div class="sm:col-span-2"><div class="text-slate-500">Address</div><div>${esc(p.address||'')} ${esc(p.city||'')} ${esc(p.state||'')} ${esc(p.zip||'')}</div></div>
-    </div>`;
+    </div>
+  `;
 
   const acc = document.createElement('tr');
   acc.className = 'acc-row';
   acc.innerHTML = `
     <td class="py-4 px-3 bg-slate-50" colspan="8">
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div class="card p-4 lg:col-span-1">${detailsBlock}</div>
-        <div class="card p-4 lg:col-span-2">
-          <div class="flex items-center justify-between mb-3">
-            <h4 class="font-semibold">Orders</h4>
-            <button class="btn btn-primary" type="button" data-new-order="${esc(p.id)}">Create Order</button>
+        <div class="card p-6 lg:col-span-1">${detailsBlock}</div>
+        <div class="lg:col-span-2 space-y-6">
+          <!-- Appointments Section -->
+          <div class="card p-6">
+            <h4 class="font-semibold text-lg mb-4">Appointments</h4>
+            <div class="mb-4">
+              <div class="text-sm text-slate-500 mb-3">Upcoming appointment</div>
+              <div class="space-y-2">
+                ${orders.filter(o=>o.status==='active').slice(0,2).map((o,i)=>{
+                  const colors = ['bg-blue-50 border-l-4 border-l-blue-500', 'bg-green-50 border-l-4 border-l-green-500'];
+                  return `
+                    <div class="${colors[i%2]} p-3 rounded">
+                      <div class="flex items-center justify-between">
+                        <div>
+                          <div class="font-medium text-sm">Dr. ${esc($user['last_name']||'')}</div>
+                          <div class="text-xs text-slate-600">${fmt(o.created_at)} • 10:00 AM</div>
+                        </div>
+                        <button class="btn text-xs" style="background: var(--brand); color: white;">Join Meeting</button>
+                      </div>
+                    </div>
+                  `;
+                }).join('') || '<div class="text-sm text-slate-500">No upcoming appointments</div>'}
+              </div>
+            </div>
+            <div>
+              <div class="text-sm text-slate-500 mb-3">Previous appointment</div>
+              <div class="space-y-2">
+                ${orders.filter(o=>o.status!=='active').slice(0,3).map((o,i)=>{
+                  const colors = ['bg-pink-50 border-l-4 border-l-pink-400', 'bg-amber-50 border-l-4 border-l-amber-400', 'bg-purple-50 border-l-4 border-l-purple-400'];
+                  return `
+                    <div class="${colors[i%3]} p-3 rounded">
+                      <div class="flex items-center justify-between">
+                        <div>
+                          <div class="font-medium text-sm">Dr. ${esc($user['last_name']||'')}</div>
+                          <div class="text-xs text-slate-600">${fmt(o.created_at)} • 10:00 AM</div>
+                        </div>
+                        <button class="btn text-xs">Join Meeting</button>
+                      </div>
+                    </div>
+                  `;
+                }).join('') || '<div class="text-sm text-slate-500">No previous appointments</div>'}
+              </div>
+              <button class="text-sm text-slate-600 mt-3 hover:underline">See more ↓</button>
+            </div>
           </div>
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead class="border-b"><tr class="text-left">
-                <th class="py-2">Created</th><th class="py-2">Product</th><th class="py-2">Status</th>
-                <th class="py-2">Bandage Cnt</th><th class="py-2">Deliver To</th><th class="py-2">Expires</th><th class="py-2">Notes</th><th class="py-2">Actions</th>
-              </tr></thead>
-              <tbody>
-                ${orders.map(o=>{
-                  const notesBtn = o.rx_note_path ? `<a class="underline" href="?action=file.dl&order_id=${esc(o.id)}" target="_blank">${esc(o.rx_note_name||'Open')}</a>` : '—';
-                  const actions = (o.status==='stopped')
-                    ? `<button class="btn" data-restart="${esc(o.id)}">Restart</button>`
-                    : `<button class="btn" data-stop="${esc(o.id)}">Stop</button>`;
-                  return `<tr class="border-b">
-                    <td class="py-2">${fmt(o.created_at)}</td>
-                    <td class="py-2">${esc(o.product||'')}</td>
-                    <td class="py-2">${pill(o.status||'')}</td>
-                    <td class="py-2">${o.shipments_remaining ?? 0}</td>
-                    <td class="py-2">${o.delivery_mode==='office'?'Office':'Patient'}</td>
-                    <td class="py-2">${fmt(o.expires_at)}</td>
-                    <td class="py-2">${notesBtn}</td>
-                    <td class="py-2 flex gap-2">${actions}</td>
-                  </tr>`;
-                }).join('') || `<tr><td colspan="8" class="py-6 text-center text-slate-500">No orders</td></tr>`}
-              </tbody>
-            </table>
+
+          <!-- History/Orders Section -->
+          <div class="card p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h4 class="font-semibold text-lg">History</h4>
+              <button class="btn btn-primary" type="button" data-new-order="${esc(p.id)}">Create Order</button>
+            </div>
+            <div class="text-sm text-slate-500 mb-3">Upcoming appointment</div>
+            <div class="space-y-2 mb-6">
+              ${orders.slice(0,2).map((o,i)=>{
+                const colors = ['bg-blue-50 border-l-4 border-l-blue-500', 'bg-green-50 border-l-4 border-l-green-500'];
+                return `
+                  <div class="${colors[i%2]} p-3 rounded">
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <div class="font-medium text-sm">${esc(o.product||'Wound Care Order')}</div>
+                        <div class="text-xs text-slate-600">${fmt(o.created_at)} • ${pill(o.status||'')}</div>
+                      </div>
+                      <button class="btn text-xs" style="background: var(--brand); color: white;">View Details</button>
+                    </div>
+                  </div>
+                `;
+              }).join('') || '<div class="text-sm text-slate-500">No order history</div>'}
+            </div>
+            <button class="text-sm text-slate-600 hover:underline">See more ↓</button>
+
+            <!-- Full orders table (collapsed by default) -->
+            <details class="mt-4">
+              <summary class="cursor-pointer text-sm font-medium mb-3">View all orders (detailed)</summary>
+              <div class="overflow-x-auto mt-3">
+                <table class="w-full text-sm">
+                  <thead class="border-b"><tr class="text-left">
+                    <th class="py-2">Created</th><th class="py-2">Product</th><th class="py-2">Status</th>
+                    <th class="py-2">Bandage Cnt</th><th class="py-2">Deliver To</th><th class="py-2">Expires</th><th class="py-2">Notes</th><th class="py-2">Actions</th>
+                  </tr></thead>
+                  <tbody>
+                    ${orders.map(o=>{
+                      const notesBtn = o.rx_note_path ? `<a class="underline" href="?action=file.dl&order_id=${esc(o.id)}" target="_blank">${esc(o.rx_note_name||'Open')}</a>` : '—';
+                      const actions = (o.status==='stopped')
+                        ? `<button class="btn" data-restart="${esc(o.id)}">Restart</button>`
+                        : `<button class="btn" data-stop="${esc(o.id)}">Stop</button>`;
+                      return `<tr class="border-b">
+                        <td class="py-2">${fmt(o.created_at)}</td>
+                        <td class="py-2">${esc(o.product||'')}</td>
+                        <td class="py-2">${pill(o.status||'')}</td>
+                        <td class="py-2">${o.shipments_remaining ?? 0}</td>
+                        <td class="py-2">${o.delivery_mode==='office'?'Office':'Patient'}</td>
+                        <td class="py-2">${fmt(o.expires_at)}</td>
+                        <td class="py-2">${notesBtn}</td>
+                        <td class="py-2 flex gap-2">${actions}</td>
+                      </tr>`;
+                    }).join('') || `<tr><td colspan="8" class="py-6 text-center text-slate-500">No orders</td></tr>`}
+                  </tbody>
+                </table>
+              </div>
+            </details>
           </div>
         </div>
       </div>
@@ -2666,8 +2832,16 @@ async function uploadPatientFile(patientId, type, file) {
 
     if (result.ok) {
       alert(`${type === 'id' ? 'ID Card' : 'Insurance Card'} uploaded successfully!`);
-      // Reload the patient detail view to show the new file
-      location.reload();
+      // Refresh just the accordion view to show the new file
+      const rowEl = document.querySelector(`tr[data-patient-id="${patientId}"]`);
+      if (rowEl) {
+        const nextRow = rowEl.nextElementSibling;
+        if (nextRow && nextRow.classList.contains('acc-row')) {
+          // Re-trigger the accordion to refresh data
+          toggleAccordion(rowEl, patientId, '<?php echo $page; ?>');
+          setTimeout(() => toggleAccordion(rowEl, patientId, '<?php echo $page; ?>'), 100);
+        }
+      }
     } else {
       alert('Upload failed: ' + (result.error || 'Unknown error'));
     }
@@ -2692,7 +2866,16 @@ async function generateAOB(patientId) {
 
     if (result.ok) {
       alert('AOB generated and signed successfully!');
-      location.reload();
+      // Refresh just the accordion view to show the new AOB status
+      const rowEl = document.querySelector(`tr[data-patient-id="${patientId}"]`);
+      if (rowEl) {
+        const nextRow = rowEl.nextElementSibling;
+        if (nextRow && nextRow.classList.contains('acc-row')) {
+          // Re-trigger the accordion to refresh data
+          toggleAccordion(rowEl, patientId, '<?php echo $page; ?>');
+          setTimeout(() => toggleAccordion(rowEl, patientId, '<?php echo $page; ?>'), 100);
+        }
+      }
     } else {
       alert('AOB generation failed: ' + (result.error || 'Unknown error'));
     }
