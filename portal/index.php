@@ -2501,15 +2501,16 @@ if ($page==='logout'){
 </dialog>
 
 <!-- ADD PATIENT dialog -->
-<dialog id="dlg-patient" class="rounded-2xl w-full max-w-2xl">
+<dialog id="dlg-patient" class="rounded-2xl w-full max-w-3xl">
   <form method="dialog" class="p-0">
     <div class="p-5 border-b flex items-center justify-between">
       <h3 class="text-lg font-semibold">Add New Patient</h3>
       <button class="btn" type="button" onclick="document.getElementById('dlg-patient').close()">Close</button>
     </div>
 
-    <div class="p-5">
+    <div class="p-5 overflow-y-auto" style="max-height: 70vh;">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Basic Info -->
         <div>
           <label class="text-sm font-medium">First Name <span class="text-red-600">*</span></label>
           <input id="patient-first" class="w-full" placeholder="First name" required>
@@ -2523,13 +2524,27 @@ if ($page==='logout'){
           <input id="patient-dob" type="date" class="w-full" required>
         </div>
         <div>
-          <label class="text-sm font-medium">Phone</label>
-          <input id="patient-phone" class="w-full" placeholder="(555) 123-4567">
+          <label class="text-sm font-medium">MRN</label>
+          <input id="patient-mrn" class="w-full" placeholder="Auto-generated if blank">
+        </div>
+
+        <!-- Contact Info -->
+        <div class="md:col-span-2 text-sm font-medium" style="margin-top:0.5rem">Contact Information</div>
+        <div>
+          <label class="text-sm font-medium">Phone <span class="text-red-600">*</span></label>
+          <input id="patient-phone" class="w-full" placeholder="(555) 123-4567" required>
+        </div>
+        <div>
+          <label class="text-sm font-medium">Cell Phone</label>
+          <input id="patient-cell-phone" class="w-full" placeholder="Mobile number">
         </div>
         <div class="md:col-span-2">
-          <label class="text-sm font-medium">Email</label>
-          <input id="patient-email" type="email" class="w-full" placeholder="patient@example.com">
+          <label class="text-sm font-medium">Email <span class="text-red-600">*</span></label>
+          <input id="patient-email" type="email" class="w-full" placeholder="patient@example.com" required>
         </div>
+
+        <!-- Address -->
+        <div class="md:col-span-2 text-sm font-medium" style="margin-top:0.5rem">Address</div>
         <div class="md:col-span-2">
           <label class="text-sm font-medium">Street Address</label>
           <input id="patient-address" class="w-full" placeholder="123 Main St">
@@ -2548,6 +2563,38 @@ if ($page==='logout'){
         <div>
           <label class="text-sm font-medium">ZIP</label>
           <input id="patient-zip" class="w-full" placeholder="12345">
+        </div>
+
+        <!-- Insurance Information -->
+        <div class="md:col-span-2 text-sm font-medium" style="margin-top:0.5rem">Insurance Information</div>
+        <div>
+          <label class="text-sm">Insurance Carrier</label>
+          <input id="patient-ins-provider" class="w-full" placeholder="e.g., Blue Cross">
+        </div>
+        <div>
+          <label class="text-sm">Member ID</label>
+          <input id="patient-ins-member-id" class="w-full" placeholder="Member ID">
+        </div>
+        <div>
+          <label class="text-sm">Group Number</label>
+          <input id="patient-ins-group-id" class="w-full" placeholder="Group Number">
+        </div>
+        <div>
+          <label class="text-sm">Payer Phone</label>
+          <input id="patient-ins-payer-phone" class="w-full" placeholder="Payer Phone">
+        </div>
+
+        <!-- Required Documents -->
+        <div class="md:col-span-2 text-sm font-medium" style="margin-top:0.5rem">Required Documents</div>
+        <div>
+          <label class="text-sm">Photo ID <span class="text-red-600">*</span></label>
+          <input id="patient-id-file" type="file" class="w-full" accept="image/*,.pdf">
+          <div class="text-xs text-slate-500 mt-1">License, passport, or government ID</div>
+        </div>
+        <div>
+          <label class="text-sm">Insurance Card <span class="text-red-600">*</span></label>
+          <input id="patient-ins-file" type="file" class="w-full" accept="image/*,.pdf">
+          <div class="text-xs text-slate-500 mt-1">Front and back if possible</div>
         </div>
       </div>
       <div id="patient-hint" class="text-xs text-slate-500 mt-3"></div>
@@ -3053,48 +3100,155 @@ if (<?php echo json_encode($page==='patients'); ?>){
     $('#patient-first').value='';
     $('#patient-last').value='';
     $('#patient-dob').value='';
+    $('#patient-mrn').value='';
     $('#patient-phone').value='';
+    $('#patient-cell-phone').value='';
     $('#patient-email').value='';
     $('#patient-address').value='';
     $('#patient-city').value='';
     $('#patient-state').value='';
     $('#patient-zip').value='';
+    $('#patient-ins-provider').value='';
+    $('#patient-ins-member-id').value='';
+    $('#patient-ins-group-id').value='';
+    $('#patient-ins-payer-phone').value='';
+    $('#patient-id-file').value='';
+    $('#patient-ins-file').value='';
     $('#patient-hint').textContent='';
+    $('#patient-hint').style.color='';
     // Open dialog
     document.getElementById('dlg-patient').showModal();
   });
 
   // Save Patient button
   document.getElementById('btn-save-patient').addEventListener('click',async()=>{
-    const first=$('#patient-first').value.trim();
-    const last=$('#patient-last').value.trim();
-    const dob=$('#patient-dob').value;
-    const phone=$('#patient-phone').value.trim();
-    const email=$('#patient-email').value.trim();
-    const address=$('#patient-address').value.trim();
-    const city=$('#patient-city').value.trim();
-    const state=$('#patient-state').value;
-    const zip=$('#patient-zip').value.trim();
-
-    if(!first||!last||!dob){
-      $('#patient-hint').textContent='Please fill in required fields (First Name, Last Name, DOB)';
-      $('#patient-hint').style.color='var(--error)';
-      return;
-    }
+    const btn = $('#btn-save-patient');
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
 
     try {
-      const body=fd({first_name:first,last_name:last,dob,phone,email,address,city,state,zip});
-      const res=await api('action=patient_create',{method:'POST',body});
-      if(res.ok){
+      const first=$('#patient-first').value.trim();
+      const last=$('#patient-last').value.trim();
+      const dob=$('#patient-dob').value;
+      const mrn=$('#patient-mrn').value.trim();
+      const phone=$('#patient-phone').value.trim();
+      const cellPhone=$('#patient-cell-phone').value.trim();
+      const email=$('#patient-email').value.trim();
+      const address=$('#patient-address').value.trim();
+      const city=$('#patient-city').value.trim();
+      const state=$('#patient-state').value;
+      const zip=$('#patient-zip').value.trim();
+      const insProvider=$('#patient-ins-provider').value.trim();
+      const insMemberId=$('#patient-ins-member-id').value.trim();
+      const insGroupId=$('#patient-ins-group-id').value.trim();
+      const insPayerPhone=$('#patient-ins-payer-phone').value.trim();
+      const idFile = $('#patient-id-file').files[0];
+      const insFile = $('#patient-ins-file').files[0];
+
+      // Validate required fields
+      if(!first||!last||!dob){
+        $('#patient-hint').textContent='Please fill in required fields (First Name, Last Name, DOB)';
+        $('#patient-hint').style.color='var(--error)';
+        btn.disabled = false;
+        btn.textContent = 'Save Patient';
+        return;
+      }
+
+      if(!phone){
+        $('#patient-hint').textContent='Phone is required';
+        $('#patient-hint').style.color='var(--error)';
+        btn.disabled = false;
+        btn.textContent = 'Save Patient';
+        return;
+      }
+
+      if(!email){
+        $('#patient-hint').textContent='Email is required';
+        $('#patient-hint').style.color='var(--error)';
+        btn.disabled = false;
+        btn.textContent = 'Save Patient';
+        return;
+      }
+
+      if(!idFile){
+        $('#patient-hint').textContent='Photo ID is required';
+        $('#patient-hint').style.color='var(--error)';
+        btn.disabled = false;
+        btn.textContent = 'Save Patient';
+        return;
+      }
+
+      if(!insFile){
+        $('#patient-hint').textContent='Insurance Card is required';
+        $('#patient-hint').style.color='var(--error)';
+        btn.disabled = false;
+        btn.textContent = 'Save Patient';
+        return;
+      }
+
+      // Step 1: Create patient
+      const patientBody = fd({
+        first_name:first, last_name:last, dob, mrn, phone, cell_phone:cellPhone,
+        email, address, city, state, zip,
+        insurance_provider:insProvider, insurance_member_id:insMemberId,
+        insurance_group_id:insGroupId, insurance_payer_phone:insPayerPhone
+      });
+      const patientRes = await api('action=patient.save',{method:'POST',body:patientBody});
+
+      if(!patientRes.ok){
+        $('#patient-hint').textContent=patientRes.error||'Failed to save patient';
+        $('#patient-hint').style.color='var(--error)';
+        btn.disabled = false;
+        btn.textContent = 'Save Patient';
+        return;
+      }
+
+      const patientId = patientRes.id;
+
+      // Step 2: Upload ID
+      const idForm = new FormData();
+      idForm.append('patient_id', patientId);
+      idForm.append('type', 'id');
+      idForm.append('file', idFile);
+      const idResp = await fetch('?action=patient.upload', {method:'POST', body:idForm});
+      const idResult = await idResp.json();
+      if(!idResult.ok){
+        $('#patient-hint').textContent='Failed to upload ID: ' + (idResult.error||'Unknown error');
+        $('#patient-hint').style.color='var(--error)';
+        btn.disabled = false;
+        btn.textContent = 'Save Patient';
+        return;
+      }
+
+      // Step 3: Upload Insurance Card
+      const insForm = new FormData();
+      insForm.append('patient_id', patientId);
+      insForm.append('type', 'ins');
+      insForm.append('file', insFile);
+      const insResp = await fetch('?action=patient.upload', {method:'POST', body:insForm});
+      const insResult = await insResp.json();
+      if(!insResult.ok){
+        $('#patient-hint').textContent='Failed to upload insurance card: ' + (insResult.error||'Unknown error');
+        $('#patient-hint').style.color='var(--error)';
+        btn.disabled = false;
+        btn.textContent = 'Save Patient';
+        return;
+      }
+
+      // Success!
+      $('#patient-hint').textContent='Patient created successfully!';
+      $('#patient-hint').style.color='var(--success)';
+
+      setTimeout(() => {
         document.getElementById('dlg-patient').close();
         load(''); // Reload patients list
-      }else{
-        $('#patient-hint').textContent=res.error||'Failed to save patient';
-        $('#patient-hint').style.color='var(--error)';
-      }
-    }catch(e){
-      $('#patient-hint').textContent='Network error';
+      }, 500);
+
+    } catch(e) {
+      $('#patient-hint').textContent='Network error: ' + e.message;
       $('#patient-hint').style.color='var(--error)';
+      btn.disabled = false;
+      btn.textContent = 'Save Patient';
     }
   });
 
