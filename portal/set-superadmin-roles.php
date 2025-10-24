@@ -40,7 +40,7 @@ try {
 
     // Verify
     $stmt = $pdo->query("
-        SELECT id, email, first_name, last_name, role, has_dme_license
+        SELECT id, email, first_name, last_name, role
         FROM users
         WHERE email IN ('sparkingmatt@gmail.com', 'parker@senecawest.com')
     ");
@@ -51,7 +51,6 @@ try {
         echo "Email: {$row['email']}\n";
         echo "Name: {$row['first_name']} {$row['last_name']}\n";
         echo "Role: {$row['role']}\n";
-        echo "DME License: " . ($row['has_dme_license'] ? 'Yes' : 'No') . "\n";
         echo "\n";
     }
 
