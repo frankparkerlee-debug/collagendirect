@@ -4391,10 +4391,18 @@ function renderPatientDetailPage(p, orders, isEditing) {
         </div>
 
         ${isEditing ? `
+          <input type="hidden" id="edit-first-name" value="${esc(p.first_name||'')}">
+          <input type="hidden" id="edit-last-name" value="${esc(p.last_name||'')}">
+          <input type="hidden" id="edit-mrn" value="${esc(p.mrn||'')}">
           <input type="hidden" id="edit-city" value="${esc(p.city||'')}">
           <input type="hidden" id="edit-state" value="${esc(p.state||'')}">
           <input type="hidden" id="edit-zip" value="${esc(p.zip||'')}">
           <input type="hidden" id="edit-phone" value="${esc(p.phone||'')}">
+          <input type="hidden" id="edit-cell-phone" value="${esc(p.cell_phone||'')}">
+          <input type="hidden" id="edit-insurance-provider" value="${esc(p.insurance_provider||'')}">
+          <input type="hidden" id="edit-insurance-member-id" value="${esc(p.insurance_member_id||'')}">
+          <input type="hidden" id="edit-insurance-group-id" value="${esc(p.insurance_group_id||'')}">
+          <input type="hidden" id="edit-insurance-payer-phone" value="${esc(p.insurance_payer_phone||'')}">
         ` : ''}
 
         <div>
@@ -4571,13 +4579,21 @@ function renderPatientDetailPage(p, orders, isEditing) {
 async function savePatientFromDetail(patientId) {
   const body = fd({
     id: patientId,
+    first_name: $('#edit-first-name')?.value || '',
+    last_name: $('#edit-last-name')?.value || '',
+    mrn: $('#edit-mrn')?.value || '',
     dob: $('#edit-dob')?.value || '',
     address: $('#edit-address')?.value || '',
     email: $('#edit-email')?.value || '',
     city: $('#edit-city')?.value || '',
     state: $('#edit-state')?.value || '',
     zip: $('#edit-zip')?.value || '',
-    phone: $('#edit-phone')?.value || ''
+    phone: $('#edit-phone')?.value || '',
+    cell_phone: $('#edit-cell-phone')?.value || '',
+    insurance_provider: $('#edit-insurance-provider')?.value || '',
+    insurance_member_id: $('#edit-insurance-member-id')?.value || '',
+    insurance_group_id: $('#edit-insurance-group-id')?.value || '',
+    insurance_payer_phone: $('#edit-insurance-payer-phone')?.value || ''
   });
 
   try {
