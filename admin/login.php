@@ -18,9 +18,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $email = trim((string)($_POST['email'] ?? ''));
   $pass = (string)($_POST['password'] ?? '');
   if ($email && $pass) {
+    // Check admin_users table first
     $stmt = $pdo->prepare("SELECT * FROM admin_users WHERE email = ? LIMIT 1");
     $stmt->execute([$email]);
     $row = $stmt->fetch();
+
+    // If not found in admin_users, check users table for superadmin
+    if (!$row) {
+      $stmt = $pdo->prepare("SELECT id, email, first_name, last_name, password_hash, role FROM users WHERE email = ? AND role = 'superadmin' LIMIT 1");
+      $stmt->execute([$email]);
+      $userRow = $stmt->fetch();
+      if ($userRow) {
+        // Convert users table row to admin format
+        $row = [
+          'id' => $userRow['id'],
+          'email' => $userRow['email'],
+          'name' => trim($userRow['first_name'] . ' ' . $userRow['last_name']),
+          'role' => 'superadmin',
+          'password_hash' => $userRow['password_hash']
+        ];
+      }
+    }
+
     if ($row && password_verify($pass, $row['password_hash'])) {
       // Regenerate session ID for security
       session_regenerate_id(true);
