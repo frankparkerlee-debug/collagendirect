@@ -267,7 +267,7 @@ if ($action) {
       $pdo->beginTransaction();
 
       // Must have provider NPI
-      $u=$pdo->prepare("SELECT npi,sign_name,sign_title FROM users WHERE id=? FOR UPDATE");
+      $u=$pdo->prepare("SELECT npi FROM users WHERE id=? FOR UPDATE");
       $u->execute([$userId]); $ud=$u->fetch(PDO::FETCH_ASSOC);
       if(!$ud || empty($ud['npi'])){ $pdo->rollBack(); jerr('Provider NPI is required. Please add your NPI in your profile.'); }
 
