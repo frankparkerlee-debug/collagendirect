@@ -3348,11 +3348,8 @@ async function toggleAccordion(rowEl, patientId, page){
       </div>
       <h2 class="text-2xl font-bold mb-2">${esc(p.first_name||'')} ${esc(p.last_name||'')}</h2>
       <div class="text-slate-500 text-sm flex items-center justify-center gap-3">
-        <span>${esc(p.sex||'Female')}</span>
-        <span>•</span>
-        <span>#${esc(p.mrn||'238236348')}</span>
-        <span>•</span>
-        <span>+1 ${esc(p.phone||'')}</span>
+        ${p.mrn ? `<span>MRN: ${esc(p.mrn)}</span><span>•</span>` : ''}
+        ${p.phone ? `<span>${esc(p.phone)}</span>` : '<span class="text-slate-400">No phone</span>'}
       </div>
     </div>
 
@@ -3402,17 +3399,8 @@ async function toggleAccordion(rowEl, patientId, page){
     <input type="hidden" id="acc-state-${esc(p.id)}" value="${esc(p.state||'')}">
     <input type="hidden" id="acc-zip-${esc(p.id)}" value="${esc(p.zip||'')}">
 
-    <!-- Medical History -->
-    <div class="mb-6 pb-6 border-t pt-6">
-      <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-3">Medical history</label>
-      <div class="flex flex-wrap gap-2">
-        <span class="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs">Hypertension</span>
-        <span class="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs">Asthma</span>
-        <span class="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs">Diabetes</span>
-        <span class="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs">Coronary Heart Disease</span>
-        <span class="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs">Chronic Kidney Failure</span>
-      </div>
-    </div>
+    <!-- Medical History - Future Feature -->
+    <!-- Medical history tracking not yet implemented -->
 
     <!-- Insurance Information -->
     <div class="mb-6 pb-6 border-t pt-6">
@@ -3420,27 +3408,23 @@ async function toggleAccordion(rowEl, patientId, page){
       <div class="space-y-4">
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <div class="text-slate-500 text-xs mb-1">Type of insurance</div>
-            <div class="font-medium text-sm">${esc(p.insurance_provider||'BPJS healthcare')}</div>
+            <div class="text-slate-500 text-xs mb-1">Insurance Carrier</div>
+            <div class="font-medium text-sm">${esc(p.insurance_provider) || '<span class="text-slate-400">Not provided</span>'}</div>
           </div>
           <div>
-            <div class="text-slate-500 text-xs mb-1">Participation number</div>
-            <div class="font-medium text-sm">${esc(p.insurance_member_id||'000123456789')}</div>
+            <div class="text-slate-500 text-xs mb-1">Member ID</div>
+            <div class="font-medium text-sm">${esc(p.insurance_member_id) || '<span class="text-slate-400">Not provided</span>'}</div>
           </div>
         </div>
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <div class="text-slate-500 text-xs mb-1">Validity period</div>
-            <div class="font-medium text-sm">Until December 12, 2025</div>
+            <div class="text-slate-500 text-xs mb-1">Group Number</div>
+            <div class="font-medium text-sm">${esc(p.insurance_group_id) || '<span class="text-slate-400">Not provided</span>'}</div>
           </div>
           <div>
-            <div class="text-slate-500 text-xs mb-1">Membership status</div>
-            <div class="font-medium text-sm">Class 1</div>
+            <div class="text-slate-500 text-xs mb-1">Payer Phone</div>
+            <div class="font-medium text-sm">${esc(p.insurance_payer_phone) || '<span class="text-slate-400">Not provided</span>'}</div>
           </div>
-        </div>
-        <div>
-          <div class="text-slate-500 text-xs mb-1">Level 1 health facility</div>
-          <div class="font-medium text-sm">Cempaka Putih Health Center</div>
         </div>
       </div>
     </div>
@@ -4360,16 +4344,7 @@ function renderPatientDetailPage(p, orders, isEditing) {
               <div class="font-medium">${esc(p.insurance_member_id||'N/A')}</div>
             </div>
           </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <div class="text-slate-500 text-xs mb-1">Validity period</div>
-              <div class="font-medium">Until ${p.insurance_member_id ? 'December 12, 2025' : 'N/A'}</div>
-            </div>
-            <div>
-              <div class="text-slate-500 text-xs mb-1">Membership status</div>
-              <div class="font-medium">${p.insurance_member_id ? 'Active' : 'N/A'}</div>
-            </div>
-          </div>
+          <!-- Validity period and membership status not yet tracked in database -->
         </div>
       </div>
 
