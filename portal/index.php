@@ -110,11 +110,11 @@ if ($action) {
 
   if ($action==='patient.save'){
     $pid=(string)($_POST['id']??'');
-    $first=trim((string)($_POST['first_name']??'')); 
+    $first=trim((string)($_POST['first_name']??''));
     $last =trim((string)($_POST['last_name']??''));
-    $dob  =$_POST['dob']??null; 
+    $dob  =$_POST['dob']??null;
     $mrn  =trim((string)($_POST['mrn']??''));
-    $phone=$_POST['phone']??null; $email=$_POST['email']??null;
+    $phone=$_POST['phone']??null; $cell_phone=$_POST['cell_phone']??null; $email=$_POST['email']??null;
     $address=$_POST['address']??null; $city=$_POST['city']??null; $state=$_POST['state']??null; $zip=$_POST['zip']??null;
 
     if($first===''||$last==='') jerr('First and last name are required');
@@ -125,13 +125,13 @@ if ($action) {
       if($mrn===''){ $mrn = 'CD-'.date('Ymd').'-'.strtoupper(substr(bin2hex(random_bytes(2)),0,4)); }
       $pid=bin2hex(random_bytes(16));
       $st=$pdo->prepare("INSERT INTO patients
-        (id,user_id,first_name,last_name,dob,mrn,city,state,phone,email,address,zip,created_at,updated_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,NOW(),NOW())");
-      $st->execute([$pid,$userId,$first,$last,$dob,$mrn,$city,$state,$phone,$email,$address,$zip]);
+        (id,user_id,first_name,last_name,dob,mrn,city,state,phone,cell_phone,email,address,zip,created_at,updated_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),NOW())");
+      $st->execute([$pid,$userId,$first,$last,$dob,$mrn,$city,$state,$phone,$cell_phone,$email,$address,$zip]);
     } else {
-      $st=$pdo->prepare("UPDATE patients SET first_name=?,last_name=?,dob=?,mrn=?,city=?,state=?,phone=?,email=?,address=?,zip=?,updated_at=NOW()
+      $st=$pdo->prepare("UPDATE patients SET first_name=?,last_name=?,dob=?,mrn=?,city=?,state=?,phone=?,cell_phone=?,email=?,address=?,zip=?,updated_at=NOW()
                          WHERE id=? AND user_id=?");
-      $st->execute([$first,$last,$dob,$mrn,$city,$state,$phone,$email,$address,$zip,$pid,$userId]);
+      $st->execute([$first,$last,$dob,$mrn,$city,$state,$phone,$cell_phone,$email,$address,$zip,$pid,$userId]);
     }
     jok(['id'=>$pid,'mrn'=>$mrn]);
   }
@@ -2265,6 +2265,7 @@ if ($page==='logout'){
             <input id="np-last"  placeholder="Last name">
             <input id="np-dob"   type="date" placeholder="DOB">
             <input id="np-phone" placeholder="Phone (10 digits)">
+            <input id="np-cell-phone" placeholder="Cell Phone (10 digits)">
             <input id="np-email" class="md:col-span-2" placeholder="Email">
             <input id="np-address" class="md:col-span-2" placeholder="Street address">
             <input id="np-city"  placeholder="City">
@@ -3731,7 +3732,7 @@ async function openOrderDialog(preselectId=null){
     // Create patient first
     const r=await fetch('?action=patient.save',{method:'POST',body:fd({
       first_name:first,last_name:last,dob:$('#np-dob').value,
-      phone:$('#np-phone').value,email:$('#np-email').value,
+      phone:$('#np-phone').value,cell_phone:$('#np-cell-phone').value,email:$('#np-email').value,
       address:$('#np-address').value,city:$('#np-city').value,state:$('#np-state').value,zip:$('#np-zip').value
     })});
     const j=await r.json();
