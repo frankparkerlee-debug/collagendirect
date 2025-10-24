@@ -203,13 +203,15 @@ if ($action) {
       $rel='/uploads/'.$folder.'/'.$final;
 
       if ($type==='id'){
-        $pdo->prepare("UPDATE patients SET id_card_path=?, id_card_mime=?, updated_at=NOW() WHERE id=? AND user_id=?")
-            ->execute([$rel,$mime,$pid,$userId]);
+        $stmt = $pdo->prepare("UPDATE patients SET id_card_path=?, id_card_mime=?, updated_at=NOW() WHERE id=? AND user_id=?");
+        $stmt->execute([$rel,$mime,$pid,$userId]);
+        if ($stmt->rowCount() === 0) jerr('Failed to update patient record - patient not found or no changes made');
       } elseif ($type==='ins'){
-        $pdo->prepare("UPDATE patients SET ins_card_path=?, ins_card_mime=?, updated_at=NOW() WHERE id=? AND user_id=?")
-            ->execute([$rel,$mime,$pid,$userId]);
+        $stmt = $pdo->prepare("UPDATE patients SET ins_card_path=?, ins_card_mime=?, updated_at=NOW() WHERE id=? AND user_id=?");
+        $stmt->execute([$rel,$mime,$pid,$userId]);
+        if ($stmt->rowCount() === 0) jerr('Failed to update patient record - patient not found or no changes made');
       }
-      jok(['path'=>$rel,'name'=>$f['name'],'mime'=>$mime]);
+      jok(['path'=>$rel,'name'=>$f['name'],'mime'=>$mime,'uploaded'=>true]);
     }
   }
 
