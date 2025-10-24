@@ -16,6 +16,23 @@ function isActive($pageName) {
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>CollagenDirect — Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: '#4DB8A8',
+            'brand-dark': '#3A9688',
+            'brand-light': '#E0F5F2',
+            ink: '#1F2937',
+            'ink-light': '#6B7280',
+            muted: '#9CA3AF',
+          },
+        },
+      },
+    }
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -279,6 +296,15 @@ function isActive($pageName) {
       background: var(--bg-gray);
       color: var(--ink);
       border-color: var(--muted);
+    }
+
+    /* Utility classes to match admin pages */
+    .shadow-soft {
+      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+
+    .text-brand {
+      color: var(--brand);
     }
   </style>
 </head>
