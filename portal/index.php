@@ -3076,7 +3076,7 @@ if (<?php echo json_encode($page==='dashboard'); ?>){
               <span style="font-weight: 500; color: var(--ink);">${esc(p.first_name||'')} ${esc(p.last_name||'')}</span>
             </div>
           </td>
-          <td class="py-3 px-2" style="color: var(--ink-light);">${esc(p.mrn || 'Placeholder')}</td>
+          <td class="py-3 px-2" style="color: var(--ink-light);">${esc(p.mrn || '-')}</td>
           <td class="py-3 px-2" style="color: var(--ink-light);">${age}</td>
           <td class="py-3 px-2" style="color: var(--ink-light);">${dob}</td>
           <td class="py-3 px-2" style="color: var(--ink-light);">${esc(p.city && p.state ? p.city+', '+p.state : '-')}</td>
