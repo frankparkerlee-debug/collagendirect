@@ -190,6 +190,45 @@ if ($cnt === 0) {
       <label>Password</label>
       <input type="password" name="password" required/>
       <button type="submit">Sign In</button>
+
+      <!-- HIPAA Security & Trust Messaging -->
+      <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--border)">
+        <div style="display:flex;align-items:center;justify-content:center;gap:0.5rem;margin-bottom:0.75rem">
+          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:#10b981">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+          </svg>
+          <span style="font-weight:600;font-size:0.8125rem;color:#10b981">HIPAA Compliant & Secure</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;font-size:0.6875rem;color:var(--muted);text-align:center">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:0.25rem">
+            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24" style="color:#6b7280">
+              <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"></path>
+            </svg>
+            <span>256-bit SSL</span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:0.25rem">
+            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24" style="color:#6b7280">
+              <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM9 8V6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9z"></path>
+            </svg>
+            <span>Secure PHI</span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:0.25rem">
+            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24" style="color:#6b7280">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"></path>
+            </svg>
+            <span>Audit Logs</span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:0.25rem">
+            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24" style="color:#6b7280">
+              <path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"></path>
+            </svg>
+            <span>BAA Compliant</span>
+          </div>
+        </div>
+        <p style="margin-top:0.75rem;text-align:center;font-size:0.6875rem;color:var(--muted);line-height:1.4">
+          Protected with enterprise-grade security and full HIPAA compliance
+        </p>
+      </div>
     </form>
   </div>
 </body>
