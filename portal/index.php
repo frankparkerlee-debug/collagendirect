@@ -258,10 +258,15 @@ if ($action) {
       $pr->execute([$product_id]); $prod=$pr->fetch(PDO::FETCH_ASSOC);
       if(!$prod){ $pdo->rollBack(); jerr('Product not found',404); }
 
-      // Insurance gate: patient-level ID + INS + AOB required
+      // REQUIRED: Patient ID and Insurance Card must always be on file
+      if(empty($p['id_card_path']) || empty($p['ins_card_path'])){
+        $pdo->rollBack();
+        jerr('Patient ID and Insurance Card must be on file before creating an order. Please upload these documents first.');
+      }
+
+      // Insurance orders also require AOB
       if($payment_type==='insurance'){
-        if(empty($p['id_card_path']) || empty($p['ins_card_path'])){ $pdo->rollBack(); jerr('Patient ID and Insurance Card must be on file at the patient level.'); }
-        if(empty($p['aob_path'])){ $pdo->rollBack(); jerr('Assignment of Benefits (AOB) must be signed.'); }
+        if(empty($p['aob_path'])){ $pdo->rollBack(); jerr('Assignment of Benefits (AOB) must be signed for insurance orders.'); }
       }
 
       $delivery_to=$_POST['delivery_to'] ?? 'patient';
@@ -2267,9 +2272,55 @@ if ($page==='logout'){
               <?php foreach(usStates() as $s) echo "<option>$s</option>"; ?>
             </select>
             <input id="np-zip" placeholder="ZIP">
+
+            <!-- Required Document Uploads -->
+            <div class="md:col-span-2 mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div class="text-sm font-medium text-blue-900 mb-2">Required Documents</div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label class="text-xs text-blue-800 block mb-1">Photo ID <span class="text-red-600">*</span></label>
+                  <input type="file" id="np-id-card" accept="image/*,application/pdf" class="text-sm">
+                  <div class="text-xs text-blue-600 mt-1">Required before order submission</div>
+                </div>
+                <div>
+                  <label class="text-xs text-blue-800 block mb-1">Insurance Card <span class="text-red-600">*</span></label>
+                  <input type="file" id="np-ins-card" accept="image/*,application/pdf" class="text-sm">
+                  <div class="text-xs text-blue-600 mt-1">Required before order submission</div>
+                </div>
+              </div>
+            </div>
           </div>
           <button id="btn-create-patient" type="button" class="btn mt-2">Save Patient &amp; Use</button>
           <div id="np-hint" class="text-xs text-slate-500 mt-1"></div>
+        </div>
+
+        <!-- Selected Patient Document Status -->
+        <div id="patient-doc-status" class="mt-3 p-3 border rounded-lg hidden">
+          <div class="text-sm font-medium mb-2">Patient Documents</div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+            <div id="doc-status-id" class="flex items-center gap-2">
+              <span class="doc-icon">⚠️</span>
+              <span>Photo ID: <span class="font-medium" id="doc-status-id-text">Not uploaded</span></span>
+            </div>
+            <div id="doc-status-ins" class="flex items-center gap-2">
+              <span class="doc-icon">⚠️</span>
+              <span>Insurance Card: <span class="font-medium" id="doc-status-ins-text">Not uploaded</span></span>
+            </div>
+          </div>
+          <div id="doc-upload-section" class="mt-3 pt-3 border-t hidden">
+            <div class="text-sm font-medium text-amber-900 mb-2">Upload Missing Documents</div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div id="upload-id-container" class="hidden">
+                <label class="text-xs block mb-1">Photo ID <span class="text-red-600">*</span></label>
+                <input type="file" id="existing-patient-id-card" accept="image/*,application/pdf" class="text-sm w-full">
+              </div>
+              <div id="upload-ins-container" class="hidden">
+                <label class="text-xs block mb-1">Insurance Card <span class="text-red-600">*</span></label>
+                <input type="file" id="existing-patient-ins-card" accept="image/*,application/pdf" class="text-sm w-full">
+              </div>
+            </div>
+            <button id="btn-upload-docs" type="button" class="btn btn-sm mt-2 hidden">Upload Documents</button>
+          </div>
         </div>
       </div>
 
@@ -3481,6 +3532,81 @@ async function uploadPatientFile(patientId, type, file) {
   }
 }
 
+// Update patient document status display
+async function updatePatientDocStatus(patientId) {
+  try {
+    const data = await api('action=patient.get&id=' + encodeURIComponent(patientId));
+    const p = data.patient;
+
+    const statusDiv = $('#patient-doc-status');
+    const hasId = p.id_card_path && p.id_card_path.trim() !== '';
+    const hasIns = p.ins_card_path && p.ins_card_path.trim() !== '';
+
+    // Update status text
+    $('#doc-status-id-text').textContent = hasId ? 'Uploaded ✓' : 'Not uploaded';
+    $('#doc-status-id-text').style.color = hasId ? 'green' : 'red';
+    $('#doc-status-ins-text').textContent = hasIns ? 'Uploaded ✓' : 'Not uploaded';
+    $('#doc-status-ins-text').style.color = hasIns ? 'green' : 'red';
+
+    // Show upload section if missing documents
+    if (!hasId || !hasIns) {
+      $('#doc-upload-section').classList.remove('hidden');
+      if (!hasId) $('#upload-id-container').classList.remove('hidden');
+      if (!hasIns) $('#upload-ins-container').classList.remove('hidden');
+      $('#btn-upload-docs').classList.remove('hidden');
+
+      // Handle document upload for existing patient
+      $('#btn-upload-docs').onclick = async () => {
+        const btn = $('#btn-upload-docs');
+        btn.disabled = true;
+        btn.textContent = 'Uploading...';
+
+        try {
+          if (!hasId) {
+            const idFile = $('#existing-patient-id-card').files[0];
+            if (!idFile) { alert('Please select a Photo ID file'); btn.disabled = false; btn.textContent = 'Upload Documents'; return; }
+
+            const idForm = new FormData();
+            idForm.append('patient_id', patientId);
+            idForm.append('type', 'id');
+            idForm.append('file', idFile);
+            const idResp = await fetch('?action=patient.upload', {method:'POST', body:idForm});
+            const idResult = await idResp.json();
+            if(!idResult.ok) throw new Error('ID upload failed: ' + (idResult.error||'Unknown error'));
+          }
+
+          if (!hasIns) {
+            const insFile = $('#existing-patient-ins-card').files[0];
+            if (!insFile) { alert('Please select an Insurance Card file'); btn.disabled = false; btn.textContent = 'Upload Documents'; return; }
+
+            const insForm = new FormData();
+            insForm.append('patient_id', patientId);
+            insForm.append('type', 'ins');
+            insForm.append('file', insFile);
+            const insResp = await fetch('?action=patient.upload', {method:'POST', body:insForm});
+            const insResult = await insResp.json();
+            if(!insResult.ok) throw new Error('Insurance upload failed: ' + (insResult.error||'Unknown error'));
+          }
+
+          alert('Documents uploaded successfully!');
+          await updatePatientDocStatus(patientId);
+        } catch (e) {
+          alert('Error: ' + e.message);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'Upload Documents';
+        }
+      };
+    } else {
+      $('#doc-upload-section').classList.add('hidden');
+    }
+
+    statusDiv.classList.remove('hidden');
+  } catch (e) {
+    console.error('Error fetching patient document status:', e);
+  }
+}
+
 async function generateAOB(patientId) {
   if (!confirm('Generate and sign Assignment of Benefits (AOB) for this patient?')) {
     return;
@@ -3548,12 +3674,22 @@ async function openOrderDialog(preselectId=null){
   } else { hint.textContent='Start typing to search'; }
 
   box.oninput=async()=>{
-    const q=box.value.trim(); hidden.value=''; _currentPatientId=null; if(q.length<2){ list.classList.add('hidden'); return; }
+    const q=box.value.trim(); hidden.value=''; _currentPatientId=null;
+    $('#patient-doc-status').classList.add('hidden');
+    if(q.length<2){ list.classList.add('hidden'); return; }
     const r=await api('action=patients&limit=8&q='+encodeURIComponent(q)); const rows=r.rows||[];
     list.innerHTML = (rows.map(p=>`<button type="button" class="w-full text-left px-3 py-2 hover:bg-slate-50" data-p="${p.id}">${esc(p.first_name)} ${esc(p.last_name)} — ${fmt(p.dob)} • ${esc(p.phone||'')}</button>`).join(''))
-      + `<div class="border-t my-1"></div><button type="button" id="opt-create" class="w-full text-left px-3 py-2 hover:bg-slate-50">➕ Create new patient “${esc(q)}”</button>`;
+      + `<div class="border-t my-1"></div><button type="button" id="opt-create" class="w-full text-left px-3 py-2 hover:bg-slate-50">➕ Create new patient "${esc(q)}"</button>`;
     list.classList.remove('hidden');
-    list.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{ hidden.value=b.dataset.p; _currentPatientId=b.dataset.p; box.value=b.textContent; list.classList.add('hidden'); create.classList.add('hidden'); });
+    list.querySelectorAll('[data-p]').forEach(b=>b.onclick=async()=>{
+      hidden.value=b.dataset.p;
+      _currentPatientId=b.dataset.p;
+      box.value=b.textContent;
+      list.classList.add('hidden');
+      create.classList.add('hidden');
+      // Fetch patient details to check document status
+      await updatePatientDocStatus(b.dataset.p);
+    });
     const add=list.querySelector('#opt-create'); if(add) add.onclick=()=>{ list.classList.add('hidden'); create.classList.remove('hidden'); $('#np-first').focus(); };
   };
 
@@ -3561,13 +3697,54 @@ async function openOrderDialog(preselectId=null){
     if(hidden.value){ $('#np-hint').textContent='A patient is already selected.'; return; }
     const first=$('#np-first').value.trim(), last=$('#np-last').value.trim();
     if(!first||!last){ $('#np-hint').textContent='First and last name required.'; return; }
+
+    const idFile = $('#np-id-card').files[0];
+    const insFile = $('#np-ins-card').files[0];
+
+    if(!idFile){ $('#np-hint').textContent='Photo ID is required.'; $('#np-hint').style.color='red'; return; }
+    if(!insFile){ $('#np-hint').textContent='Insurance card is required.'; $('#np-hint').style.color='red'; return; }
+
+    $('#np-hint').textContent='Creating patient...'; $('#np-hint').style.color='';
+
+    // Create patient first
     const r=await fetch('?action=patient.save',{method:'POST',body:fd({
       first_name:first,last_name:last,dob:$('#np-dob').value,
       phone:$('#np-phone').value,email:$('#np-email').value,
       address:$('#np-address').value,city:$('#np-city').value,state:$('#np-state').value,zip:$('#np-zip').value
     })});
-    const j=await r.json(); if(!j.ok){ $('#np-hint').textContent=j.error||'Failed to create'; return; }
-    hidden.value=j.id; _currentPatientId=j.id; box.value=`${first} ${last} (MRN ${j.mrn})`; $('#np-hint').textContent='Patient created and selected.'; create.classList.add('hidden');
+    const j=await r.json();
+    if(!j.ok){ $('#np-hint').textContent=j.error||'Failed to create'; $('#np-hint').style.color='red'; return; }
+
+    const patientId = j.id;
+    $('#np-hint').textContent='Uploading documents...';
+
+    // Upload ID card
+    try {
+      const idForm = new FormData();
+      idForm.append('patient_id', patientId);
+      idForm.append('type', 'id');
+      idForm.append('file', idFile);
+      const idResp = await fetch('?action=patient.upload', {method:'POST', body:idForm});
+      const idResult = await idResp.json();
+      if(!idResult.ok){ throw new Error('ID upload failed: ' + (idResult.error||'Unknown error')); }
+
+      // Upload insurance card
+      const insForm = new FormData();
+      insForm.append('patient_id', patientId);
+      insForm.append('type', 'ins');
+      insForm.append('file', insFile);
+      const insResp = await fetch('?action=patient.upload', {method:'POST', body:insForm});
+      const insResult = await insResp.json();
+      if(!insResult.ok){ throw new Error('Insurance upload failed: ' + (insResult.error||'Unknown error')); }
+
+      hidden.value=patientId; _currentPatientId=patientId;
+      box.value=`${first} ${last} (MRN ${j.mrn})`;
+      $('#np-hint').textContent='Patient created with documents ✓'; $('#np-hint').style.color='green';
+      create.classList.add('hidden');
+      await updatePatientDocStatus(patientId);
+    } catch(e) {
+      $('#np-hint').textContent='Error: ' + e.message; $('#np-hint').style.color='red';
+    }
   };
 
   // reset e-sign & clinical fields
@@ -3587,8 +3764,24 @@ async function openOrderDialog(preselectId=null){
   $('#btn-order-create').onclick=async()=>{
     const btn=$('#btn-order-create'); if(btn.disabled) return; btn.disabled=true; btn.textContent='Submitting…';
     try{
-      const pid=$('#chooser-id').value || _currentPatientId; if(!pid){ alert('Select or create a patient'); return; }
-      if(!$('#ack-sig').checked){ alert('Please acknowledge the e-signature statement.'); return; }
+      const pid=$('#chooser-id').value || _currentPatientId; if(!pid){ alert('Select or create a patient'); btn.disabled=false; btn.textContent='Submit Order'; return; }
+
+      // Verify patient has required documents
+      const patientData = await api('action=patient.get&id=' + encodeURIComponent(pid));
+      const patient = patientData.patient;
+      const hasId = patient.id_card_path && patient.id_card_path.trim() !== '';
+      const hasIns = patient.ins_card_path && patient.ins_card_path.trim() !== '';
+
+      if (!hasId || !hasIns) {
+        const missing = [];
+        if (!hasId) missing.push('Photo ID');
+        if (!hasIns) missing.push('Insurance Card');
+        alert('Cannot submit order: Patient is missing required documents: ' + missing.join(', ') + '. Please upload these documents before submitting the order.');
+        btn.disabled=false; btn.textContent='Submit Order';
+        return;
+      }
+
+      if(!$('#ack-sig').checked){ alert('Please acknowledge the e-signature statement.'); btn.disabled=false; btn.textContent='Submit Order'; return; }
       const body=new FormData();
       body.append('patient_id', pid);
       body.append('product_id', $('#ord-product').value);
