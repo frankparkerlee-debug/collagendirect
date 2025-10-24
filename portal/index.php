@@ -2425,7 +2425,7 @@ if ($page==='logout'){
         <div class="md:col-span-2">
           <div class="flex items-center justify-between mb-3">
             <label class="text-sm font-medium">Wounds <span class="text-red-600">*</span></label>
-            <button type="button" id="btn-add-wound" class="text-sm px-3 py-1 rounded" style="background:var(--primary);color:white">+ Add Wound</button>
+            <button type="button" id="btn-add-wound" class="text-sm px-3 py-1 rounded" style="background:var(--primary);color:white" onclick="addWound(); return false;">+ Add Wound</button>
           </div>
           <div id="wounds-container" class="space-y-4">
             <!-- Wounds will be added here dynamically -->
@@ -3886,13 +3886,16 @@ function initWoundsManager() {
   console.log('Initializing wounds manager - adding first wound');
   addWound();
 
-  // Add wound button handler
-  addBtn.onclick = (e) => {
+  // Add wound button handler - using addEventListener for better compatibility
+  addBtn.addEventListener('click', (e) => {
     e.preventDefault();
+    e.stopPropagation();
     console.log('Add wound button clicked');
     addWound();
-  };
+  });
 
+  // Also log the button element to verify it was found
+  console.log('Add wound button element:', addBtn);
   console.log('Wounds manager initialized successfully');
 }
 
