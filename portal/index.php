@@ -300,17 +300,41 @@ if ($action) {
       }
 
       // ---------- Clinical completeness ----------
-      $icd10_primary   = trim((string)($_POST['icd10_primary']??''));
-      $icd10_secondary = trim((string)($_POST['icd10_secondary']??''));
-      if($icd10_primary===''){ $pdo->rollBack(); jerr('Primary diagnosis (ICD-10) is required.'); }
+      // Wounds data (multiple wounds support)
+      $wounds_json = trim((string)($_POST['wounds_data'] ?? ''));
+      if ($wounds_json === '') { $pdo->rollBack(); jerr('Wounds data is required.'); }
 
-      $wlen = $_POST['wound_length_cm']!=='' ? (float)$_POST['wound_length_cm'] : null;
-      $wwid = $_POST['wound_width_cm']!==''  ? (float)$_POST['wound_width_cm']  : null;
-      $wdep = $_POST['wound_depth_cm']!==''  ? (float)$_POST['wound_depth_cm']  : null;
-      if($wlen===null || $wwid===null){ $pdo->rollBack(); jerr('Wound length and width are required.'); }
+      $wounds_data = json_decode($wounds_json, true);
+      if (!is_array($wounds_data) || count($wounds_data) === 0) {
+        $pdo->rollBack(); jerr('At least one wound is required.');
+      }
 
-      $wtype=(string)($_POST['wound_type']??'');
-      $wstage=(string)($_POST['wound_stage']??'');
+      // Validate wounds data
+      foreach ($wounds_data as $idx => $wound) {
+        if (empty($wound['location'])) {
+          $pdo->rollBack(); jerr("Wound #" . ($idx + 1) . ": Location is required.");
+        }
+        if (empty($wound['length_cm']) || empty($wound['width_cm'])) {
+          $pdo->rollBack(); jerr("Wound #" . ($idx + 1) . ": Length and width are required.");
+        }
+        if (empty($wound['icd10_primary'])) {
+          $pdo->rollBack(); jerr("Wound #" . ($idx + 1) . ": Primary ICD-10 is required.");
+        }
+      }
+
+      // For backward compatibility, extract first wound data for legacy columns
+      $first_wound = $wounds_data[0];
+      $icd10_primary = $first_wound['icd10_primary'] ?? '';
+      $icd10_secondary = $first_wound['icd10_secondary'] ?? '';
+      $wlen = $first_wound['length_cm'] ?? null;
+      $wwid = $first_wound['width_cm'] ?? null;
+      $wdep = $first_wound['depth_cm'] ?? null;
+      $wtype = $first_wound['type'] ?? '';
+      $wstage = $first_wound['stage'] ?? '';
+      $wound_location = $first_wound['location'] ?? '';
+      $wound_laterality = $first_wound['laterality'] ?? '';
+      $wound_notes = $first_wound['notes'] ?? '';
+
       $last_eval = $_POST['last_eval_date'] ?? null; if(!$last_eval){ $pdo->rollBack(); jerr('Date of last evaluation is required.'); }
 
       $start_date = !empty($_POST['start_date']) ? $_POST['start_date'] : date('Y-m-d');
@@ -330,6 +354,7 @@ if ($action) {
          sign_name,sign_title,signed_at,created_at,updated_at,
          icd10_primary,icd10_secondary,wound_length_cm,wound_width_cm,wound_depth_cm,
          wound_type,wound_stage,last_eval_date,start_date,frequency_per_week,qty_per_change,duration_days,refills_allowed,additional_instructions,secondary_dressing,
+         wounds_data,
          cpt)
         VALUES (?,?,?,?,?,?,?,?,?,?,
                 ?,?,?,
@@ -337,14 +362,16 @@ if ($action) {
                 ?,?,NOW(),NOW(),NOW(),
                 ?,?,?,?,?,
                 ?,?,?,?,?,?,?,?,?,?,
+                ?::jsonb,
                 ?)");
       $ins->execute([
         $oid,$pid,$userId,$prod['name'],$prod['id'],$prod['price_admin'],'submitted',0,$delivery_mode,$payment_type, // shipments_remaining=0
-        ($_POST['wound_location']??null),($_POST['wound_laterality']??null),($_POST['wound_notes']??null),
+        $wound_location,$wound_laterality,$wound_notes,
         (string)$ship_name,(string)$ship_phone,(string)$ship_addr,(string)$ship_city,(string)$ship_state,(string)$ship_zip,
         $sign_name,$sign_title,
         $icd10_primary,$icd10_secondary,$wlen,$wwid,$wdep,
         $wtype,$wstage,$last_eval,$start_date,$freq_per_week,$qty_per_change,$duration_days,$refills_allowed,$additional_instructions,$secondary_dressing,
+        $wounds_json,
         $prod['cpt_code'] ?? null
       ]);
 
@@ -2354,42 +2381,17 @@ if ($page==='logout'){
           </div>
         </div>
 
-        <div>
-          <label class="text-sm">Primary ICD-10 <span class="text-red-600">*</span></label>
-          <input id="icd10-primary" class="w-full" placeholder="e.g., L97.412">
-        </div>
-        <div>
-          <label class="text-sm">Secondary ICD-10 (optional)</label>
-          <input id="icd10-secondary" class="w-full" placeholder="">
+        <!-- Wounds Section (Multiple wounds supported) -->
+        <div class="md:col-span-2">
+          <div class="flex items-center justify-between mb-3">
+            <label class="text-sm font-medium">Wounds <span class="text-red-600">*</span></label>
+            <button type="button" id="btn-add-wound" class="text-sm px-3 py-1 rounded" style="background:var(--primary);color:white">+ Add Wound</button>
+          </div>
+          <div id="wounds-container" class="space-y-4">
+            <!-- Wounds will be added here dynamically -->
+          </div>
         </div>
 
-        <div>
-          <label class="text-sm">Wound Length (cm) <span class="text-red-600">*</span></label>
-          <input id="wlen" type="number" step="0.01" min="0" class="w-full">
-        </div>
-        <div>
-          <label class="text-sm">Wound Width (cm) <span class="text-red-600">*</span></label>
-          <input id="wwid" type="number" step="0.01" min="0" class="w-full">
-        </div>
-        <div>
-          <label class="text-sm">Wound Depth (cm)</label>
-          <input id="wdep" type="number" step="0.01" min="0" class="w-full">
-        </div>
-        <div>
-          <label class="text-sm">Wound Type</label>
-          <select id="wtype" class="w-full">
-            <option value="">Select…</option>
-            <option>Diabetic ulcer</option><option>Venous stasis ulcer</option>
-            <option>Arterial ulcer</option><option>Pressure ulcer</option>
-            <option>Traumatic</option><option>Other</option>
-          </select>
-        </div>
-        <div>
-          <label class="text-sm">Wound Stage</label>
-          <select id="wstage" class="w-full">
-            <option value="">N/A</option><option>I</option><option>II</option><option>III</option><option>IV</option>
-          </select>
-        </div>
         <div>
           <label class="text-sm">Date of Last Evaluation <span class="text-red-600">*</span></label>
           <input id="last-eval" type="date" class="w-full">
@@ -2434,28 +2436,6 @@ if ($page==='logout'){
             <option value="Tubular bandage">Tubular bandage</option>
             <option value="Other">Other (specify in instructions)</option>
           </select>
-        </div>
-
-        <div class="md:col-span-2">
-          <label class="text-sm">Wound Location</label>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <select id="ord-wloc" class="w-full">
-              <option value="">Select…</option>
-              <option>Foot — Plantar</option><option>Foot — Dorsal</option><option>Heel</option><option>Ankle</option>
-              <option>Lower Leg — Medial</option><option>Lower Leg — Lateral</option><option>Knee</option>
-              <option>Thigh</option><option>Hip</option><option>Buttock</option><option>Sacrum/Coccyx</option>
-              <option>Abdomen</option><option>Groin</option>
-              <option>Upper Arm</option><option>Forearm</option><option>Hand — Dorsal</option><option>Hand — Palmar</option>
-              <option>Elbow</option><option>Shoulder</option><option>Back — Upper</option><option>Back — Lower</option>
-              <option>Neck</option><option>Face/Scalp</option><option>Other</option>
-            </select>
-            <input id="ord-wloc-other" class="w-full hidden" placeholder="If Other, describe">
-          </div>
-        </div>
-
-        <div>
-          <label class="text-sm">Laterality</label>
-          <input id="ord-wlat" class="w-full">
         </div>
 
         <div class="md:col-span-2">
@@ -3677,6 +3657,146 @@ async function generateAOB(patientId) {
   }
 }
 
+/* WOUNDS MANAGER - Multiple wounds per order */
+let woundCounter = 0;
+
+function initWoundsManager() {
+  const container = $('#wounds-container');
+  const addBtn = $('#btn-add-wound');
+
+  // Clear existing wounds
+  container.innerHTML = '';
+  woundCounter = 0;
+
+  // Add first wound by default
+  addWound();
+
+  // Add wound button handler
+  addBtn.onclick = (e) => {
+    e.preventDefault();
+    addWound();
+  };
+}
+
+function addWound() {
+  const container = $('#wounds-container');
+  const idx = woundCounter++;
+
+  const woundEl = document.createElement('div');
+  woundEl.className = 'border rounded p-4 relative';
+  woundEl.style.borderColor = 'var(--line)';
+  woundEl.dataset.woundIndex = idx;
+
+  woundEl.innerHTML = `
+    <div class="flex items-center justify-between mb-3">
+      <strong class="text-sm">Wound #${idx + 1}</strong>
+      ${idx > 0 ? '<button type="button" class="wound-remove text-sm text-red-600 hover:underline">Remove</button>' : ''}
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div class="md:col-span-2">
+        <label class="text-sm">Wound Location <span class="text-red-600">*</span></label>
+        <select class="wound-location w-full">
+          <option value="">Select…</option>
+          <option>Foot — Plantar</option><option>Foot — Dorsal</option><option>Heel</option><option>Ankle</option>
+          <option>Lower Leg — Medial</option><option>Lower Leg — Lateral</option><option>Knee</option>
+          <option>Thigh</option><option>Hip</option><option>Buttock</option><option>Sacrum/Coccyx</option>
+          <option>Abdomen</option><option>Groin</option>
+          <option>Upper Arm</option><option>Forearm</option><option>Hand — Dorsal</option><option>Hand — Palmar</option>
+          <option>Elbow</option><option>Shoulder</option><option>Back — Upper</option><option>Back — Lower</option>
+          <option>Neck</option><option>Face/Scalp</option><option>Other</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-sm">Laterality</label>
+        <input class="wound-laterality w-full" placeholder="e.g., Left, Right">
+      </div>
+      <div>
+        <label class="text-sm">Length (cm) <span class="text-red-600">*</span></label>
+        <input class="wound-length w-full" type="number" step="0.01" min="0">
+      </div>
+      <div>
+        <label class="text-sm">Width (cm) <span class="text-red-600">*</span></label>
+        <input class="wound-width w-full" type="number" step="0.01" min="0">
+      </div>
+      <div>
+        <label class="text-sm">Depth (cm)</label>
+        <input class="wound-depth w-full" type="number" step="0.01" min="0">
+      </div>
+      <div>
+        <label class="text-sm">Wound Type</label>
+        <select class="wound-type w-full">
+          <option value="">Select…</option>
+          <option>Diabetic ulcer</option><option>Venous stasis ulcer</option>
+          <option>Arterial ulcer</option><option>Pressure ulcer</option>
+          <option>Traumatic</option><option>Other</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-sm">Wound Stage</label>
+        <select class="wound-stage w-full">
+          <option value="">N/A</option><option>I</option><option>II</option><option>III</option><option>IV</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-sm">Primary ICD-10 <span class="text-red-600">*</span></label>
+        <input class="wound-icd10-primary w-full" placeholder="e.g., L97.412">
+      </div>
+      <div>
+        <label class="text-sm">Secondary ICD-10</label>
+        <input class="wound-icd10-secondary w-full">
+      </div>
+      <div class="md:col-span-2">
+        <label class="text-sm">Wound Notes</label>
+        <textarea class="wound-notes w-full" rows="2" placeholder="Additional notes for this wound"></textarea>
+      </div>
+    </div>
+  `;
+
+  container.appendChild(woundEl);
+
+  // Remove handler
+  const removeBtn = woundEl.querySelector('.wound-remove');
+  if (removeBtn) {
+    removeBtn.onclick = (e) => {
+      e.preventDefault();
+      woundEl.remove();
+      renumberWounds();
+    };
+  }
+}
+
+function renumberWounds() {
+  const wounds = document.querySelectorAll('[data-wound-index]');
+  wounds.forEach((w, i) => {
+    const header = w.querySelector('strong');
+    if (header) header.textContent = `Wound #${i + 1}`;
+  });
+}
+
+function collectWoundsData() {
+  const wounds = [];
+  const woundEls = document.querySelectorAll('[data-wound-index]');
+
+  woundEls.forEach((el) => {
+    const wound = {
+      location: el.querySelector('.wound-location').value,
+      laterality: el.querySelector('.wound-laterality').value,
+      length_cm: parseFloat(el.querySelector('.wound-length').value) || null,
+      width_cm: parseFloat(el.querySelector('.wound-width').value) || null,
+      depth_cm: parseFloat(el.querySelector('.wound-depth').value) || null,
+      type: el.querySelector('.wound-type').value,
+      stage: el.querySelector('.wound-stage').value,
+      icd10_primary: el.querySelector('.wound-icd10-primary').value,
+      icd10_secondary: el.querySelector('.wound-icd10-secondary').value,
+      notes: el.querySelector('.wound-notes').value
+    };
+    wounds.push(wound);
+  });
+
+  return wounds;
+}
+
 /* ORDER dialog (chooser + uploads + AOB) */
 let _currentPatientId = null;
 
@@ -3789,13 +3909,10 @@ async function openOrderDialog(preselectId=null){
   document.querySelector('input[name="deliver"][value="patient"]').checked=true;
   document.getElementById('office-addr').classList.add('hidden');
   $('#ack-sig').checked=false; $('#sign-name').value=''; $('#sign-title').value='';
-  $('#icd10-primary').value=''; $('#icd10-secondary').value='';
-  $('#wlen').value=''; $('#wwid').value=''; $('#wdep').value='';
-  $('#wtype').value=''; $('#wstage').value='';
   $('#last-eval').value=''; $('#start-date').value='';
   $('#freq-week').value='3'; $('#qty-change').value='1'; $('#duration-days').value='30'; $('#refills').value='0';
   $('#addl-instr').value=''; $('#secondary-dressing').value='';
-  $('#ord-wlat').value=''; $('#ord-wloc').value=''; $('#ord-wloc-other').value=''; $('#ord-wloc-other').classList.add('hidden'); $('#ord-notes').value='';
+  $('#ord-notes').value='';
   $('#file-rx').value=''; $('#aob-hint').textContent='';
 
   // Submit
@@ -3820,18 +3937,33 @@ async function openOrderDialog(preselectId=null){
       }
 
       if(!$('#ack-sig').checked){ alert('Please acknowledge the e-signature statement.'); btn.disabled=false; btn.textContent='Submit Order'; return; }
+
+      // Collect wounds data
+      const woundsData = collectWoundsData();
+      if (woundsData.length === 0) {
+        alert('Please add at least one wound');
+        btn.disabled=false; btn.textContent='Submit Order';
+        return;
+      }
+
+      // Validate wounds
+      for (let i = 0; i < woundsData.length; i++) {
+        const w = woundsData[i];
+        if (!w.location || !w.length_cm || !w.width_cm || !w.icd10_primary) {
+          alert(`Wound #${i + 1}: Please fill in required fields (Location, Length, Width, Primary ICD-10)`);
+          btn.disabled=false; btn.textContent='Submit Order';
+          return;
+        }
+      }
+
       const body=new FormData();
       body.append('patient_id', pid);
       body.append('product_id', $('#ord-product').value);
       body.append('payment_type', document.querySelector('input[name="paytype"]:checked').value);
 
-      body.append('icd10_primary', $('#icd10-primary').value);
-      body.append('icd10_secondary', $('#icd10-secondary').value);
-      body.append('wound_length_cm', $('#wlen').value);
-      body.append('wound_width_cm',  $('#wwid').value);
-      body.append('wound_depth_cm',  $('#wdep').value);
-      body.append('wound_type', $('#wtype').value);
-      body.append('wound_stage', $('#wstage').value);
+      // Send wounds as JSON
+      body.append('wounds_data', JSON.stringify(woundsData));
+
       body.append('last_eval_date', $('#last-eval').value);
       body.append('start_date', $('#start-date').value);
       body.append('frequency_per_week', $('#freq-week').value);
@@ -3841,10 +3973,6 @@ async function openOrderDialog(preselectId=null){
       body.append('additional_instructions', $('#addl-instr').value);
       body.append('secondary_dressing', $('#secondary-dressing').value);
 
-      const wl = $('#ord-wloc').value==='Other' ? $('#ord-wloc-other').value : $('#ord-wloc').value;
-      body.append('wound_location', wl);
-      body.append('wound_laterality', $('#ord-wlat').value);
-      body.append('wound_notes', $('#ord-notes').value);
       body.append('notes_text', $('#ord-notes').value);
 
       body.append('delivery_to', document.querySelector('input[name="deliver"]:checked').value);
@@ -3892,6 +4020,9 @@ async function openOrderDialog(preselectId=null){
     $('#aob-msg').textContent = 'AOB signed and saved.';
     $('#aob-hint').textContent = 'AOB on file ✓';
   };
+
+  // Initialize wounds manager
+  initWoundsManager();
 
   document.getElementById('dlg-order').showModal();
 }
