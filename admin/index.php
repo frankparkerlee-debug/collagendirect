@@ -122,7 +122,7 @@ try {
 
 include __DIR__.'/_header.php';
 ?>
-<div class="max-w-[1200px] mx-auto">
+<div>
   <div class="grid grid-cols-4 gap-4 mb-8">
     <div class="bg-white border rounded-2xl p-4 shadow-soft">
       <div class="text-xs text-slate-500">Total Orders</div>

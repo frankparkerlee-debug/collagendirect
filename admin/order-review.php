@@ -14,7 +14,7 @@ $pageTitle = 'Order Review Queue';
 require __DIR__ . '/_header.php';
 ?>
 
-<div class="max-w-7xl mx-auto">
+<div>
   <div class="mb-6 flex justify-between items-center">
     <div>
       <h1 class="text-2xl font-bold text-gray-900">Order Review Queue</h1>

@@ -35,7 +35,7 @@ $launchOrder = isset($_GET['new_order']);
 </head>
 <body class="min-h-screen">
 <header class="sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-slate-200">
-  <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+  <div class="px-4 py-3 flex items-center justify-between">
     <div class="flex items-center gap-3">
       <img src="/assets/collagendirect.png" class="h-8 w-auto" alt="CollagenDirect">
       <span class="hidden sm:inline text-sm text-slate-500">Patients</span>
@@ -49,7 +49,7 @@ $launchOrder = isset($_GET['new_order']);
   </div>
 </header>
 
-<main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+<main class="px-4 py-6 space-y-6">
   <section class="card p-5">
     <div class="flex items-center gap-3 mb-4">
       <h2 class="text-lg font-semibold">All Patients</h2>
