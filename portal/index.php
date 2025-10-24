@@ -313,6 +313,7 @@ if ($action) {
       $duration_days = max(1,(int)($_POST['duration_days']??30));
       $refills_allowed = max(0,(int)($_POST['refills_allowed']??0));
       $additional_instructions = trim((string)($_POST['additional_instructions']??''));
+      $secondary_dressing = trim((string)($_POST['secondary_dressing']??''));
       if($freq_per_week<=0){ $pdo->rollBack(); jerr('Frequency per week is required.'); }
 
       $oid=bin2hex(random_bytes(16));
@@ -322,14 +323,14 @@ if ($action) {
          shipping_name,shipping_phone,shipping_address,shipping_city,shipping_state,shipping_zip,
          sign_name,sign_title,signed_at,created_at,updated_at,
          icd10_primary,icd10_secondary,wound_length_cm,wound_width_cm,wound_depth_cm,
-         wound_type,wound_stage,last_eval_date,start_date,frequency_per_week,qty_per_change,duration_days,refills_allowed,additional_instructions,
+         wound_type,wound_stage,last_eval_date,start_date,frequency_per_week,qty_per_change,duration_days,refills_allowed,additional_instructions,secondary_dressing,
          cpt)
         VALUES (?,?,?,?,?,?,?,?,?,?,
                 ?,?,?,
                 ?,?,?,?,?,?,
                 ?,?,NOW(),NOW(),NOW(),
                 ?,?,?,?,?,
-                ?,?,?,?,?,?,?,?,?,
+                ?,?,?,?,?,?,?,?,?,?,
                 ?)");
       $ins->execute([
         $oid,$pid,$userId,$prod['name'],$prod['id'],$prod['price_admin'],'submitted',0,$delivery_mode,$payment_type, // shipments_remaining=0
@@ -337,7 +338,7 @@ if ($action) {
         (string)$ship_name,(string)$ship_phone,(string)$ship_addr,(string)$ship_city,(string)$ship_state,(string)$ship_zip,
         $sign_name,$sign_title,
         $icd10_primary,$icd10_secondary,$wlen,$wwid,$wdep,
-        $wtype,$wstage,$last_eval,$start_date,$freq_per_week,$qty_per_change,$duration_days,$refills_allowed,$additional_instructions,
+        $wtype,$wstage,$last_eval,$start_date,$freq_per_week,$qty_per_change,$duration_days,$refills_allowed,$additional_instructions,$secondary_dressing,
         $prod['cpt_code'] ?? null
       ]);
 
@@ -2402,7 +2403,23 @@ if ($page==='logout'){
         </div>
         <div class="md:col-span-2">
           <label class="text-sm">Additional Instructions</label>
-          <input id="addl-instr" class="w-full" placeholder="e.g., Saline cleanse, secondary dressing">
+          <input id="addl-instr" class="w-full" placeholder="e.g., Saline cleanse, apply before dressing">
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="text-sm">Secondary Dressing</label>
+          <select id="secondary-dressing" class="w-full">
+            <option value="">None</option>
+            <option value="Gauze - 2x2">Gauze - 2x2</option>
+            <option value="Gauze - 4x4">Gauze - 4x4</option>
+            <option value="Gauze - 6x6">Gauze - 6x6</option>
+            <option value="Non-adherent pad">Non-adherent pad</option>
+            <option value="Foam dressing">Foam dressing</option>
+            <option value="Transparent film">Transparent film</option>
+            <option value="Compression wrap">Compression wrap</option>
+            <option value="Tubular bandage">Tubular bandage</option>
+            <option value="Other">Other (specify in instructions)</option>
+          </select>
         </div>
 
         <div class="md:col-span-2">
@@ -3761,7 +3778,7 @@ async function openOrderDialog(preselectId=null){
   $('#wtype').value=''; $('#wstage').value='';
   $('#last-eval').value=''; $('#start-date').value='';
   $('#freq-week').value='3'; $('#qty-change').value='1'; $('#duration-days').value='30'; $('#refills').value='0';
-  $('#addl-instr').value='';
+  $('#addl-instr').value=''; $('#secondary-dressing').value='';
   $('#ord-wlat').value=''; $('#ord-wloc').value=''; $('#ord-wloc-other').value=''; $('#ord-wloc-other').classList.add('hidden'); $('#ord-notes').value='';
   $('#file-rx').value=''; $('#aob-hint').textContent='';
 
@@ -3806,6 +3823,7 @@ async function openOrderDialog(preselectId=null){
       body.append('duration_days', $('#duration-days').value);
       body.append('refills_allowed', $('#refills').value);
       body.append('additional_instructions', $('#addl-instr').value);
+      body.append('secondary_dressing', $('#secondary-dressing').value);
 
       const wl = $('#ord-wloc').value==='Other' ? $('#ord-wloc-other').value : $('#ord-wloc').value;
       body.append('wound_location', wl);
