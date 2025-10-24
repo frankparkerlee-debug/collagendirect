@@ -1,8 +1,6 @@
-<?php
-// admin/_footer.php
-?>
-      </div>
-    </main>
-  </div>
+    </div><!-- /content-area -->
+  </div><!-- /main-content -->
+</div><!-- /app-container -->
+
 </body>
 </html>

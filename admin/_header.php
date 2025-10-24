@@ -2,9 +2,12 @@
 declare(strict_types=1);
 require_once __DIR__ . '/auth.php';
 $admin = current_admin();
-$path  = isset($_SERVER['REQUEST_URI']) ? (string)parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) : '';
-function cd_active($path, $match){
-  return (strpos($path, $match) !== false) ? 'bg-brand/10 text-brand font-semibold' : 'text-slate-700';
+
+// Determine current page for navigation highlighting
+$currentPage = basename($_SERVER['PHP_SELF'], '.php');
+function isActive($pageName) {
+  global $currentPage;
+  return $currentPage === $pageName ? 'active' : '';
 }
 ?>
 <!DOCTYPE html>
@@ -13,31 +16,11 @@ function cd_active($path, $match){
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>CollagenDirect — Admin</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            brand: '#4DB8A8',
-            'brand-dark': '#3A9688',
-            'brand-light': '#E0F5F2',
-            ink: '#1F2937',
-            'ink-light': '#6B7280',
-            muted: '#9CA3AF',
-          },
-          fontFamily: {
-            sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
-          },
-        },
-      },
-    }
-  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    /* Design Tokens - Healthcare UI */
+    /* === PORTAL DESIGN SYSTEM - EXACT COPY === */
     :root {
       --brand: #4DB8A8;
       --brand-dark: #3A9688;
@@ -63,13 +46,13 @@ function cd_active($path, $match){
       --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
 
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
     html, body {
       font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
       color: var(--ink);
       -webkit-font-smoothing: antialiased;
       background: #ffffff;
-      margin: 0;
-      padding: 0;
     }
 
     /* Card Component */
@@ -77,7 +60,7 @@ function cd_active($path, $match){
       background: #ffffff;
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      box-shadow: var(--shadow-sm);
       transition: box-shadow 0.15s ease;
     }
 
@@ -101,59 +84,7 @@ function cd_active($path, $match){
     .btn-primary { background: var(--brand); color: #ffffff; border-color: var(--brand); }
     .btn-primary:hover { background: var(--brand-dark); border-color: var(--brand-dark); }
 
-    /* Navigation Links */
-    .navlink {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      padding: 0.625rem 1rem;
-      border-radius: var(--radius);
-      color: var(--muted);
-      font-weight: 500;
-      font-size: 0.875rem;
-      transition: all 0.15s ease;
-      border: 1px solid transparent;
-      text-decoration: none;
-    }
-    .navlink:hover { color: var(--ink); background: #f9fafb; }
-    .navlink.active, .navlink.bg-brand\/10 {
-      background: var(--brand-light);
-      color: var(--brand-dark);
-      border-color: #a7f3d0;
-    }
-    .navlink svg { width: 18px; height: 18px; flex-shrink: 0; }
-
-    /* Context Switcher */
-    .context-switcher { position: relative; cursor: pointer; }
-    .context-menu {
-      display: none;
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      margin-top: 0.5rem;
-      background: white;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      z-index: 50;
-    }
-    .context-menu.active { display: block; }
-    .context-menu-item {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      padding: 0.75rem 1rem;
-      transition: background 0.15s;
-      text-decoration: none;
-      color: var(--ink);
-      border-bottom: 1px solid var(--border);
-    }
-    .context-menu-item:last-child { border-bottom: none; }
-    .context-menu-item:hover { background: #f9fafb; }
-    .context-menu-item.active { background: var(--brand-light); color: var(--brand-dark); font-weight: 600; }
-
-    /* Input Components */
+    /* Input Component */
     input, select, textarea {
       border: 1px solid var(--border) !important;
       border-radius: var(--radius) !important;
@@ -194,9 +125,15 @@ function cd_active($path, $match){
     }
     tbody tr:hover { background: #f9fafb; }
 
-    /* Sidebar Navigation Styles */
+    /* === LAYOUT === */
+    .app-container {
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
     .sidebar {
-      width: 260px;
+      width: 240px;
       background: var(--bg-sidebar);
       border-right: 1px solid var(--border-sidebar);
       flex-shrink: 0;
@@ -207,7 +144,10 @@ function cd_active($path, $match){
       top: 0;
       bottom: 0;
       overflow-y: auto;
+      transition: width 0.3s ease, transform 0.3s ease;
+      z-index: 100;
     }
+
     .sidebar-header {
       max-height: 60px;
       height: 60px;
@@ -216,156 +156,205 @@ function cd_active($path, $match){
       display: flex;
       align-items: center;
     }
+
+    .sidebar-user {
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+      padding: 0.5rem 0.75rem;
+      border-radius: var(--radius);
+      transition: background 0.2s;
+      width: 100%;
+    }
+    .sidebar-user:hover { background: rgba(0,0,0,0.04); }
+
+    .sidebar-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--brand);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.8125rem;
+      flex-shrink: 0;
+    }
+
+    .sidebar-nav {
+      padding: 1rem;
+      flex: 1;
+    }
+
     .sidebar-nav a {
-      border: 1px solid transparent;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
       border-radius: 8px;
+      color: #5A5B60;
+      font-weight: 500;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+      margin-bottom: 0.25rem;
+      border: 1px solid transparent;
+      text-decoration: none;
     }
+
     .sidebar-nav a:hover {
-      background: var(--brand-light) !important;
-      color: var(--brand-dark) !important;
-      border-color: var(--border-sidebar) !important;
+      background: var(--brand-light);
+      color: var(--brand-dark);
+      border-color: var(--border-sidebar);
     }
+
     .sidebar-nav a.active {
-      background: #ffffff !important;
-      color: #1B1B1B !important;
-      border: 1px solid var(--border-sidebar) !important;
+      background: #ffffff;
+      color: #1B1B1B;
+      font-weight: 600;
+      border: 1px solid var(--border-sidebar);
     }
+
     .sidebar-nav-icon {
       width: 20px;
       height: 20px;
+      flex-shrink: 0;
     }
-    button[type="submit"]:hover {
-      background: rgba(239, 68, 68, 0.1) !important;
+
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      margin-left: 240px;
+      height: 100vh;
+      transition: margin-left 0.3s ease, width 0.3s ease;
+      width: calc(100% - 240px);
+      max-width: calc(100% - 240px);
+      background: var(--bg-gray);
+    }
+
+    .top-bar {
+      height: 60px;
+      max-height: 60px;
+      background: white;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      flex-shrink: 0;
+    }
+
+    .top-bar-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .content-area {
+      padding: 2rem;
+      overflow-y: auto;
+      overflow-x: hidden;
+      flex: 1;
+    }
+
+    /* Icon buttons */
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: #ffffff;
+      color: var(--ink-light);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .icon-btn:hover {
+      background: var(--bg-gray);
+      color: var(--ink);
+      border-color: var(--muted);
     }
   </style>
-  <script>
-    function toggleContextMenu() {
-      document.getElementById('context-menu').classList.toggle('active');
-    }
-    // Close menu when clicking outside
-    document.addEventListener('click', function(e) {
-      const switcher = document.getElementById('context-switcher');
-      const menu = document.getElementById('context-menu');
-      if (switcher && menu && !switcher.contains(e.target)) {
-        menu.classList.remove('active');
-      }
-    });
-  </script>
 </head>
-<body style="margin: 0; padding: 0;">
-  <div style="display: flex; height: 100vh; overflow: hidden;">
-    <aside class="sidebar">
-      <div class="sidebar-header">
-        <?php
-        $isSuperAdmin = in_array(($admin['role'] ?? ''), ['owner', 'superadmin']);
-        $currentContext = $_SESSION['admin_context'] ?? 'practice';
-        ?>
-        <?php if ($isSuperAdmin): ?>
-        <!-- Super Admin Context Switcher -->
-        <div class="context-switcher" id="context-switcher" onclick="toggleContextMenu(); event.stopPropagation();">
-          <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem; border-radius: var(--radius); transition: background 0.2s; cursor: pointer;">
-            <img src="/assets/collagendirect.png" alt="CollagenDirect" style="height: 32px; width: auto;" onerror="this.remove()">
-            <div style="flex: 1; min-width: 0;">
-              <div style="font-size: 1.125rem; font-weight: 800; letter-spacing: -0.025em;">CollagenDirect</div>
-              <div style="font-size: 0.6875rem; color: var(--muted); display: flex; align-items: center; gap: 0.25rem;">
-                <?php echo $currentContext === 'platform' ? 'Platform Admin' : 'Practice Admin'; ?>
-                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                </svg>
-              </div>
-            </div>
+<body>
+
+<div class="app-container">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar">
+          <?php
+          $name = $admin['name'] ?? 'Admin';
+          $initials = '';
+          $parts = explode(' ', $name);
+          if (count($parts) >= 2) {
+            $initials = strtoupper(substr($parts[0], 0, 1) . substr($parts[1], 0, 1));
+          } else {
+            $initials = strtoupper(substr($name, 0, 2));
+          }
+          echo $initials;
+          ?>
+        </div>
+        <div style="flex:1; min-width:0;">
+          <div style="font-weight:600; font-size:0.875rem; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+            <?php echo htmlspecialchars($admin['name'] ?? 'Admin'); ?>
           </div>
-          <div class="context-menu" id="context-menu">
-            <a href="?context=practice" class="context-menu-item <?php echo $currentContext === 'practice' ? 'active' : ''; ?>">
-              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-              </svg>
-              <div>
-                <div class="text-sm font-medium">Practice Admin</div>
-                <div class="text-xs text-slate-500">Manage orders & physicians</div>
-              </div>
-            </a>
-            <a href="?context=platform" class="context-menu-item <?php echo $currentContext === 'platform' ? 'active' : ''; ?>">
-              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
-              </svg>
-              <div>
-                <div class="text-sm font-medium">Platform Admin</div>
-                <div class="text-xs text-slate-500">Manage practices & system</div>
-              </div>
-            </a>
+          <div style="font-size:0.75rem; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+            <?php echo htmlspecialchars($admin['email'] ?? ''); ?>
           </div>
         </div>
-        <?php else: ?>
-        <!-- Regular Admin - No Switcher -->
-        <div style="display: flex; align-items: center; gap: 0.75rem;">
-          <img src="/assets/collagendirect.png" alt="CollagenDirect" style="height: 32px; width: auto;" onerror="this.remove()">
-          <div>
-            <div style="font-size: 1.125rem; font-weight: 800; letter-spacing: -0.025em;">CollagenDirect</div>
-            <div style="font-size: 0.6875rem; color: var(--muted);">Admin Console</div>
-          </div>
-        </div>
-        <?php endif; ?>
       </div>
-      <nav class="sidebar-nav" style="padding: 1rem; flex: 1;">
-        <?php if ($currentContext === 'platform' && $isSuperAdmin): ?>
-          <!-- Platform Admin Navigation -->
-          <a href="/admin/platform/dashboard.php" class="<?=cd_active($path,'/admin/platform/dashboard')?>" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; color: var(--ink-light); font-weight: 500; font-size: 0.875rem; transition: all 0.2s; margin-bottom: 0.25rem; <?=cd_active($path,'/admin/platform/dashboard') ? 'background: #ffffff; color: var(--ink); font-weight: 600; border: 1px solid var(--border-sidebar);' : ''?>">
-            <svg class="sidebar-nav-icon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-            </svg>
-            Overview
-          </a>
-          <a href="/admin/platform/practices.php" class="<?=cd_active($path,'/admin/platform/practices')?>" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; color: var(--ink-light); font-weight: 500; font-size: 0.875rem; transition: all 0.2s; margin-bottom: 0.25rem; <?=cd_active($path,'/admin/platform/practices') ? 'background: #ffffff; color: var(--ink); font-weight: 600; border: 1px solid var(--border-sidebar);' : ''?>">
-            <svg class="sidebar-nav-icon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-            </svg>
-            Practices
-          </a>
-          <a href="/admin/platform/subscriptions.php" class="<?=cd_active($path,'/admin/platform/subscriptions')?>" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; color: var(--ink-light); font-weight: 500; font-size: 0.875rem; transition: all 0.2s; margin-bottom: 0.25rem; <?=cd_active($path,'/admin/platform/subscriptions') ? 'background: #ffffff; color: var(--ink); font-weight: 600; border: 1px solid var(--border-sidebar);' : ''?>">
-            <svg class="sidebar-nav-icon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
-            </svg>
-            Subscriptions
-          </a>
-          <a href="/admin/platform/system.php" class="<?=cd_active($path,'/admin/platform/system')?>" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; color: var(--ink-light); font-weight: 500; font-size: 0.875rem; transition: all 0.2s; margin-bottom: 0.25rem; <?=cd_active($path,'/admin/platform/system') ? 'background: #ffffff; color: var(--ink); font-weight: 600; border: 1px solid var(--border-sidebar);' : ''?>">
-            <svg class="sidebar-nav-icon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-            </svg>
-            System Settings
-          </a>
-          <div style="margin: 1.5rem 0 0.5rem; padding: 0 1rem; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted);">Order Management</div>
-          <a href="/admin/order-review.php" class="<?=cd_active($path,'/admin/order-review')?>" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; color: var(--ink-light); font-weight: 500; font-size: 0.875rem; transition: all 0.2s; margin-bottom: 0.25rem; <?=cd_active($path,'/admin/order-review') ? 'background: #ffffff; color: var(--ink); font-weight: 600; border: 1px solid var(--border-sidebar);' : ''?>">
-            <svg class="sidebar-nav-icon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
-            </svg>
-            Order Review Queue
-          </a>
-        <?php else: ?>
-          <!-- Practice Admin Navigation -->
-          <a href="/admin/index.php" class="<?=cd_active($path,'/admin/index.php')?>" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; color: var(--ink-light); font-weight: 500; font-size: 0.875rem; transition: all 0.2s; margin-bottom: 0.25rem; <?=cd_active($path,'/admin/index.php') ? 'background: #ffffff; color: var(--ink); font-weight: 600; border: 1px solid var(--border-sidebar);' : ''?>">Dashboard</a>
-          <a href="/admin/orders.php" class="<?=cd_active($path,'/admin/orders.php')?>" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; color: var(--ink-light); font-weight: 500; font-size: 0.875rem; transition: all 0.2s; margin-bottom: 0.25rem; <?=cd_active($path,'/admin/orders.php') ? 'background: #ffffff; color: var(--ink); font-weight: 600; border: 1px solid var(--border-sidebar);' : ''?>">Manage Orders</a>
-          <a href="/admin/shipments.php" class="<?=cd_active($path,'/admin/shipments.php')?>" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; color: var(--ink-light); font-weight: 500; font-size: 0.875rem; transition: all 0.2s; margin-bottom: 0.25rem; <?=cd_active($path,'/admin/shipments.php') ? 'background: #ffffff; color: var(--ink); font-weight: 600; border: 1px solid var(--border-sidebar);' : ''?>">Shipments</a>
-          <a href="/admin/billing.php" class="<?=cd_active($path,'/admin/billing.php')?>" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; color: var(--ink-light); font-weight: 500; font-size: 0.875rem; transition: all 0.2s; margin-bottom: 0.25rem; <?=cd_active($path,'/admin/billing.php') ? 'background: #ffffff; color: var(--ink); font-weight: 600; border: 1px solid var(--border-sidebar);' : ''?>">Billing</a>
-          <a href="/admin/users.php" class="<?=cd_active($path,'/admin/users.php')?>" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; color: var(--ink-light); font-weight: 500; font-size: 0.875rem; transition: all 0.2s; margin-bottom: 0.25rem; <?=cd_active($path,'/admin/users.php') ? 'background: #ffffff; color: var(--ink); font-weight: 600; border: 1px solid var(--border-sidebar);' : ''?>">Users</a>
-        <?php endif; ?>
-      </nav>
-      <div style="padding: 1rem; border-top: 1px solid var(--border);">
-        <div style="margin-bottom: 0.5rem; font-size: 0.75rem; color: var(--muted);">Signed in as <b style="color: var(--ink);"><?=e($admin['name'] ?? 'Admin')?></b></div>
-        <form method="post" action="/admin/logout.php" style="margin: 0;">
-          <?=csrf_field()?>
-          <button type="submit" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: var(--radius); color: var(--error); font-weight: 500; font-size: 0.875rem; transition: background 0.2s; background: none; border: none; cursor: pointer; width: 100%;">
-            <svg class="sidebar-nav-icon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-            </svg>
-            Log out
-          </button>
-        </form>
-      </div>
-    </aside>
-    <main style="flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; margin-left: 260px;">
-      <header style="height: 60px; max-height: 60px; background: white; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; position: sticky; top: 0; z-index: 10; flex-shrink: 0;">
-        <div style="font-size: 1.25rem; font-weight: 600; color: var(--ink);">CollagenDirect Admin</div>
-        <div style="font-size: 0.75rem; color: var(--muted);">collagendirect.health</div>
-      </header>
-      <div style="padding: 20px; overflow-y: auto; overflow-x: hidden; flex: 1; width: 100%; max-width: 100%;">
+    </div>
+
+    <nav class="sidebar-nav">
+      <a class="<?=isActive('index')?>" href="/admin/index.php">
+        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+        <span>Dashboard</span>
+      </a>
+      <a class="<?=isActive('orders')?>" href="/admin/orders.php">
+        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+        <span>Manage Orders</span>
+      </a>
+      <a class="<?=isActive('shipments')?>" href="/admin/shipments.php">
+        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
+        <span>Shipments</span>
+      </a>
+      <a class="<?=isActive('billing')?>" href="/admin/billing.php">
+        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+        <span>Billing</span>
+      </a>
+      <a class="<?=isActive('users')?>" href="/admin/users.php">
+        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+        <span>Users</span>
+      </a>
+    </nav>
+
+    <div style="padding: 1rem; border-top: 1px solid var(--border);">
+      <a href="/portal/" style="display:flex; align-items:center; gap:0.75rem; padding:0.75rem 1rem; border-radius:8px; color:#5A5B60; font-weight:500; font-size:0.875rem; transition:all 0.2s; border:1px solid transparent; text-decoration:none;">
+        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+        <span>Physician Portal</span>
+      </a>
+      <form method="post" action="/admin/logout.php" style="margin:0;">
+        <?=csrf_field()?>
+        <button type="submit" style="display:flex; align-items:center; gap:0.75rem; padding:0.75rem 1rem; border-radius:8px; color:var(--error); font-weight:500; font-size:0.875rem; transition:background 0.2s; background:none; border:none; cursor:pointer; width:100%; text-align:left;">
+          <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+          <span>Log out</span>
+        </button>
+      </form>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="top-bar">
+      <h1 class="top-bar-title">CollagenDirect Admin</h1>
+      <div style="font-size: 0.75rem; color: var(--muted);">collagendirect.health</div>
+    </div>
+    <div class="content-area">
