@@ -299,15 +299,31 @@ Before deploying major features:
 - **GitHub Repo**: mattedesign/collagendirect
 - **Render Service**: Parker
 
-## Recent Session Summary (2025-10-24)
+## Recent Session Summary (2025-10-24 Continued)
 
 ### Completed This Session:
+1. ✅ HIPAA credibility messaging on login pages (portal & admin)
+2. ✅ HCPCS codes + product dimensions in dropdown
+3. ✅ Secondary dressing field (gauze options)
+4. ✅ Cell phone field in patient profile
+5. ✅ Manual insurance info fields (carrier, member ID, group, payer phone)
+6. ✅ **Multiple wounds per order capability**
+   - Dynamic UI with add/remove wound buttons
+   - Each wound: location, laterality, dimensions (L/W/D), type, stage, ICD-10 codes, notes
+   - Stored as JSONB array in `orders.wounds_data`
+   - Backward compatible with legacy single-wound columns
+   - Migration script created: `/portal/add-wounds-data-column.php`
+
+### Migrations Pending:
+- **IMPORTANT**: Run this migration after deployment:
+  ```
+  https://collagendirect.onrender.com/portal/add-wounds-data-column.php?key=MIGRATION_SECRET
+  ```
+  This adds the `wounds_data` JSONB column and migrates existing wound data.
+
+### Previous Session Work:
 1. ✅ Fixed sidebar overlay blocking content (width calculations)
 2. ✅ Implemented complete patient document workflow
-   - New patient creation with required ID/Insurance uploads
-   - Existing patient document status checking
-   - Inline document upload for missing files
-   - Frontend + backend validation
 3. ✅ Superadmin role access to admin interface
 4. ✅ Real error reporting (no mock data)
 
@@ -320,14 +336,12 @@ Before deploying major features:
 - Permissions = Domain-based (Billing, Orders, etc.) with read/write per user
 
 ### Next to Implement (Sequential):
-1. HIPAA messaging on login
-2. Mobile responsiveness audit/fixes
-3. Product HCPCS codes + dimensions
-4. Secondary dressing field
-5. Cell phone + manual insurance fields
-6. Multiple wounds per order
-7. Standalone patient creation
-8. [Continue through todo list...]
+1. Standalone patient creation (without order)
+2. Add ability to add/edit/remove patient attachments anytime
+3. Implement dropdowns and autocomplete where applicable
+4. Add validation: orders must start within 30 days of last visit
+5. Implement proof of delivery (email/text with link)
+6. [Continue through todo list...]
 
 ---
 
