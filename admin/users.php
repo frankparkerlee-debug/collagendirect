@@ -95,16 +95,25 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
   <div class="grid grid-cols-3 gap-6">
     <div class="col-span-2">
       <table class="w-full text-sm">
-        <thead class="text-left text-slate-500"><tr><th class="py-2">Name</th><th>Email</th><th>Type</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
+        <thead class="border-b">
+          <tr class="text-left">
+            <th class="py-2">Name</th>
+            <th class="py-2">Email</th>
+            <th class="py-2">Type</th>
+            <th class="py-2">Status</th>
+            <th class="py-2">Joined</th>
+            <th class="py-2">Actions</th>
+          </tr>
+        </thead>
         <tbody>
           <?php foreach ($phys as $u): ?>
-          <tr class="border-t">
-            <td class="py-2"><?=e(trim(($u['first_name']??'').' '.($u['last_name']??'')))?></td>
-            <td><?=e($u['email'] ?? '')?></td>
-            <td><?=e($u['account_type'] ?? '')?></td>
-            <td><?=e($u['status'] ?? '')?></td>
-            <td><?=e($u['created_at'] ?? '')?></td>
-            <td class="space-x-2">
+          <tr class="border-b hover:bg-slate-50">
+            <td class="py-3"><?=e(trim(($u['first_name']??'').' '.($u['last_name']??'')))?></td>
+            <td class="py-3"><?=e($u['email'] ?? '')?></td>
+            <td class="py-3"><?=e($u['account_type'] ?? '')?></td>
+            <td class="py-3"><?=e($u['status'] ?? '')?></td>
+            <td class="py-3"><?=e($u['created_at'] ?? '')?></td>
+            <td class="py-3 space-x-2">
               <form method="post" class="inline"><?=csrf_field()?>
                 <input type="hidden" name="action" value="reset_phys_pw">
                 <input type="hidden" name="phys_id" value="<?=e($u['id'])?>">
@@ -147,12 +156,23 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     <div>
       <div class="font-semibold mb-2">Employees</div>
       <table class="w-full text-sm">
-        <thead class="text-left text-slate-500"><tr><th class="py-2">Name</th><th>Email</th><th>Role</th><th>Added</th><th>Actions</th></tr></thead>
+        <thead class="border-b">
+          <tr class="text-left">
+            <th class="py-2">Name</th>
+            <th class="py-2">Email</th>
+            <th class="py-2">Role</th>
+            <th class="py-2">Added</th>
+            <th class="py-2">Actions</th>
+          </tr>
+        </thead>
         <tbody>
           <?php foreach ($emps as $e): ?>
-          <tr class="border-t">
-            <td class="py-2"><?=e($e['name'])?></td><td><?=e($e['email'])?></td><td><?=e($e['role'])?></td><td><?=e($e['created_at'])?></td>
-            <td class="space-x-2">
+          <tr class="border-b hover:bg-slate-50">
+            <td class="py-3"><?=e($e['name'])?></td>
+            <td class="py-3"><?=e($e['email'])?></td>
+            <td class="py-3"><?=e($e['role'])?></td>
+            <td class="py-3"><?=e($e['created_at'])?></td>
+            <td class="py-3 space-x-2">
               <?php if ($isOwner): ?>
               <form method="post" class="inline"><?=csrf_field()?>
                 <input type="hidden" name="action" value="reset_emp_pw"><input type="hidden" name="emp_id" value="<?=$e['id']?>">

@@ -98,15 +98,22 @@ if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"
 <div class="flex items-center justify-between mb-4"><div class="text-xl font-semibold">Manage Orders</div></div>
 <div class="bg-white border rounded-2xl overflow-hidden shadow-soft">
   <table class="w-full text-sm">
-    <thead class="text-left text-slate-500 bg-slate-50">
-      <tr><th class="py-2 px-3">Patient</th><th class="px-3">Order</th><th class="px-3">Product / Frequency</th><th class="px-3">Qty</th><th class="px-3">Status</th><th class="px-3">Actions</th></tr>
+    <thead class="border-b">
+      <tr class="text-left">
+        <th class="py-2">Patient</th>
+        <th class="py-2">Order</th>
+        <th class="py-2">Product / Frequency</th>
+        <th class="py-2">Qty</th>
+        <th class="py-2">Status</th>
+        <th class="py-2">Actions</th>
+      </tr>
     </thead>
     <tbody>
       <?php foreach ($rows as $r): ?>
-      <tr class="border-t">
-        <td class="py-2 px-3"><?=e(trim(($r['first_name']??'').' '.($r['last_name']??'')) ?: '—')?></td>
-        <td class="px-3">#<?=e($r['id'])?></td>
-        <td class="px-3">
+      <tr class="border-b hover:bg-slate-50">
+        <td class="py-3"><?=e(trim(($r['first_name']??'').' '.($r['last_name']??'')) ?: '—')?></td>
+        <td class="py-3">#<?=e($r['id'])?></td>
+        <td class="py-3">
           <?php
             $label = $r['product'] ?? '';
             if (!empty($r['product_id'])) {
@@ -115,14 +122,14 @@ if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"
             echo e(($label ?: '—').' • '.($r['frequency'] ?? ''));
           ?>
         </td>
-        <td class="px-3"><?=e(array_key_exists('quantity',$r)?($r['quantity'] ?? 1):1)?></td>
-        <td class="px-3">
-          <span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold 
+        <td class="py-3"><?=e(array_key_exists('quantity',$r)?($r['quantity'] ?? 1):1)?></td>
+        <td class="py-3">
+          <span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold
             <?php $s=$r['status']??''; echo $s==='approved'?'bg-green-100 text-green-700':($s==='submitted'||$s==='pending'?'bg-yellow-100 text-yellow-800':($s==='rejected'?'bg-rose-100 text-rose-700':($s==='in_transit'?'bg-amber-100 text-amber-800':($s==='delivered'?'bg-teal-100 text-teal-700':'bg-gray-100 text-gray-700')))); ?>">
             <?=e(ucwords(str_replace('_',' ',$s ?: 'unknown')))?>
           </span>
         </td>
-        <td class="px-3">
+        <td class="py-3">
           <!-- Approve / Reject -->
           <form method="post" class="inline"><?=csrf_field()?><input type="hidden" name="id" value="<?=e($r['id'])?>"><input type="hidden" name="action" value="approve"><button class="text-brand hover:underline">Approve</button></form>
           <form method="post" class="inline ml-2"><?=csrf_field()?><input type="hidden" name="id" value="<?=e($r['id'])?>"><input type="hidden" name="action" value="reject"><button class="text-rose-600 hover:underline">Reject</button></form>

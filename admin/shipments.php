@@ -58,16 +58,16 @@ include __DIR__ . '/_header.php';
 
 <div class="bg-white border rounded-2xl overflow-x-auto">
   <table class="w-full text-sm">
-    <thead class="text-left text-slate-500">
-      <tr>
-        <th class="py-2 px-3">ID</th>
-        <th class="px-3">Item</th>
-        <th class="px-3">Deliver To</th>
-        <th class="px-3">Carrier</th>
-        <th class="px-3">Tracking</th>
-        <th class="px-3">Quick Track</th>
-        <th class="px-3">Status</th>
-        <th class="px-3">Actions</th>
+    <thead class="border-b">
+      <tr class="text-left">
+        <th class="py-2">ID</th>
+        <th class="py-2">Item</th>
+        <th class="py-2">Deliver To</th>
+        <th class="py-2">Carrier</th>
+        <th class="py-2">Tracking</th>
+        <th class="py-2">Quick Track</th>
+        <th class="py-2">Status</th>
+        <th class="py-2">Actions</th>
       </tr>
     </thead>
     <tbody>
@@ -77,11 +77,11 @@ include __DIR__ . '/_header.php';
         $carrier    = $r['rx_note_mime'] ?: detect_carrier($displayVal);
         $trackHref  = $displayVal ? tracking_url($displayVal, $carrier ?: null) : '';
       ?>
-      <tr class="border-t">
-        <td class="py-2 px-3">#<?=e($r['id'])?></td>
-        <td class="px-3"><?=e($r['product'] ?? '')?></td>
-        <td class="px-3"><?=e(($r['shipping_name'] ?? '').' — '.($r['shipping_city'] ?? '').', '.($r['shipping_state'] ?? ''))?></td>
-        <td class="px-3">
+      <tr class="border-b hover:bg-slate-50">
+        <td class="py-3">#<?=e($r['id'])?></td>
+        <td class="py-3"><?=e($r['product'] ?? '')?></td>
+        <td class="py-3"><?=e(($r['shipping_name'] ?? '').' — '.($r['shipping_city'] ?? '').', '.($r['shipping_state'] ?? ''))?></td>
+        <td class="py-3">
           <form method="post" class="inline"><?=csrf_field()?>
             <input type="hidden" name="action" value="save_tracking">
             <input type="hidden" name="id" value="<?=e($r['id'])?>">
@@ -92,24 +92,24 @@ include __DIR__ . '/_header.php';
               <option value="usps"  <?=($carrier==='usps'?'selected':'')?>>USPS</option>
             </select>
         </td>
-        <td class="px-3">
+        <td class="py-3">
             <input name="tracking" class="border rounded px-2 py-1 text-xs w-44" placeholder="Tracking number" value="<?=e($displayVal)?>">
             <button class="ml-2 text-brand text-xs">Save</button>
           </form>
         </td>
-        <td class="px-3">
+        <td class="py-3">
           <?php if ($trackHref): ?>
             <a class="text-brand underline text-xs" href="<?=e($trackHref)?>" target="_blank">Track</a>
           <?php else: ?>
             <span class="text-slate-400 text-xs">—</span>
           <?php endif; ?>
         </td>
-        <td class="px-3">
+        <td class="py-3">
           <span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold <?=($r['status']==='delivered'?'bg-teal-100 text-teal-700':($r['status']==='in_transit'?'bg-amber-100 text-amber-800':'bg-gray-100 text-gray-700'))?>">
             <?=e(ucwords(str_replace('_',' ',$r['status'] ?? 'pending')))?>
           </span>
         </td>
-        <td class="px-3">
+        <td class="py-3">
           <form method="post" class="inline"><?=csrf_field()?>
             <input type="hidden" name="action" value="set_status">
             <input type="hidden" name="id" value="<?=e($r['id'])?>">

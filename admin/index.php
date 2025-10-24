@@ -146,15 +146,23 @@ include __DIR__.'/_header.php';
     <section class="col-span-7 bg-white border rounded-2xl p-4">
       <h3 class="font-semibold mb-3">Recent Activity</h3>
       <table class="w-full text-sm">
-        <thead class="text-left text-slate-500"><tr><th class="py-2">Patient</th><th>Order</th><th>Product</th><th>Status</th><th>Updated</th></tr></thead>
+        <thead class="border-b">
+          <tr class="text-left">
+            <th class="py-2">Patient</th>
+            <th class="py-2">Order</th>
+            <th class="py-2">Product</th>
+            <th class="py-2">Status</th>
+            <th class="py-2">Updated</th>
+          </tr>
+        </thead>
         <tbody>
           <?php foreach($recent as $r): ?>
-          <tr class="border-t">
-            <td class="py-2"><?=e(trim(($r['first_name']??'').' '.($r['last_name']??'')) ?: '—')?></td>
-            <td><a class="text-brand hover:underline" href="/admin/orders.php?focus=<?=e($r['id'])?>">#<?=e($r['id'])?></a></td>
-            <td><?=e($r['product'] ?? '')?></td>
-            <td><?=e(ucwords(str_replace('_',' ', $r['status'] ?? '')))?></td>
-            <td><?=e($r['ts'] ?? '')?></td>
+          <tr class="border-b hover:bg-slate-50">
+            <td class="py-3"><?=e(trim(($r['first_name']??'').' '.($r['last_name']??'')) ?: '—')?></td>
+            <td class="py-3"><a class="text-brand hover:underline" href="/admin/orders.php?focus=<?=e($r['id'])?>">#<?=e($r['id'])?></a></td>
+            <td class="py-3"><?=e($r['product'] ?? '')?></td>
+            <td class="py-3"><?=e(ucwords(str_replace('_',' ', $r['status'] ?? '')))?></td>
+            <td class="py-3"><?=e($r['ts'] ?? '')?></td>
           </tr>
           <?php endforeach; ?>
         </tbody>
