@@ -169,34 +169,35 @@ function projected_rev($row, $rates, $hasProducts, $hasShipRem) {
 /* ================= View ================= */
 include __DIR__.'/_header.php';
 ?>
-<div class="max-w-[1200px] mx-auto">
+<div>
   <div class="flex items-center justify-between mb-4">
-    <div class="text-xl font-semibold">Billing</div>
+    <h2 class="text-lg font-semibold">Billing</h2>
     <form class="flex items-center gap-2" method="get">
-      <input type="date" name="from" class="border rounded px-2 py-1" value="<?=e($from)?>">
-      <input type="date" name="to" class="border rounded px-2 py-1" value="<?=e($to)?>">
-      <input type="text" name="phys" class="border rounded px-2 py-1" placeholder="Physician User ID (optional)" value="<?=e($phys)?>">
-      <button class="bg-brand text-white rounded px-3 py-1">Filter</button>
+      <input type="date" name="from" value="<?=e($from)?>">
+      <input type="date" name="to" value="<?=e($to)?>">
+      <input type="text" name="phys" placeholder="Physician User ID (optional)" value="<?=e($phys)?>" style="width: 200px;">
+      <button class="btn btn-primary" type="submit">Filter</button>
     </form>
   </div>
 
-  <div class="bg-white border rounded-2xl overflow-hidden shadow-soft">
-    <table class="w-full text-sm">
-      <thead class="text-left text-slate-500 bg-slate-50">
-        <tr>
-          <th class="py-2 px-3">Patient</th>
-          <th class="px-3">Order</th>
-          <th class="px-3">Product</th>
-          <th class="px-3">Freq</th>
-          <th class="px-3">Shipments Remaining</th>
-          <th class="px-3">CPT</th>
-          <th class="px-3">Projected Revenue</th>
-          <th class="px-3">Notes</th>
-          <th class="px-3">ID</th>
-          <th class="px-3">Insurance Card</th>
-          <th class="px-3">Order PDF</th>
-        </tr>
-      </thead>
+  <section class="card p-5">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="border-b">
+          <tr class="text-left">
+            <th class="py-2">Patient</th>
+            <th class="py-2">Order</th>
+            <th class="py-2">Product</th>
+            <th class="py-2">Freq</th>
+            <th class="py-2">Shipments Remaining</th>
+            <th class="py-2">CPT</th>
+            <th class="py-2">Projected Revenue</th>
+            <th class="py-2">Notes</th>
+            <th class="py-2">ID</th>
+            <th class="py-2">Insurance Card</th>
+            <th class="py-2">Order PDF</th>
+          </tr>
+        </thead>
       <tbody>
         <?php $total=0.0; foreach($rows as $row):
           $prodLabel = ($hasProducts && !empty($row['prod_name']))
@@ -216,36 +217,37 @@ include __DIR__.'/_header.php';
 
           $orderUrl = '/admin/order.pdf.php?id=' . rawurlencode($row['id']) . '&csrf=' . rawurlencode($_SESSION['csrf'] ?? '');
         ?>
-        <tr class="border-t align-top">
-          <td class="py-2 px-3">
+        <tr class="border-t">
+          <td class="py-2">
             <?=e($fullname ?: '—')?> <br>
             <span class="text-[11px] text-slate-500">DOB: <?=e($row['dob'] ?? '—')?></span>
           </td>
-          <td class="px-3">#<?=e($row['id'])?><br><span class="text-[11px] text-slate-500"><?=e(substr((string)$row['created_at'],0,10))?></span></td>
-          <td class="px-3"><?=e($prodLabel)?><br><span class="text-[11px] text-slate-500"><?=e(($row['sku'] ?? '') ?: '')?></span></td>
-          <td class="px-3">
+          <td class="py-2">#<?=e($row['id'])?><br><span class="text-xs text-slate-500"><?=e(substr((string)$row['created_at'],0,10))?></span></td>
+          <td class="py-2"><?=e($prodLabel)?><br><span class="text-xs text-slate-500"><?=e(($row['sku'] ?? '') ?: '')?></span></td>
+          <td class="py-2">
             <?php
               $fpwDisp = (int)($row['frequency_per_week'] ?? 0);
               if ($fpwDisp <= 0) $fpwDisp = patches_per_week_text(isset($row['frequency'])?$row['frequency']:null);
               echo e($fpwDisp.'×/week');
             ?>
           </td>
-          <td class="px-3"><?= $hasShipRem ? e($row['shipments_remaining'] ?? 0) : '—' ?></td>
-          <td class="px-3"><?=e($row['cpt_code'] ?? '—')?></td>
-          <td class="px-3 font-semibold">$<?=number_format($rev,2)?></td>
-          <td class="px-3"><?=render_view_link($noteLinks)?></td>
-          <td class="px-3"><?=render_view_link($idLinks)?></td>
-          <td class="px-3"><?=render_view_link($insLinks)?></td>
-          <td class="px-3"><a class="text-brand underline" target="_blank" href="<?=e($orderUrl)?>">View</a></td>
+          <td class="py-2"><?= $hasShipRem ? e($row['shipments_remaining'] ?? 0) : '—' ?></td>
+          <td class="py-2"><?=e($row['cpt_code'] ?? '—')?></td>
+          <td class="py-2 font-semibold">$<?=number_format($rev,2)?></td>
+          <td class="py-2"><?=render_view_link($noteLinks)?></td>
+          <td class="py-2"><?=render_view_link($idLinks)?></td>
+          <td class="py-2"><?=render_view_link($insLinks)?></td>
+          <td class="py-2"><a class="text-brand underline" target="_blank" href="<?=e($orderUrl)?>">View</a></td>
         </tr>
         <?php endforeach; ?>
-        <tr class="border-t bg-slate-50 font-semibold">
-          <td class="py-2 px-3" colspan="6">Total (Filtered)</td>
-          <td class="px-3">$<?=number_format($total,2)?></td>
-          <td class="px-3" colspan="4"></td>
+        <tr class="border-t font-semibold" style="background: #f9fafb;">
+          <td class="py-2" colspan="6">Total (Filtered)</td>
+          <td class="py-2">$<?=number_format($total,2)?></td>
+          <td class="py-2" colspan="4"></td>
         </tr>
       </tbody>
     </table>
-  </div>
+    </div>
+  </section>
 </div>
 <?php include __DIR__.'/_footer.php'; ?>
