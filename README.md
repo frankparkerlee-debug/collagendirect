@@ -341,7 +341,12 @@ Before deploying major features:
 3. Implement dropdowns and autocomplete where applicable
 4. Add validation: orders must start within 30 days of last visit
 5. Implement proof of delivery (email/text with link)
-6. [Continue through todo list...]
+6. **UI/UX Consistency**: Redesign CollagenDirect admin pages to match portal styling
+   - Use same layout/navigation as physician portal
+   - Match background, spacing, and responsive breakpoints
+   - Admin pages are just protected routes by user/role, should look identical to portal
+   - Current admin has different menu, styling, and layout that needs unification
+7. [Continue through todo list...]
 
 ---
 
