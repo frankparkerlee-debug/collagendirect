@@ -3868,28 +3868,51 @@ function initWoundsManager() {
   const container = $('#wounds-container');
   const addBtn = $('#btn-add-wound');
 
+  if (!container) {
+    console.error('Wounds container not found!');
+    return;
+  }
+
+  if (!addBtn) {
+    console.error('Add wound button not found!');
+    return;
+  }
+
   // Clear existing wounds
   container.innerHTML = '';
   woundCounter = 0;
 
   // Add first wound by default
+  console.log('Initializing wounds manager - adding first wound');
   addWound();
 
   // Add wound button handler
   addBtn.onclick = (e) => {
     e.preventDefault();
+    console.log('Add wound button clicked');
     addWound();
   };
+
+  console.log('Wounds manager initialized successfully');
 }
 
 function addWound() {
+  console.log('addWound() called, woundCounter:', woundCounter);
   const container = $('#wounds-container');
+
+  if (!container) {
+    console.error('Cannot add wound - container not found');
+    return;
+  }
+
   const idx = woundCounter++;
 
   const woundEl = document.createElement('div');
   woundEl.className = 'border rounded p-4 relative';
   woundEl.style.borderColor = 'var(--line)';
   woundEl.dataset.woundIndex = idx;
+
+  console.log('Creating wound #' + (idx + 1));
 
   woundEl.innerHTML = `
     <div class="flex items-center justify-between mb-3">
@@ -3958,12 +3981,14 @@ function addWound() {
   `;
 
   container.appendChild(woundEl);
+  console.log('Wound #' + (idx + 1) + ' added to container. Total wounds:', container.children.length);
 
   // Remove handler
   const removeBtn = woundEl.querySelector('.wound-remove');
   if (removeBtn) {
     removeBtn.onclick = (e) => {
       e.preventDefault();
+      console.log('Removing wound');
       woundEl.remove();
       renumberWounds();
     };
