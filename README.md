@@ -312,14 +312,17 @@ Before deploying major features:
    - Each wound: location, laterality, dimensions (L/W/D), type, stage, ICD-10 codes, notes
    - Stored as JSONB array in `orders.wounds_data`
    - Backward compatible with legacy single-wound columns
-   - Migration script created: `/portal/add-wounds-data-column.php`
+   - Migration completed ✓
+7. ✅ **Standalone patient creation flow**
+   - Full patient dialog accessible from Patients page "Add Patient" button
+   - All fields: demographics, contact info, address, insurance details
+   - Required document uploads (Photo ID + Insurance Card)
+   - Three-step validation: patient creation → ID upload → insurance upload
+   - Supports benefit checks before order creation
 
-### Migrations Pending:
-- **IMPORTANT**: Run this migration after deployment:
-  ```
-  https://collagendirect.onrender.com/portal/add-wounds-data-column.php?key=MIGRATION_SECRET
-  ```
-  This adds the `wounds_data` JSONB column and migrates existing wound data.
+### Migrations Completed:
+- ✅ wounds_data JSONB column added to orders table
+- ✅ Existing wound data migrated to new format
 
 ### Previous Session Work:
 1. ✅ Fixed sidebar overlay blocking content (width calculations)
@@ -336,17 +339,19 @@ Before deploying major features:
 - Permissions = Domain-based (Billing, Orders, etc.) with read/write per user
 
 ### Next to Implement (Sequential):
-1. Standalone patient creation (without order)
-2. Add ability to add/edit/remove patient attachments anytime
-3. Implement dropdowns and autocomplete where applicable
-4. Add validation: orders must start within 30 days of last visit
-5. Implement proof of delivery (email/text with link)
-6. **UI/UX Consistency**: Redesign CollagenDirect admin pages to match portal styling
+1. Add ability to add/edit/remove patient attachments anytime
+2. Implement dropdowns and autocomplete where applicable
+3. Add validation: orders must start within 30 days of last visit
+4. Implement proof of delivery (email/text with link)
+5. Design and implement granular permission system (domain-based with read/write)
+6. Add Manufacturer role with approve/reject benefits verification
+7. Hide billing features for referral-only practices (add practice flag)
+8. **UI/UX Consistency**: Redesign CollagenDirect admin pages to match portal styling
    - Use same layout/navigation as physician portal
    - Match background, spacing, and responsive breakpoints
    - Admin pages are just protected routes by user/role, should look identical to portal
    - Current admin has different menu, styling, and layout that needs unification
-7. [Continue through todo list...]
+9. [Continue through comprehensive requirements list...]
 
 ---
 
