@@ -6,6 +6,18 @@ declare(strict_types=1);
 require __DIR__ . '/../api/db.php'; // defines $pdo + session helpers
 
 if (empty($_SESSION['user_id'])) {
+  // If this is an AJAX/API request, return JSON error instead of redirect
+  $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) ||
+            !empty($_GET['action']) ||
+            (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
+
+  if ($isAjax) {
+    http_response_code(401);
+    header('Content-Type: application/json');
+    echo json_encode(['ok' => false, 'error' => 'Session expired. Please log in again.', 'redirect' => '/login']);
+    exit;
+  }
+
   header('Location: /login?next=/portal/index.php?page=dashboard');
   exit;
 }
