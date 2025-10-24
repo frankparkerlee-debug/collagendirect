@@ -22,6 +22,9 @@ if (!$user) {
   exit;
 }
 
+// Check if this is a referral-only practice (no billing features)
+$isReferralOnly = (bool)($user['is_referral_only'] ?? false);
+
 // Check if user is a practice admin or superadmin (has access to /admin)
 $userRole = $user['role'] ?? 'physician';
 $isPracticeAdmin = in_array($userRole, ['practice_admin', 'superadmin']);
@@ -1490,6 +1493,7 @@ if ($page==='logout'){
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
         <span>Messages</span>
       </a>
+      <?php if (!$isReferralOnly): ?>
       <a class="<?php echo $page==='billing'?'active':''; ?>" href="?page=billing">
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
         <span>Billing</span>
@@ -1498,6 +1502,7 @@ if ($page==='logout'){
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
         <span>Transactions</span>
       </a>
+      <?php endif; ?>
       <a class="<?php echo $page==='profile'?'active':''; ?>" href="?page=profile">
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
         <span>Profile</span>
@@ -1858,6 +1863,7 @@ if ($page==='logout'){
   </section>
 
 <?php elseif ($page==='billing'): ?>
+  <?php if ($isReferralOnly): header('Location: ?page=dashboard'); exit; endif; ?>
   <!-- Top-level actions -->
   <div class="flex items-center gap-3 mb-4">
     <h2 class="text-lg font-semibold">Billing & Invoices</h2>
@@ -1968,6 +1974,7 @@ if ($page==='logout'){
   </section>
 
 <?php elseif ($page==='transactions'): ?>
+  <?php if ($isReferralOnly): header('Location: ?page=dashboard'); exit; endif; ?>
   <!-- Top-level actions -->
   <div class="flex items-center gap-3 mb-4">
     <h2 class="text-lg font-semibold">Transaction History</h2>
