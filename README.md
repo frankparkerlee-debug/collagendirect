@@ -330,10 +330,16 @@ Before deploying major features:
    - Frontend: Real-time validation with visual feedback
    - Prevents orders starting before evaluation date
    - Clear error messages with date calculations
+10. ✅ **Referral-only practice flag**
+   - Database column: `users.is_referral_only` (BOOLEAN)
+   - Hides Billing and Transactions navigation for referral practices
+   - Redirects to dashboard if accessing billing pages directly
+   - Allows order creation without billing exposure
 
 ### Migrations Completed:
 - ✅ wounds_data JSONB column added to orders table
 - ✅ Existing wound data migrated to new format
+- ✅ is_referral_only flag added to users table (migration script ready)
 
 ### Previous Session Work:
 1. ✅ Fixed sidebar overlay blocking content (width calculations)
