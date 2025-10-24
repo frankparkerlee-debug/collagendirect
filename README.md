@@ -351,6 +351,15 @@ Before deploying major features:
 - Zero remaining critical issues
 - See [AUDIT-REPORT.md](AUDIT-REPORT.md) for detailed findings
 
+### Mock Data Removal:
+**Completion Date**: 2025-10-24
+**Status**: ✅ **COMPLETE**
+- All hardcoded/mock data removed from `/portal` directory
+- All hardcoded/mock data verified absent from `/admin` directory
+- Medical history, insurance fallbacks, MRN defaults all removed
+- Data now exclusively from database or explicitly marked "Not provided"
+- See [MOCK-DATA-REMOVAL-REPORT.md](MOCK-DATA-REMOVAL-REPORT.md) for details
+
 ### Previous Session Work:
 1. ✅ Fixed sidebar overlay blocking content (width calculations)
 2. ✅ Implemented complete patient document workflow
