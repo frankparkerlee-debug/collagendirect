@@ -3962,6 +3962,39 @@ function collectWoundsData() {
 let _currentPatientId = null;
 
 async function openOrderDialog(preselectId=null){
+  // If opening for specific patient, check for required documents FIRST
+  if(preselectId){
+    try{
+      const d=await api('action=patient.get&id='+encodeURIComponent(preselectId));
+      const p=d.patient;
+      const hasId = p.id_card_path && p.id_card_path.trim() !== '';
+      const hasIns = p.ins_card_path && p.ins_card_path.trim() !== '';
+      const hasAOB = p.aob_path && p.aob_path.trim() !== '';
+
+      const missing = [];
+      if (!hasId) missing.push('Photo ID');
+      if (!hasIns) missing.push('Insurance Card');
+      if (!hasAOB) missing.push('Assignment of Benefits (AOB)');
+
+      if (missing.length > 0) {
+        const message = `Before creating an order for ${p.first_name} ${p.last_name}, please upload the following required documents:\n\n` +
+                       missing.map(doc => `• ${doc}`).join('\n') +
+                       `\n\nWould you like to upload these documents now?`;
+
+        if (confirm(message)) {
+          // Navigate to patient detail page where they can upload
+          window.location.href = `?page=patient-detail&id=${preselectId}`;
+          return;
+        } else {
+          return; // Cancel order creation
+        }
+      }
+    }catch(e){
+      alert('Error checking patient documents: ' + e.message);
+      return;
+    }
+  }
+
   const prods=(await api('action=products')).rows||[];
   $('#ord-product').innerHTML=prods.map(p=>{
     let label = esc(p.name);
