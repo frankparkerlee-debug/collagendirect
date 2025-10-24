@@ -3962,10 +3962,13 @@ function collectWoundsData() {
 let _currentPatientId = null;
 
 async function openOrderDialog(preselectId=null){
+  let patientData = null;
+
   // If opening for specific patient, check for required documents FIRST
   if(preselectId){
     try{
       const d=await api('action=patient.get&id='+encodeURIComponent(preselectId));
+      patientData = d; // Save for reuse
       const p=d.patient;
       const hasId = p.id_card_path && p.id_card_path.trim() !== '';
       const hasIns = p.ins_card_path && p.ins_card_path.trim() !== '';
@@ -3990,6 +3993,7 @@ async function openOrderDialog(preselectId=null){
         }
       }
     }catch(e){
+      console.error('Error checking patient documents:', e);
       alert('Error checking patient documents: ' + e.message);
       return;
     }
@@ -4014,13 +4018,11 @@ async function openOrderDialog(preselectId=null){
   // clear office shipping
   ['ship-name','ship-phone','ship-addr','ship-city','ship-state','ship-zip'].forEach(id=>$('#'+id).value='');
 
-  if(preselectId){
-    try{
-      const d=await api('action=patient.get&id='+encodeURIComponent(preselectId));
-      const p=d.patient;
-      hidden.value=preselectId;
-      box.value=`${p.first_name||''} ${p.last_name||''} (MRN ${p.mrn||''})`;
-    }catch(e){}
+  if(preselectId && patientData){
+    // Reuse already-fetched data
+    const p=patientData.patient;
+    hidden.value=preselectId;
+    box.value=`${p.first_name||''} ${p.last_name||''} (MRN ${p.mrn||''})`;
   } else { hint.textContent='Start typing to search'; }
 
   box.oninput=async()=>{
