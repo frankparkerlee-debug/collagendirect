@@ -230,7 +230,7 @@ if ($action) {
   }
 
   if ($action==='products'){
-    $rows=$pdo->query("SELECT id,name,size,size AS uom,price_admin AS price FROM products WHERE active=TRUE ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
+    $rows=$pdo->query("SELECT id,name,size,size AS uom,price_admin AS price,cpt_code AS hcpcs FROM products WHERE active=TRUE ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
     jok(['rows'=>$rows]);
   }
 
@@ -3650,8 +3650,13 @@ async function generateAOB(patientId) {
 let _currentPatientId = null;
 
 async function openOrderDialog(preselectId=null){
-  const prods=(await api('action=products')).rows||[]; 
-  $('#ord-product').innerHTML=prods.map(p=>`<option value="${p.id}">${esc(p.name)}${p.size? ' — '+esc(p.size):''} ${p.uom? '('+esc(p.uom)+')':''}</option>`).join('');
+  const prods=(await api('action=products')).rows||[];
+  $('#ord-product').innerHTML=prods.map(p=>{
+    let label = esc(p.name);
+    if (p.size) label += ` (${esc(p.size)})`;
+    if (p.hcpcs) label += ` — ${esc(p.hcpcs)}`;
+    return `<option value="${p.id}">${label}</option>`;
+  }).join('');
 
   // chooser
   const box=$('#chooser-input'), list=$('#chooser-list'), hidden=$('#chooser-id'), hint=$('#chooser-hint'), create=$('#create-section');
