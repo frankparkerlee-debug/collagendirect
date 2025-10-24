@@ -56,9 +56,47 @@ header('Content-Type: text/html; charset=utf-8');
 <?php
 
 try {
+    echo "<div class='success'>✓ Database connected successfully</div>";
+
+    // Check if products table exists, create if not
+    $tableExists = $pdo->query("
+        SELECT EXISTS (
+            SELECT FROM information_schema.tables
+            WHERE table_schema = 'public'
+            AND table_name = 'products'
+        )
+    ")->fetchColumn();
+
+    if (!$tableExists) {
+        echo "<div class='success'>⚠️ Products table doesn't exist. Creating it now...</div>";
+
+        // Create products table
+        $pdo->exec("
+            CREATE TABLE products (
+                id SERIAL PRIMARY KEY,
+                sku VARCHAR(100) NOT NULL UNIQUE,
+                name VARCHAR(255) NOT NULL,
+                description TEXT,
+                price_admin DECIMAL(10,2),
+                price_wholesale DECIMAL(10,2),
+                category VARCHAR(100),
+                size VARCHAR(50),
+                hcpcs_code VARCHAR(20),
+                cpt_code VARCHAR(20),
+                active BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ");
+
+        // Create indexes
+        $pdo->exec("CREATE INDEX prod_sku ON products(sku)");
+        $pdo->exec("CREATE INDEX prod_active ON products(active)");
+
+        echo "<div class='success'>✓ Products table created successfully!</div>";
+    }
+
     // Check current product count
     $currentCount = $pdo->query("SELECT COUNT(*) FROM products")->fetchColumn();
-    echo "<div class='success'>✓ Database connected successfully</div>";
     echo "<p>Current products in database: <strong>$currentCount</strong></p>";
 
     // Define all products
