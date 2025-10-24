@@ -1,340 +1,336 @@
-# CollagenDirect - Healthcare Platform
+# CollagenDirect - Healthcare DME Order Management System
 
-A HIPAA-compliant web application for managing wound care orders, patient records, and medical product distribution.
+## Overview
+CollagenDirect is a HIPAA-compliant physician portal for managing wound care DME (Durable Medical Equipment) orders. The platform connects medical practices with manufacturers through a compliance workflow managed by CollagenDirect business administrators.
 
-## 🚨 Critical Findings
+## System Architecture
 
-Your friend's AI-generated code has **1 critical SQL error** that will prevent order creation:
+### Technology Stack
+- **Backend**: PHP 8.3
+- **Database**: PostgreSQL (hosted on Render.com)
+- **Frontend**: Vanilla JavaScript, Tailwind CSS
+- **Session Management**: 7-day persistent cookies
+- **File Storage**: Local filesystem with database path references
 
-### Missing Database Column
-- **Location:** [portal/index.php:306](portal/index.php#L306)
-- **Error:** INSERT statement references column `cpt` that doesn't exist in the `orders` table
-- **Impact:** Order creation will fail with SQL error
-- **Fix:** Run `SQL_FIXES.sql` to add the missing column
-
-## 📋 What I Found & Fixed
-
-### ✅ Created Files
-1. **`prisma/schema.prisma`** - Full database schema with Prisma ORM
-2. **`package.json`** - Node.js dependencies
-3. **`.env`** - Environment configuration (with your existing SendGrid keys)
-4. **`.gitignore`** - Security (prevents committing sensitive files)
-5. **`SQL_FIXES.sql`** - Database fix script
-6. **`SETUP.md`** - Comprehensive setup documentation
-7. **`test-db-connection.js`** - Database connection test
-8. **`quick-start.sh`** - Automated setup script
-
-### 🔍 Issues Identified
-
-**SQL Errors:**
-- Missing `cpt` column in `orders` table (CRITICAL)
-
-**Missing Functionality:**
-- Billing module incomplete (`admin/billing.php` is placeholder)
-- Shipment tracking webhook not tested
-- Password reset flow needs testing
-- No comprehensive error handling
-
-**Security Concerns:**
-- API keys exposed in code (moved to .env)
-- Database credentials hardcoded (documented)
-- Upload directory permissions need review
-- CSRF protection incomplete
-
-## 🚀 Quick Start
-
-### Option 1: Automated Setup
-```bash
-./quick-start.sh
+### Directory Structure
+```
+/Users/matthew/Downloads/parker/
+├── api/                    # Backend API endpoints
+│   ├── db.php             # Database connection & session config
+│   ├── login.php          # Portal authentication
+│   └── admin/             # Admin-specific API endpoints
+│       └── orders/        # Order management APIs
+├── admin/                 # CollagenDirect business admin interface
+│   ├── db.php            # Admin database connection
+│   ├── login.php         # Admin authentication
+│   ├── order-review.php  # Super admin order review queue
+│   └── _header.php       # Admin navigation template
+├── portal/               # Physician portal interface
+│   ├── index.php         # Main portal dashboard & order creation
+│   ├── patients.php      # Patient management
+│   └── set-superadmin-roles.php  # Role assignment utility
+├── migrations/           # Database migration scripts
+│   └── compliance-workflow.sql   # DME compliance schema
+└── uploads/             # Patient document storage
 ```
 
-### Option 2: Manual Setup
+## User Roles & Permissions
 
-#### 1. Install MySQL (choose one)
+### Current Role System
+1. **Practice Super Admin** - Full access to practice data and settings
+2. **Physician** - Access to own patients and orders only
+3. **CollagenDirect Super Admin** - God mode access across all practices
+4. **CollagenDirect Employee** - Access to designated practices (permission-based)
+5. **Manufacturer** - Read-only + approve/reject benefits verification
 
-**Using Homebrew:**
-```bash
-brew install mysql
-brew services start mysql
+### Planned: Granular Permission System
+Moving from rigid roles to domain-based permissions:
+- **Domains**: Billing, Orders, Patients, Revenue Reports, Benefits Approval
+- **Per-user assignment**: Email-based (e.g., user@example.com)
+- **Read/Write flags**: Granular control per feature
+
+Example:
+```
+matt@collagendirect.com:
+  - Billing: read ✓, write ✓
+  - Orders: read ✓, write ✓
+  - Revenue Reports: read ✓, write ✗
+
+manufacturer@supplier.com:
+  - Orders: read ✓, write ✗
+  - Benefits Approval: read ✓, write ✓
 ```
 
-**Using Docker:**
-```bash
-docker run --name collagen-mysql \
-  -e MYSQL_ROOT_PASSWORD=root \
-  -e MYSQL_DATABASE=frxnaisp_collagendirect \
-  -e MYSQL_USER=frxnaisp_collagendirect \
-  -e MYSQL_PASSWORD="YEW!ad10jeo" \
-  -p 3306:3306 \
-  -d mysql:8.0
-```
+## DME Compliance Workflow
 
-#### 2. Import Database & Apply Fixes
+### Order Lifecycle (13 Statuses)
+1. `draft` - Order created but not submitted
+2. `submitted` - Submitted by physician, awaiting review
+3. `under_review` - Being reviewed by CollagenDirect admin
+4. `incomplete` - Missing required information/documents
+5. `verification_pending` - Sent to manufacturer for insurance verification
+6. `manufacturer_approved` - Manufacturer verified benefits (PLANNED)
+7. `manufacturer_rejected` - Manufacturer denied benefits (PLANNED)
+8. `cash_price_required` - Insurance denied, awaiting cash payment approval
+9. `cash_price_approved` - Practice approved cash payment
+10. `approved` - Order approved and ready for production
+11. `in_production` - Manufacturer producing order
+12. `shipped` - Order shipped to patient/practice
+13. `delivered` - Confirmed delivery
+14. `terminated` - Order cancelled (blocks future orders)
+15. `cancelled` - Order cancelled
 
-**For local MySQL:**
-```bash
-mysql -u root -p < frxnaisp_collagendirect.sql
-mysql -u root -p frxnaisp_collagendirect < SQL_FIXES.sql
-```
+### Required Patient Documents
+Before any order can be submitted:
+- **Photo ID** (Driver's License, Passport, Government ID, etc.)
+- **Insurance Card** (front/back)
+- **Assignment of Benefits (AOB)** - Auto-generated and e-signed
 
-**For Docker:**
-```bash
-docker exec -i collagen-mysql mysql -uroot -proot frxnaisp_collagendirect < frxnaisp_collagendirect.sql
-docker exec -i collagen-mysql mysql -uroot -proot frxnaisp_collagendirect < SQL_FIXES.sql
-```
+### Order Completeness Validation
+PostgreSQL function checks:
+- Patient demographics (name, DOB, address)
+- Clinical data (ICD-10, wound measurements, evaluation date)
+- Required documents (ID, Insurance, AOB)
+- Physician signature and NPI
 
-#### 3. Test Database Connection
-```bash
-npm install
-node test-db-connection.js
-```
+## Key Features Implemented
 
-#### 4. Start Application
-```bash
-php -S localhost:8000
-```
+### ✅ Session Persistence (Completed)
+- 7-day session cookies for portal and admin
+- Configured in `api/db.php`, `admin/db.php`, `api/login.php`, `admin/login.php`
+- Users don't need to re-login after code changes
 
-#### 5. Access the App
-- **Homepage:** http://localhost:8000/
-- **Physician Portal:** http://localhost:8000/portal
-- **Admin Panel:** http://localhost:8000/admin
+### ✅ Patient Document Workflow (Completed)
+**New Patient Creation:**
+- Photo ID and Insurance Card required at creation
+- Documents uploaded immediately after patient save
+- Success confirmation with document status
 
-## 🏗️ Project Structure
+**Existing Patient Selection:**
+- Automatic document status check when selected
+- Visual indicators (✓ uploaded, ⚠️ missing)
+- Inline upload UI for missing documents
+- Real-time status updates after upload
 
-```
-parker/
-├── admin/                  # Admin dashboard
-│   ├── index.php          # Main dashboard
-│   ├── orders.php         # Order management
-│   ├── users.php          # User management
-│   ├── billing.php        # Billing (⚠️ incomplete)
-│   └── shipments.php      # Shipment tracking
-├── api/                    # Backend API
-│   ├── auth/              # Authentication
-│   │   ├── request_reset.php
-│   │   └── reset_password.php
-│   ├── lib/               # Helper libraries
-│   │   ├── mailer_sendgrid.php
-│   │   └── env.php
-│   ├── portal/            # Portal APIs
-│   ├── db.php             # Database connection
-│   ├── login.php          # User login
-│   └── register.php       # User registration
-├── portal/                 # Physician portal
-│   ├── index.php          # Main portal (SPA-style)
-│   ├── forgot/            # Password reset
-│   └── reset/             # Password reset form
-├── prisma/                 # 🆕 Prisma ORM
-│   └── schema.prisma      # Database schema
-├── uploads/                # User uploads (git-ignored)
-│   ├── ids/               # Patient ID cards
-│   ├── insurance/         # Insurance cards
-│   ├── notes/             # Clinical notes
-│   └── aob/               # Assignment of Benefits
-├── assets/                 # Static assets
-│   ├── collagendirect.png
-│   └── hero-collagen-sample.jpg
-├── frxnaisp_collagendirect.sql  # Database dump
-├── SQL_FIXES.sql          # 🆕 Required fixes
-├── SETUP.md               # 🆕 Detailed setup guide
-├── test-db-connection.js  # 🆕 Connection test
-├── quick-start.sh         # 🆕 Automated setup
-├── package.json           # 🆕 Node dependencies
-├── .env                   # 🆕 Configuration
-├── .gitignore             # 🆕 Security
-└── README.md              # This file
-```
+**Order Validation:**
+- Frontend checks documents before submission
+- Backend enforces requirement for ALL orders
+- Clear error messages listing missing documents
 
-## 🗄️ Database Schema
+### ✅ Super Admin Order Review (Completed)
+- Queue of orders awaiting review (`submitted`, `under_review`)
+- Order completeness indicator
+- Approve or mark incomplete actions
+- Status update with tracking codes
+
+### ✅ Sidebar Layout Fix (Completed)
+- Fixed sidebar overlay blocking main content
+- Proper width calculations: `calc(100% - 240px)`
+- Collapse functionality with smooth transitions
+
+### ✅ Admin Access for Superadmin (Completed)
+- Superadmin role can access `/admin/` interface
+- Role assignment script for sparkingmatt@gmail.com and parker@senecawest.com
+
+### ✅ Real Error Reporting (Completed)
+- Detailed error messages with stack traces
+- No mock data - all database queries are real
+- Failures visible for debugging
+
+## Current Implementation Progress
+
+### Phase 1: Foundation & UX (Current Focus)
+- [ ] HIPAA credibility messaging on login page
+- [ ] Mobile responsiveness - all portal pages
+- [ ] Mobile responsiveness - all admin pages
+- [ ] HCPCS codes + product dimensions in dropdown
+- [ ] Secondary dressing field (gauze, etc.)
+- [ ] Cell phone number field in patient profile
+- [ ] Manual insurance info fields (carrier, group, member ID)
+
+### Phase 2: Core Workflow Features
+- [ ] Multiple wounds per order (separate dimensions, location, ICD-10 per wound)
+- [ ] Standalone patient creation (without order, for benefit checks)
+- [ ] Patient attachment management (add/edit/remove anytime)
+- [ ] Dropdowns and autocomplete throughout system
+- [ ] 30-day visit validation (order start within 30 days of last eval)
+
+### Phase 3: Delivery & Notifications
+- [ ] Proof of delivery system (email/SMS with confirmation link)
+
+### Phase 4: Permission System
+- [ ] Design permission schema (domains, read/write flags)
+- [ ] Permission management UI for admins
+- [ ] Enforce permissions across portal and admin
+
+### Phase 5: Role-Specific Features
+- [ ] Practice Super Admin vs Physician access separation
+- [ ] Manufacturer role with approve/reject workflow
+- [ ] Manufacturer approval statuses (`manufacturer_approved`, `manufacturer_rejected`)
+- [ ] Referral-only practice flag (hide billing features)
+
+### Phase 6: CollagenDirect Admin Dashboard
+- [ ] Revenue visualization (CPT Rate × Frequency × Duration)
+- [ ] Cross-practice patient database view
+- [ ] Rejection comments system
+- [ ] Billing page with revenue per patient
+- [ ] Document links (ID, Insurance, Orders, Visit Notes)
+- [ ] Consolidated order forms as downloadable links
+
+## Database Schema
 
 ### Core Tables
-- **users** - Physicians/healthcare providers
+- **users** - Physicians and practice admins
+  - Fields: `id`, `email`, `first_name`, `last_name`, `role`, `npi`, `practice_name`, `has_dme_license`
+
 - **patients** - Patient records
-- **orders** - Medical orders with clinical data
-- **products** - Wound care products catalog
-- **admin_users** - Administrative staff
-- **admin_physicians** - Admin-physician relationships
+  - Fields: `id`, `user_id`, `first_name`, `last_name`, `dob`, `phone`, `email`, `address`, `city`, `state`, `zip`
+  - Documents: `id_card_path`, `ins_card_path`, `aob_path`, `aob_signed_at`
+  - Insurance: `insurance_provider`, `insurance_member_id`, `insurance_group_id`
 
-### Supporting Tables
-- **password_resets** - Password reset tokens
-- **login_attempts** - Security audit log
-- **reimbursement_rates** - Insurance reimbursement (empty)
+- **orders** - DME orders
+  - Fields: `id`, `patient_id`, `user_id`, `product_id`, `status`, `payment_method`
+  - Clinical: `icd10_primary`, `icd10_secondary`, `wound_length_cm`, `wound_width_cm`, `wound_depth_cm`
+  - Delivery: `delivery_location`, `tracking_code`, `carrier`
+  - Compliance: `is_complete`, `missing_fields`, `cash_price`, `signature_data`
 
-## 🔐 Security Notes
+- **order_status_history** - Audit trail
+  - Auto-populated via trigger on orders.status changes
 
-### Credentials in Database
-The SQL dump includes hashed passwords. You'll need to:
-1. Reset passwords using the password reset flow
-2. Or directly set new bcrypt hashes in the database
+- **order_alerts** - Notifications
+  - Tracks alerts for physicians and admins
 
-### Default Users
-**Physician Portal:**
-- Email: `parker@senecawest.com`
-- Email: `parker@ideaworx.co`
+### Planned Schema Changes
+- Add permission system tables (`user_permissions`, `permission_domains`)
+- Add manufacturer approval tracking
+- Add multiple wounds support (new table or JSON field)
+- Add practice-level `is_referral_only` flag
+- Add `cell_phone` to patients table
+- Expand insurance fields (carrier, group, member ID)
 
-**Admin Panel:**
-- Email: `admin@collagen.health`
+## API Endpoints
 
-### Environment Variables
-Sensitive data moved to `.env`:
-- Database credentials
-- SendGrid API key
-- Email configuration
+### Portal APIs (portal/index.php)
+- `?action=patients` - List patients with search
+- `?action=patient.get&id={id}` - Get patient details + orders
+- `?action=patient.save` - Create/update patient
+- `?action=patient.upload` - Upload ID/Insurance/AOB/Visit notes
+- `?action=patient.delete` - Delete patient and orders
+- `?action=order.create` - Create new order with validation
+- `?action=metrics` - Dashboard metrics
 
-⚠️ **Never commit `.env` to version control**
+### Admin APIs (api/admin/orders/)
+- `pending-review.php` - Get orders awaiting review
+- `update-status.php` - Update order status with tracking
+- `check-completeness.php` - Validate order completeness
 
-## 🐛 Known Issues & TODOs
+## Configuration
 
-### High Priority
-- [ ] Fix missing `cpt` column (run SQL_FIXES.sql)
-- [ ] Test order creation flow end-to-end
-- [ ] Verify file upload security
-- [ ] Test email notifications
-- [ ] Implement proper error logging
+### Environment Variables (Render.com)
+- `DB_HOST` - PostgreSQL host
+- `DB_NAME` - Database name
+- `DB_USER` - Database user
+- `DB_PASS` - Database password
+- `DB_PORT` - Database port (default: 5432)
+- `MIGRATION_SECRET` - Secret key for running migrations
 
-### Medium Priority
-- [ ] Complete billing module
-- [ ] Test shipment tracking webhook
-- [ ] Add comprehensive input validation
-- [ ] Implement rate limiting
-- [ ] Add audit trail for HIPAA compliance
+### Session Configuration
+- **Lifetime**: 7 days (604800 seconds)
+- **Cookie Settings**: HttpOnly, SameSite=Lax, Secure (HTTPS only)
+- **Session GC**: 7 days max lifetime
 
-### Low Priority
-- [ ] Add API documentation (OpenAPI/Swagger)
-- [ ] Implement caching layer
-- [ ] Add automated testing
-- [ ] Performance optimization
-- [ ] Mobile responsiveness improvements
+## Development Workflow
 
-## 📊 Testing the Application
+### Making Changes
+1. Edit files locally in `/Users/matthew/Downloads/parker/`
+2. Test locally if possible (or deploy to Render)
+3. Commit with descriptive message including "🤖 Generated with Claude Code"
+4. Push to GitHub: `git push origin main`
+5. Render auto-deploys from main branch
 
-### Test Database Connection
-```bash
-node test-db-connection.js
+### Running Migrations
+Access via browser with secret key:
+```
+https://collagendirect.onrender.com/portal/run-migration.php?key=change-me-in-production
 ```
 
-### Test Endpoints
-```bash
-# Health check
-curl http://localhost:8000/api/health.php
-
-# Portal health
-curl http://localhost:8000/portal/health.php
-
-# Admin health
-curl http://localhost:8000/admin/auth.php
+### Setting Superadmin Roles
+```
+https://collagendirect.onrender.com/portal/set-superadmin-roles.php?key=change-me-in-production
 ```
 
-### Test Order Creation
-1. Log in to physician portal
-2. Navigate to "New Order"
-3. Create or select a patient
-4. Fill in required clinical fields
-5. Submit order
-6. Check for SQL errors in PHP error log
+## Known Issues / Technical Debt
+- [ ] Need to migrate from inline SQL in PHP to proper migration system
+- [ ] Error handling could be more consistent across endpoints
+- [ ] Some validation happens only on frontend (needs backend enforcement)
+- [ ] File upload size limits not explicitly set
+- [ ] No rate limiting on API endpoints
+- [ ] Need to add CSRF protection more consistently
+- [ ] Mobile responsiveness needs improvement across all pages
 
-## 🆘 Troubleshooting
+## Security Considerations
+- All patient data is HIPAA-regulated
+- Session tokens rotated on login
+- File uploads validated by MIME type
+- SQL queries use prepared statements
+- Transactions protect data integrity
+- Document paths stored in DB, not exposed directly
 
-### Database Connection Failed
-```bash
-# Check if MySQL is running
-brew services list | grep mysql
+## Testing Checklist
+Before deploying major features:
+- [ ] Test with existing patient (has documents)
+- [ ] Test with new patient creation (upload documents)
+- [ ] Test with existing patient (missing documents)
+- [ ] Test order submission validation
+- [ ] Test on mobile device
+- [ ] Test with different user roles
+- [ ] Verify database persistence
+- [ ] Check error messages are user-friendly
 
-# Or for Docker
-docker ps | grep collagen-mysql
+## Deployment
+- **Platform**: Render.com
+- **URL**: https://collagendirect.onrender.com
+- **Auto-deploy**: Enabled from `main` branch
+- **Build Command**: None (PHP served directly)
+- **Start Command**: Apache/PHP-FPM
 
-# Test connection manually
-mysql -u frxnaisp_collagendirect -p -h localhost
-```
+## Support & Credentials
+- **SuperAdmin Users**: sparkingmatt@gmail.com, parker@senecawest.com
+- **GitHub Repo**: mattedesign/collagendirect
+- **Render Service**: Parker
 
-### Order Creation Fails
-1. Check if SQL_FIXES.sql was applied
-2. Verify `cpt` column exists:
-   ```sql
-   DESCRIBE orders;
-   ```
-3. Check PHP error logs
+## Recent Session Summary (2025-10-24)
 
-### File Upload Fails
-```bash
-# Verify upload directories exist
-ls -la uploads/
+### Completed This Session:
+1. ✅ Fixed sidebar overlay blocking content (width calculations)
+2. ✅ Implemented complete patient document workflow
+   - New patient creation with required ID/Insurance uploads
+   - Existing patient document status checking
+   - Inline document upload for missing files
+   - Frontend + backend validation
+3. ✅ Superadmin role access to admin interface
+4. ✅ Real error reporting (no mock data)
 
-# Fix permissions if needed
-chmod 755 uploads uploads/*
-```
+### Clarifications Received:
+- Photo ID = Any valid ID (license, passport, government ID)
+- Multiple wounds = Separate dimensions, location, ICD-10 per wound
+- Referral-only practices = Add flag to hide billing features
+- Manufacturer approval = Creates new order statuses
+- "Practice Admin" → Actually "CollagenDirect Business Admin"
+- Permissions = Domain-based (Billing, Orders, etc.) with read/write per user
 
-## 📚 Documentation
-
-- **[SETUP.md](SETUP.md)** - Comprehensive setup guide
-- **[SQL_FIXES.sql](SQL_FIXES.sql)** - Database fixes with comments
-- **[Prisma Schema](prisma/schema.prisma)** - Full database schema
-
-## 🔄 Development Workflow
-
-### Working with Prisma
-```bash
-# Generate Prisma Client
-npx prisma generate
-
-# Open Prisma Studio (database GUI)
-npx prisma studio
-
-# Pull schema from database
-npx prisma db pull
-
-# Push schema changes to database
-npx prisma db push
-```
-
-### Database Migrations
-```bash
-# Create migration
-npx prisma migrate dev --name description_of_change
-
-# Apply migrations
-npx prisma migrate deploy
-```
-
-## 🚀 Production Deployment
-
-Before deploying to production:
-
-1. **Security Hardening**
-   - [ ] Change all default passwords
-   - [ ] Rotate API keys
-   - [ ] Enable HTTPS only
-   - [ ] Configure firewall rules
-   - [ ] Set up intrusion detection
-
-2. **Environment**
-   - [ ] Use production database
-   - [ ] Configure proper file permissions
-   - [ ] Set up proper logging
-   - [ ] Configure email service
-   - [ ] Set up monitoring
-
-3. **Compliance**
-   - [ ] HIPAA security assessment
-   - [ ] Business Associate Agreements
-   - [ ] Audit logging enabled
-   - [ ] Backup strategy implemented
-   - [ ] Incident response plan
-
-## 📞 Support
-
-This codebase was AI-generated and has missing functionality. Key areas need human review:
-- Security hardening
-- HIPAA compliance validation
-- Production infrastructure setup
-- Comprehensive testing
-
-## 📄 License
-
-[Add appropriate license]
+### Next to Implement (Sequential):
+1. HIPAA messaging on login
+2. Mobile responsiveness audit/fixes
+3. Product HCPCS codes + dimensions
+4. Secondary dressing field
+5. Cell phone + manual insurance fields
+6. Multiple wounds per order
+7. Standalone patient creation
+8. [Continue through todo list...]
 
 ---
 
-**Status:** ⚠️ Development - Not production ready
-
-**Last Updated:** 2025-10-22
+**Last Updated**: 2025-10-24
+**Version**: 0.3.0-alpha
+**Status**: Active Development
