@@ -338,6 +338,21 @@ if ($action) {
       $last_eval = $_POST['last_eval_date'] ?? null; if(!$last_eval){ $pdo->rollBack(); jerr('Date of last evaluation is required.'); }
 
       $start_date = !empty($_POST['start_date']) ? $_POST['start_date'] : date('Y-m-d');
+
+      // Validate: start_date must be within 30 days of last_eval_date
+      $last_eval_ts = strtotime($last_eval);
+      $start_date_ts = strtotime($start_date);
+      $days_diff = ($start_date_ts - $last_eval_ts) / 86400; // Convert seconds to days
+
+      if ($days_diff > 30) {
+        $pdo->rollBack();
+        jerr('Order start date must be within 30 days of last evaluation. Last eval: ' . date('m/d/Y', $last_eval_ts) . ', Start date: ' . date('m/d/Y', $start_date_ts) . ' (' . round($days_diff) . ' days apart).');
+      }
+
+      if ($days_diff < 0) {
+        $pdo->rollBack();
+        jerr('Order start date cannot be before the last evaluation date.');
+      }
       $freq_per_week = max(0,(int)($_POST['frequency_per_week']??0));
       $qty_per_change = max(1,(int)($_POST['qty_per_change']??1));
       $duration_days = max(1,(int)($_POST['duration_days']??30));
@@ -2400,6 +2415,7 @@ if ($page==='logout'){
         <div>
           <label class="text-sm">Start Date</label>
           <input id="start-date" type="date" class="w-full">
+          <div id="date-validation-hint" class="text-xs mt-1" style="display:none;"></div>
         </div>
         <div>
           <label class="text-sm">Frequency (changes per week) <span class="text-red-600">*</span></label>
@@ -4177,6 +4193,42 @@ async function openOrderDialog(preselectId=null){
 
   // Initialize wounds manager
   initWoundsManager();
+
+  // Add date validation listeners
+  const lastEvalInput = $('#last-eval');
+  const startDateInput = $('#start-date');
+  const dateHint = $('#date-validation-hint');
+
+  function validateDates() {
+    const lastEval = lastEvalInput.value;
+    const startDate = startDateInput.value || new Date().toISOString().split('T')[0];
+
+    if (!lastEval) {
+      dateHint.style.display = 'none';
+      return;
+    }
+
+    const lastEvalDate = new Date(lastEval);
+    const startDateObj = new Date(startDate);
+    const daysDiff = Math.floor((startDateObj - lastEvalDate) / (1000 * 60 * 60 * 24));
+
+    if (daysDiff < 0) {
+      dateHint.textContent = '⚠ Start date cannot be before last evaluation date';
+      dateHint.style.color = 'var(--error)';
+      dateHint.style.display = 'block';
+    } else if (daysDiff > 30) {
+      dateHint.textContent = `⚠ Start date is ${daysDiff} days after last evaluation (max 30 days allowed)`;
+      dateHint.style.color = 'var(--error)';
+      dateHint.style.display = 'block';
+    } else {
+      dateHint.textContent = `✓ ${daysDiff} days between evaluation and start date`;
+      dateHint.style.color = 'var(--success)';
+      dateHint.style.display = 'block';
+    }
+  }
+
+  lastEvalInput.addEventListener('change', validateDates);
+  startDateInput.addEventListener('change', validateDates);
 
   document.getElementById('dlg-order').showModal();
 }
