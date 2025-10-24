@@ -3696,23 +3696,33 @@ async function uploadPatientFile(patientId, type, file) {
     }
 
     if (result.ok) {
-      alert(`${type === 'id' ? 'ID Card' : 'Insurance Card'} uploaded successfully!`);
-      // Check if we're on a full-page detail view or accordion
-      if (window.location.search.includes('page=patient-detail') || window.location.search.includes('page=patient-edit')) {
-        // Reload the current page
-        window.location.reload();
-      } else {
-        // Refresh just the accordion view to show the new file
-        const rowEl = document.querySelector(`tr[data-patient-id="${patientId}"]`);
-        if (rowEl) {
-          const nextRow = rowEl.nextElementSibling;
-          if (nextRow && nextRow.classList.contains('acc-row')) {
-            // Re-trigger the accordion to refresh data
-            toggleAccordion(rowEl, patientId, '<?php echo $page; ?>');
-            setTimeout(() => toggleAccordion(rowEl, patientId, '<?php echo $page; ?>'), 100);
+      // Show success message - no auto-refresh, user can click Save button when ready
+      const docType = type === 'id' ? 'ID Card' : (type === 'ins' ? 'Insurance Card' : 'Document');
+
+      // Update the UI to show checkmark immediately
+      const fileInput = document.querySelector(`input[type="file"][onchange*="'${patientId}'"][onchange*="'${type}'"]`);
+      if (fileInput) {
+        const label = fileInput.previousElementSibling;
+        if (label && label.tagName === 'LABEL') {
+          // Update label to show checkmark
+          const checkmark = label.querySelector('.text-green-600, .text-red-600');
+          if (checkmark) {
+            checkmark.className = 'text-green-600';
+            checkmark.textContent = '✓';
+          }
+
+          // Add "View current file" link if not present
+          const existingLink = fileInput.previousElementSibling?.querySelector('a');
+          if (!existingLink && result.path) {
+            const linkDiv = document.createElement('div');
+            linkDiv.className = 'text-xs text-slate-600 mb-1';
+            linkDiv.innerHTML = `<a href="${result.path}" target="_blank" class="underline">View current file</a>`;
+            fileInput.parentNode.insertBefore(linkDiv, fileInput);
           }
         }
       }
+
+      alert(`${docType} uploaded successfully! Click "Save Changes" when you're done editing.`);
     } else {
       alert('Upload failed: ' + (result.error || 'Unknown error'));
     }
