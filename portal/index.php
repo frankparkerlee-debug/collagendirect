@@ -116,6 +116,8 @@ if ($action) {
     $mrn  =trim((string)($_POST['mrn']??''));
     $phone=$_POST['phone']??null; $cell_phone=$_POST['cell_phone']??null; $email=$_POST['email']??null;
     $address=$_POST['address']??null; $city=$_POST['city']??null; $state=$_POST['state']??null; $zip=$_POST['zip']??null;
+    $ins_provider=$_POST['insurance_provider']??null; $ins_member_id=$_POST['insurance_member_id']??null;
+    $ins_group_id=$_POST['insurance_group_id']??null; $ins_payer_phone=$_POST['insurance_payer_phone']??null;
 
     if($first===''||$last==='') jerr('First and last name are required');
     if(!validPhone($phone)) jerr('Phone must be 10 digits');
@@ -125,13 +127,17 @@ if ($action) {
       if($mrn===''){ $mrn = 'CD-'.date('Ymd').'-'.strtoupper(substr(bin2hex(random_bytes(2)),0,4)); }
       $pid=bin2hex(random_bytes(16));
       $st=$pdo->prepare("INSERT INTO patients
-        (id,user_id,first_name,last_name,dob,mrn,city,state,phone,cell_phone,email,address,zip,created_at,updated_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),NOW())");
-      $st->execute([$pid,$userId,$first,$last,$dob,$mrn,$city,$state,$phone,$cell_phone,$email,$address,$zip]);
+        (id,user_id,first_name,last_name,dob,mrn,city,state,phone,cell_phone,email,address,zip,
+         insurance_provider,insurance_member_id,insurance_group_id,insurance_payer_phone,created_at,updated_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),NOW())");
+      $st->execute([$pid,$userId,$first,$last,$dob,$mrn,$city,$state,$phone,$cell_phone,$email,$address,$zip,
+                    $ins_provider,$ins_member_id,$ins_group_id,$ins_payer_phone]);
     } else {
-      $st=$pdo->prepare("UPDATE patients SET first_name=?,last_name=?,dob=?,mrn=?,city=?,state=?,phone=?,cell_phone=?,email=?,address=?,zip=?,updated_at=NOW()
+      $st=$pdo->prepare("UPDATE patients SET first_name=?,last_name=?,dob=?,mrn=?,city=?,state=?,phone=?,cell_phone=?,email=?,address=?,zip=?,
+                         insurance_provider=?,insurance_member_id=?,insurance_group_id=?,insurance_payer_phone=?,updated_at=NOW()
                          WHERE id=? AND user_id=?");
-      $st->execute([$first,$last,$dob,$mrn,$city,$state,$phone,$cell_phone,$email,$address,$zip,$pid,$userId]);
+      $st->execute([$first,$last,$dob,$mrn,$city,$state,$phone,$cell_phone,$email,$address,$zip,
+                    $ins_provider,$ins_member_id,$ins_group_id,$ins_payer_phone,$pid,$userId]);
     }
     jok(['id'=>$pid,'mrn'=>$mrn]);
   }
@@ -2275,6 +2281,13 @@ if ($page==='logout'){
             </select>
             <input id="np-zip" placeholder="ZIP">
 
+            <!-- Insurance Information -->
+            <div class="md:col-span-2 text-sm font-medium" style="margin-top:0.5rem">Insurance Information</div>
+            <input id="np-ins-provider" placeholder="Insurance Carrier (e.g., Blue Cross)">
+            <input id="np-ins-member-id" placeholder="Member ID">
+            <input id="np-ins-group-id" placeholder="Group Number">
+            <input id="np-ins-payer-phone" placeholder="Payer Phone">
+
             <!-- Required Document Uploads -->
             <div class="md:col-span-2 mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <div class="text-sm font-medium text-blue-900 mb-2">Required Documents</div>
@@ -3733,7 +3746,9 @@ async function openOrderDialog(preselectId=null){
     const r=await fetch('?action=patient.save',{method:'POST',body:fd({
       first_name:first,last_name:last,dob:$('#np-dob').value,
       phone:$('#np-phone').value,cell_phone:$('#np-cell-phone').value,email:$('#np-email').value,
-      address:$('#np-address').value,city:$('#np-city').value,state:$('#np-state').value,zip:$('#np-zip').value
+      address:$('#np-address').value,city:$('#np-city').value,state:$('#np-state').value,zip:$('#np-zip').value,
+      insurance_provider:$('#np-ins-provider').value,insurance_member_id:$('#np-ins-member-id').value,
+      insurance_group_id:$('#np-ins-group-id').value,insurance_payer_phone:$('#np-ins-payer-phone').value
     })});
     const j=await r.json();
     if(!j.ok){ $('#np-hint').textContent=j.error||'Failed to create'; $('#np-hint').style.color='red'; return; }
