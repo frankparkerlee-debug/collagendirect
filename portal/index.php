@@ -2702,7 +2702,22 @@ if ($page==='logout'){
 <script>
 const $=s=>document.querySelector(s);
 const fd=o=>{const f=new FormData(); for(const [k,v] of Object.entries(o)) f.append(k,v??''); return f;};
-async function api(q,opts={}){const r=await fetch(`?${q}`,{method:opts.method||'GET',headers:{'Accept':'application/json','X-Requested-With':'fetch'},body:opts.body||null});const t=await r.text();try{return JSON.parse(t);}catch(e){alert('Server error:\n'+t);console.error('Server said:',t);throw e;}}
+async function api(q,opts={}){
+  const r=await fetch(`?${q}`,{method:opts.method||'GET',headers:{'Accept':'application/json','X-Requested-With':'fetch'},body:opts.body||null});
+  const t=await r.text();
+
+  // Handle 401 Unauthorized (session expired)
+  if(r.status===401){
+    try{
+      const j=JSON.parse(t);
+      if(j.error){alert('Session expired: '+j.error+'\n\nPlease refresh the page and log in again.');}
+      else{alert('Your session has expired. Please refresh the page and log in again.');}
+    }catch{alert('Your session has expired. Please refresh the page and log in again.');}
+    throw new Error('Session expired');
+  }
+
+  try{return JSON.parse(t);}catch(e){alert('Server error:\n'+t);console.error('Server said:',t);throw e;}
+}
 
 /* Helper functions - defined early for use throughout */
 function pill(s){ if(!s) return '<span class="pill">—</span>'; const c={active:'pill pill--active',approved:'pill pill--pending',submitted:'pill pill--pending',pending:'pill pill--pending',shipped:'pill',stopped:'pill pill--stopped'}[(s||'').toLowerCase()]||'pill'; return `<span class="${c}" style="text-transform:capitalize">${s}</span>`; }
@@ -4147,6 +4162,11 @@ async function openOrderDialog(preselectId=null){
 
       // Verify patient has required documents
       const patientData = await api('action=patient.get&id=' + encodeURIComponent(pid));
+      if (!patientData || !patientData.patient) {
+        alert('Error loading patient data. Your session may have expired. Please refresh the page and log in again.');
+        btn.disabled=false; btn.textContent='Submit Order';
+        return;
+      }
       const patient = patientData.patient;
       const hasId = patient.id_card_path && patient.id_card_path.trim() !== '';
       const hasIns = patient.ins_card_path && patient.ins_card_path.trim() !== '';

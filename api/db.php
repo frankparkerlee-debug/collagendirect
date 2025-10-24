@@ -10,18 +10,30 @@ header('X-Content-Type-Options: nosniff');
 // --- Session (for auth endpoints that include this file) ---
 $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
 if (session_status() === PHP_SESSION_NONE) {
-  // Configure session for 7 days persistence
-  ini_set('session.gc_maxlifetime', (string)(60*60*24*7)); // 7 days
-  ini_set('session.cookie_lifetime', (string)(60*60*24*7)); // 7 days
+  // Configure session for 30 days persistence
+  // Use longer lifetime to prevent frequent session expiration
+  ini_set('session.gc_maxlifetime', (string)(60*60*24*30)); // 30 days
+  ini_set('session.cookie_lifetime', (string)(60*60*24*30)); // 30 days
+  ini_set('session.gc_probability', '1');
+  ini_set('session.gc_divisor', '100');
 
   session_set_cookie_params([
-    'lifetime' => 60*60*24*7, // 7 days
+    'lifetime' => 60*60*24*30, // 30 days
     'path' => '/',
     'secure' => $secure,
     'httponly' => true,
     'samesite' => 'Lax'
   ]);
   session_start();
+
+  // Regenerate session ID periodically to prevent fixation attacks
+  // But only if session is older than 1 hour
+  if (!isset($_SESSION['last_regeneration'])) {
+    $_SESSION['last_regeneration'] = time();
+  } elseif (time() - $_SESSION['last_regeneration'] > 3600) {
+    session_regenerate_id(true);
+    $_SESSION['last_regeneration'] = time();
+  }
 }
 
 // --- Helpers used by other endpoints ---
