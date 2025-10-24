@@ -319,6 +319,17 @@ Before deploying major features:
    - Required document uploads (Photo ID + Insurance Card)
    - Three-step validation: patient creation → ID upload → insurance upload
    - Supports benefit checks before order creation
+8. ✅ **Patient document management** (already existed - verified)
+   - Upload/replace ID cards anytime from patient accordion
+   - Upload/replace Insurance cards anytime
+   - Generate/regenerate AOB documents
+   - View current documents with links
+   - Visual status indicators (✓/*)
+9. ✅ **30-day order validation**
+   - Backend: Orders must start within 30 days of last evaluation
+   - Frontend: Real-time validation with visual feedback
+   - Prevents orders starting before evaluation date
+   - Clear error messages with date calculations
 
 ### Migrations Completed:
 - ✅ wounds_data JSONB column added to orders table
@@ -339,19 +350,36 @@ Before deploying major features:
 - Permissions = Domain-based (Billing, Orders, etc.) with read/write per user
 
 ### Next to Implement (Sequential):
-1. Add ability to add/edit/remove patient attachments anytime
-2. Implement dropdowns and autocomplete where applicable
-3. Add validation: orders must start within 30 days of last visit
-4. Implement proof of delivery (email/text with link)
-5. Design and implement granular permission system (domain-based with read/write)
-6. Add Manufacturer role with approve/reject benefits verification
-7. Hide billing features for referral-only practices (add practice flag)
-8. **UI/UX Consistency**: Redesign CollagenDirect admin pages to match portal styling
+1. **Proof of delivery system** (email/text with confirmation link)
+   - Requires email/SMS integration
+   - Confirmation link generation
+   - Delivery status tracking
+2. **Granular permission system** (domain-based with read/write)
+   - Move from role-based to permission-based
+   - Domains: Billing, Orders, Patients, Reports
+   - Read/write flags per user per domain
+3. **Manufacturer role** with approve/reject benefits verification
+   - New role type
+   - Approve/reject workflow
+   - New order statuses (manufacturer_approved, manufacturer_rejected)
+4. **Hide billing for referral-only practices**
+   - Add practice-level flag
+   - Conditionally hide billing features
+5. **Dropdowns and autocomplete improvements**
+   - ICD-10 code autocomplete (requires ICD-10 database)
+   - Product search/filter
+   - Other field improvements
+6. **UI/UX Consistency**: Redesign CollagenDirect admin pages to match portal styling
    - Use same layout/navigation as physician portal
    - Match background, spacing, and responsive breakpoints
    - Admin pages are just protected routes by user/role, should look identical to portal
    - Current admin has different menu, styling, and layout that needs unification
-9. [Continue through comprehensive requirements list...]
+7. **CollagenDirect Admin Features**:
+   - Revenue visualization graphs (CPT Rate × Frequency × Duration)
+   - Cross-practice patient database view
+   - Rejection comments system
+   - Consolidated document links
+8. [Continue through comprehensive requirements list...]
 
 ---
 
