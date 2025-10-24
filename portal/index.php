@@ -193,7 +193,11 @@ if ($action) {
       $mime=$fi->file($f['tmp_name']) ?: 'application/octet-stream';
       if(!isset($allowed[$mime])) jerr('Unsupported file type'); $ext=$allowed[$mime];
 
-      $final=slug(pathinfo($f['name'],PATHINFO_FILENAME)).'-'.date('Ymd-His').'-'.substr($pid,0,6).'.'.$ext;
+      // Limit filename to prevent "File name too long" errors (max 50 chars for base name)
+      $baseName = pathinfo($f['name'],PATHINFO_FILENAME);
+      $slugged = slug($baseName);
+      $slugged = substr($slugged, 0, 50); // Truncate to 50 characters
+      $final=$slugged.'-'.date('Ymd-His').'-'.substr($pid,0,6).'.'.$ext;
       $folder = ($type==='id'?'ids':($type==='ins'?'insurance':'notes'));
       $abs=$DIRS[$folder].'/'.$final; if(!move_uploaded_file($f['tmp_name'],$abs)) jerr('Failed to save',500);
       $rel='/uploads/'.$folder.'/'.$final;
