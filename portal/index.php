@@ -106,18 +106,46 @@ if ($action) {
 
   if ($action==='patients'){
     $q=trim((string)($_GET['q']??'')); $limit=max(1,min(300,(int)($_GET['limit']??100))); $offset=max(0,(int)($_GET['offset']??0));
-    $args=[$userId,$userId,$userId];
-    $join="LEFT JOIN (
-        SELECT o1.patient_id,o1.status,o1.shipments_remaining,o1.created_at
-        FROM orders o1
-        JOIN (SELECT patient_id,MAX(created_at) m FROM orders WHERE user_id=? GROUP BY patient_id) last
-          ON last.patient_id=o1.patient_id AND last.m=o1.created_at
-        WHERE o1.user_id=?
-      ) lo ON lo.patient_id=p.id";
-    $sql="SELECT p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.state,p.zip,p.mrn,
-                 lo.status last_status,lo.shipments_remaining last_remaining
-          FROM patients p $join
-          WHERE p.user_id=?";
+
+    // Practice admins can only see patients from their practice physicians
+    if ($userRole === 'practice_admin') {
+      // Get list of physician IDs in this practice
+      $pracStmt = $pdo->prepare("SELECT physician_id FROM practice_physicians WHERE practice_admin_id = ?");
+      $pracStmt->execute([$userId]);
+      $physicianIds = $pracStmt->fetchAll(PDO::FETCH_COLUMN);
+      $physicianIds[] = $userId; // Include practice admin's own patients
+
+      // Show patients from all practice physicians
+      $placeholders = implode(',', array_fill(0, count($physicianIds), '?'));
+      $args = array_merge($physicianIds, $physicianIds, $physicianIds);
+
+      $join = "LEFT JOIN (
+          SELECT o1.patient_id,o1.status,o1.shipments_remaining,o1.created_at
+          FROM orders o1
+          JOIN (SELECT patient_id,MAX(created_at) m FROM orders WHERE user_id IN ($placeholders) GROUP BY patient_id) last
+            ON last.patient_id=o1.patient_id AND last.m=o1.created_at
+          WHERE o1.user_id IN ($placeholders)
+        ) lo ON lo.patient_id=p.id";
+      $sql = "SELECT p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.state,p.zip,p.mrn,
+                   lo.status last_status,lo.shipments_remaining last_remaining
+            FROM patients p $join
+            WHERE p.user_id IN ($placeholders)";
+    } else {
+      // Regular physicians only see their own patients
+      $args = [$userId, $userId, $userId];
+      $join = "LEFT JOIN (
+          SELECT o1.patient_id,o1.status,o1.shipments_remaining,o1.created_at
+          FROM orders o1
+          JOIN (SELECT patient_id,MAX(created_at) m FROM orders WHERE user_id=? GROUP BY patient_id) last
+            ON last.patient_id=o1.patient_id AND last.m=o1.created_at
+          WHERE o1.user_id=?
+        ) lo ON lo.patient_id=p.id";
+      $sql = "SELECT p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.state,p.zip,p.mrn,
+                   lo.status last_status,lo.shipments_remaining last_remaining
+            FROM patients p $join
+            WHERE p.user_id=?";
+    }
+
     if ($q!==''){
       $like="%$q%";
       $sql.=" AND (p.first_name LIKE ? OR p.last_name LIKE ? OR p.phone LIKE ? OR p.email LIKE ? OR p.mrn LIKE ?)";
@@ -627,6 +655,100 @@ if ($action) {
     });
 
     jok(['notifications' => array_slice($notifications, 0, 20)]);
+  }
+
+  // Practice Management (practice admins only)
+  if ($action==='practice.physicians'){
+    if ($userRole !== 'practice_admin') jerr('Access denied', 403);
+
+    $stmt = $pdo->prepare("
+      SELECT id, physician_id, first_name, last_name, email, license, license_state, license_expiry, added_at
+      FROM practice_physicians
+      WHERE practice_admin_id = ?
+      ORDER BY added_at DESC
+    ");
+    $stmt->execute([$userId]);
+    $physicians = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    jok(['physicians' => $physicians]);
+  }
+
+  if ($action==='practice.add_physician'){
+    if ($userRole !== 'practice_admin') jerr('Access denied', 403);
+
+    $first = trim((string)($_POST['first_name'] ?? ''));
+    $last = trim((string)($_POST['last_name'] ?? ''));
+    $email = strtolower(trim((string)($_POST['email'] ?? '')));
+    $license = trim((string)($_POST['license'] ?? ''));
+    $license_state = trim((string)($_POST['license_state'] ?? ''));
+    $license_expiry = $_POST['license_expiry'] ?? null;
+
+    if ($first === '' || $last === '') jerr('First and last name are required');
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) jerr('Invalid email address');
+
+    // Check if physician already exists in this practice
+    $check = $pdo->prepare("SELECT id FROM practice_physicians WHERE practice_admin_id = ? AND email = ?");
+    $check->execute([$userId, $email]);
+    if ($check->fetch()) jerr('This physician is already in your practice');
+
+    // Generate physician ID
+    $physicianId = bin2hex(random_bytes(16));
+
+    // Insert physician
+    $stmt = $pdo->prepare("
+      INSERT INTO practice_physicians
+      (practice_admin_id, physician_id, first_name, last_name, email, license, license_state, license_expiry)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ");
+    $stmt->execute([
+      $userId,
+      $physicianId,
+      $first,
+      $last,
+      $email,
+      $license ?: null,
+      $license_state ?: null,
+      !empty($license_expiry) ? $license_expiry : null
+    ]);
+
+    jok(['physician_id' => $physicianId]);
+  }
+
+  if ($action==='practice.remove_physician'){
+    if ($userRole !== 'practice_admin') jerr('Access denied', 403);
+
+    $physicianId = (string)($_POST['physician_id'] ?? '');
+    if ($physicianId === '') jerr('Physician ID is required');
+
+    // Delete physician from practice
+    $stmt = $pdo->prepare("DELETE FROM practice_physicians WHERE practice_admin_id = ? AND physician_id = ?");
+    $stmt->execute([$userId, $physicianId]);
+
+    jok();
+  }
+
+  if ($action==='practice.get_physicians_for_order'){
+    if ($userRole !== 'practice_admin') jerr('Not a practice admin', 403);
+
+    // Get all physicians in this practice
+    $stmt = $pdo->prepare("
+      SELECT physician_id as id, first_name, last_name, email
+      FROM practice_physicians
+      WHERE practice_admin_id = ?
+      ORDER BY last_name, first_name
+    ");
+    $stmt->execute([$userId]);
+    $physicians = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Include practice admin themselves
+    array_unshift($physicians, [
+      'id' => $userId,
+      'first_name' => $user['first_name'] ?? '',
+      'last_name' => $user['last_name'] ?? '',
+      'email' => $user['email'] ?? ''
+    ]);
+
+    jok(['physicians' => $physicians]);
   }
 
   jerr('Unknown action',404);
@@ -1639,21 +1761,17 @@ if ($page==='logout'){
         <span>Transactions</span>
       </a>
       <?php endif; ?>
+      <?php if ($userRole === 'practice_admin'): ?>
+      <a class="<?php echo $page==='practice'?'active':''; ?>" href="?page=practice">
+        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+        <span>Manage Physicians</span>
+      </a>
+      <?php endif; ?>
       <a class="<?php echo $page==='profile'?'active':''; ?>" href="?page=profile">
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
         <span>Profile</span>
       </a>
     </nav>
-
-    <!-- Admin Functions Section -->
-    <?php if ($isPracticeAdmin): ?>
-    <div style="margin-top: auto; padding: 1rem; border-top: 1px solid var(--border-sidebar);">
-      <a href="/admin/" style="display:flex; align-items:center; gap:0.75rem; padding:0.75rem 1rem; border-radius:8px; color:#5A5B60; font-weight:500; font-size:0.875rem; transition:all 0.2s; border:1px solid transparent;">
-        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-        <span>Practice Admin</span>
-      </a>
-    </div>
-    <?php endif; ?>
   </aside>
 
   <!-- Main Content -->
@@ -2118,6 +2236,78 @@ if ($page==='logout'){
       </div>
     </div>
   </section>
+
+<?php elseif ($page==='practice'): ?>
+  <?php if ($userRole !== 'practice_admin'): header('Location: ?page=dashboard'); exit; endif; ?>
+
+  <div class="flex items-center gap-3 mb-4">
+    <h2 class="text-lg font-semibold">Manage Physicians</h2>
+    <button class="btn btn-primary ml-auto" id="btn-add-physician">
+      <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right: 0.5rem;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+      Add Physician
+    </button>
+  </div>
+
+  <section class="card p-5">
+    <div style="margin-bottom: 1.5rem;">
+      <p class="text-sm text-muted">Physicians in your practice can create orders for patients. You can create orders under any physician in your practice.</p>
+    </div>
+
+    <div id="physicians-list">
+      <!-- Physicians will be loaded here -->
+      <div style="text-align: center; padding: 3rem; color: var(--muted);">
+        <div style="margin-bottom: 1rem;">Loading physicians...</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Add Physician Dialog -->
+  <dialog id="dlg-add-physician" class="dialog">
+    <div class="dialog-content" style="max-width: 500px;">
+      <div class="dialog-header">
+        <h3 class="dialog-title">Add Physician to Practice</h3>
+        <button class="dialog-close" onclick="document.getElementById('dlg-add-physician').close()">×</button>
+      </div>
+      <div class="dialog-body">
+        <div style="margin-bottom: 1rem;">
+          <label class="block text-sm font-medium mb-1">First Name*</label>
+          <input type="text" id="phys-first" class="w-full" required>
+        </div>
+        <div style="margin-bottom: 1rem;">
+          <label class="block text-sm font-medium mb-1">Last Name*</label>
+          <input type="text" id="phys-last" class="w-full" required>
+        </div>
+        <div style="margin-bottom: 1rem;">
+          <label class="block text-sm font-medium mb-1">Email*</label>
+          <input type="email" id="phys-email" class="w-full" required>
+        </div>
+        <div style="margin-bottom: 1rem;">
+          <label class="block text-sm font-medium mb-1">License Number</label>
+          <input type="text" id="phys-license" class="w-full">
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+          <div>
+            <label class="block text-sm font-medium mb-1">License State</label>
+            <select id="phys-license-state" class="w-full">
+              <option value="">Select state</option>
+              <?php foreach(usStates() as $st): ?>
+              <option value="<?php echo $st; ?>"><?php echo $st; ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">License Expiry</label>
+            <input type="date" id="phys-license-expiry" class="w-full">
+          </div>
+        </div>
+        <div id="add-phys-error" style="color: var(--error); font-size: 0.875rem; margin-top: 0.5rem; display: none;"></div>
+      </div>
+      <div class="dialog-footer">
+        <button class="btn btn-ghost" onclick="document.getElementById('dlg-add-physician').close()">Cancel</button>
+        <button class="btn btn-primary" id="btn-save-physician">Add Physician</button>
+      </div>
+    </div>
+  </dialog>
 
 <?php elseif ($page==='profile'): ?>
   <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -4958,6 +5148,208 @@ if (<?php echo json_encode($page === 'messages'); ?>) {
       console.error('Failed to mark message as read:', e);
     }
   }
+}
+
+/* ============================================================
+   PRACTICE MANAGEMENT PAGE
+   ============================================================ */
+if (<?php echo json_encode($page === 'practice'); ?>) {
+  let physicians = [];
+
+  // Load physicians on page load
+  (async () => {
+    try {
+      const data = await api('action=practice.physicians');
+      physicians = data.physicians || [];
+      renderPhysiciansList(physicians);
+    } catch (e) {
+      console.error('Failed to load physicians:', e);
+      const list = document.getElementById('physicians-list');
+      if (list) {
+        list.innerHTML = `
+          <div style="text-align: center; padding: 3rem; color: var(--error);">
+            <div style="font-weight: 500; margin-bottom: 0.5rem;">Failed to load physicians</div>
+            <div style="font-size: 0.875rem;">Please try refreshing the page</div>
+          </div>
+        `;
+      }
+    }
+  })();
+
+  // Render physicians list
+  function renderPhysiciansList(phys) {
+    const list = document.getElementById('physicians-list');
+    if (!list) return;
+
+    if (phys.length === 0) {
+      list.innerHTML = `
+        <div style="text-align: center; padding: 3rem; color: var(--muted);">
+          <svg width="64" height="64" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin: 0 auto 1rem; opacity: 0.3;">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+          </svg>
+          <div style="font-weight: 500; margin-bottom: 0.5rem;">No physicians yet</div>
+          <div style="font-size: 0.875rem;">Click "Add Physician" to add physicians to your practice</div>
+        </div>
+      `;
+      return;
+    }
+
+    list.innerHTML = `
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="border-bottom: 2px solid var(--border); text-align: left;">
+            <th style="padding: 0.75rem; font-weight: 600; font-size: 0.875rem; color: var(--muted);">Name</th>
+            <th style="padding: 0.75rem; font-weight: 600; font-size: 0.875rem; color: var(--muted);">Email</th>
+            <th style="padding: 0.75rem; font-weight: 600; font-size: 0.875rem; color: var(--muted);">License</th>
+            <th style="padding: 0.75rem; font-weight: 600; font-size: 0.875rem; color: var(--muted);">Added</th>
+            <th style="padding: 0.75rem; font-weight: 600; font-size: 0.875rem; color: var(--muted);"></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${phys.map(p => {
+            const fullName = `${p.first_name || ''} ${p.last_name || ''}`.trim();
+            const license = p.license && p.license_state ? `${p.license} (${p.license_state})` : '-';
+            const added = p.added_at ? new Date(p.added_at).toLocaleDateString() : '-';
+
+            return `
+              <tr style="border-bottom: 1px solid var(--border);">
+                <td style="padding: 1rem 0.75rem;">
+                  <div style="font-weight: 500;">${esc(fullName)}</div>
+                </td>
+                <td style="padding: 1rem 0.75rem; color: var(--muted); font-size: 0.875rem;">
+                  ${esc(p.email || '')}
+                </td>
+                <td style="padding: 1rem 0.75rem; color: var(--muted); font-size: 0.875rem;">
+                  ${esc(license)}
+                </td>
+                <td style="padding: 1rem 0.75rem; color: var(--muted); font-size: 0.875rem;">
+                  ${added}
+                </td>
+                <td style="padding: 1rem 0.75rem; text-align: right;">
+                  <button class="btn btn-ghost btn-sm" data-remove-physician="${p.physician_id}" style="color: var(--error);">
+                    Remove
+                  </button>
+                </td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    `;
+
+    // Add remove handlers
+    document.querySelectorAll('[data-remove-physician]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const physicianId = btn.dataset.removePhysician;
+        const physician = phys.find(p => p.physician_id === physicianId);
+        if (!physician) return;
+
+        if (!confirm(`Remove ${physician.first_name} ${physician.last_name} from your practice?`)) {
+          return;
+        }
+
+        try {
+          btn.disabled = true;
+          btn.textContent = 'Removing...';
+
+          const response = await fetch('?action=practice.remove_physician', {
+            method: 'POST',
+            body: fd({ physician_id: physicianId })
+          });
+          const result = await response.json();
+
+          if (!result.ok) {
+            throw new Error(result.error || 'Failed to remove physician');
+          }
+
+          // Reload physicians list
+          const data = await api('action=practice.physicians');
+          physicians = data.physicians || [];
+          renderPhysiciansList(physicians);
+        } catch (e) {
+          alert('Error: ' + e.message);
+          btn.disabled = false;
+          btn.textContent = 'Remove';
+        }
+      });
+    });
+  }
+
+  // Add physician button
+  document.getElementById('btn-add-physician').addEventListener('click', () => {
+    // Clear form
+    document.getElementById('phys-first').value = '';
+    document.getElementById('phys-last').value = '';
+    document.getElementById('phys-email').value = '';
+    document.getElementById('phys-license').value = '';
+    document.getElementById('phys-license-state').value = '';
+    document.getElementById('phys-license-expiry').value = '';
+    document.getElementById('add-phys-error').style.display = 'none';
+
+    document.getElementById('dlg-add-physician').showModal();
+  });
+
+  // Save physician button
+  document.getElementById('btn-save-physician').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-save-physician');
+    const errorDiv = document.getElementById('add-phys-error');
+
+    const first = document.getElementById('phys-first').value.trim();
+    const last = document.getElementById('phys-last').value.trim();
+    const email = document.getElementById('phys-email').value.trim();
+    const license = document.getElementById('phys-license').value.trim();
+    const licenseState = document.getElementById('phys-license-state').value;
+    const licenseExpiry = document.getElementById('phys-license-expiry').value;
+
+    if (!first || !last) {
+      errorDiv.textContent = 'First and last name are required';
+      errorDiv.style.display = 'block';
+      return;
+    }
+
+    if (!email) {
+      errorDiv.textContent = 'Email is required';
+      errorDiv.style.display = 'block';
+      return;
+    }
+
+    try {
+      btn.disabled = true;
+      btn.textContent = 'Adding...';
+      errorDiv.style.display = 'none';
+
+      const response = await fetch('?action=practice.add_physician', {
+        method: 'POST',
+        body: fd({
+          first_name: first,
+          last_name: last,
+          email: email,
+          license: license,
+          license_state: licenseState,
+          license_expiry: licenseExpiry
+        })
+      });
+
+      const result = await response.json();
+
+      if (!result.ok) {
+        throw new Error(result.error || 'Failed to add physician');
+      }
+
+      // Close dialog and reload list
+      document.getElementById('dlg-add-physician').close();
+
+      const data = await api('action=practice.physicians');
+      physicians = data.physicians || [];
+      renderPhysiciansList(physicians);
+    } catch (e) {
+      errorDiv.textContent = e.message;
+      errorDiv.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Add Physician';
+    }
+  });
 }
 
 </script>
