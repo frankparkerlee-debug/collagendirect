@@ -138,22 +138,22 @@ try {
     trim((string)($data['practiceName'] ?? '')),
     trim((string)($data['address'] ?? '')),
     trim((string)($data['city'] ?? '')),
-    (string)($data['state'] ?? ''),
+    !empty($data['state']) ? $data['state'] : null,
     trim((string)($data['zip'] ?? '')),
     trim((string)($data['taxId'] ?? '')),
     trim((string)($data['phone'] ?? '')),
     $npi,
     trim((string)($data['license'] ?? '')),
-    (string)($data['licenseState'] ?? ''),
-    (string)($data['licenseExpiry'] ?? ''),
+    !empty($data['licenseState']) ? $data['licenseState'] : null,
+    !empty($data['licenseExpiry']) ? $data['licenseExpiry'] : null,
     trim((string)($data['dmeNumber'] ?? '')),
-    (string)($data['dmeState'] ?? ''),
-    (string)($data['dmeExpiry'] ?? ''),
+    !empty($data['dmeState']) ? $data['dmeState'] : null,
+    !empty($data['dmeExpiry']) ? $data['dmeExpiry'] : null,
     !empty($data['agreeMSA']) ? 1 : 0,
     !empty($data['agreeBAA']) ? 1 : 0,
     trim((string)$data['signName']),
     trim((string)$data['signTitle']),
-    (string)$data['signDate'],
+    !empty($data['signDate']) ? $data['signDate'] : null,
     $isReferralOnly ? 1 : 0,
     $hasDmeLicense ? 1 : 0,
     $isHybrid ? 1 : 0,
@@ -183,8 +183,8 @@ try {
         trim((string)$physician['lastName']),
         preg_replace('/\D/', '', (string)$physician['npi']),
         trim((string)($physician['license'] ?? '')),
-        (string)($physician['licenseState'] ?? ''),
-        (string)($physician['licenseExpiry'] ?? ''),
+        !empty($physician['licenseState']) ? $physician['licenseState'] : null,
+        !empty($physician['licenseExpiry']) ? $physician['licenseExpiry'] : null,
         trim((string)($physician['email'] ?? '')),
         trim((string)($physician['phone'] ?? ''))
       ]);
@@ -194,11 +194,7 @@ try {
   json_out(201, ['ok' => true, 'message' => 'Registration successful']);
 
 } catch (Throwable $e) {
-  // Temporarily show detailed errors for debugging
-  json_out(500, [
-    'error' => 'Server error',
-    'message' => $e->getMessage(),
-    'file' => $e->getFile(),
-    'line' => $e->getLine()
-  ]);
+  // Log error for debugging
+  error_log("Registration error: " . $e->getMessage());
+  json_out(500, ['error' => 'Server error. Please contact support if this persists.']);
 }
