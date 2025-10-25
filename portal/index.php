@@ -71,7 +71,37 @@ if ($action) {
     $q=$pdo->prepare("SELECT COUNT(*) FROM patients WHERE user_id=?"); $q->execute([$userId]); $patients=(int)$q->fetchColumn();
     $q=$pdo->prepare("SELECT COUNT(*) FROM orders WHERE user_id=? AND status IN ('submitted','pending')"); $q->execute([$userId]); $pending=(int)$q->fetchColumn();
     $q=$pdo->prepare("SELECT COUNT(*) FROM orders WHERE user_id=? AND status IN ('approved','active','shipped')"); $q->execute([$userId]); $active=(int)$q->fetchColumn();
-    jok(['metrics'=>['patients'=>$patients,'pending'=>$pending,'active_orders'=>$active]]);
+    $q=$pdo->prepare("SELECT COUNT(*) FROM orders WHERE user_id=?"); $q->execute([$userId]); $total=(int)$q->fetchColumn();
+    jok(['metrics'=>['patients'=>$patients,'pending'=>$pending,'active_orders'=>$active,'total_orders'=>$total]]);
+  }
+
+  if ($action==='chart_data'){
+    // Get monthly patient and order counts for the last 12 months
+    $months = [];
+    $patientCounts = [];
+    $orderCounts = [];
+
+    for ($i = 11; $i >= 0; $i--) {
+      $monthStart = date('Y-m-01', strtotime("-$i months"));
+      $monthEnd = date('Y-m-t', strtotime("-$i months"));
+      $monthLabel = date('M', strtotime("-$i months"));
+
+      // Count patients created in this month
+      $q = $pdo->prepare("SELECT COUNT(*) FROM patients WHERE user_id=? AND created_at >= ? AND created_at <= ?");
+      $q->execute([$userId, $monthStart, $monthEnd . ' 23:59:59']);
+      $patientCount = (int)$q->fetchColumn();
+
+      // Count orders created in this month
+      $q = $pdo->prepare("SELECT COUNT(*) FROM orders WHERE user_id=? AND created_at >= ? AND created_at <= ?");
+      $q->execute([$userId, $monthStart, $monthEnd . ' 23:59:59']);
+      $orderCount = (int)$q->fetchColumn();
+
+      $months[] = $monthLabel;
+      $patientCounts[] = $patientCount;
+      $orderCounts[] = $orderCount;
+    }
+
+    jok(['chart'=>['months'=>$months,'patients'=>$patientCounts,'orders'=>$orderCounts]]);
   }
 
   if ($action==='patients'){
@@ -1600,51 +1630,27 @@ if ($page==='logout'){
   <!-- Stat Cards -->
   <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <div class="card p-5">
-      <div class="text-sm text-muted mb-2" style="color: var(--ink-light); font-weight: 500;">Total patient</div>
+      <div class="text-sm text-muted mb-2" style="color: var(--ink-light); font-weight: 500;">Total Patients</div>
       <div id="m-patients" class="text-3xl font-bold mb-2" style="color: var(--ink);">-</div>
-      <div class="flex items-center gap-2 text-sm">
-        <span class="flex items-center gap-1" style="color: var(--success); font-weight: 500;">
-          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
-          65.92%
-        </span>
-        <span style="color: var(--muted);">Since last week</span>
-      </div>
+      <div class="text-sm" style="color: var(--muted);">Registered patients in system</div>
     </div>
 
     <div class="card p-5">
-      <div class="text-sm text-muted mb-2" style="color: var(--ink-light); font-weight: 500;">Total appointment</div>
+      <div class="text-sm text-muted mb-2" style="color: var(--ink-light); font-weight: 500;">Active Orders</div>
       <div id="m-active" class="text-3xl font-bold mb-2" style="color: var(--ink);">-</div>
-      <div class="flex items-center gap-2 text-sm">
-        <span class="flex items-center gap-1" style="color: var(--error); font-weight: 500;">
-          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg>
-          23.89%
-        </span>
-        <span style="color: var(--muted);">Since last week</span>
-      </div>
+      <div class="text-sm" style="color: var(--muted);">Approved & shipped orders</div>
     </div>
 
     <div class="card p-5">
-      <div class="text-sm text-muted mb-2" style="color: var(--ink-light); font-weight: 500;">Total income</div>
-      <div class="text-3xl font-bold mb-2" style="color: var(--ink);">$12,923.45</div>
-      <div class="flex items-center gap-2 text-sm">
-        <span class="flex items-center gap-1" style="color: var(--error); font-weight: 500;">
-          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg>
-          12.23%
-        </span>
-        <span style="color: var(--muted);">Since last week</span>
-      </div>
-    </div>
-
-    <div class="card p-5">
-      <div class="text-sm text-muted mb-2" style="color: var(--ink-light); font-weight: 500;">Total treatment</div>
+      <div class="text-sm text-muted mb-2" style="color: var(--ink-light); font-weight: 500;">Pending Orders</div>
       <div id="m-pending" class="text-3xl font-bold mb-2" style="color: var(--ink);">-</div>
-      <div class="flex items-center gap-2 text-sm">
-        <span class="flex items-center gap-1" style="color: var(--success); font-weight: 500;">
-          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
-          65.92%
-        </span>
-        <span style="color: var(--muted);">Since last week</span>
-      </div>
+      <div class="text-sm" style="color: var(--muted);">Awaiting approval</div>
+    </div>
+
+    <div class="card p-5">
+      <div class="text-sm text-muted mb-2" style="color: var(--ink-light); font-weight: 500;">Total Orders</div>
+      <div id="m-total" class="text-3xl font-bold mb-2" style="color: var(--ink);">-</div>
+      <div class="text-sm" style="color: var(--muted);">All orders (all statuses)</div>
     </div>
   </section>
 
@@ -1652,16 +1658,9 @@ if ($page==='logout'){
   <section class="card p-6 mb-6">
     <div class="flex items-center justify-between mb-4">
       <div>
-        <h3 class="text-lg font-semibold" style="color: var(--ink);">Overview</h3>
-        <p class="text-sm" style="color: var(--ink-light);">Patients in a month
-          <span style="color: var(--success); font-weight: 500;"> ↗ 53.82%</span>
-        </p>
+        <h3 class="text-lg font-semibold" style="color: var(--ink);">Patient & Order Overview</h3>
+        <p class="text-sm" style="color: var(--ink-light);">Monthly activity trends</p>
       </div>
-      <select class="btn btn-outline">
-        <option>Yearly</option>
-        <option>Monthly</option>
-        <option>Weekly</option>
-      </select>
     </div>
     <div style="height: 300px; padding: 1rem;">
       <canvas id="patientChart"></canvas>
@@ -2789,41 +2788,45 @@ function getInitials(first, last){
 
 /* Metrics (dashboard) */
 if (<?php echo json_encode($page==='dashboard'); ?>) {
-  (async()=>{ try{const m=await api('action=metrics'); $('#m-patients').textContent=m.metrics.patients; $('#m-pending').textContent=m.metrics.pending; $('#m-active').textContent=m.metrics.active_orders;}catch(e){} })();
+  (async()=>{ try{const m=await api('action=metrics'); $('#m-patients').textContent=m.metrics.patients; $('#m-pending').textContent=m.metrics.pending; $('#m-active').textContent=m.metrics.active_orders; $('#m-total').textContent=m.metrics.total_orders;}catch(e){} })();
 
   // Initialize Chart.js for patient growth visualization
   const ctx = document.getElementById('patientChart');
   if (ctx) {
-    new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-        datasets: [{
-          label: 'New Patients',
-          data: [12, 19, 15, 25, 22, 30, 35, 42, 38, 45, 50, 58],
-          borderColor: '#4DB8A8',
-          backgroundColor: 'rgba(77, 184, 168, 0.1)',
-          tension: 0.4,
-          fill: true,
-          pointRadius: 4,
-          pointHoverRadius: 6,
-          pointBackgroundColor: '#4DB8A8',
-          pointBorderColor: '#fff',
-          pointBorderWidth: 2
-        }, {
-          label: 'Active Orders',
-          data: [8, 12, 10, 18, 15, 22, 25, 30, 28, 35, 38, 42],
-          borderColor: '#10B981',
-          backgroundColor: 'rgba(16, 185, 129, 0.1)',
-          tension: 0.4,
-          fill: true,
-          pointRadius: 4,
-          pointHoverRadius: 6,
-          pointBackgroundColor: '#10B981',
-          pointBorderColor: '#fff',
-          pointBorderWidth: 2
-        }]
-      },
+    // Fetch real chart data
+    (async () => {
+      try {
+        const chartData = await api('action=chart_data');
+        new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: chartData.chart.months,
+            datasets: [{
+              label: 'New Patients',
+              data: chartData.chart.patients,
+              borderColor: '#4DB8A8',
+              backgroundColor: 'rgba(77, 184, 168, 0.1)',
+              tension: 0.4,
+              fill: true,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              pointBackgroundColor: '#4DB8A8',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2
+            }, {
+              label: 'New Orders',
+              data: chartData.chart.orders,
+              borderColor: '#10B981',
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              tension: 0.4,
+              fill: true,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              pointBackgroundColor: '#10B981',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2
+            }]
+          },
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -2895,7 +2898,11 @@ if (<?php echo json_encode($page==='dashboard'); ?>) {
           mode: 'index'
         }
       }
-    });
+        });
+      } catch (error) {
+        console.error('Failed to load chart data:', error);
+      }
+    })();
   }
 }
 
