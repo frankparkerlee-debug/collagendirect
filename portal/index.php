@@ -652,48 +652,90 @@ if ($action) {
   }
 
   if ($action==='message.send'){
-    $recipient = trim((string)($_POST['recipient_type'] ?? ''));
-    $subject = trim((string)($_POST['subject'] ?? ''));
-    $body = trim((string)($_POST['body'] ?? ''));
-    $patientId = trim((string)($_POST['patient_id'] ?? ''));
+    try {
+      $recipient = trim((string)($_POST['recipient_type'] ?? ''));
+      $subject = trim((string)($_POST['subject'] ?? ''));
+      $body = trim((string)($_POST['body'] ?? ''));
+      $patientId = trim((string)($_POST['patient_id'] ?? ''));
 
-    if ($subject === '') jerr('Subject is required');
-    if ($body === '') jerr('Message body is required');
-    if (!in_array($recipient, ['all_admins', 'manufacturer'])) jerr('Invalid recipient');
+      if ($subject === '') jerr('Subject is required');
+      if ($body === '') jerr('Message body is required');
 
-    // Get sender info
-    $senderName = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
+      // Physicians can only send to CollagenDirect (all_admins)
+      // This allows super admin, assigned employee, and manufacturer to view
+      if ($userRole === 'physician' || $userRole === 'practice_admin') {
+        $recipient = 'collagendirect';
+      } elseif (!in_array($recipient, ['collagendirect', 'all_admins', 'manufacturer'])) {
+        jerr('Invalid recipient');
+      }
 
-    // Insert message
-    $stmt = $pdo->prepare("
-      INSERT INTO messages (
-        sender_type, sender_id, sender_name,
-        recipient_type, recipient_id,
-        subject, body, patient_id,
-        created_at
-      ) VALUES (
-        'provider', ?, ?,
-        ?, NULL,
-        ?, ?, ?,
-        NOW()
-      )
-    ");
+      // Get sender info
+      $senderName = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
 
-    $stmt->execute([
-      $userId,
-      $senderName,
-      $recipient,
-      $subject,
-      $body,
-      $patientId ?: null
-    ]);
+      // Ensure messages table exists
+      $pdo->exec("
+        CREATE TABLE IF NOT EXISTS messages (
+          id SERIAL PRIMARY KEY,
+          sender_type VARCHAR(50) NOT NULL,
+          sender_id VARCHAR(64) NOT NULL,
+          sender_name VARCHAR(255) NOT NULL,
+          recipient_type VARCHAR(50) NOT NULL,
+          recipient_id VARCHAR(64),
+          subject VARCHAR(500) NOT NULL,
+          body TEXT NOT NULL,
+          patient_id VARCHAR(64),
+          is_read BOOLEAN DEFAULT FALSE,
+          read_at TIMESTAMP,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      ");
 
-    jok(['message_id' => $pdo->lastInsertId()]);
+      // Insert message
+      $stmt = $pdo->prepare("
+        INSERT INTO messages (
+          sender_type, sender_id, sender_name,
+          recipient_type, recipient_id,
+          subject, body, patient_id,
+          created_at
+        ) VALUES (
+          'provider', ?, ?,
+          ?, NULL,
+          ?, ?, ?,
+          NOW()
+        )
+      ");
+
+      $stmt->execute([
+        $userId,
+        $senderName,
+        $recipient,
+        $subject,
+        $body,
+        $patientId ?: null
+      ]);
+
+      jok(['message_id' => $pdo->lastInsertId()]);
+    } catch (Throwable $e) {
+      error_log('Message send error: ' . $e->getMessage());
+      jerr('Failed to send message: ' . $e->getMessage(), 500);
+    }
   }
 
   if ($action==='notifications'){
     // Get notifications based on patient and order status
     $notifications = [];
+
+    // Ensure dismissals table exists
+    $pdo->exec("
+      CREATE TABLE IF NOT EXISTS user_notification_dismissals (
+        id SERIAL PRIMARY KEY,
+        user_id VARCHAR(64) NOT NULL,
+        notif_type VARCHAR(50) NOT NULL,
+        reference_id VARCHAR(64),
+        dismissed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, notif_type, reference_id)
+      )
+    ");
 
     // Superadmins see all notifications, others see only their own
     $userFilter = ($userRole === 'superadmin') ? '' : 'p.user_id = ? AND ';
@@ -701,26 +743,34 @@ if ($action) {
 
     // 1. Patients approved by manufacturer (status = 'approved')
     $stmt = $pdo->prepare("
-      SELECT p.id, p.first_name, p.last_name, o.created_at, o.status, 'patient_approved' as notif_type
+      SELECT p.id, p.first_name, p.last_name, o.created_at, o.status, 'patient_approved' as notif_type, o.id as order_id
       FROM patients p
       JOIN orders o ON o.patient_id = p.id
       WHERE {$userFilter}o.status = 'approved' AND o.created_at >= NOW() - INTERVAL '7 days'
+        AND NOT EXISTS (
+          SELECT 1 FROM user_notification_dismissals d
+          WHERE d.user_id = ? AND d.notif_type = 'patient_approved' AND d.reference_id = o.id
+        )
       ORDER BY o.created_at DESC
       LIMIT 10
     ");
-    $stmt->execute($params);
+    $stmt->execute(array_merge($params, [$userId]));
     $approved = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // 2. Patients rejected by manufacturer (status = 'rejected')
     $stmt = $pdo->prepare("
-      SELECT p.id, p.first_name, p.last_name, o.created_at, o.status, 'patient_rejected' as notif_type
+      SELECT p.id, p.first_name, p.last_name, o.created_at, o.status, 'patient_rejected' as notif_type, o.id as order_id
       FROM patients p
       JOIN orders o ON o.patient_id = p.id
       WHERE {$userFilter}o.status = 'rejected' AND o.created_at >= NOW() - INTERVAL '7 days'
+        AND NOT EXISTS (
+          SELECT 1 FROM user_notification_dismissals d
+          WHERE d.user_id = ? AND d.notif_type = 'patient_rejected' AND d.reference_id = o.id
+        )
       ORDER BY o.created_at DESC
       LIMIT 10
     ");
-    $stmt->execute($params);
+    $stmt->execute(array_merge($params, [$userId]));
     $rejected = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // 3. Orders nearing expiration (expires_at within 30 days)
@@ -732,10 +782,14 @@ if ($action) {
         AND o.expires_at <= NOW() + INTERVAL '30 days'
         AND o.expires_at > NOW()
         AND o.status IN ('active', 'approved')
+        AND NOT EXISTS (
+          SELECT 1 FROM user_notification_dismissals d
+          WHERE d.user_id = ? AND d.notif_type = 'order_expiring' AND d.reference_id = o.id
+        )
       ORDER BY o.expires_at ASC
       LIMIT 10
     ");
-    $stmt->execute($params);
+    $stmt->execute(array_merge($params, [$userId]));
     $expiring = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Merge all notifications
@@ -749,6 +803,63 @@ if ($action) {
     });
 
     jok(['notifications' => array_slice($notifications, 0, 20)]);
+  }
+
+  if ($action==='mark_notifications_read'){
+    // Mark all notifications as read for the current user
+    // We'll create a simple table to track dismissed notifications
+
+    // First, ensure the table exists
+    $pdo->exec("
+      CREATE TABLE IF NOT EXISTS user_notification_dismissals (
+        id SERIAL PRIMARY KEY,
+        user_id VARCHAR(64) NOT NULL,
+        notif_type VARCHAR(50) NOT NULL,
+        reference_id VARCHAR(64),
+        dismissed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, notif_type, reference_id)
+      )
+    ");
+
+    // Get all current notifications
+    $userFilter = ($userRole === 'superadmin') ? '' : 'p.user_id = ? AND ';
+    $params = ($userRole === 'superadmin') ? [] : [$userId];
+
+    // Insert dismissals for all current notifications
+    $stmt = $pdo->prepare("
+      INSERT INTO user_notification_dismissals (user_id, notif_type, reference_id)
+      SELECT ?, 'patient_approved', o.id
+      FROM patients p
+      JOIN orders o ON o.patient_id = p.id
+      WHERE {$userFilter}o.status = 'approved' AND o.created_at >= NOW() - INTERVAL '7 days'
+      ON CONFLICT (user_id, notif_type, reference_id) DO NOTHING
+    ");
+    $stmt->execute(array_merge([$userId], $params));
+
+    $stmt = $pdo->prepare("
+      INSERT INTO user_notification_dismissals (user_id, notif_type, reference_id)
+      SELECT ?, 'patient_rejected', o.id
+      FROM patients p
+      JOIN orders o ON o.patient_id = p.id
+      WHERE {$userFilter}o.status = 'rejected' AND o.created_at >= NOW() - INTERVAL '7 days'
+      ON CONFLICT (user_id, notif_type, reference_id) DO NOTHING
+    ");
+    $stmt->execute(array_merge([$userId], $params));
+
+    $stmt = $pdo->prepare("
+      INSERT INTO user_notification_dismissals (user_id, notif_type, reference_id)
+      SELECT ?, 'order_expiring', o.id
+      FROM patients p
+      JOIN orders o ON o.patient_id = p.id
+      WHERE {$userFilter}o.expires_at IS NOT NULL
+        AND o.expires_at <= NOW() + INTERVAL '30 days'
+        AND o.expires_at > NOW()
+        AND o.status IN ('active', 'approved')
+      ON CONFLICT (user_id, notif_type, reference_id) DO NOTHING
+    ");
+    $stmt->execute(array_merge([$userId], $params));
+
+    jok(['message' => 'All notifications marked as read']);
   }
 
   // Practice Management (practice admins only)
@@ -1909,7 +2020,7 @@ if ($page==='logout'){
               <!-- Notifications will be populated by JS -->
             </div>
             <div class="dropdown-footer">
-              <button class="btn btn-ghost">Mark all as read</button>
+              <button class="btn btn-ghost" id="mark-all-read-btn">Mark all as read</button>
               <button class="btn btn-primary" style="margin-left: 0.5rem;">View All</button>
             </div>
           </div>
@@ -2104,16 +2215,32 @@ if ($page==='logout'){
         <button class="dialog-close" onclick="document.getElementById('dlg-compose-message').close()">×</button>
       </div>
       <div class="dialog-body">
+        <?php if ($userRole === 'physician' || $userRole === 'practice_admin'): ?>
+        <!-- Physicians can only message CollagenDirect -->
+        <div style="margin-bottom: 1rem;">
+          <label class="block text-sm font-medium mb-1">To</label>
+          <div style="padding: 0.5rem 0.75rem; background: #f8fafc; border: 1px solid var(--border); border-radius: 0.375rem; color: var(--ink);">
+            CollagenDirect Support Team
+          </div>
+          <input type="hidden" id="compose-recipient" value="collagendirect">
+          <div style="font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem;">
+            Your message will be visible to CollagenDirect administrators and staff
+          </div>
+        </div>
+        <?php else: ?>
+        <!-- Super admins and other roles can choose recipients -->
         <div style="margin-bottom: 1rem;">
           <label class="block text-sm font-medium mb-1">To</label>
           <select id="compose-recipient" class="w-full">
-            <option value="all_admins">CollagenDirect Support Team</option>
+            <option value="collagendirect">CollagenDirect Support Team</option>
             <option value="manufacturer">Manufacturer</option>
+            <option value="all_admins">All Administrators</option>
           </select>
           <div style="font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem;">
             Your message will be sent to the appropriate team
           </div>
         </div>
+        <?php endif; ?>
         <div style="margin-bottom: 1rem;">
           <label class="block text-sm font-medium mb-1">Subject*</label>
           <input type="text" id="compose-subject" class="w-full" placeholder="Enter message subject" required>
@@ -3345,6 +3472,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Populate notifications
   populateNotifications();
+
+  // Mark all as read button
+  const markAllReadBtn = document.getElementById('mark-all-read-btn');
+  if (markAllReadBtn) {
+    markAllReadBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      try {
+        markAllReadBtn.disabled = true;
+        markAllReadBtn.textContent = 'Marking...';
+        await api('action=mark_notifications_read');
+        // Refresh notifications
+        await populateNotifications();
+        markAllReadBtn.textContent = 'Mark all as read';
+      } catch (error) {
+        console.error('Failed to mark notifications as read:', error);
+        alert('Failed to mark notifications as read');
+      } finally {
+        markAllReadBtn.disabled = false;
+      }
+    });
+  }
 });
 
 /* Populate notification dropdown */
