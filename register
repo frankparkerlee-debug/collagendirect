@@ -859,47 +859,30 @@
   <!-- Registration Form JavaScript -->
   <script>
   (function () {
-    // Configuration
-    const CONFIG = {
-      states: ["AL","AK","AZ","AR","CA","CO","CT","DC","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","MA","MD","ME","MI","MN","MO","MS","MT","NC","ND","NE","NH","NJ","NM","NV","NY","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VA","VT","WA","WI","WV","WY"],
-      minPasswordLength: 8,
-      requiredFields: ['email', 'password', 'practiceName', 'firstName', 'lastName', 'npi', 'address', 'city', 'state', 'zip', 'phone']
-    };
+    // Single source of truth for US states
+    const STATES = ["AL","AK","AZ","AR","CA","CO","CT","DC","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","MA","MD","ME","MI","MN","MO","MS","MT","NC","ND","NE","NH","NJ","NM","NV","NY","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VA","VT","WA","WI","WV","WY"];
 
-    // DOM Elements
-    const elements = {
-      form: document.getElementById('registerForm'),
-      dmeBlock: document.getElementById('dmeBlock'),
-      hasDME: document.getElementById('hasDME'),
-      submitBtn: document.getElementById('submitBtn'),
-      npiInput: document.getElementById('npi'),
-      npiStatus: document.getElementById('npiStatus'),
-      btnValidateNPI: document.getElementById('btnValidateNPI'),
-      dmeInputs: {
-        number: document.getElementById('dmeNumber'),
-        state: document.getElementById('dmeState'),
-        expiry: document.getElementById('dmeExpiry')
-      }
-    };
-    // Constants and Configurations
-    const states = ["AL","AK","AZ","AR","CA","CO","CT","DC","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","MA","MD","ME","MI","MN","MO","MS","MT","NC","ND","NE","NH","NJ","NM","NV","NY","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VA","VT","WA","WI","WV","WY"];
-    const MIN_PASSWORD_LENGTH = 8;
-    const REQUIRED_FIELDS = ['email', 'password', 'practiceName', 'firstName', 'lastName', 'npi', 'address', 'city', 'state', 'zip', 'phone'];
+    // Utility: populate a select with states
+    function populateStateSelect(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      // Clear existing options
+      el.innerHTML = '';
+      const placeholder = new Option('Select', '');
+      el.append(placeholder);
+      STATES.forEach(s => el.append(new Option(s, s)));
+    }
 
-    // UI Elements
-    const elements = {
-      form: document.getElementById('registerForm'),
-      dmeBlock: document.getElementById('dmeBlock'),
-      hasDME: document.getElementById('hasDME'),
-      submitBtn: document.getElementById('submitBtn'),
-      npiInput: document.getElementById('npi'),
-      npiStatus: document.getElementById('npiStatus'),
-      btnValidateNPI: document.getElementById('btnValidateNPI')
-    };
+    // Populate the relevant selects once DOM is ready
+    ['state', 'licenseState', 'dmeState'].forEach(populateStateSelect);
 
-    // Utility Functions
+    // Default sign date
+    const signDate = document.getElementById('signDate');
+    if (signDate) signDate.value = new Date().toISOString().slice(0,10);
+
+    // Simple NPI checksum validation
     function isValidNPI(npi) {
-      if(!/^\d{10}$/.test(npi)) return false;
+      if (!/^\d{10}$/.test(npi)) return false;
       const prefix = '80840' + npi.slice(0,9);
       const digits = prefix.split('').map(Number);
       for (let i = digits.length - 1; i >= 0; i -= 2) {
@@ -911,142 +894,38 @@
       return check === Number(npi[9]);
     }
 
-    async function csrf() {
-      const r = await fetch('/api/csrf.php', {credentials:'include'});
-      return (await r.json()).csrfToken;
-    }
-
-    function showError(message) {
-      alert(message); // Could be enhanced to show inline errors
-    }
-
-    function validateForm() {
-      // Basic form validation
-      if (!elements.form.checkValidity()) {
-        showError('Please complete all required fields.');
-        return false;
-      }
-
-      // NPI validation
-      if (!isValidNPI(elements.npiInput.value.trim())) {
-        showError('Please validate your NPI.');
-        return false;
-      }
-
-      // Agreement validation
-      if (!document.getElementById('agreeMSA').checked || !document.getElementById('agreeBAA').checked) {
-        showError('You must agree to the MSA and BAA.');
-        return false;
-      }
-
-      return true;
-    }
-    
-    // UI Elements
-    const elements = {
-      dmeBlock: document.getElementById('dmeBlock'),
-      dmeCheckbox: document.getElementById('hasDME'),
-      form: document.getElementById('registerForm'),
-      submitBtn: document.getElementById('submitBtn'),
-      npiInput: document.getElementById('npi'),
-      npiStatus: document.getElementById('npiStatus')
-    };
-    for (const id of ["state","licenseState","dmeState"]) {
-      const el = document.getElementById(id);
-      if (!el) continue;
-      el.append(new Option("Select",""));
-      states.forEach(s => el.append(new Option(s, s)));
-    }
-
-    // Default sign date
-    const today = new Date().toISOString().slice(0,10);
-    const signDate = document.getElementById('signDate');
-    if (signDate) signDate.value = today;
-
-    // Initialize UI elements
-    const dmeBlock = document.getElementById('dmeBlock');
-    const physiciansBlock = document.getElementById('physiciansBlock');
-    const addPhysicianBtn = document.getElementById('addPhysician');
-
-    // Role change handler
-    document.querySelectorAll('input[name="role"]').forEach(input => {
-      input.addEventListener('change', (e) => {
-        const role = e.target.value;
-        
-        // Show/hide DME fields
-        dmeBlock.hidden = !role.includes('dme_');
-        if (role.includes('dme_')) {
-          document.getElementById('dmeNumber').required = true;
-          document.getElementById('dmeState').required = true;
-          document.getElementById('dmeExpiry').required = true;
-        } else {
-          document.getElementById('dmeNumber').required = false;
-          document.getElementById('dmeState').required = false;
-          document.getElementById('dmeExpiry').required = false;
-        }
-
-        // Show/hide physician fields for practice manager
-        physiciansBlock.hidden = role !== 'practice_manager';
-      });
-    });
-
-    // NPI validation
-    function isValidNPI(npi){
-      if(!/^\d{10}$/.test(npi)) return false;
-      const prefix = '80840' + npi.slice(0,9);
-      const digits = prefix.split('').map(Number);
-      for (let i = digits.length - 1; i >= 0; i -= 2){ digits[i] *= 2; if (digits[i] > 9) digits[i] -= 9; }
-      const sum = digits.reduce((a,b)=>a+b,0);
-      const check = (10 - (sum % 10)) % 10;
-      return check === Number(npi[9]);
-    }
-
+    // NPI validation button
     const btnValidate = document.getElementById('btnValidateNPI');
     const npiInput = document.getElementById('npi');
     const npiStatus = document.getElementById('npiStatus');
-    btnValidate?.addEventListener('click',()=>{
+    btnValidate?.addEventListener('click', () => {
       const ok = isValidNPI(npiInput.value.trim());
       npiStatus.textContent = ok ? 'NPI format valid (checksum passed).' : 'Invalid NPI number';
       npiStatus.className = 'status ' + (ok ? 'ok' : 'bad');
     });
 
-    // CSRF helper
-    async function csrf(){ const r = await fetch('/api/csrf.php',{credentials:'include'}); return (await r.json()).csrfToken; }
-
-    // Handle role selection changes
-    const roleInputs = document.querySelectorAll('input[name="role"]');
+    // Toggle DME block when checkbox changes
+    const hasDME = document.getElementById('hasDME');
     const dmeBlock = document.getElementById('dmeBlock');
-    const physiciansBlock = document.getElementById('physiciansBlock');
-    const addPhysicianBtn = document.getElementById('addPhysician');
-
-    roleInputs.forEach(input => {
-      input.addEventListener('change', (e) => {
-        const role = e.target.value;
-        
-        // Show/hide DME fields
-        dmeBlock.hidden = !role.includes('dme_');
-        if (role.includes('dme_')) {
-          document.getElementById('dmeNumber').required = true;
-          document.getElementById('dmeState').required = true;
-          document.getElementById('dmeExpiry').required = true;
-        } else {
-          document.getElementById('dmeNumber').required = false;
-          document.getElementById('dmeState').required = false;
-          document.getElementById('dmeExpiry').required = false;
-        }
-
-        // Show/hide physician fields for practice manager
-        physiciansBlock.hidden = role !== 'practice_manager';
+    if (hasDME && dmeBlock) {
+      hasDME.addEventListener('change', () => {
+        dmeBlock.hidden = !hasDME.checked;
+        ['dmeNumber','dmeState','dmeExpiry'].forEach(id => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.required = hasDME.checked;
+        });
       });
-    });
+    }
 
-    // Add Physician functionality
+    // Add physician entries
     let physicianCounter = 0;
+    const addPhysicianBtn = document.getElementById('addPhysician');
     addPhysicianBtn?.addEventListener('click', () => {
       physicianCounter++;
-      const template = document.createElement('div');
-      template.className = 'physician-entry';
-      template.innerHTML = `
+      const container = document.createElement('div');
+      container.className = 'physician-entry';
+      container.innerHTML = `
         <button type="button" class="remove-physician" title="Remove physician">&times;</button>
         <div class="form-grid">
           <div>
@@ -1063,83 +942,89 @@
           </div>
           <div>
             <label for="phys_state_${physicianCounter}">License State</label>
-            <select id="phys_state_${physicianCounter}" class="physician-state" required>
-              <option value="">Select</option>
-              ${states.map(s => `<option value="${s}">${s}</option>`).join('')}
-            </select>
+            <select id="phys_state_${physicianCounter}" class="physician-state" required></select>
           </div>
         </div>
       `;
-      
-      template.querySelector('.remove-physician').addEventListener('click', () => {
-        template.remove();
+      // populate the select inside the new entry
+      container.querySelectorAll('select').forEach(sel => {
+        sel.append(new Option('Select',''));
+        STATES.forEach(s => sel.append(new Option(s, s)));
       });
-      
-      document.getElementById('physiciansList').appendChild(template);
+      container.querySelector('.remove-physician')?.addEventListener('click', () => container.remove());
+      document.getElementById('physiciansList')?.appendChild(container);
     });
 
-    // Submit handler -> POST /api/register.php
+    // CSRF helper
+    async function getCsrfToken() {
+      try {
+        const r = await fetch('/api/csrf.php', { credentials: 'include' });
+        const j = await r.json();
+        return j.csrfToken;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // Submit handler
     const form = document.getElementById('registerForm');
     const submitBtn = document.getElementById('submitBtn');
-
     submitBtn?.addEventListener('click', async () => {
       if (!form.checkValidity()) { alert('Please complete all required fields.'); return; }
       if (!isValidNPI(npiInput.value.trim())) { alert('Please validate your NPI.'); return; }
-      if (!document.getElementById('agreeMSA').checked || !document.getElementById('agreeBAA').checked) {
-        alert('You must agree to the MSA and BAA.'); return;
-      }
+      if (!document.getElementById('agreeMSA').checked || !document.getElementById('agreeBAA').checked) { alert('You must agree to the MSA and BAA.'); return; }
 
-      const role = document.querySelector('input[name="role"]:checked').value;
-      
+      // role may not exist; default to practice_admin if absent
+      const roleInput = document.querySelector('input[name="role"]:checked');
+      const role = roleInput ? roleInput.value : 'practice_admin';
+
       const payload = {
-        email: document.getElementById('email').value.trim(),
-        password: document.getElementById('password').value,
-        practiceName: document.getElementById('practiceName').value.trim(),
-        firstName: document.getElementById('firstName').value.trim(),
-        lastName: document.getElementById('lastName').value.trim(),
-        npi: document.getElementById('npi').value.trim(),
-        license: document.getElementById('license').value.trim(),
-        licenseState: document.getElementById('licenseState').value,
-        licenseExpiry: document.getElementById('licenseExpiry').value,
-        role: role,
-        address: document.getElementById('address').value.trim(),
-        city: document.getElementById('city').value.trim(),
-        state: document.getElementById('state').value,
-        zip: document.getElementById('zip').value.trim(),
-        phone: document.getElementById('phone')?.value || null,
-        agreeMSA: document.getElementById('agreeMSA').checked,
-        agreeBAA: document.getElementById('agreeBAA').checked,
-        signName: document.getElementById('signName').value.trim(),
-        signTitle: document.getElementById('signTitle').value.trim(),
-        signDate: document.getElementById('signDate').value
+        email: (document.getElementById('email')?.value || '').trim(),
+        password: document.getElementById('password')?.value || '',
+        practiceName: (document.getElementById('practiceName')?.value || '').trim(),
+        firstName: (document.getElementById('firstName')?.value || '').trim(),
+        lastName: (document.getElementById('lastName')?.value || '').trim(),
+        npi: (document.getElementById('npi')?.value || '').trim(),
+        license: (document.getElementById('license')?.value || '').trim(),
+        licenseState: document.getElementById('licenseState')?.value || '',
+        licenseExpiry: document.getElementById('licenseExpiry')?.value || '',
+        role,
+        address: (document.getElementById('address')?.value || '').trim(),
+        city: (document.getElementById('city')?.value || '').trim(),
+        state: document.getElementById('state')?.value || '',
+        zip: (document.getElementById('zip')?.value || '').trim(),
+        phone: (document.getElementById('phone')?.value || '') || null,
+        agreeMSA: !!document.getElementById('agreeMSA')?.checked,
+        agreeBAA: !!document.getElementById('agreeBAA')?.checked,
+        signName: (document.getElementById('signName')?.value || '').trim(),
+        signTitle: (document.getElementById('signTitle')?.value || '').trim(),
+        signDate: document.getElementById('signDate')?.value || ''
       };
 
-      // Add DME information for DME roles
-      if (role.includes('dme_')) {
-        payload.dmeNumber = document.getElementById('dmeNumber').value.trim();
-        payload.dmeState = document.getElementById('dmeState').value;
-        payload.dmeExpiry = document.getElementById('dmeExpiry').value;
+      if (role.includes('dme')) {
+        payload.dmeNumber = (document.getElementById('dmeNumber')?.value || '').trim();
+        payload.dmeState = document.getElementById('dmeState')?.value || '';
+        payload.dmeExpiry = document.getElementById('dmeExpiry')?.value || '';
       }
 
-      // Add physicians list for practice manager role
       if (role === 'practice_manager') {
         payload.physicians = Array.from(document.querySelectorAll('.physician-entry')).map(entry => ({
-          name: entry.querySelector('.physician-name').value.trim(),
-          npi: entry.querySelector('.physician-npi').value.trim(),
-          license: entry.querySelector('.physician-license').value.trim(),
-          licenseState: entry.querySelector('.physician-state').value
+          name: (entry.querySelector('.physician-name')?.value || '').trim(),
+          npi: (entry.querySelector('.physician-npi')?.value || '').trim(),
+          license: (entry.querySelector('.physician-license')?.value || '').trim(),
+          licenseState: entry.querySelector('.physician-state')?.value || ''
         }));
       }
 
       try {
-        const token = await csrf();
+        const token = await getCsrfToken();
         const res = await fetch('/api/register.php', {
-          method:'POST',
-          headers:{'Content-Type':'application/json','x-csrf-token':token},
-          credentials:'include',
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-csrf-token': token || '' },
+          credentials: 'include',
           body: JSON.stringify(payload)
         });
-        const data = await res.json().catch(()=>({}));
+        const data = await res.json().catch(() => ({}));
         if (res.status === 201 || data.ok) {
           alert('Registration submitted successfully!');
           location.href = '/portal';
