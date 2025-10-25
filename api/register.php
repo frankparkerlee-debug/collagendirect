@@ -194,7 +194,7 @@ try {
   json_out(201, ['ok' => true, 'message' => 'Registration successful']);
 
 } catch (Throwable $e) {
-  // Uncomment during troubleshooting:
-  // json_out(500, ['error'=>'Server error', 'detail'=>$e->getMessage()]);
-  json_out(500, ['error' => 'Server error']);
+  // Temporarily enabled for debugging
+  json_out(500, ['error'=>'Server error', 'detail'=>$e->getMessage()]);
+  // json_out(500, ['error' => 'Server error']);
 }
