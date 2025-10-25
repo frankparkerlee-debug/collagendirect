@@ -1,0 +1,6 @@
+# No external Python dependencies are required for the repository's included scripts/tests.
+# The Python test under `portal/test_order_flow.py` uses only the standard library (sqlite3, os, secrets, datetime).
+# This file exists to satisfy platforms (like Render) that look for a requirements.txt for Python services.
+
+# If you later add Python packages, list them here, one per line, e.g.:
+# requests==2.31.0
