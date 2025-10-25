@@ -31,9 +31,9 @@ try {
         echo "  Email: {$superadmin['email']}\n";
         echo "  Role: {$superadmin['role']}\n\n";
 
-        // Update the credentials
-        $updateStmt = $pdo->prepare("UPDATE users SET email = ?, password_hash = ?, updated_at = NOW() WHERE id = ?");
-        $updateStmt->execute([$newEmail, $passwordHash, $superadmin['id']]);
+        // Update the credentials including name
+        $updateStmt = $pdo->prepare("UPDATE users SET email = ?, password_hash = ?, first_name = ?, last_name = ?, updated_at = NOW() WHERE id = ?");
+        $updateStmt->execute([$newEmail, $passwordHash, 'Parker', 'Lee', $superadmin['id']]);
 
         echo "✓ Updated superadmin credentials\n\n";
     } else {
