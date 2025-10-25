@@ -194,7 +194,11 @@ try {
   json_out(201, ['ok' => true, 'message' => 'Registration successful']);
 
 } catch (Throwable $e) {
-  // Log error for debugging
-  error_log("Registration error: " . $e->getMessage() . "\n" . $e->getTraceAsString());
-  json_out(500, ['error' => 'Server error. Please contact support.']);
+  // Temporarily show detailed errors for debugging
+  json_out(500, [
+    'error' => 'Server error',
+    'message' => $e->getMessage(),
+    'file' => $e->getFile(),
+    'line' => $e->getLine()
+  ]);
 }
