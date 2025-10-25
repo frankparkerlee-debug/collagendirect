@@ -651,6 +651,46 @@ if ($action) {
     jok();
   }
 
+  if ($action==='message.send'){
+    $recipient = trim((string)($_POST['recipient_type'] ?? ''));
+    $subject = trim((string)($_POST['subject'] ?? ''));
+    $body = trim((string)($_POST['body'] ?? ''));
+    $patientId = trim((string)($_POST['patient_id'] ?? ''));
+
+    if ($subject === '') jerr('Subject is required');
+    if ($body === '') jerr('Message body is required');
+    if (!in_array($recipient, ['all_admins', 'manufacturer'])) jerr('Invalid recipient');
+
+    // Get sender info
+    $senderName = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
+
+    // Insert message
+    $stmt = $pdo->prepare("
+      INSERT INTO messages (
+        sender_type, sender_id, sender_name,
+        recipient_type, recipient_id,
+        subject, body, patient_id,
+        created_at
+      ) VALUES (
+        'provider', ?, ?,
+        ?, NULL,
+        ?, ?, ?,
+        NOW()
+      )
+    ");
+
+    $stmt->execute([
+      $userId,
+      $senderName,
+      $recipient,
+      $subject,
+      $body,
+      $patientId ?: null
+    ]);
+
+    jok(['message_id' => $pdo->lastInsertId()]);
+  }
+
   if ($action==='notifications'){
     // Get notifications based on patient and order status
     $notifications = [];
@@ -2055,6 +2095,53 @@ if ($page==='logout'){
       </div>
     </div>
   </section>
+
+  <!-- Compose Message Dialog -->
+  <dialog id="dlg-compose-message" class="dialog">
+    <div class="dialog-content" style="max-width: 600px;">
+      <div class="dialog-header">
+        <h3 class="dialog-title">Compose Message</h3>
+        <button class="dialog-close" onclick="document.getElementById('dlg-compose-message').close()">×</button>
+      </div>
+      <div class="dialog-body">
+        <div style="margin-bottom: 1rem;">
+          <label class="block text-sm font-medium mb-1">To</label>
+          <select id="compose-recipient" class="w-full">
+            <option value="all_admins">CollagenDirect Support Team</option>
+            <option value="manufacturer">Manufacturer</option>
+          </select>
+          <div style="font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem;">
+            Your message will be sent to the appropriate team
+          </div>
+        </div>
+        <div style="margin-bottom: 1rem;">
+          <label class="block text-sm font-medium mb-1">Subject*</label>
+          <input type="text" id="compose-subject" class="w-full" placeholder="Enter message subject" required>
+        </div>
+        <div style="margin-bottom: 1rem;">
+          <label class="block text-sm font-medium mb-1">Related to Patient (Optional)</label>
+          <select id="compose-patient" class="w-full">
+            <option value="">Not related to a specific patient</option>
+            <!-- Will be populated dynamically -->
+          </select>
+        </div>
+        <div style="margin-bottom: 1rem;">
+          <label class="block text-sm font-medium mb-1">Message*</label>
+          <textarea id="compose-body" class="w-full" rows="8" placeholder="Type your message here..." required></textarea>
+        </div>
+        <div id="compose-error" style="color: var(--error); font-size: 0.875rem; margin-top: 0.5rem; display: none;"></div>
+      </div>
+      <div class="dialog-footer">
+        <button class="btn btn-ghost" onclick="document.getElementById('dlg-compose-message').close()">Cancel</button>
+        <button class="btn btn-primary" id="btn-send-message">
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right: 0.5rem;">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+          </svg>
+          Send Message
+        </button>
+      </div>
+    </div>
+  </dialog>
 
 <?php elseif ($page==='billing'): ?>
   <?php if ($isReferralOnly): header('Location: ?page=dashboard'); exit; endif; ?>
@@ -5202,6 +5289,105 @@ if (<?php echo json_encode($page === 'messages'); ?>) {
       console.error('Failed to mark message as read:', e);
     }
   }
+
+  // Compose button - open dialog and load patients
+  document.getElementById('btn-compose')?.addEventListener('click', async () => {
+    // Clear form
+    document.getElementById('compose-recipient').value = 'all_admins';
+    document.getElementById('compose-subject').value = '';
+    document.getElementById('compose-patient').value = '';
+    document.getElementById('compose-body').value = '';
+    document.getElementById('compose-error').style.display = 'none';
+
+    // Load patients for dropdown
+    try {
+      const data = await api('action=patients&limit=100');
+      const patients = data.rows || [];
+      const patientSelect = document.getElementById('compose-patient');
+
+      // Keep the first "Not related" option
+      patientSelect.innerHTML = '<option value="">Not related to a specific patient</option>';
+
+      patients.forEach(p => {
+        const fullName = `${p.first_name || ''} ${p.last_name || ''}`.trim();
+        const option = document.createElement('option');
+        option.value = p.id;
+        option.textContent = `${fullName} ${p.mrn ? '(' + p.mrn + ')' : ''}`;
+        patientSelect.appendChild(option);
+      });
+    } catch (e) {
+      console.error('Failed to load patients:', e);
+    }
+
+    document.getElementById('dlg-compose-message').showModal();
+  });
+
+  // Send message button
+  document.getElementById('btn-send-message')?.addEventListener('click', async () => {
+    const btn = document.getElementById('btn-send-message');
+    const errorDiv = document.getElementById('compose-error');
+
+    const recipient = document.getElementById('compose-recipient').value;
+    const subject = document.getElementById('compose-subject').value.trim();
+    const body = document.getElementById('compose-body').value.trim();
+    const patientId = document.getElementById('compose-patient').value;
+
+    if (!subject) {
+      errorDiv.textContent = 'Subject is required';
+      errorDiv.style.display = 'block';
+      return;
+    }
+
+    if (!body) {
+      errorDiv.textContent = 'Message body is required';
+      errorDiv.style.display = 'block';
+      return;
+    }
+
+    try {
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+      errorDiv.style.display = 'none';
+
+      const response = await fetch('?action=message.send', {
+        method: 'POST',
+        body: fd({
+          recipient_type: recipient,
+          subject: subject,
+          body: body,
+          patient_id: patientId
+        })
+      });
+
+      const result = await response.json();
+
+      if (!result.ok) {
+        throw new Error(result.error || 'Failed to send message');
+      }
+
+      // Close dialog
+      document.getElementById('dlg-compose-message').close();
+
+      // Show success message
+      alert('Message sent successfully!');
+
+      // Reload messages list
+      const data = await api('action=messages');
+      allMessages = data.messages || [];
+      renderMessagesList(allMessages);
+    } catch (e) {
+      errorDiv.textContent = e.message;
+      errorDiv.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = `
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right: 0.5rem;">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+        </svg>
+        Send Message
+      `;
+    }
+  });
 }
 
 /* ============================================================
