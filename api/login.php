@@ -28,9 +28,10 @@ if (!$user || !password_verify($pass, (string)$user['password_hash'])) {
 session_regenerate_id(true);
 $_SESSION['user_id'] = $user['id'];
 
-// Set admin session if user has admin role
+// Set admin session ONLY for superadmin (CollagenDirect business users)
+// practice_admin is for practice managers and should NOT access /admin
 $userRole = $user['role'] ?? 'physician';
-if (in_array($userRole, ['superadmin', 'practice_admin'])) {
+if ($userRole === 'superadmin') {
   $_SESSION['admin'] = [
     'id' => $user['id'],
     'email' => $user['email'],
@@ -53,9 +54,9 @@ setcookie(session_name(), session_id(), [
 
 // Determine redirect based on role
 $redirectUrl = '/portal/';
-if (in_array($userRole, ['superadmin', 'practice_admin'])) {
-  // Check if there's a specific 'next' parameter requesting admin
-  // Otherwise default to portal for superadmins (they can access both)
+if ($userRole === 'superadmin') {
+  // Superadmins can access both portal and admin
+  // Default to portal (they can navigate to admin if needed)
   $redirectUrl = '/portal/';
 }
 
