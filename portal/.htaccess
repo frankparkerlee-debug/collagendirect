@@ -1,0 +1,12 @@
+# /public/portal/.htaccess
+Options -Indexes
+RewriteEngine On
+DirectoryIndex index.php
+
+# If the requested file or folder exists, serve it
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Otherwise, route everything to /public/portal/index.php
+RewriteRule ^ index.php [L,QSA]

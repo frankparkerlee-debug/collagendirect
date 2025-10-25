@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CollagenDirect — Contact</title>
+  <meta name="description" content="Contact CollagenDirect for physician support, sales & partnerships, and general inquiries. We respond within one business day." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#ffffff;--panel:#f6f8fb;--text:#1e2a38;--muted:#5c6b80;--line:rgba(0,0,0,.08);
+      --brand-teal:#47c6be;--brand-blue:#2a78ff;--brand-orange:#ff7a3d;
+      --radius:16px;--shadow:0 10px 24px rgba(7,16,40,.08);--max:1180px;
+      --safe-bottom:env(safe-area-inset-bottom,0px);
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+    img{max-width:100%;display:block}
+    a{text-decoration:none;color:inherit}
+    a[target="_blank"]{text-decoration:underline}
+    .container{max-width:var(--max);margin:0 auto;padding:0 20px}
+
+    /* Header (desktop) */
+    header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);backdrop-filter:saturate(160%) blur(8px);border-bottom:1px solid var(--line)}
+    .nav{display:flex;align-items:center;justify-content:space-between;height:74px}
+    .brand{display:flex;align-items:center;gap:14px}
+    .brand img{height:34px;width:auto}
+    .brand .title{font-weight:800;font-size:1.05rem;letter-spacing:.4px}
+    .brand .subtitle{font-size:.78rem;color:var(--muted)}
+    .nav ul{display:flex;gap:18px;list-style:none}
+    .link{padding:10px 12px;border-radius:10px;font-weight:600;color:#3c4657}
+    .link:hover{background:var(--panel)}
+    .cta{display:flex;gap:10px;align-items:center}
+    .btn{padding:12px 16px;border-radius:12px;font-weight:700;cursor:pointer;border:1px solid transparent;display:inline-flex;align-items:center;justify-content:center}
+    .btn.primary{background:var(--brand-teal);color:#0a1b1a}
+    .btn.ghost{background:#fff;border:1px solid var(--line);color:#1e2a38}
+    .hamburger{display:none;border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 12px;font-weight:700}
+
+    /* Mobile menu panel */
+    .mobile-menu{display:none;border-top:1px solid var(--line);background:#fff}
+    .mobile-menu a{display:block;padding:14px 20px;border-bottom:1px solid var(--line);font-weight:600;color:#3c4657}
+    .mobile-open .mobile-menu{display:block}
+
+    /* Hero banner */
+    .hero{position:relative;min-height:360px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#fdfefe,#f4f7fb)}
+    .hero-wrap{min-height:360px;display:flex;align-items:center}
+    h1{font-size:2.6rem;font-weight:900;color:#1a2430}
+    .lead{color:var(--muted);font-size:1.05rem;max-width:60ch;margin-top:8px}
+    .chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+    .chip{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:#eef4ff;color:#2753ff;font-weight:600;font-size:.85rem}
+
+    /* Sections */
+    .section{padding:48px 0}
+    .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+    .card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+    .muted{color:var(--muted)}
+    label{display:block;font-weight:700;font-size:.9rem;margin:.25rem 0;color:#293241}
+    input,select,textarea{width:100%;padding:12px;border-radius:12px;border:1px solid #dde2ec;background:#fbfcfe;color:#111;outline:none}
+    input:focus,select:focus,textarea:focus{border-color:var(--brand-teal);box-shadow:0 0 0 3px rgba(71,198,190,.18)}
+
+    /* Footer (same as homepage) */
+    footer{margin-top:64px;background:linear-gradient(180deg,#f7fbfb,#f6f8fb);border-top:1px solid var(--line)}
+    .footer-grid{display:grid;grid-template-columns:1.2fr .6fr .6fr .6fr;gap:24px;padding:36px 0}
+    .foot-brand{display:flex;gap:14px}
+    .foot-brand img{height:42px}
+    .foot-small{color:#6e7a93;font-size:.92rem}
+
+    /* Sticky action bar (mobile) */
+    .actionbar{display:none;position:sticky;bottom:0;z-index:60;padding:10px 16px calc(10px + var(--safe-bottom));background:rgba(255,255,255,.96);backdrop-filter:saturate(160%) blur(8px);border-top:1px solid var(--line)}
+    .actionbar .row{display:flex;gap:10px}
+    .actionbar .btn{flex:1}
+
+    /* Responsive */
+    @media (max-width:1000px){
+      .grid-3{grid-template-columns:1fr}
+      .grid-2{grid-template-columns:1fr}
+      .hero,.hero-wrap{min-height:300px}
+      h1{font-size:2.2rem}
+    }
+    @media (max-width:860px){
+      /* Slim header + mobile behavior (same pattern as Home/Products) */
+      .nav{height:60px}
+      .brand img{height:28px}
+      .brand .subtitle{display:none}
+      .nav ul{display:none}
+      .cta a.btn{display:none}     /* hide header CTAs on mobile */
+      .hamburger{display:inline-flex}
+    }
+    @media (max-width:600px){
+      .hero,.hero-wrap{min-height:260px}
+      input,select,textarea{padding:14px;border-radius:14px}
+      .btn{padding:12px 16px}
+      .actionbar{display:block}    /* show sticky action bar on mobile */
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="container nav">
+      <a href="/" class="brand" aria-label="Go to homepage">
+        <img src="assets/collagendirect.png" alt="CollagenDirect logo">
+        <div>
+          <div class="title">COLLAGEN <span style="color:var(--brand-teal)">DIRECT</span></div>
+          <div class="subtitle">Evidence-Backed Wound Therapies</div>
+        </div>
+      </a>
+
+      <ul aria-label="Primary navigation">
+        <li><a class="link" href="/products">Products</a></li>
+        <li><a class="link" href="/index.html#value">About</a></li>
+        <li><a class="link" href="/index.html#resources">Resources</a></li>
+        <li><a class="link" href="/contact">Contact</a></li>
+      </ul>
+
+      <div class="cta">
+        <a class="btn ghost" href="/portal">Provider Login</a>
+        <a class="btn primary" href="/register">Join Provider Network</a>
+        <button id="menuBtn" class="hamburger" aria-expanded="false" aria-controls="mobileNav">Menu ▾</button>
+      </div>
+    </div>
+
+    <!-- Mobile menu -->
+    <nav id="mobileNav" class="mobile-menu" aria-label="Mobile navigation">
+      <a href="/products">Products</a>
+      <a href="/index.html#value">About</a>
+      <a href="/index.html#resources">Resources</a>
+      <a href="/contact">Contact</a>
+      <a href="/portal">Provider Login</a>
+      <a href="/register">Join Provider Network</a>
+    </nav>
+  </header>
+
+  <!-- Mobile sticky action bar (mirrors Home/Products pattern) -->
+  <div class="actionbar" role="region" aria-label="Quick actions on mobile">
+    <div class="container row">
+      <a class="btn ghost" href="/portal">Provider Login</a>
+      <button class="btn primary" type="submit" form="contact-form">Send Message</button>
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container hero-wrap">
+      <div>
+        <h1>Let’s Connect with the Clinical Team</h1>
+        <p class="lead">Clinically supported, provider-first wound care — delivered direct. Our team responds quickly and with precision.</p>
+        <div class="chips">
+          <span class="chip">Physician-first support</span>
+          <span class="chip">U.S. distribution</span>
+          <span class="chip">1-business-day response</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact Channels -->
+  <section class="section">
+    <div class="container grid-3">
+      <article class="card">
+        <h3>Physician Support</h3>
+        <p class="muted">Submit, start, or stop patient orders — we’ll help you move fast.</p>
+        <p style="margin-top:8px"><strong>Email:</strong> support@collagendirect.health</p>
+        <a class="btn ghost" style="margin-top:10px" href="mailto:support@collagendirect.health">Open Support Ticket</a>
+      </article>
+      <article class="card">
+        <h3>Sales & Partnerships</h3>
+        <p class="muted">Join the network or discuss supply programs and pricing.</p>
+        <p style="margin-top:8px"><strong>Email:</strong> sales@collagendirect.health</p>
+        <a class="btn ghost" style="margin-top:10px" href="mailto:sales@collagendirect.health">Talk to Sales</a>
+      </article>
+      <article class="card">
+        <h3>General Inquiries</h3>
+        <p class="muted">Not sure where to start? We’ll route your note to the right team.</p>
+        <p style="margin-top:8px"><strong>Email:</strong> hello@collagendirect.health</p>
+        <a class="btn ghost" style="margin-top:10px" href="mailto:hello@collagendirect.health">Send Message</a>
+      </article>
+    </div>
+  </section>
+
+  <!-- Contact Form + Details -->
+  <section id="contact" class="section" style="padding-top:0">
+    <div class="container grid-2">
+      <div class="card">
+        <h2 style="margin:0">Send Us a Message</h2>
+        <p class="muted" style="margin:6px 0 12px">We typically respond within one business day.</p>
+        <form id="contact-form" class="grid-2" novalidate>
+          <div>
+            <label for="first">First Name</label>
+            <input id="first" name="first" placeholder="Jane" required>
+          </div>
+          <div>
+            <label for="last">Last Name</label>
+            <input id="last" name="last" placeholder="Doe" required>
+          </div>
+          <div>
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" placeholder="name@clinic.com" required>
+          </div>
+          <div>
+            <label for="phone">Phone <span class="muted">(optional)</span></label>
+            <input id="phone" name="phone" type="tel" placeholder="10 digits" pattern="^\d{10}$">
+          </div>
+          <div>
+            <label for="topic">I’m contacting about</label>
+            <select id="topic" name="topic" required>
+              <option value="" disabled selected>Select a topic</option>
+              <option>Physician order support</option>
+              <option>Product question</option>
+              <option>Sales / partnership</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div>
+            <label for="msg">Message</label>
+            <textarea id="msg" name="msg" rows="5" placeholder="How can we help?" required></textarea>
+          </div>
+          <div style="grid-column:1/-1;display:flex;align-items:center;gap:8px">
+            <input id="licensed" type="checkbox" style="width:16px;height:16px">
+            <label for="licensed" style="font-weight:600">I am a licensed provider or contacting on behalf of one.</label>
+          </div>
+          <div style="grid-column:1/-1;display:flex;align-items:center;gap:10px">
+            <button class="btn primary" type="submit">Submit</button>
+            <span id="form-note" class="muted"></span>
+          </div>
+          <p class="muted" style="grid-column:1/-1;font-size:.85rem">By submitting, you agree to our Terms and acknowledge our Privacy Policy.</p>
+        </form>
+      </div>
+
+      <div class="card" style="display:flex;flex-direction:column;gap:16px">
+        <div>
+          <h3>Direct Lines</h3>
+          <p class="muted" style="margin-top:6px">Physician Support: (469)402-0011<br>Sales: (469) 402-0123</p>
+        </div>
+        <div>
+          <h3>Address</h3>
+          <p class="muted" style="margin-top:6px">8080 N. Central Expressway<br>Dallas Texas 75206 </p>
+        </div>
+        <div>
+          <h3>Hours</h3>
+          <p class="muted" style="margin-top:6px">Mon–Fri: 8:00 AM – 6:00 PM CT<br>Urgent after-hours support available for active orders.</p>
+        </div>
+        <div>
+          <h3>For Physicians</h3>
+          <p class="muted" style="margin-top:6px">Already a CollagenDirect provider? Log in to submit or manage patient orders.</p>
+          <a class="btn ghost" style="margin-top:8px" href="/portal">Physician Login</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQs -->
+  <section class="section" style="padding-top:0">
+    <div class="container">
+      <h2>FAQs</h2>
+      <div style="margin-top:12px;border-top:1px solid var(--line)">
+        <details class="card" style="margin-top:12px">
+          <summary style="cursor:pointer;font-weight:700">How fast do you respond to physician support requests?</summary>
+          <p class="muted" style="margin-top:8px">Most requests receive a response within 1 business day; urgent order issues are prioritized the same day.</p>
+        </details>
+        <details class="card" style="margin-top:12px">
+          <summary style="cursor:pointer;font-weight:700">Can I submit patient orders through this page?</summary>
+          <p class="muted" style="margin-top:8px">Please use the Physician Portal to submit, start, or stop orders. This page routes questions to our support team.</p>
+        </details>
+        <details class="card" style="margin-top:12px">
+          <summary style="cursor:pointer;font-weight:700">Do you provide COAs and product documentation?</summary>
+          <p class="muted" style="margin-top:8px">Yes. Certificates of Analysis and product IFUs are available upon request and inside the physician portal.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Banner -->
+  <section class="section" style="background:#0A2540">
+    <div class="container" style="text-align:center;color:#fff">
+      <h3 style="font-size:1.75rem">Need to manage an active order?</h3>
+      <p style="margin-top:6px;color:#cfe2ff">Log in to the Physician Portal to submit, start, stop, or track patient orders.</p>
+      <a class="btn" style="margin-top:12px;background:#fff;color:#0A2540" href="/portal">Physician Portal</a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container footer-grid">
+      <div class="foot-brand">
+        <img src="assets/collagendirect.png" alt="CollagenDirect">
+        <div>
+          <div style="font-weight:900;letter-spacing:.4px">COLLAGEN <span style="color:var(--brand-teal)">DIRECT</span></div>
+          <p class="foot-small">Direct-to-manufacturer collagen therapies for modern wound care.</p>
+        </div>
+      </div>
+      <div>
+        <h4>Company</h4>
+        <a href="/index.html#">About</a><br>
+        <a href="#contact">Contact</a>
+      </div>
+      <div>
+        <h4>Products</h4>
+        <a href="/products">Catalog</a><br>
+        <a href="/index.html#resources">Resources</a>
+      </div>
+      <div>
+        <h4>Legal</h4>
+        <a href="/terms">Terms</a><br>
+        <a href="/privacy">Privacy</a>
+      </div>
+    </div>
+    <div style="border-top:1px solid var(--line);padding:18px 0;text-align:center;color:#6e7a93;font-size:.9rem">© <span id="year"></span> CollagenDirect. All rights reserved.</div>
+  </footer>
+
+  <script>
+    // Mobile menu toggle
+    (function(){
+      const btn = document.getElementById('menuBtn');
+      if(!btn) return;
+      btn.addEventListener('click', ()=>{
+        const open = document.documentElement.classList.toggle('mobile-open');
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+    })();
+
+    // Simple form handler (client-side only)
+    const f = document.getElementById('contact-form');
+    const note = document.getElementById('form-note');
+    f?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if(!f.checkValidity()){
+        note.textContent = 'Please complete the required fields (email + message).';
+        note.style.color = '#b42318';
+        return;
+      }
+      note.textContent = 'Thanks! We received your message and will follow up shortly.';
+      note.style.color = '#0b5f56';
+      f.reset();
+    });
+
+    // Year
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
