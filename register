@@ -974,9 +974,13 @@
       if (!isValidNPI(npiInput.value.trim())) { alert('Please validate your NPI.'); return; }
       if (!document.getElementById('agreeMSA').checked || !document.getElementById('agreeBAA').checked) { alert('You must agree to the MSA and BAA.'); return; }
 
-      // role may not exist; default to practice_admin if absent
-      const roleInput = document.querySelector('input[name="role"]:checked');
-      const role = roleInput ? roleInput.value : 'practice_admin';
+  // role may not exist; default to practice_admin if absent
+  const roleInput = document.querySelector('input[name="role"]:checked');
+  const role = roleInput ? roleInput.value : 'practice_admin';
+  // accountType is required by the backend (one of: referral, wholesale, hybrid)
+  // try to read an explicit accountType input if present, otherwise choose a safe default
+  const acctInput = document.querySelector('input[name="accountType"]:checked') || document.querySelector('select[name="accountType"]');
+  const accountType = acctInput ? (acctInput.value || 'referral') : 'referral';
 
       const payload = {
         email: (document.getElementById('email')?.value || '').trim(),
@@ -987,8 +991,9 @@
         npi: (document.getElementById('npi')?.value || '').trim(),
         license: (document.getElementById('license')?.value || '').trim(),
         licenseState: document.getElementById('licenseState')?.value || '',
-        licenseExpiry: document.getElementById('licenseExpiry')?.value || '',
-        role,
+  licenseExpiry: document.getElementById('licenseExpiry')?.value || '',
+  role,
+  accountType,
         address: (document.getElementById('address')?.value || '').trim(),
         city: (document.getElementById('city')?.value || '').trim(),
         state: document.getElementById('state')?.value || '',
