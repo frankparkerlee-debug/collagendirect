@@ -541,6 +541,94 @@ if ($action) {
     jok();
   }
 
+  if ($action==='messages'){
+    // Get messages for this user (sent to provider)
+    $limit = max(1, min(100, (int)($_GET['limit'] ?? 50)));
+    $offset = max(0, (int)($_GET['offset'] ?? 0));
+
+    $sql = "SELECT m.id, m.sender_type, m.sender_name, m.subject, m.body, m.patient_id, m.order_id,
+                   m.is_read, m.created_at, m.updated_at,
+                   p.first_name as patient_first, p.last_name as patient_last
+            FROM messages m
+            LEFT JOIN patients p ON p.id = m.patient_id
+            WHERE m.recipient_type = 'provider' AND m.recipient_id = ?
+            ORDER BY m.created_at DESC
+            LIMIT $limit OFFSET $offset";
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$userId]);
+    $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    jok(['messages' => $messages]);
+  }
+
+  if ($action==='message.read'){
+    $msgId = (int)($_POST['id'] ?? 0);
+    if ($msgId <= 0) jerr('Invalid message ID');
+
+    $pdo->prepare("UPDATE messages SET is_read = TRUE, read_at = NOW() WHERE id = ? AND recipient_id = ?")
+        ->execute([$msgId, $userId]);
+
+    jok();
+  }
+
+  if ($action==='notifications'){
+    // Get notifications based on patient and order status
+    $notifications = [];
+
+    // 1. Patients approved by manufacturer (status = 'approved')
+    $stmt = $pdo->prepare("
+      SELECT p.id, p.first_name, p.last_name, o.created_at, o.status, 'patient_approved' as notif_type
+      FROM patients p
+      JOIN orders o ON o.patient_id = p.id
+      WHERE p.user_id = ? AND o.status = 'approved' AND o.created_at >= NOW() - INTERVAL '7 days'
+      ORDER BY o.created_at DESC
+      LIMIT 10
+    ");
+    $stmt->execute([$userId]);
+    $approved = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // 2. Patients rejected by manufacturer (status = 'rejected')
+    $stmt = $pdo->prepare("
+      SELECT p.id, p.first_name, p.last_name, o.created_at, o.status, 'patient_rejected' as notif_type
+      FROM patients p
+      JOIN orders o ON o.patient_id = p.id
+      WHERE p.user_id = ? AND o.status = 'rejected' AND o.created_at >= NOW() - INTERVAL '7 days'
+      ORDER BY o.created_at DESC
+      LIMIT 10
+    ");
+    $stmt->execute([$userId]);
+    $rejected = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // 3. Orders nearing expiration (expires_at within 30 days)
+    $stmt = $pdo->prepare("
+      SELECT p.id, p.first_name, p.last_name, o.id as order_id, o.expires_at, 'order_expiring' as notif_type
+      FROM patients p
+      JOIN orders o ON o.patient_id = p.id
+      WHERE p.user_id = ?
+        AND o.expires_at IS NOT NULL
+        AND o.expires_at <= NOW() + INTERVAL '30 days'
+        AND o.expires_at > NOW()
+        AND o.status IN ('active', 'approved')
+      ORDER BY o.expires_at ASC
+      LIMIT 10
+    ");
+    $stmt->execute([$userId]);
+    $expiring = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Merge all notifications
+    $notifications = array_merge($approved, $rejected, $expiring);
+
+    // Sort by most recent
+    usort($notifications, function($a, $b) {
+      $aTime = $a['created_at'] ?? $a['expires_at'] ?? '';
+      $bTime = $b['created_at'] ?? $b['expires_at'] ?? '';
+      return strcmp($bTime, $aTime);
+    });
+
+    jok(['notifications' => array_slice($notifications, 0, 20)]);
+  }
+
   jerr('Unknown action',404);
 }
 
@@ -1775,104 +1863,21 @@ if ($page==='logout'){
     <div style="display: grid; grid-template-columns: 320px 1fr; gap: 1rem; min-height: 600px;">
       <!-- Message List -->
       <div style="border-right: 1px solid var(--border); overflow-y: auto;">
-        <div style="padding: 0.5rem 0;">
-          <button style="width: 100%; text-align: left; padding: 0.75rem; border-bottom: 1px solid var(--border); background: #f0fdfa; border-left: 3px solid var(--brand);">
-            <div style="display: flex; align-items: start; gap: 0.75rem;">
-              <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--brand); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.875rem; flex-shrink: 0;">JS</div>
-              <div style="flex: 1; min-width: 0;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
-                  <div style="font-weight: 600; font-size: 0.875rem; color: var(--ink);">John Smith</div>
-                  <div style="font-size: 0.75rem; color: var(--muted);">2h</div>
-                </div>
-                <div style="font-size: 0.875rem; color: var(--ink); font-weight: 500; margin-bottom: 0.25rem;">Patient Records Update</div>
-                <div style="font-size: 0.75rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">I've uploaded the latest lab results...</div>
-              </div>
-            </div>
-          </button>
-          <button style="width: 100%; text-align: left; padding: 0.75rem; border-bottom: 1px solid var(--border);">
-            <div style="display: flex; align-items: start; gap: 0.75rem;">
-              <div style="width: 40px; height: 40px; border-radius: 50%; background: #94a3b8; color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.875rem; flex-shrink: 0;">MW</div>
-              <div style="flex: 1; min-width: 0;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
-                  <div style="font-weight: 500; font-size: 0.875rem; color: var(--ink);">Mary Wilson</div>
-                  <div style="font-size: 0.75rem; color: var(--muted);">1d</div>
-                </div>
-                <div style="font-size: 0.875rem; color: var(--muted); margin-bottom: 0.25rem;">Order Confirmation</div>
-                <div style="font-size: 0.75rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Thank you for your order #12345...</div>
-              </div>
-            </div>
-          </button>
-          <button style="width: 100%; text-align: left; padding: 0.75rem; border-bottom: 1px solid var(--border);">
-            <div style="display: flex; align-items: start; gap: 0.75rem;">
-              <div style="width: 40px; height: 40px; border-radius: 50%; background: #94a3b8; color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.875rem; flex-shrink: 0;">RJ</div>
-              <div style="flex: 1; min-width: 0;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
-                  <div style="font-weight: 500; font-size: 0.875rem; color: var(--ink);">Robert Johnson</div>
-                  <div style="font-size: 0.75rem; color: var(--muted);">3d</div>
-                </div>
-                <div style="font-size: 0.875rem; color: var(--muted); margin-bottom: 0.25rem;">Insurance Documents</div>
-                <div style="font-size: 0.75rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Documents have been uploaded successfully...</div>
-              </div>
-            </div>
-          </button>
+        <div id="messages-list" style="padding: 0.5rem 0;">
+          <!-- Messages will be loaded dynamically -->
         </div>
       </div>
 
       <!-- Message Thread -->
-      <div style="display: flex; flex-direction: column;">
-        <div style="padding: 1rem; border-bottom: 1px solid var(--border);">
-          <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--brand); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600;">JS</div>
-            <div>
-              <div style="font-weight: 600; color: var(--ink);">John Smith</div>
-              <div style="font-size: 0.75rem; color: var(--muted);">Patient ID: 12345</div>
-            </div>
-          </div>
-        </div>
-
-        <div style="flex: 1; overflow-y: auto; padding: 1.5rem; background: #f8fafc;">
-          <div style="margin-bottom: 1.5rem;">
-            <div style="display: flex; gap: 0.75rem;">
-              <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--brand); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.75rem; flex-shrink: 0;">JS</div>
-              <div style="flex: 1;">
-                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
-                  <span style="font-weight: 600; font-size: 0.875rem;">John Smith</span>
-                  <span style="font-size: 0.75rem; color: var(--muted);">2 hours ago</span>
-                </div>
-                <div style="background: white; padding: 1rem; border-radius: var(--radius-lg); border: 1px solid var(--border); font-size: 0.875rem; line-height: 1.5;">
-                  Hi Dr. <?php echo htmlspecialchars($user['last_name']); ?>,<br><br>
-                  I've uploaded the latest lab results for my recent checkup. Could you please review them when you have a chance?<br><br>
-                  Thank you!
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div style="margin-bottom: 1.5rem;">
-            <div style="display: flex; gap: 0.75rem; flex-direction: row-reverse;">
-              <div style="width: 32px; height: 32px; border-radius: 50%; background: #94a3b8; color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.75rem; flex-shrink: 0;">
-                <?php echo strtoupper(substr($user['first_name'] ?? 'U', 0, 1) . substr($user['last_name'] ?? 'S', 0, 1)); ?>
-              </div>
-              <div style="flex: 1; text-align: right;">
-                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem; justify-content: flex-end;">
-                  <span style="font-size: 0.75rem; color: var(--muted);">1 hour ago</span>
-                  <span style="font-weight: 600; font-size: 0.875rem;">You</span>
-                </div>
-                <div style="background: var(--brand); color: white; padding: 1rem; border-radius: var(--radius-lg); font-size: 0.875rem; line-height: 1.5; display: inline-block; text-align: left;">
-                  Hi John,<br><br>
-                  I've reviewed your lab results. Everything looks good! Let's schedule a follow-up appointment next month.
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div style="padding: 1rem; border-top: 1px solid var(--border); background: white;">
-          <div style="display: flex; gap: 0.75rem; align-items: end;">
-            <textarea id="msg-reply" placeholder="Type your message..." style="flex: 1; min-height: 80px; resize: vertical; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.875rem;"></textarea>
-            <button class="btn btn-primary" style="height: fit-content;">
-              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-            </button>
+      <div id="message-thread" style="display: flex; flex-direction: column;">
+        <!-- Selected message thread will be displayed here -->
+        <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: var(--muted); padding: 3rem;">
+          <div style="text-align: center;">
+            <svg width="64" height="64" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin: 0 auto 1rem; opacity: 0.3;">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+            </svg>
+            <div style="font-size: 1.125rem; font-weight: 500; margin-bottom: 0.5rem;">Select a message</div>
+            <div style="font-size: 0.875rem;">Choose a conversation to view its details</div>
           </div>
         </div>
       </div>
@@ -3012,72 +3017,104 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* Populate notification dropdown */
-function populateNotifications() {
+async function populateNotifications() {
   const notificationsList = document.getElementById('notifications-list');
+  const notificationBadge = document.getElementById('notification-count');
   if (!notificationsList) return;
 
-  const notifications = [
-    {
-      type: 'patient',
-      avatar: 'JS',
-      name: 'John Smith',
-      action: 'submitted new patient records',
-      time: '2 hours ago',
-      unread: true,
-      hasActions: true
-    },
-    {
-      type: 'order',
-      avatar: 'MW',
-      name: 'Mary Wilson',
-      action: 'order #12345 has been shipped',
-      time: '5 hours ago',
-      unread: true,
-      hasActions: false
-    },
-    {
-      type: 'patient',
-      avatar: 'RJ',
-      name: 'Robert Johnson',
-      action: 'uploaded new insurance documents',
-      time: '1 day ago',
-      unread: false,
-      hasActions: true
-    },
-    {
-      type: 'system',
-      avatar: 'SY',
-      name: 'System',
-      action: 'Monthly report is ready for review',
-      time: '2 days ago',
-      unread: false,
-      hasActions: false
-    }
-  ];
+  try {
+    const data = await api('action=notifications');
+    const notifications = data.notifications || [];
 
-  notificationsList.innerHTML = notifications.map(notif => `
-    <div class="dropdown-item" style="display: block; padding: 1rem 1.25rem; ${notif.unread ? 'background: #f0fdfa;' : ''}">
-      <div style="display: flex; gap: 0.75rem;">
-        <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--brand); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.875rem; flex-shrink: 0;">
-          ${notif.avatar}
+    // Update badge count
+    if (notificationBadge) {
+      if (notifications.length > 0) {
+        notificationBadge.textContent = notifications.length;
+        notificationBadge.style.display = 'flex';
+      } else {
+        notificationBadge.style.display = 'none';
+      }
+    }
+
+    // If no notifications, show empty state
+    if (notifications.length === 0) {
+      notificationsList.innerHTML = `
+        <div style="padding: 3rem 1.25rem; text-align: center; color: var(--muted);">
+          <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin: 0 auto 1rem;">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+          </svg>
+          <div style="font-weight: 500; margin-bottom: 0.25rem;">No new notifications</div>
+          <div style="font-size: 0.875rem;">You're all caught up!</div>
         </div>
-        <div style="flex: 1; min-width: 0;">
-          <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.25rem;">
-            <div style="font-weight: 500; color: var(--ink);">${notif.name}</div>
-            ${notif.unread ? '<div style="width: 8px; height: 8px; border-radius: 50%; background: var(--brand); flex-shrink: 0; margin-top: 0.375rem;"></div>' : ''}
-          </div>
-          <div style="font-size: 0.875rem; color: var(--muted); margin-bottom: 0.25rem;">${notif.action}</div>
-          <div style="font-size: 0.75rem; color: var(--muted);">${notif.time}</div>
-          ${notif.hasActions ? `
-            <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
-              <button class="btn btn-primary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem;">Approve</button>
-              <button class="btn btn-ghost" style="padding: 0.375rem 0.75rem; font-size: 0.75rem;">Reject</button>
+      `;
+      return;
+    }
+
+    // Render notifications
+    notificationsList.innerHTML = notifications.map(notif => {
+      const { notif_type, first_name, last_name, created_at, expires_at, status } = notif;
+      const fullName = `${first_name || ''} ${last_name || ''}`.trim();
+      const initials = getInitials(first_name || 'U', last_name || 'N');
+      const timeAgo = formatTimeAgo(created_at || expires_at);
+
+      let action = '';
+      let bgColor = 'var(--brand)';
+
+      if (notif_type === 'patient_approved') {
+        action = 'Patient approved by manufacturer';
+        bgColor = '#10B981'; // success green
+      } else if (notif_type === 'patient_rejected') {
+        action = 'Patient rejected by manufacturer';
+        bgColor = '#EF4444'; // error red
+      } else if (notif_type === 'order_expiring') {
+        const daysLeft = Math.ceil((new Date(expires_at) - new Date()) / (1000 * 60 * 60 * 24));
+        action = `Order expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`;
+        bgColor = '#F59E0B'; // warning orange
+      }
+
+      return `
+        <div class="dropdown-item" style="display: block; padding: 1rem 1.25rem; background: #f0fdfa;">
+          <div style="display: flex; gap: 0.75rem;">
+            <div style="width: 40px; height: 40px; border-radius: 50%; background: ${bgColor}; color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.875rem; flex-shrink: 0;">
+              ${initials}
             </div>
-          ` : ''}
+            <div style="flex: 1; min-width: 0;">
+              <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.25rem;">
+                <div style="font-weight: 500; color: var(--ink);">${esc(fullName)}</div>
+                <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--brand); flex-shrink: 0; margin-top: 0.375rem;"></div>
+              </div>
+              <div style="font-size: 0.875rem; color: var(--muted); margin-bottom: 0.25rem;">${action}</div>
+              <div style="font-size: 0.75rem; color: var(--muted);">${timeAgo}</div>
+            </div>
+          </div>
         </div>
+      `;
+    }).join('');
+  } catch (error) {
+    console.error('Failed to load notifications:', error);
+    notificationsList.innerHTML = `
+      <div style="padding: 2rem 1.25rem; text-align: center; color: var(--error);">
+        Failed to load notifications
       </div>
-    </div>
-  `).join('');
+    `;
+  }
+}
+
+// Helper function to format time ago
+function formatTimeAgo(dateString) {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
 }
 
 /* DASHBOARD table (view-only) */
@@ -4740,6 +4777,187 @@ if (window._patientDetailData) {
       console.error('Patient load error:', e);
     }
   })();
+}
+
+/* ============================================================
+   MESSAGES PAGE
+   ============================================================ */
+if (<?php echo json_encode($page === 'messages'); ?>) {
+  let allMessages = [];
+
+  // Load messages on page load
+  (async () => {
+    try {
+      const data = await api('action=messages');
+      allMessages = data.messages || [];
+      renderMessagesList(allMessages);
+    } catch (e) {
+      console.error('Failed to load messages:', e);
+      const messagesList = document.getElementById('messages-list');
+      if (messagesList) {
+        messagesList.innerHTML = `
+          <div style="padding: 2rem 1rem; text-align: center; color: var(--error);">
+            <div style="font-weight: 500; margin-bottom: 0.5rem;">Failed to load messages</div>
+            <div style="font-size: 0.875rem;">Please try refreshing the page</div>
+          </div>
+        `;
+      }
+    }
+  })();
+
+  // Render messages list
+  function renderMessagesList(messages) {
+    const messagesList = document.getElementById('messages-list');
+    if (!messagesList) return;
+
+    if (messages.length === 0) {
+      messagesList.innerHTML = `
+        <div style="padding: 3rem 1rem; text-align: center; color: var(--muted);">
+          <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin: 0 auto 1rem; opacity: 0.3;">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+          </svg>
+          <div style="font-weight: 500; margin-bottom: 0.25rem;">No messages</div>
+          <div style="font-size: 0.875rem;">Your inbox is empty</div>
+        </div>
+      `;
+      return;
+    }
+
+    messagesList.innerHTML = messages.map((msg, index) => {
+      const senderName = msg.sender_name || 'System';
+      const initials = getInitials(senderName.split(' ')[0] || 'S', senderName.split(' ')[1] || 'Y');
+      const timeAgo = formatTimeAgo(msg.created_at);
+      const preview = (msg.body || '').substring(0, 60) + (msg.body && msg.body.length > 60 ? '...' : '');
+      const isUnread = !msg.is_read;
+      const isFirst = index === 0;
+
+      return `
+        <button
+          data-message-id="${msg.id}"
+          class="message-item"
+          style="width: 100%; text-align: left; padding: 0.75rem; border-bottom: 1px solid var(--border); ${isUnread ? 'background: #f0fdfa;' : ''} ${isFirst ? 'border-left: 3px solid var(--brand);' : ''}"
+        >
+          <div style="display: flex; align-items: start; gap: 0.75rem;">
+            <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--brand); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.875rem; flex-shrink: 0;">
+              ${initials}
+            </div>
+            <div style="flex: 1; min-width: 0;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                <div style="font-weight: ${isUnread ? '600' : '500'}; font-size: 0.875rem; color: var(--ink);">
+                  ${esc(senderName)}
+                </div>
+                <div style="font-size: 0.75rem; color: var(--muted);">${timeAgo}</div>
+              </div>
+              <div style="font-size: 0.875rem; color: var(--ink); font-weight: ${isUnread ? '500' : '400'}; margin-bottom: 0.25rem;">
+                ${esc(msg.subject || 'No subject')}
+              </div>
+              <div style="font-size: 0.75rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                ${esc(preview)}
+              </div>
+            </div>
+          </div>
+        </button>
+      `;
+    }).join('');
+
+    // Add click handlers to message items
+    document.querySelectorAll('.message-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const msgId = parseInt(btn.dataset.messageId);
+        const message = allMessages.find(m => m.id === msgId);
+        if (message) {
+          showMessageThread(message);
+        }
+      });
+    });
+
+    // Auto-select first message if available
+    if (messages.length > 0) {
+      showMessageThread(messages[0]);
+    }
+  }
+
+  // Show selected message thread
+  function showMessageThread(message) {
+    const threadContainer = document.getElementById('message-thread');
+    if (!threadContainer) return;
+
+    const senderName = message.sender_name || 'System';
+    const initials = getInitials(senderName.split(' ')[0] || 'S', senderName.split(' ')[1] || 'Y');
+    const timeAgo = formatTimeAgo(message.created_at);
+    const patientName = message.patient_first && message.patient_last
+      ? `${message.patient_first} ${message.patient_last}`
+      : null;
+
+    threadContainer.innerHTML = `
+      <div style="padding: 1rem; border-bottom: 1px solid var(--border);">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--brand); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600;">
+            ${initials}
+          </div>
+          <div>
+            <div style="font-weight: 600; color: var(--ink);">${esc(senderName)}</div>
+            ${patientName ? `<div style="font-size: 0.75rem; color: var(--muted);">Patient: ${esc(patientName)}</div>` : ''}
+          </div>
+        </div>
+      </div>
+
+      <div style="flex: 1; overflow-y: auto; padding: 1.5rem; background: #f8fafc;">
+        <div style="margin-bottom: 1.5rem;">
+          <div style="display: flex; gap: 0.75rem;">
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--brand); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.75rem; flex-shrink: 0;">
+              ${initials}
+            </div>
+            <div style="flex: 1;">
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                <span style="font-weight: 600; font-size: 0.875rem;">${esc(senderName)}</span>
+                <span style="font-size: 0.75rem; color: var(--muted);">${timeAgo}</span>
+              </div>
+              <div style="font-weight: 600; font-size: 0.9375rem; margin-bottom: 0.75rem; color: var(--ink);">
+                ${esc(message.subject || 'No subject')}
+              </div>
+              <div style="background: white; padding: 1rem; border-radius: var(--radius-lg); border: 1px solid var(--border); font-size: 0.875rem; line-height: 1.5; white-space: pre-wrap;">
+                ${esc(message.body || '')}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding: 1rem; border-top: 1px solid var(--border); background: white;">
+        <div style="display: flex; gap: 0.75rem; align-items: end;">
+          <textarea
+            id="msg-reply-input"
+            placeholder="Type your reply..."
+            style="flex: 1; min-height: 80px; resize: vertical; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.875rem;"
+          ></textarea>
+          <button class="btn btn-primary" id="btn-send-reply" style="height: fit-content;">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Mark message as read if unread
+    if (!message.is_read) {
+      markMessageAsRead(message.id);
+      message.is_read = true;
+    }
+  }
+
+  // Mark message as read
+  async function markMessageAsRead(messageId) {
+    try {
+      await fetch('?action=message.read', {
+        method: 'POST',
+        body: fd({ id: messageId })
+      });
+    } catch (e) {
+      console.error('Failed to mark message as read:', e);
+    }
+  }
 }
 
 </script>
