@@ -2216,17 +2216,8 @@ if ($page==='logout'){
       </div>
       <div class="dialog-body">
         <?php if ($userRole === 'physician' || $userRole === 'practice_admin'): ?>
-        <!-- Physicians can only message CollagenDirect -->
-        <div style="margin-bottom: 1rem;">
-          <label class="block text-sm font-medium mb-1">To</label>
-          <div style="padding: 0.5rem 0.75rem; background: #f8fafc; border: 1px solid var(--border); border-radius: 0.375rem; color: var(--ink);">
-            CollagenDirect Support Team
-          </div>
-          <input type="hidden" id="compose-recipient" value="collagendirect">
-          <div style="font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem;">
-            Your message will be visible to CollagenDirect administrators and staff
-          </div>
-        </div>
+        <!-- Physicians automatically send to CollagenDirect - no choice needed -->
+        <input type="hidden" id="compose-recipient" value="collagendirect">
         <?php else: ?>
         <!-- Super admins and other roles can choose recipients -->
         <div style="margin-bottom: 1rem;">
