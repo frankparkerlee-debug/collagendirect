@@ -68,10 +68,18 @@ $action = $_GET['action'] ?? null;
 if ($action) {
 
   if ($action==='metrics'){
-    $q=$pdo->prepare("SELECT COUNT(*) FROM patients WHERE user_id=?"); $q->execute([$userId]); $patients=(int)$q->fetchColumn();
-    $q=$pdo->prepare("SELECT COUNT(*) FROM orders WHERE user_id=? AND status IN ('submitted','pending')"); $q->execute([$userId]); $pending=(int)$q->fetchColumn();
-    $q=$pdo->prepare("SELECT COUNT(*) FROM orders WHERE user_id=? AND status IN ('approved','active','shipped')"); $q->execute([$userId]); $active=(int)$q->fetchColumn();
-    $q=$pdo->prepare("SELECT COUNT(*) FROM orders WHERE user_id=?"); $q->execute([$userId]); $total=(int)$q->fetchColumn();
+    // Superadmins see all data, others see only their own
+    if ($userRole === 'superadmin') {
+      $q=$pdo->query("SELECT COUNT(*) FROM patients"); $patients=(int)$q->fetchColumn();
+      $q=$pdo->query("SELECT COUNT(*) FROM orders WHERE status IN ('submitted','pending')"); $pending=(int)$q->fetchColumn();
+      $q=$pdo->query("SELECT COUNT(*) FROM orders WHERE status IN ('approved','active','shipped')"); $active=(int)$q->fetchColumn();
+      $q=$pdo->query("SELECT COUNT(*) FROM orders"); $total=(int)$q->fetchColumn();
+    } else {
+      $q=$pdo->prepare("SELECT COUNT(*) FROM patients WHERE user_id=?"); $q->execute([$userId]); $patients=(int)$q->fetchColumn();
+      $q=$pdo->prepare("SELECT COUNT(*) FROM orders WHERE user_id=? AND status IN ('submitted','pending')"); $q->execute([$userId]); $pending=(int)$q->fetchColumn();
+      $q=$pdo->prepare("SELECT COUNT(*) FROM orders WHERE user_id=? AND status IN ('approved','active','shipped')"); $q->execute([$userId]); $active=(int)$q->fetchColumn();
+      $q=$pdo->prepare("SELECT COUNT(*) FROM orders WHERE user_id=?"); $q->execute([$userId]); $total=(int)$q->fetchColumn();
+    }
     jok(['metrics'=>['patients'=>$patients,'pending'=>$pending,'active_orders'=>$active,'total_orders'=>$total]]);
   }
 
@@ -86,15 +94,24 @@ if ($action) {
       $monthEnd = date('Y-m-t', strtotime("-$i months"));
       $monthLabel = date('M', strtotime("-$i months"));
 
-      // Count patients created in this month
-      $q = $pdo->prepare("SELECT COUNT(*) FROM patients WHERE user_id=? AND created_at >= ? AND created_at <= ?");
-      $q->execute([$userId, $monthStart, $monthEnd . ' 23:59:59']);
-      $patientCount = (int)$q->fetchColumn();
+      // Count patients created in this month - superadmins see all
+      if ($userRole === 'superadmin') {
+        $q = $pdo->prepare("SELECT COUNT(*) FROM patients WHERE created_at >= ? AND created_at <= ?");
+        $q->execute([$monthStart, $monthEnd . ' 23:59:59']);
+        $patientCount = (int)$q->fetchColumn();
 
-      // Count orders created in this month
-      $q = $pdo->prepare("SELECT COUNT(*) FROM orders WHERE user_id=? AND created_at >= ? AND created_at <= ?");
-      $q->execute([$userId, $monthStart, $monthEnd . ' 23:59:59']);
-      $orderCount = (int)$q->fetchColumn();
+        $q = $pdo->prepare("SELECT COUNT(*) FROM orders WHERE created_at >= ? AND created_at <= ?");
+        $q->execute([$monthStart, $monthEnd . ' 23:59:59']);
+        $orderCount = (int)$q->fetchColumn();
+      } else {
+        $q = $pdo->prepare("SELECT COUNT(*) FROM patients WHERE user_id=? AND created_at >= ? AND created_at <= ?");
+        $q->execute([$userId, $monthStart, $monthEnd . ' 23:59:59']);
+        $patientCount = (int)$q->fetchColumn();
+
+        $q = $pdo->prepare("SELECT COUNT(*) FROM orders WHERE user_id=? AND created_at >= ? AND created_at <= ?");
+        $q->execute([$userId, $monthStart, $monthEnd . ' 23:59:59']);
+        $orderCount = (int)$q->fetchColumn();
+      }
 
       $months[] = $monthLabel;
       $patientCounts[] = $patientCount;
@@ -107,8 +124,22 @@ if ($action) {
   if ($action==='patients'){
     $q=trim((string)($_GET['q']??'')); $limit=max(1,min(300,(int)($_GET['limit']??100))); $offset=max(0,(int)($_GET['offset']??0));
 
+    // Superadmins see all patients
+    if ($userRole === 'superadmin') {
+      $args = [];
+      $join = "LEFT JOIN (
+          SELECT o1.patient_id,o1.status,o1.shipments_remaining,o1.created_at
+          FROM orders o1
+          JOIN (SELECT patient_id,MAX(created_at) m FROM orders GROUP BY patient_id) last
+            ON last.patient_id=o1.patient_id AND last.m=o1.created_at
+        ) lo ON lo.patient_id=p.id";
+      $sql = "SELECT p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.state,p.zip,p.mrn,
+                   lo.status last_status,lo.shipments_remaining last_remaining
+            FROM patients p $join
+            WHERE 1=1";
+    }
     // Practice admins can only see patients from their practice physicians
-    if ($userRole === 'practice_admin') {
+    elseif ($userRole === 'practice_admin') {
       // Get list of physician IDs in this practice
       $pracStmt = $pdo->prepare("SELECT physician_id FROM practice_physicians WHERE practice_admin_id = ?");
       $pracStmt->execute([$userId]);
@@ -538,9 +569,16 @@ if ($action) {
 
   // Orders listing aligned to schema
   if ($action==='orders'){
-    $q=trim((string)($_GET['q']??'')); 
-    $status=trim((string)($_GET['status']??'')); 
-    $where="user_id=?"; $args=[ $userId ];
+    $q=trim((string)($_GET['q']??''));
+    $status=trim((string)($_GET['status']??''));
+
+    // Superadmins see all orders
+    if ($userRole === 'superadmin') {
+      $where="1=1"; $args=[];
+    } else {
+      $where="user_id=?"; $args=[$userId];
+    }
+
     if($q!==''){ $where.=" AND (product LIKE ? OR shipping_name LIKE ?)"; $like="%$q%"; array_push($args,$like,$like); }
     if($status!==''){ $where.=" AND status=?"; $args[]=$status; }
     $st=$pdo->prepare("SELECT id,patient_id,product,shipments_remaining,status,delivery_mode,created_at,expires_at
@@ -574,17 +612,30 @@ if ($action) {
     $limit = max(1, min(100, (int)($_GET['limit'] ?? 50)));
     $offset = max(0, (int)($_GET['offset'] ?? 0));
 
-    $sql = "SELECT m.id, m.sender_type, m.sender_name, m.subject, m.body, m.patient_id, m.order_id,
-                   m.is_read, m.created_at, m.updated_at,
-                   p.first_name as patient_first, p.last_name as patient_last
-            FROM messages m
-            LEFT JOIN patients p ON p.id = m.patient_id
-            WHERE m.recipient_type = 'provider' AND m.recipient_id = ?
-            ORDER BY m.created_at DESC
-            LIMIT $limit OFFSET $offset";
+    // Superadmins see all messages, others see only their own
+    if ($userRole === 'superadmin') {
+      $sql = "SELECT m.id, m.sender_type, m.sender_name, m.subject, m.body, m.patient_id, m.order_id,
+                     m.is_read, m.created_at, m.updated_at, m.recipient_type, m.recipient_id,
+                     p.first_name as patient_first, p.last_name as patient_last
+              FROM messages m
+              LEFT JOIN patients p ON p.id = m.patient_id
+              ORDER BY m.created_at DESC
+              LIMIT $limit OFFSET $offset";
+      $stmt = $pdo->prepare($sql);
+      $stmt->execute();
+    } else {
+      $sql = "SELECT m.id, m.sender_type, m.sender_name, m.subject, m.body, m.patient_id, m.order_id,
+                     m.is_read, m.created_at, m.updated_at,
+                     p.first_name as patient_first, p.last_name as patient_last
+              FROM messages m
+              LEFT JOIN patients p ON p.id = m.patient_id
+              WHERE m.recipient_type = 'provider' AND m.recipient_id = ?
+              ORDER BY m.created_at DESC
+              LIMIT $limit OFFSET $offset";
+      $stmt = $pdo->prepare($sql);
+      $stmt->execute([$userId]);
+    }
 
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute([$userId]);
     $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     jok(['messages' => $messages]);
@@ -604,16 +655,20 @@ if ($action) {
     // Get notifications based on patient and order status
     $notifications = [];
 
+    // Superadmins see all notifications, others see only their own
+    $userFilter = ($userRole === 'superadmin') ? '' : 'p.user_id = ? AND ';
+    $params = ($userRole === 'superadmin') ? [] : [$userId];
+
     // 1. Patients approved by manufacturer (status = 'approved')
     $stmt = $pdo->prepare("
       SELECT p.id, p.first_name, p.last_name, o.created_at, o.status, 'patient_approved' as notif_type
       FROM patients p
       JOIN orders o ON o.patient_id = p.id
-      WHERE p.user_id = ? AND o.status = 'approved' AND o.created_at >= NOW() - INTERVAL '7 days'
+      WHERE {$userFilter}o.status = 'approved' AND o.created_at >= NOW() - INTERVAL '7 days'
       ORDER BY o.created_at DESC
       LIMIT 10
     ");
-    $stmt->execute([$userId]);
+    $stmt->execute($params);
     $approved = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // 2. Patients rejected by manufacturer (status = 'rejected')
@@ -621,11 +676,11 @@ if ($action) {
       SELECT p.id, p.first_name, p.last_name, o.created_at, o.status, 'patient_rejected' as notif_type
       FROM patients p
       JOIN orders o ON o.patient_id = p.id
-      WHERE p.user_id = ? AND o.status = 'rejected' AND o.created_at >= NOW() - INTERVAL '7 days'
+      WHERE {$userFilter}o.status = 'rejected' AND o.created_at >= NOW() - INTERVAL '7 days'
       ORDER BY o.created_at DESC
       LIMIT 10
     ");
-    $stmt->execute([$userId]);
+    $stmt->execute($params);
     $rejected = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // 3. Orders nearing expiration (expires_at within 30 days)
@@ -633,15 +688,14 @@ if ($action) {
       SELECT p.id, p.first_name, p.last_name, o.id as order_id, o.expires_at, 'order_expiring' as notif_type
       FROM patients p
       JOIN orders o ON o.patient_id = p.id
-      WHERE p.user_id = ?
-        AND o.expires_at IS NOT NULL
+      WHERE {$userFilter}o.expires_at IS NOT NULL
         AND o.expires_at <= NOW() + INTERVAL '30 days'
         AND o.expires_at > NOW()
         AND o.status IN ('active', 'approved')
       ORDER BY o.expires_at ASC
       LIMIT 10
     ");
-    $stmt->execute([$userId]);
+    $stmt->execute($params);
     $expiring = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Merge all notifications
