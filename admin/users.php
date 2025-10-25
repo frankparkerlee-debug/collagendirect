@@ -291,7 +291,12 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         <div class="grid grid-cols-2 gap-2">
           <input class="border rounded px-2 py-1 col-span-2" name="name" placeholder="Full name" required/>
           <input class="border rounded px-2 py-1 col-span-2" type="email" name="email" placeholder="Email" required/>
-          <input class="border rounded px-2 py-1" name="role" placeholder="Role (admin, ops, sales)" value="admin"/>
+          <select class="border rounded px-2 py-1" name="role" required>
+            <option value="">Select Role</option>
+            <option value="admin">Admin</option>
+            <option value="sales">Sales</option>
+            <option value="ops">Ops</option>
+          </select>
           <input class="border rounded px-2 py-1" type="password" name="password" placeholder="Temporary password" required/>
         </div>
         <button class="mt-2 bg-brand text-white rounded px-3 py-1">Create</button>

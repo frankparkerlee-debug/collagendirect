@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Save tracking + inferred status
     $pdo->prepare(
       "UPDATE orders SET rx_note_mime=?, rx_note_name=?, status='in_transit',
-         shipped_at = IF(shipped_at IS NULL, NOW(), shipped_at),
+         shipped_at = COALESCE(shipped_at, NOW()),
          updated_at = NOW()
        WHERE id=?"
     )->execute([$carrier ?: null, $tracking ?: null, $id]);
@@ -26,12 +26,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $trk = fetch_tracking_status($tracking, $carrier);
       if (!empty($trk['status'])) {
         $pdo->prepare("UPDATE orders SET carrier_status=?, carrier_eta=?, status=?,
-                         delivered_at = IF(? IS NOT NULL, ?, delivered_at),
+                         delivered_at = COALESCE(?, delivered_at),
                          updated_at=NOW()
                        WHERE id=?")
             ->execute([
               $trk['status'], $trk['eta'], $trk['status'],
-              $trk['delivered_at'], $trk['delivered_at'], $id
+              $trk['delivered_at'], $id
             ]);
       }
     }
