@@ -6,6 +6,11 @@ require_once __DIR__ . '/db.php';
 $bootstrap = __DIR__.'/_bootstrap.php'; if (is_file($bootstrap)) require_once $bootstrap;
 $auth      = __DIR__ . '/auth.php'; if (is_file($auth) && function_exists('require_admin')) require_admin();
 
+// Get current admin user
+$admin = current_admin();
+$adminRole = $admin['role'] ?? '';
+$adminId = $admin['id'] ?? '';
+
 // Handle context switching
 if (isset($_GET['context'])) {
   $context = $_GET['context'] === 'platform' ? 'platform' : 'practice';
@@ -120,6 +125,24 @@ try {
   }
 } catch(Throwable $e){}
 
+/* ---------- Notifications for manufacturer ---------- */
+$notifications = [];
+if ($adminRole === 'manufacturer' && has_table($pdo, 'notifications')) {
+  try {
+    $stmt = $pdo->prepare("
+      SELECT id, message, link, created_at, is_read
+      FROM notifications
+      WHERE user_id = ? AND user_type = 'admin'
+      ORDER BY created_at DESC
+      LIMIT 10
+    ");
+    $stmt->execute([$adminId]);
+    $notifications = $stmt->fetchAll();
+  } catch (Throwable $e) {
+    error_log("[notifications] " . $e->getMessage());
+  }
+}
+
 include __DIR__.'/_header.php';
 ?>
 <div>
@@ -178,5 +201,38 @@ include __DIR__.'/_header.php';
       </ul>
     </aside>
   </div>
+
+  <?php if ($adminRole === 'manufacturer' && !empty($notifications)): ?>
+  <div class="mt-6">
+    <section class="bg-white border rounded-2xl p-4">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-semibold">Recent Notifications</h3>
+        <span class="text-xs text-slate-500"><?=count($notifications)?> notification<?=count($notifications)!==1?'s':''?></span>
+      </div>
+      <div class="space-y-2">
+        <?php foreach($notifications as $notif): ?>
+        <div class="flex items-start gap-3 p-3 border rounded-lg <?=$notif['is_read']?'bg-slate-50':'bg-blue-50 border-blue-200'?>">
+          <div class="flex-shrink-0 mt-0.5">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" class="<?=$notif['is_read']?'text-slate-400':'text-blue-500'?>">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm <?=$notif['is_read']?'text-slate-600':'text-slate-900 font-medium'?>">
+              <?=htmlspecialchars($notif['message'])?>
+            </p>
+            <div class="flex items-center gap-2 mt-1">
+              <span class="text-xs text-slate-500"><?=date('M j, g:i A', strtotime($notif['created_at']))?></span>
+              <?php if ($notif['link']): ?>
+                <a href="<?=htmlspecialchars($notif['link'])?>" class="text-xs text-brand hover:underline">View Order</a>
+              <?php endif; ?>
+            </div>
+          </div>
+        </div>
+        <?php endforeach; ?>
+      </div>
+    </section>
+  </div>
+  <?php endif; ?>
 </div>
 <?php include __DIR__.'/_footer.php'; ?>

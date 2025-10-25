@@ -6,6 +6,11 @@ require_once __DIR__ . '/db.php';
 $bootstrap = __DIR__.'/_bootstrap.php'; if (is_file($bootstrap)) require_once $bootstrap;
 $auth      = __DIR__ . '/auth.php';      if (is_file($auth) && function_exists('require_admin')) require_admin();
 
+// Get current admin user and role
+$admin = current_admin();
+$adminRole = $admin['role'] ?? '';
+$adminId = $admin['id'] ?? '';
+
 /* ================= Polyfills / safety ================= */
 if (!function_exists('str_contains')) {
   function str_contains($h, $n){ return $n === '' ? true : strpos((string)$h, (string)$n) !== false; }
@@ -96,6 +101,15 @@ $phys = isset($_GET['phys']) ? $_GET['phys'] : '';
 $where  = "o.created_at BETWEEN :from AND DATE_ADD(:to, INTERVAL 1 DAY) AND o.status NOT IN ('rejected','cancelled')";
 $params = ['from'=>$from, 'to'=>$to];
 if ($phys!==''){ $where.=" AND o.user_id=:phys"; $params['phys']=$phys; }
+
+// Role-based access control
+if ($adminRole === 'superadmin' || $adminRole === 'manufacturer') {
+  // Superadmin and manufacturer see all orders - no additional filter
+} else {
+  // Employees only see orders from assigned physicians
+  $where .= " AND EXISTS (SELECT 1 FROM admin_physicians ap WHERE ap.admin_id = :admin_id AND ap.physician_user_id = o.user_id)";
+  $params['admin_id'] = $adminId;
+}
 
 $hasProducts = has_table($pdo,'products');
 $hasRates    = has_table($pdo,'reimbursement_rates');
@@ -196,6 +210,9 @@ include __DIR__.'/_header.php';
             <th class="py-2">ID</th>
             <th class="py-2">Insurance Card</th>
             <th class="py-2">Order PDF</th>
+            <?php if ($adminRole === 'manufacturer'): ?>
+            <th class="py-2">Actions</th>
+            <?php endif; ?>
           </tr>
         </thead>
       <tbody>
@@ -216,6 +233,7 @@ include __DIR__.'/_header.php';
           $insLinks  = find_bucket_files('insurance', $tokens);
 
           $orderUrl = '/admin/order.pdf.php?id=' . rawurlencode($row['id']) . '&csrf=' . rawurlencode($_SESSION['csrf'] ?? '');
+          $downloadAllUrl = '/admin/download-all.php?id=' . rawurlencode($row['id']) . '&csrf=' . rawurlencode($_SESSION['csrf'] ?? '');
         ?>
         <tr class="border-t">
           <td class="py-2">
@@ -238,12 +256,22 @@ include __DIR__.'/_header.php';
           <td class="py-2"><?=render_view_link($idLinks)?></td>
           <td class="py-2"><?=render_view_link($insLinks)?></td>
           <td class="py-2"><a class="text-brand underline" target="_blank" href="<?=e($orderUrl)?>">View</a></td>
+          <?php if ($adminRole === 'manufacturer'): ?>
+          <td class="py-2">
+            <a class="btn btn-primary text-xs" href="<?=e($downloadAllUrl)?>" title="Download all documents as ZIP">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+              </svg>
+              Download All
+            </a>
+          </td>
+          <?php endif; ?>
         </tr>
         <?php endforeach; ?>
         <tr class="border-t font-semibold" style="background: #f9fafb;">
           <td class="py-2" colspan="6">Total (Filtered)</td>
           <td class="py-2">$<?=number_format($total,2)?></td>
-          <td class="py-2" colspan="4"></td>
+          <td class="py-2" colspan="<?=$adminRole==='manufacturer'?'5':'4'?>"></td>
         </tr>
       </tbody>
     </table>

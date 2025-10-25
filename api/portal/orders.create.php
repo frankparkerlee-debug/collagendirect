@@ -241,6 +241,14 @@ try {
     // error_log('[orders.create upload] '.$upErr->getMessage());
   }
 
+  // Notify manufacturer of new order
+  try {
+    require_once __DIR__ . '/../lib/order_manufacturer_notification.php';
+    notify_manufacturer_of_order($pdo, $order_id);
+  } catch (Throwable $notifyErr) {
+    error_log('[orders.create notification] ' . $notifyErr->getMessage());
+  }
+
   // Done.
   exit;
 
