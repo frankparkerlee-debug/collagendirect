@@ -1,0 +1,23 @@
+deployment:
+  # cPanel will run the listed task groups during a deploy. This file
+  # copies the repository contents into your production directory,
+  # sets sane permissions, and optionally runs composer if present.
+  tasks:
+    pre_deploy:
+      - echo "[cpanel] Starting pre-deploy tasks"
+      - mkdir -p /home/frxnaisp/collagendirect/production
+
+    deploy:
+      - echo "[cpanel] Deploying repository to /home/frxnaisp/collagendirect/production"
+      # Use rsync to copy all files except git metadata and CI configs
+      - /usr/bin/rsync -av --delete --exclude='.git' --exclude='.github' ./ /home/frxnaisp/collagendirect/production/
+      # Ensure ownership and permissions are reasonable for cPanel user
+      - chown -R frxnaisp:frxnaisp /home/frxnaisp/collagendirect/production || true
+      - find /home/frxnaisp/collagendirect/production -type d -exec chmod 755 {} \; || true
+      - find /home/frxnaisp/collagendirect/production -type f -exec chmod 644 {} \; || true
+      # If composer.json exists, install production dependencies (no-dev)
+      - if [ -f /home/frxnaisp/collagendirect/production/composer.json ]; then cd /home/frxnaisp/collagendirect/production && /usr/bin/composer install --no-dev --optimize-autoloader || true; fi
+
+    post_deploy:
+      - echo "[cpanel] Deploy finished at $(date)"
+      - echo "[cpanel] PHP version: $(/usr/bin/php -v 2>/dev/null | head -n 1)"
