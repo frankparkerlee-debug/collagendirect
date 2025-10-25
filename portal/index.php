@@ -5,6 +5,17 @@ declare(strict_types=1);
 /* ------------ DB + session/bootstrap ------------ */
 require __DIR__ . '/../api/db.php'; // defines $pdo + session helpers
 
+// BLOCK ADMIN USERS (employees, manufacturer) from accessing physician portal
+// Exception: super admin can access both portals
+if (isset($_SESSION['admin']) && empty($_SESSION['user_id'])) {
+  $adminRole = $_SESSION['admin']['role'] ?? '';
+  // Employees and manufacturer should NOT access portal - redirect to admin
+  if ($adminRole !== 'superadmin') {
+    header('Location: /admin/');
+    exit;
+  }
+}
+
 if (empty($_SESSION['user_id'])) {
   // If this is an AJAX/API request, return JSON error instead of redirect
   $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) ||

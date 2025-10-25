@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require __DIR__ . '/auth.php';
 require_admin();
+require_once __DIR__ . '/../api/lib/provider_welcome.php'; // Email notifications
 
 $admin = current_admin();
 $isOwner = in_array(($admin['role'] ?? ''), ['owner','superadmin','admin','practice_admin']); // practice_admin sees all physicians too
@@ -9,14 +10,15 @@ $tab = $_GET['tab'] ?? 'physicians';
 $msg='';
 
 /* Physician scope: only those mapped to this admin unless owner/superadmin/practice_admin */
+/* IMPORTANT: Exclude superadmin from Physicians tab - they belong in admin portal, not as physicians */
 $physQuery = "
-  SELECT u.id, u.first_name, u.last_name, u.email, u.account_type, u.status, u.created_at
+  SELECT u.id, u.first_name, u.last_name, u.email, u.account_type, u.status, u.created_at, u.role, u.practice_name
   FROM users u
 ";
 if (!$isOwner) {
-  $physQuery .= " JOIN admin_physicians ap ON ap.physician_user_id = u.id WHERE ap.admin_id = :aid ";
+  $physQuery .= " JOIN admin_physicians ap ON ap.physician_user_id = u.id WHERE ap.admin_id = :aid AND (u.role IS NULL OR u.role IN ('physician', 'practice_admin'))";
 } else {
-  $physQuery .= " WHERE 1=1 ";
+  $physQuery .= " WHERE (u.role IS NULL OR u.role IN ('physician', 'practice_admin'))";
 }
 $physQuery .= " ORDER BY u.created_at DESC LIMIT 300";
 $physStmt = $pdo->prepare($physQuery);
@@ -24,8 +26,11 @@ if (!$isOwner) $physStmt->execute(['aid'=>$admin['id']]);
 else $physStmt->execute();
 $phys = $physStmt->fetchAll();
 
-/* Employees list */
-$emps = $pdo->query("SELECT id, name, email, role, created_at FROM admin_users ORDER BY created_at DESC LIMIT 200")->fetchAll();
+/* Employees list - only CollagenDirect staff */
+$emps = $pdo->query("SELECT id, name, email, role, created_at FROM admin_users WHERE role IN ('employee', 'admin') ORDER BY created_at DESC LIMIT 200")->fetchAll();
+
+/* Manufacturer list - separate from employees */
+$manufacturers = $pdo->query("SELECT id, name, email, role, created_at FROM admin_users WHERE role = 'manufacturer' ORDER BY created_at DESC LIMIT 200")->fetchAll();
 
 /* Actions */
 if ($_SERVER['REQUEST_METHOD']==='POST') {
@@ -33,9 +38,19 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
   $act = $_POST['action'] ?? '';
 
   if ($act==='create_employee' && $isOwner) {
+    $name = trim($_POST['name']);
+    $email = trim($_POST['email']);
+    $role = trim($_POST['role']);
+    $password = $_POST['password'];
+
     $pdo->prepare("INSERT INTO admin_users(name,email,role,password_hash) VALUES(?,?,?,?)")
-        ->execute([trim($_POST['name']), trim($_POST['email']), trim($_POST['role']), password_hash($_POST['password'], PASSWORD_DEFAULT)]);
-    $msg='Employee created'; $tab='employees';
+        ->execute([$name, $email, $role, password_hash($password, PASSWORD_DEFAULT)]);
+
+    // Send welcome email
+    send_provider_welcome_email($email, $name, $role, $password);
+
+    $msg = ($role === 'manufacturer' ? 'Manufacturer' : 'Employee') . ' created and welcome email sent';
+    $tab = ($role === 'manufacturer') ? 'manufacturer' : 'employees';
   }
   if ($act==='reset_emp_pw' && $isOwner) {
     $pdo->prepare("UPDATE admin_users SET password_hash=? WHERE id=?")->execute([password_hash($_POST['newpw'], PASSWORD_DEFAULT), (int)$_POST['emp_id']]);
@@ -50,16 +65,41 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
   }
 
   if ($act==='create_phys') {
-    $pdo->prepare("INSERT INTO users(id,email,password_hash,first_name,last_name,account_type,status,created_at,updated_at) VALUES(?,?,?,?,?,'referral','active',NOW(),NOW())")
-        ->execute([bin2hex(random_bytes(16)), trim($_POST['email']), password_hash($_POST['password'], PASSWORD_DEFAULT), trim($_POST['first_name']), trim($_POST['last_name'])]);
-    // Map to this admin if not owner/practice_admin (only for regular admins with limited scope)
-    if (!$isOwner && ($admin['role'] ?? '') !== 'practice_admin') {
-      $uid = $pdo->lastInsertId(); // if not available (VARCHAR PK), fetch by email
-      $uidRow = $pdo->prepare("SELECT id FROM users WHERE email=? ORDER BY created_at DESC LIMIT 1"); $uidRow->execute([trim($_POST['email'])]);
-      $uid = $uidRow->fetch()['id'] ?? null;
-      if ($uid) $pdo->prepare("INSERT IGNORE INTO admin_physicians(admin_id, physician_user_id) VALUES(?,?)")->execute([$admin['id'], $uid]);
+    $providerType = $_POST['provider_type'] ?? 'practice';
+    $email = trim($_POST['email']);
+    $password = $_POST['password'];
+    $firstName = trim($_POST['first_name']);
+    $lastName = trim($_POST['last_name']);
+    $userId = bin2hex(random_bytes(16));
+
+    if ($providerType === 'practice') {
+      // Creating a practice owner (practice_admin)
+      $practiceName = trim($_POST['practice_name'] ?? '');
+      $pdo->prepare("INSERT INTO users(id,email,password_hash,first_name,last_name,practice_name,role,account_type,status,created_at,updated_at) VALUES(?,?,?,?,?,?,'practice_admin','referral','active',NOW(),NOW())")
+          ->execute([$userId, $email, password_hash($password, PASSWORD_DEFAULT), $firstName, $lastName, $practiceName]);
+      $msg = 'Practice owner created';
+    } else {
+      // Creating a physician and linking to practice
+      $practiceId = $_POST['practice_id'] ?? '';
+      $pdo->prepare("INSERT INTO users(id,email,password_hash,first_name,last_name,role,account_type,status,created_at,updated_at) VALUES(?,?,?,?,?,'physician','referral','active',NOW(),NOW())")
+          ->execute([$userId, $email, password_hash($password, PASSWORD_DEFAULT), $firstName, $lastName]);
+
+      // Link physician to practice via practice_physicians table
+      if ($practiceId) {
+        $pdo->prepare("INSERT INTO practice_physicians(practice_admin_id,physician_id,first_name,last_name,physician_email,created_at) VALUES(?,?,?,?,?,NOW())")
+            ->execute([$practiceId, $userId, $firstName, $lastName, $email]);
+      }
+      $msg = 'Physician created and linked to practice';
     }
-    $msg='Physician created';
+
+    // Map to this admin if not owner/superadmin (for regular admins with limited scope)
+    if (!$isOwner && ($admin['role'] ?? '') !== 'practice_admin') {
+      $pdo->prepare("INSERT IGNORE INTO admin_physicians(admin_id, physician_user_id) VALUES(?,?)")->execute([$admin['id'], $userId]);
+    }
+
+    // Send welcome email via SendGrid
+    send_provider_welcome_email($email, "$firstName $lastName", $providerType === 'practice' ? 'Practice Owner' : 'Physician', $password);
+    $msg .= ' - Welcome email sent';
   }
   if ($act==='reset_phys_pw') {
     $pdo->prepare("UPDATE users SET password_hash=?, updated_at=NOW() WHERE id=?")->execute([password_hash($_POST['newpw'], PASSWORD_DEFAULT), $_POST['phys_id']]);
@@ -86,8 +126,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 <?php if ($msg): ?><div class="mb-3 text-sm bg-teal-50 border border-teal-200 text-teal-700 p-2 rounded"><?=$msg?></div><?php endif; ?>
 
 <div class="mb-4">
-  <a class="px-3 py-2 border rounded-t <?=($tab==='physicians'?'bg-white border-b-0':'')?>" href="/admin/users.php?tab=physicians">Physicians</a>
+  <a class="px-3 py-2 border rounded-t <?=($tab==='physicians'?'bg-white border-b-0':'')?>" href="/admin/users.php?tab=physicians">Providers</a>
   <a class="px-3 py-2 border rounded-t <?=($tab==='employees'?'bg-white border-b-0':'')?>" href="/admin/users.php?tab=employees">Employees</a>
+  <a class="px-3 py-2 border rounded-t <?=($tab==='manufacturer'?'bg-white border-b-0':'')?>" href="/admin/users.php?tab=manufacturer">Manufacturer</a>
 </div>
 
 <div class="bg-white border rounded-b rounded-r p-4">
@@ -139,19 +180,71 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
       </table>
     </div>
     <div>
-      <div class="font-semibold mb-2">Add Physician</div>
-      <form method="post" class="bg-slate-50 border rounded p-3 text-sm">
+      <div class="font-semibold mb-2">Add Provider</div>
+      <form method="post" class="bg-slate-50 border rounded p-3 text-sm" id="provider-form">
         <?=csrf_field()?>
-        <input type="hidden" name="action" value="create_phys"/>
+
+        <!-- Provider Type Selection -->
+        <div class="mb-3">
+          <label class="flex items-center mb-2">
+            <input type="radio" name="provider_type" value="practice" checked onchange="toggleProviderFields()">
+            <span class="ml-2">Practice Owner</span>
+          </label>
+          <label class="flex items-center">
+            <input type="radio" name="provider_type" value="physician" onchange="toggleProviderFields()">
+            <span class="ml-2">Physician to Practice</span>
+          </label>
+        </div>
+
+        <!-- Practice Selection (for physicians) -->
+        <div id="practice-select-field" style="display:none;" class="mb-2">
+          <select name="practice_id" class="border rounded px-2 py-1 w-full">
+            <option value="">Select Practice</option>
+            <?php
+            $practices = $pdo->query("SELECT id, practice_name, CONCAT(first_name, ' ', last_name) as owner_name FROM users WHERE role='practice_admin' AND practice_name IS NOT NULL ORDER BY practice_name")->fetchAll();
+            foreach ($practices as $p):
+            ?>
+              <option value="<?=e($p['id'])?>"><?=e($p['practice_name'])?> (<?=e($p['owner_name'])?>)</option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+
+        <!-- Practice Name (for practice owners) -->
+        <div id="practice-name-field" class="mb-2">
+          <input class="border rounded px-2 py-1 w-full" name="practice_name" placeholder="Practice name">
+        </div>
+
         <input class="border rounded px-2 py-1 w-full mb-2" name="first_name" placeholder="First name" required>
         <input class="border rounded px-2 py-1 w-full mb-2" name="last_name" placeholder="Last name" required>
         <input class="border rounded px-2 py-1 w-full mb-2" type="email" name="email" placeholder="Email" required>
         <input class="border rounded px-2 py-1 w-full mb-2" type="password" name="password" placeholder="Temp password" required>
         <button class="bg-brand text-white rounded px-3 py-1">Create</button>
       </form>
+
+      <script>
+      function toggleProviderFields() {
+        const type = document.querySelector('input[name="provider_type"]:checked').value;
+        const practiceSelectField = document.getElementById('practice-select-field');
+        const practiceNameField = document.getElementById('practice-name-field');
+        const practiceSelect = document.querySelector('select[name="practice_id"]');
+        const practiceNameInput = document.querySelector('input[name="practice_name"]');
+
+        if (type === 'physician') {
+          practiceSelectField.style.display = 'block';
+          practiceNameField.style.display = 'none';
+          practiceSelect.required = true;
+          practiceNameInput.required = false;
+        } else {
+          practiceSelectField.style.display = 'none';
+          practiceNameField.style.display = 'block';
+          practiceSelect.required = false;
+          practiceNameInput.required = true;
+        }
+      }
+      </script>
     </div>
   </div>
-<?php else: ?>
+<?php elseif ($tab==='employees'): ?>
   <div class="grid grid-cols-2 gap-6">
     <div>
       <div class="font-semibold mb-2">Employees</div>
@@ -200,6 +293,61 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
           <input class="border rounded px-2 py-1 col-span-2" type="email" name="email" placeholder="Email" required/>
           <input class="border rounded px-2 py-1" name="role" placeholder="Role (admin, ops, sales)" value="admin"/>
           <input class="border rounded px-2 py-1" type="password" name="password" placeholder="Temporary password" required/>
+        </div>
+        <button class="mt-2 bg-brand text-white rounded px-3 py-1">Create</button>
+      </form>
+    </div>
+  </div>
+<?php else: ?>
+  <!-- Manufacturer Tab -->
+  <div class="grid grid-cols-2 gap-6">
+    <div>
+      <div class="font-semibold mb-2">Manufacturer Representatives</div>
+      <table class="w-full text-sm">
+        <thead class="border-b">
+          <tr class="text-left">
+            <th class="py-2">Name</th>
+            <th class="py-2">Email</th>
+            <th class="py-2">Role</th>
+            <th class="py-2">Added</th>
+            <th class="py-2">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($manufacturers as $m): ?>
+          <tr class="border-b hover:bg-slate-50">
+            <td class="py-3"><?=e($m['name'])?></td>
+            <td class="py-3"><?=e($m['email'])?></td>
+            <td class="py-3"><?=e($m['role'])?></td>
+            <td class="py-3"><?=e($m['created_at'])?></td>
+            <td class="py-3 space-x-2">
+              <?php if ($isOwner): ?>
+              <form method="post" class="inline"><?=csrf_field()?>
+                <input type="hidden" name="action" value="reset_emp_pw"><input type="hidden" name="emp_id" value="<?=$m['id']?>">
+                <input type="password" name="newpw" class="border rounded px-2 py-0.5 text-xs" placeholder="New pw" required>
+                <button class="text-brand text-xs">Reset PW</button>
+              </form>
+              <form method="post" class="inline" onsubmit="return confirm('Delete manufacturer representative?')"><?=csrf_field()?>
+                <input type="hidden" name="action" value="delete_emp"><input type="hidden" name="emp_id" value="<?=$m['id']?>">
+                <button class="text-rose-600 text-xs">Delete</button>
+              </form>
+              <?php endif; ?>
+            </td>
+          </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <div class="font-semibold mb-2">Add Manufacturer Representative</div>
+      <form method="post" class="bg-slate-50 border rounded p-3">
+        <?=csrf_field()?>
+        <input type="hidden" name="action" value="create_employee"/>
+        <div class="grid grid-cols-2 gap-2">
+          <input class="border rounded px-2 py-1 col-span-2" name="name" placeholder="Full name" required/>
+          <input class="border rounded px-2 py-1 col-span-2" type="email" name="email" placeholder="Email" required/>
+          <input type="hidden" name="role" value="manufacturer"/>
+          <input class="border rounded px-2 py-1 col-span-2" type="password" name="password" placeholder="Temporary password" required/>
         </div>
         <button class="mt-2 bg-brand text-white rounded px-3 py-1">Create</button>
       </form>
