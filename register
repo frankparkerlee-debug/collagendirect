@@ -91,6 +91,7 @@
       flex-direction:column;
       gap:0.5rem;
     }
+    .form-grid.single{grid-template-columns:1fr}
 
     /* Inputs */
     .auth-card input,.auth-card select,.auth-card textarea{
@@ -164,26 +165,13 @@
     .btn.ghost:hover{
       background:#f9fafb;
     }
-
-    /* Messages */
-    .error{
-      display:none;
-      margin:0 0 1rem;
-      padding:0.75rem 1rem;
-      border-radius:var(--radius);
-      border:1px solid #fecaca;
-      background:#fef2f2;
-      color:#991b1b;
-      font-size:0.875rem;
+    .btn.secondary{
+      background:#f3f4f6;
+      border:1px solid var(--line);
+      color:#374151;
     }
-    .success{
-      display:none;
-      margin:0 0 1rem;
-      padding:0.75rem 1rem;
-      border-radius:var(--radius);
-      border:1px solid #d1fae5;
-      background:#ecfdf5;
-      color:#065f46;
+    .btn.small{
+      padding:0.5rem 1rem;
       font-size:0.875rem;
     }
 
@@ -219,6 +207,81 @@
       color:#374151;
     }
 
+    /* User type selection cards */
+    .user-type-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:1rem;
+      margin-top:1rem;
+    }
+    .user-type-card{
+      border:2px solid var(--line);
+      border-radius:var(--radius);
+      padding:1.5rem;
+      cursor:pointer;
+      transition:all 0.2s;
+      background:#fff;
+    }
+    .user-type-card:hover{
+      border-color:var(--brand);
+      background:#f0fdfb;
+    }
+    .user-type-card input[type="radio"]{
+      display:none;
+    }
+    .user-type-card input[type="radio"]:checked + .card-content{
+      border-left:4px solid var(--brand);
+      padding-left:1rem;
+    }
+    .user-type-card.selected{
+      border-color:var(--brand);
+      background:#f0fdfb;
+    }
+    .card-content h3{
+      font-size:1rem;
+      font-weight:600;
+      color:#111;
+      margin-bottom:0.5rem;
+    }
+    .card-content p{
+      font-size:0.875rem;
+      color:var(--muted);
+    }
+
+    /* Physician item in "Add More" list */
+    .physician-item{
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      padding:1rem;
+      margin-top:0.75rem;
+      background:#f9fafb;
+      position:relative;
+    }
+    .physician-item-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:0.75rem;
+    }
+    .physician-item-header h4{
+      font-size:0.95rem;
+      font-weight:600;
+      color:#374151;
+    }
+    .btn-remove{
+      background:#fee;
+      border:1px solid #fecaca;
+      color:#991b1b;
+      padding:0.25rem 0.75rem;
+      font-size:0.8rem;
+      border-radius:8px;
+      cursor:pointer;
+      font-weight:500;
+    }
+    .btn-remove:hover{
+      background:#fecaca;
+    }
+
     /* Footer */
     footer{
       background:#fff;
@@ -229,16 +292,74 @@
       font-size:0.875rem;
     }
 
+    /* Utility classes */
+    [hidden]{display:none !important}
+
+    /* Field validation styles */
+    .field-error input,
+    .field-error select{
+      border-color:#dc2626 !important;
+      background:#fef2f2;
+    }
+    .field-error input:focus,
+    .field-error select:focus{
+      border-color:#dc2626 !important;
+      box-shadow:0 0 0 3px rgba(220,38,38,.1) !important;
+    }
+    .error-message{
+      color:#dc2626;
+      font-size:0.875rem;
+      margin-top:0.25rem;
+      display:none;
+    }
+    .field-error .error-message{
+      display:block;
+    }
+    .validation-summary{
+      background:#fef2f2;
+      border:1px solid #fecaca;
+      border-radius:var(--radius);
+      padding:1rem;
+      margin-bottom:1.5rem;
+      display:none;
+    }
+    .validation-summary.show{
+      display:block;
+    }
+    .validation-summary h3{
+      color:#991b1b;
+      font-size:1rem;
+      font-weight:600;
+      margin-bottom:0.5rem;
+    }
+    .validation-summary ul{
+      list-style:none;
+      padding:0;
+      margin:0;
+    }
+    .validation-summary li{
+      color:#991b1b;
+      font-size:0.875rem;
+      padding:0.25rem 0;
+      padding-left:1.5rem;
+      position:relative;
+    }
+    .validation-summary li:before{
+      content:"•";
+      position:absolute;
+      left:0.5rem;
+    }
+
     /* Responsive */
-    @media (max-width:640px){
+    @media (max-width:768px){
       .form-grid{grid-template-columns:1fr}
+      .user-type-grid{grid-template-columns:1fr}
       .auth-card{padding:1.5rem}
       .auth-card h2{font-size:1.5rem}
     }
   </style>
 </head>
 <body>
-  <!-- Simple header -->
   <header>
     <div class="nav">
       <a href="/index.html" class="brand" aria-label="Go to homepage">
@@ -248,123 +369,251 @@
     </div>
   </header>
 
-  <!-- Main registration form -->
   <main class="container">
     <section class="auth-card">
-      <h2>Create Your Physician Account</h2>
+      <h2>Create Your Account</h2>
       <p class="muted">Already have an account? <a href="/portal" style="color:var(--brand);font-weight:500">Sign in</a></p>
 
-      <!-- === YOUR ORIGINAL FORM & IDs (unchanged) === -->
       <form id="registerForm" novalidate action="javascript:void(0)">
+
+        <!-- Validation Summary -->
+        <div id="validationSummary" class="validation-summary">
+          <h3>Please correct the following errors:</h3>
+          <ul id="validationList"></ul>
+        </div>
+
+        <!-- Step 1: User Type Selection -->
+        <section class="card" style="border:none;box-shadow:none;padding:0">
+          <h2 class="section-title" style="margin:0 0 8px">Select Your Account Type</h2>
+          <p class="muted" style="margin-bottom:1rem">Choose the option that best describes your practice</p>
+
+          <div class="user-type-grid">
+            <!-- 1a. Practice Manager / Admin (Non-DME) -->
+            <label class="user-type-card" data-type="practice_admin">
+              <input type="radio" name="userType" value="practice_admin" required />
+              <div class="card-content">
+                <h3>Practice Manager / Admin</h3>
+                <p>Manage practice details, physicians, and refer patients. No DME license required.</p>
+              </div>
+            </label>
+
+            <!-- 1b. Physician (Non-DME, part of practice) -->
+            <label class="user-type-card" data-type="physician">
+              <input type="radio" name="userType" value="physician" />
+              <div class="card-content">
+                <h3>Physician</h3>
+                <p>Join an existing practice. Sign orders for your own patients.</p>
+              </div>
+            </label>
+
+            <!-- 2a. DME Hybrid Referrer -->
+            <label class="user-type-card" data-type="dme_hybrid">
+              <input type="radio" name="userType" value="dme_hybrid" />
+              <div class="card-content">
+                <h3>DME Hybrid Referrer</h3>
+                <p>Hold a DME license. Mix of referrals and direct billing on a case-by-case basis.</p>
+              </div>
+            </label>
+
+            <!-- 2b. DME Wholesale Only -->
+            <label class="user-type-card" data-type="dme_wholesale">
+              <input type="radio" name="userType" value="dme_wholesale" />
+              <div class="card-content">
+                <h3>DME Wholesale Only</h3>
+                <p>Hold a DME license. Direct bill all patients and purchase products wholesale.</p>
+              </div>
+            </label>
+          </div>
+        </section>
+
+        <!-- Step 2: Account Credentials -->
         <section class="card" aria-labelledby="acct-title" style="border:none;box-shadow:none;padding:0">
-          <h2 id="acct-title" class="section-title" style="margin:0 0 8px">Account</h2>
+          <h2 id="acct-title" class="section-title">Account Credentials</h2>
           <div class="form-grid">
-            <div>
+            <div id="field-email">
               <label for="email">Work Email</label>
               <input id="email" type="email" required placeholder="name@practice.com" />
-              <div class="muted" style="font-size:.9rem">Used for login and agreement copies.</div>
+              <div class="error-message">Please enter a valid email address</div>
+              <div class="muted" style="font-size:.9rem">Used for login and agreement copies</div>
             </div>
-            <div>
+            <div id="field-password">
               <label for="password">Password</label>
               <input id="password" type="password" minlength="8" required placeholder="••••••••" />
-              <div class="muted" style="font-size:.9rem">Min 8 chars, include a number.</div>
+              <div class="error-message">Password must be at least 8 characters</div>
+              <div class="muted" style="font-size:.9rem">Min 8 characters, include a number</div>
             </div>
           </div>
         </section>
 
-        <section class="card" aria-labelledby="practice-title" style="border:none;box-shadow:none;padding:0;margin-top:18px">
-          <h2 id="practice-title" class="section-title" style="margin:0 0 8px">Practice Information</h2>
+        <!-- Step 3: Practice Information (for practice_admin, dme_hybrid, dme_wholesale) -->
+        <section id="practiceInfoSection" class="card" aria-labelledby="practice-title" style="border:none;box-shadow:none;padding:0;margin-top:18px" hidden>
+          <h2 id="practice-title" class="section-title">Practice Information</h2>
           <div class="form-grid">
-            <div>
+            <div id="field-practiceName">
               <label for="practiceName">Practice / Facility Name</label>
-              <input id="practiceName" required />
+              <input id="practiceName" />
+              <div class="error-message">Practice name is required</div>
             </div>
-            <div>
+            <div id="field-taxId">
               <label for="taxId">Tax ID (optional)</label>
               <input id="taxId" placeholder="##-#######" />
             </div>
-            <div>
+            <div id="field-address">
               <label for="address">Street Address</label>
-              <input id="address" required />
+              <input id="address" />
+              <div class="error-message">Street address is required</div>
             </div>
-            <div>
+            <div id="field-city">
               <label for="city">City</label>
-              <input id="city" required />
+              <input id="city" />
+              <div class="error-message">City is required</div>
             </div>
-            <div>
+            <div id="field-state">
               <label for="state">State</label>
-              <select id="state" required></select>
+              <select id="state"></select>
+              <div class="error-message">State is required</div>
             </div>
-            <div>
+            <div id="field-zip">
               <label for="zip">ZIP</label>
-              <input id="zip" pattern="\d{5}(-\d{4})?" required placeholder="12345" />
+              <input id="zip" pattern="\d{5}(-\d{4})?" placeholder="12345" />
+              <div class="error-message">ZIP code is required</div>
             </div>
-            <div>
+            <div id="field-phone">
               <label for="phone">Practice Phone</label>
-              <input id="phone" type="tel" required placeholder="(555) 555-5555" />
+              <input id="phone" type="tel" placeholder="(555) 555-5555" />
+              <div class="error-message">Phone number is required</div>
             </div>
           </div>
         </section>
 
-        <section class="card" aria-labelledby="cred-title" style="border:none;box-shadow:none;padding:0;margin-top:18px">
-          <h2 id="cred-title" class="section-title" style="margin:0 0 8px">Physician Credentials</h2>
+        <!-- Step 4: Physician Credentials (shown for all types) -->
+        <section id="physicianCredsSection" class="card" aria-labelledby="cred-title" style="border:none;box-shadow:none;padding:0;margin-top:18px" hidden>
+          <h2 id="cred-title" class="section-title">Physician Credentials</h2>
           <div class="form-grid">
-            <div><label for="firstName">First Name</label><input id="firstName" required /></div>
-            <div><label for="lastName">Last Name</label><input id="lastName" required /></div>
-            <div><label for="npi">NPI Number</label><input id="npi" inputmode="numeric" pattern="\d{10}" required placeholder="10 digits" /></div>
+            <div id="field-firstName">
+              <label for="firstName">First Name</label>
+              <input id="firstName" />
+              <div class="error-message">First name is required</div>
+            </div>
+            <div id="field-lastName">
+              <label for="lastName">Last Name</label>
+              <input id="lastName" />
+              <div class="error-message">Last name is required</div>
+            </div>
+            <div id="field-npi">
+              <label for="npi">NPI Number</label>
+              <input id="npi" inputmode="numeric" pattern="\d{10}" placeholder="10 digits" />
+              <div class="error-message">NPI number is required</div>
+            </div>
           </div>
           <div class="form-grid" style="margin-top:12px">
-            <div><label for="license">Medical License #</label><input id="license" required /></div>
-            <div><label for="licenseState">License State</label><select id="licenseState" required></select></div>
-            <div><label for="licenseExpiry">License Expiry</label><input id="licenseExpiry" type="date" required /></div>
+            <div id="field-license">
+              <label for="license">Medical License #</label>
+              <input id="license" />
+              <div class="error-message">Medical license is required</div>
+            </div>
+            <div id="field-licenseState">
+              <label for="licenseState">License State</label>
+              <select id="licenseState"></select>
+              <div class="error-message">License state is required</div>
+            </div>
+            <div id="field-licenseExpiry">
+              <label for="licenseExpiry">License Expiry</label>
+              <input id="licenseExpiry" type="date" />
+              <div class="error-message">License expiry is required</div>
+            </div>
           </div>
           <div class="row" style="margin-top:10px;gap:12px">
             <button type="button" class="btn" id="btnValidateNPI">Validate NPI</button>
-            <span id="npiStatus" class="status" aria-live="polite" style="padding:.5rem .7rem;border-radius:10px;border:1px solid var(--line);background:#fff">NPI not validated</span>
+            <span id="npiStatus" class="status" aria-live="polite">NPI not validated</span>
           </div>
         </section>
 
-        <section class="card" aria-labelledby="type-title" style="border:none;box-shadow:none;padding:0;margin-top:18px">
-          <h2 id="type-title" class="section-title" style="margin:0 0 8px">Account Type</h2>
-          <fieldset style="border:1px solid var(--line);border-radius:14px;padding:16px">
-            <legend style="padding:0 .4rem;font-weight:700">Select one</legend>
-            <div class="form-grid">
-              <label style="display:flex;gap:.6rem;align-items:flex-start"><input type="radio" name="acctType" value="referral" required /><div><strong>Referral-Only</strong><div class="muted">You refer patients; we bill and ship.</div></div></label>
-              <label style="display:flex;gap:.6rem;align-items:flex-start"><input type="radio" name="acctType" value="wholesale" /><div><strong>Wholesale</strong><div class="muted">You hold a DME license and bill directly.</div></div></label>
-              <label style="display:flex;gap:.6rem;align-items:flex-start"><input type="radio" name="acctType" value="hybrid" /><div><strong>Hybrid</strong><div class="muted">Some patients billed by you, others by us.</div></div></label>
-            </div>
-          </fieldset>
-          <div id="dmeBlock" hidden style="margin-top:14px">
-            <div class="form-grid">
-              <div><label for="dmeNumber">DME License #</label><input id="dmeNumber" /></div>
-              <div><label for="dmeState">DME State</label><select id="dmeState"></select></div>
-              <div><label for="dmeExpiry">DME Expiry</label><input id="dmeExpiry" type="date" /></div>
+        <!-- Step 5: Additional Physicians (for practice_admin only) -->
+        <section id="additionalPhysiciansSection" class="card" style="border:none;box-shadow:none;padding:0;margin-top:18px" hidden>
+          <h2 class="section-title">Additional Physicians (Optional)</h2>
+          <p class="muted" style="margin-bottom:1rem">Add other physicians in your practice who will use this portal</p>
+
+          <div id="additionalPhysiciansList"></div>
+
+          <button type="button" class="btn secondary small" id="btnAddPhysician" style="margin-top:1rem">
+            + Add Another Physician
+          </button>
+        </section>
+
+        <!-- Step 6: Practice Manager Link (for physician type only) -->
+        <section id="practiceManagerLinkSection" class="card" style="border:none;box-shadow:none;padding:0;margin-top:18px" hidden>
+          <h2 class="section-title">Link to Practice Manager</h2>
+          <p class="muted" style="margin-bottom:1rem">Enter your practice manager's email or practice code to link your account</p>
+          <div class="form-grid single">
+            <div id="field-practiceManagerEmail">
+              <label for="practiceManagerEmail">Practice Manager Email</label>
+              <input id="practiceManagerEmail" type="email" placeholder="manager@practice.com" />
+              <div class="error-message">Practice manager email is required</div>
+              <div class="muted" style="font-size:.9rem">Your practice manager will need to approve your access</div>
             </div>
           </div>
         </section>
 
-        <section class="card" aria-labelledby="agreements-title" style="border:none;box-shadow:none;padding:0;margin-top:18px">
-          <h2 id="agreements-title" class="section-title" style="margin:0 0 8px">Agreements & e-Sign</h2>
+        <!-- Step 7: DME License Information (for dme_hybrid and dme_wholesale) -->
+        <section id="dmeSection" class="card" style="border:none;box-shadow:none;padding:0;margin-top:18px" hidden>
+          <h2 class="section-title">DME License Information</h2>
           <div class="form-grid">
-            <div>
+            <div id="field-dmeNumber">
+              <label for="dmeNumber">DME License #</label>
+              <input id="dmeNumber" />
+              <div class="error-message">DME license number is required</div>
+            </div>
+            <div id="field-dmeState">
+              <label for="dmeState">DME State</label>
+              <select id="dmeState"></select>
+              <div class="error-message">DME state is required</div>
+            </div>
+            <div id="field-dmeExpiry">
+              <label for="dmeExpiry">DME Expiry</label>
+              <input id="dmeExpiry" type="date" />
+              <div class="error-message">DME expiry date is required</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Step 8: Agreements & e-Sign -->
+        <section id="agreementsSection" class="card" aria-labelledby="agreements-title" style="border:none;box-shadow:none;padding:0;margin-top:18px" hidden>
+          <h2 id="agreements-title" class="section-title">Agreements & e-Sign</h2>
+          <div class="form-grid">
+            <div id="field-agreeMSA">
               <label>Master Services & Supply Agreement</label>
               <div class="row" style="gap:12px">
                 <button type="button" class="btn" data-open="msaa">Preview</button>
-                <label class="row" style="gap:8px"><input id="agreeMSA" type="checkbox" required /> <span>I agree</span></label>
+                <label class="row" style="gap:8px"><input id="agreeMSA" type="checkbox" /> <span>I agree</span></label>
               </div>
+              <div class="error-message">You must agree to the MSA</div>
             </div>
-            <div>
+            <div id="field-agreeBAA">
               <label>Business Associate Agreement (BAA)</label>
               <div class="row" style="gap:12px">
                 <button type="button" class="btn" data-open="baa">Preview</button>
-                <label class="row" style="gap:8px"><input id="agreeBAA" type="checkbox" required /> <span>I agree</span></label>
+                <label class="row" style="gap:8px"><input id="agreeBAA" type="checkbox" /> <span>I agree</span></label>
               </div>
+              <div class="error-message">You must agree to the BAA</div>
             </div>
           </div>
           <div class="form-grid" style="margin-top:10px">
-            <div><label for="signName">Full Legal Name (Signature)</label><input id="signName" required /></div>
-            <div><label for="signTitle">Title</label><input id="signTitle" required placeholder="MD, DO, etc." /></div>
-            <div><label for="signDate">Date</label><input id="signDate" type="date" required /></div>
+            <div id="field-signName">
+              <label for="signName">Full Legal Name (Signature)</label>
+              <input id="signName" />
+              <div class="error-message">Signature name is required</div>
+            </div>
+            <div id="field-signTitle">
+              <label for="signTitle">Title</label>
+              <input id="signTitle" placeholder="MD, DO, etc." />
+              <div class="error-message">Title is required</div>
+            </div>
+            <div id="field-signDate">
+              <label for="signDate">Date</label>
+              <input id="signDate" type="date" />
+              <div class="error-message">Date is required</div>
+            </div>
           </div>
         </section>
 
@@ -377,16 +626,13 @@
           For assistance, contact <a href="mailto:clinical@collagendirect.com" style="color:var(--brand);font-weight:500">clinical@collagendirect.com</a>
         </p>
       </form>
-      <!-- === /YOUR ORIGINAL FORM === -->
     </section>
   </main>
 
-  <!-- Simple footer -->
   <footer>
     © <span id="year"></span> CollagenDirect. All rights reserved.
   </footer>
 
-  <!-- === YOUR ORIGINAL JS (unchanged) === -->
   <script>
   (function () {
     // Populate state selects
@@ -403,11 +649,176 @@
     const signDate = document.getElementById('signDate');
     if (signDate) signDate.value = today;
 
-    // DME toggle
-    const dmeBlock = document.getElementById('dmeBlock');
-    document.querySelectorAll('input[name="acctType"]').forEach(r=>{
-      r.addEventListener('change',()=>{ dmeBlock.hidden = !(r.value !== 'referral' && r.checked); });
+    // Track additional physicians
+    let additionalPhysicians = [];
+    let physicianCounter = 0;
+
+    // User type selection logic
+    const userTypeCards = document.querySelectorAll('.user-type-card');
+    const practiceInfoSection = document.getElementById('practiceInfoSection');
+    const physicianCredsSection = document.getElementById('physicianCredsSection');
+    const additionalPhysiciansSection = document.getElementById('additionalPhysiciansSection');
+    const practiceManagerLinkSection = document.getElementById('practiceManagerLinkSection');
+    const dmeSection = document.getElementById('dmeSection');
+    const agreementsSection = document.getElementById('agreementsSection');
+
+    userTypeCards.forEach(card => {
+      card.addEventListener('click', function() {
+        // Update visual selection
+        userTypeCards.forEach(c => c.classList.remove('selected'));
+        this.classList.add('selected');
+
+        // Check the radio button
+        const radio = this.querySelector('input[type="radio"]');
+        radio.checked = true;
+
+        // Get selected type
+        const selectedType = radio.value;
+
+        // Show/hide sections based on user type
+        if (selectedType === 'practice_admin') {
+          // Practice Manager: Show practice info, physician creds, additional physicians, agreements
+          practiceInfoSection.hidden = false;
+          physicianCredsSection.hidden = false;
+          additionalPhysiciansSection.hidden = false;
+          practiceManagerLinkSection.hidden = true;
+          dmeSection.hidden = true;
+          agreementsSection.hidden = false;
+
+          // Set required fields
+          setRequired(['practiceName', 'address', 'city', 'state', 'zip', 'phone', 'firstName', 'lastName', 'npi', 'license', 'licenseState', 'licenseExpiry', 'agreeMSA', 'agreeBAA', 'signName', 'signTitle', 'signDate']);
+          setOptional(['dmeNumber', 'dmeState', 'dmeExpiry', 'practiceManagerEmail']);
+
+        } else if (selectedType === 'physician') {
+          // Physician: Show physician creds, practice manager link, agreements only
+          practiceInfoSection.hidden = true;
+          physicianCredsSection.hidden = false;
+          additionalPhysiciansSection.hidden = true;
+          practiceManagerLinkSection.hidden = false;
+          dmeSection.hidden = true;
+          agreementsSection.hidden = false;
+
+          // Set required fields
+          setRequired(['firstName', 'lastName', 'npi', 'license', 'licenseState', 'licenseExpiry', 'practiceManagerEmail', 'agreeMSA', 'agreeBAA', 'signName', 'signTitle', 'signDate']);
+          setOptional(['practiceName', 'address', 'city', 'state', 'zip', 'phone', 'dmeNumber', 'dmeState', 'dmeExpiry']);
+
+        } else if (selectedType === 'dme_hybrid' || selectedType === 'dme_wholesale') {
+          // DME Users: Show practice info, physician creds, DME info, agreements
+          practiceInfoSection.hidden = false;
+          physicianCredsSection.hidden = false;
+          additionalPhysiciansSection.hidden = true;
+          practiceManagerLinkSection.hidden = true;
+          dmeSection.hidden = false;
+          agreementsSection.hidden = false;
+
+          // Set required fields
+          setRequired(['practiceName', 'address', 'city', 'state', 'zip', 'phone', 'firstName', 'lastName', 'npi', 'license', 'licenseState', 'licenseExpiry', 'dmeNumber', 'dmeState', 'dmeExpiry', 'agreeMSA', 'agreeBAA', 'signName', 'signTitle', 'signDate']);
+          setOptional(['practiceManagerEmail']);
+        }
+      });
     });
+
+    function setRequired(fields) {
+      fields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.required = true;
+      });
+    }
+
+    function setOptional(fields) {
+      fields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.required = false;
+      });
+    }
+
+    // Add physician functionality
+    const btnAddPhysician = document.getElementById('btnAddPhysician');
+    const additionalPhysiciansList = document.getElementById('additionalPhysiciansList');
+
+    btnAddPhysician?.addEventListener('click', () => {
+      physicianCounter++;
+      const physicianId = `physician_${physicianCounter}`;
+
+      const physicianItem = document.createElement('div');
+      physicianItem.className = 'physician-item';
+      physicianItem.id = physicianId;
+      physicianItem.innerHTML = `
+        <div class="physician-item-header">
+          <h4>Physician ${physicianCounter}</h4>
+          <button type="button" class="btn-remove" data-physician-id="${physicianId}">Remove</button>
+        </div>
+        <div class="form-grid">
+          <div>
+            <label>First Name</label>
+            <input type="text" data-field="firstName" data-physician-id="${physicianId}" required />
+          </div>
+          <div>
+            <label>Last Name</label>
+            <input type="text" data-field="lastName" data-physician-id="${physicianId}" required />
+          </div>
+          <div>
+            <label>NPI Number</label>
+            <input type="text" data-field="npi" data-physician-id="${physicianId}" pattern="\\d{10}" placeholder="10 digits" required />
+          </div>
+          <div>
+            <label>Medical License #</label>
+            <input type="text" data-field="license" data-physician-id="${physicianId}" required />
+          </div>
+          <div>
+            <label>License State</label>
+            <select data-field="licenseState" data-physician-id="${physicianId}" required>
+              <option value="">Select</option>
+              ${states.map(s => `<option value="${s}">${s}</option>`).join('')}
+            </select>
+          </div>
+          <div>
+            <label>License Expiry</label>
+            <input type="date" data-field="licenseExpiry" data-physician-id="${physicianId}" required />
+          </div>
+          <div>
+            <label>Email (optional)</label>
+            <input type="email" data-field="email" data-physician-id="${physicianId}" placeholder="physician@practice.com" />
+          </div>
+          <div>
+            <label>Phone (optional)</label>
+            <input type="tel" data-field="phone" data-physician-id="${physicianId}" placeholder="(555) 555-5555" />
+          </div>
+        </div>
+      `;
+
+      additionalPhysiciansList.appendChild(physicianItem);
+
+      // Add remove handler
+      physicianItem.querySelector('.btn-remove').addEventListener('click', function() {
+        const id = this.dataset.physicianId;
+        document.getElementById(id)?.remove();
+        additionalPhysicians = additionalPhysicians.filter(p => p.id !== id);
+      });
+    });
+
+    // Collect additional physicians data
+    function collectAdditionalPhysicians() {
+      const physicians = [];
+      const items = additionalPhysiciansList.querySelectorAll('.physician-item');
+
+      items.forEach(item => {
+        const physicianId = item.id;
+        const inputs = item.querySelectorAll(`[data-physician-id="${physicianId}"]`);
+        const physician = {};
+
+        inputs.forEach(input => {
+          const field = input.dataset.field;
+          physician[field] = input.value.trim();
+        });
+
+        if (physician.firstName && physician.lastName && physician.npi) {
+          physicians.push(physician);
+        }
+      });
+
+      return physicians;
+    }
 
     // NPI validation
     function isValidNPI(npi){
@@ -425,44 +836,236 @@
     const npiStatus = document.getElementById('npiStatus');
     btnValidate?.addEventListener('click',()=>{
       const ok = isValidNPI(npiInput.value.trim());
-      npiStatus.textContent = ok ? 'NPI format valid (checksum passed).' : 'Invalid NPI number';
+      npiStatus.textContent = ok ? 'NPI format valid (checksum passed)' : 'Invalid NPI number';
       npiStatus.className = 'status ' + (ok ? 'ok' : 'bad');
     });
 
     // CSRF helper
     async function csrf(){ const r = await fetch('/api/csrf.php',{credentials:'include'}); return (await r.json()).csrfToken; }
 
-    // Submit handler -> POST /api/register.php
+    // Validation helper functions
+    function clearValidationErrors() {
+      document.querySelectorAll('.field-error').forEach(el => el.classList.remove('field-error'));
+      document.getElementById('validationSummary').classList.remove('show');
+      document.getElementById('validationList').innerHTML = '';
+    }
+
+    function showValidationError(fieldId, message) {
+      const field = document.getElementById(fieldId) || document.querySelector(`#${fieldId}`);
+      if (field) {
+        field.classList.add('field-error');
+      }
+
+      const list = document.getElementById('validationList');
+      const li = document.createElement('li');
+      li.textContent = message;
+      list.appendChild(li);
+    }
+
+    function validateForm() {
+      clearValidationErrors();
+      const errors = [];
+      const selectedType = document.querySelector('input[name="userType"]:checked');
+
+      // 1. Check user type selection
+      if (!selectedType) {
+        errors.push({ field: null, message: 'Please select an account type' });
+      }
+
+      // 2. Validate email
+      const email = document.getElementById('email');
+      if (!email.value.trim()) {
+        errors.push({ field: 'field-email', message: 'Email is required' });
+      } else if (!email.value.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+        errors.push({ field: 'field-email', message: 'Please enter a valid email address' });
+      }
+
+      // 3. Validate password
+      const password = document.getElementById('password');
+      if (!password.value) {
+        errors.push({ field: 'field-password', message: 'Password is required' });
+      } else if (password.value.length < 8) {
+        errors.push({ field: 'field-password', message: 'Password must be at least 8 characters' });
+      }
+
+      if (!selectedType) {
+        // Show errors and stop if no type selected
+        if (errors.length > 0) {
+          errors.forEach(err => {
+            if (err.field) showValidationError(err.field, err.message);
+            else {
+              const list = document.getElementById('validationList');
+              const li = document.createElement('li');
+              li.textContent = err.message;
+              list.appendChild(li);
+            }
+          });
+          document.getElementById('validationSummary').classList.add('show');
+          document.getElementById('validationSummary').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        return false;
+      }
+
+      const userType = selectedType.value;
+
+      // Type-specific validation
+      if (userType === 'practice_admin') {
+        // Practice info required
+        if (!document.getElementById('practiceName').value.trim()) {
+          errors.push({ field: 'field-practiceName', message: 'Practice name is required' });
+        }
+        if (!document.getElementById('address').value.trim()) {
+          errors.push({ field: 'field-address', message: 'Street address is required' });
+        }
+        if (!document.getElementById('city').value.trim()) {
+          errors.push({ field: 'field-city', message: 'City is required' });
+        }
+        if (!document.getElementById('state').value) {
+          errors.push({ field: 'field-state', message: 'State is required' });
+        }
+        if (!document.getElementById('zip').value.trim()) {
+          errors.push({ field: 'field-zip', message: 'ZIP code is required' });
+        }
+        if (!document.getElementById('phone').value.trim()) {
+          errors.push({ field: 'field-phone', message: 'Phone number is required' });
+        }
+      }
+
+      if (userType === 'physician') {
+        // Practice manager email required
+        if (!document.getElementById('practiceManagerEmail').value.trim()) {
+          errors.push({ field: 'field-practiceManagerEmail', message: 'Practice manager email is required' });
+        }
+      }
+
+      if (userType === 'dme_hybrid' || userType === 'dme_wholesale') {
+        // Practice info + DME license required
+        if (!document.getElementById('practiceName').value.trim()) {
+          errors.push({ field: 'field-practiceName', message: 'Practice name is required' });
+        }
+        if (!document.getElementById('address').value.trim()) {
+          errors.push({ field: 'field-address', message: 'Street address is required' });
+        }
+        if (!document.getElementById('city').value.trim()) {
+          errors.push({ field: 'field-city', message: 'City is required' });
+        }
+        if (!document.getElementById('state').value) {
+          errors.push({ field: 'field-state', message: 'State is required' });
+        }
+        if (!document.getElementById('zip').value.trim()) {
+          errors.push({ field: 'field-zip', message: 'ZIP code is required' });
+        }
+        if (!document.getElementById('phone').value.trim()) {
+          errors.push({ field: 'field-phone', message: 'Phone number is required' });
+        }
+        if (!document.getElementById('dmeNumber').value.trim()) {
+          errors.push({ field: 'field-dmeNumber', message: 'DME license number is required' });
+        }
+        if (!document.getElementById('dmeState').value) {
+          errors.push({ field: 'field-dmeState', message: 'DME state is required' });
+        }
+        if (!document.getElementById('dmeExpiry').value) {
+          errors.push({ field: 'field-dmeExpiry', message: 'DME expiry date is required' });
+        }
+      }
+
+      // Physician credentials (required for all types)
+      if (!document.getElementById('firstName').value.trim()) {
+        errors.push({ field: 'field-firstName', message: 'First name is required' });
+      }
+      if (!document.getElementById('lastName').value.trim()) {
+        errors.push({ field: 'field-lastName', message: 'Last name is required' });
+      }
+      if (!document.getElementById('npi').value.trim()) {
+        errors.push({ field: 'field-npi', message: 'NPI number is required' });
+      } else if (!isValidNPI(document.getElementById('npi').value.trim())) {
+        errors.push({ field: 'field-npi', message: 'Please enter a valid NPI number (click Validate NPI)' });
+      }
+      if (!document.getElementById('license').value.trim()) {
+        errors.push({ field: 'field-license', message: 'Medical license number is required' });
+      }
+      if (!document.getElementById('licenseState').value) {
+        errors.push({ field: 'field-licenseState', message: 'License state is required' });
+      }
+      if (!document.getElementById('licenseExpiry').value) {
+        errors.push({ field: 'field-licenseExpiry', message: 'License expiry date is required' });
+      }
+
+      // Agreements
+      if (!document.getElementById('agreeMSA').checked) {
+        errors.push({ field: 'field-agreeMSA', message: 'You must agree to the Master Services Agreement' });
+      }
+      if (!document.getElementById('agreeBAA').checked) {
+        errors.push({ field: 'field-agreeBAA', message: 'You must agree to the Business Associate Agreement' });
+      }
+      if (!document.getElementById('signName').value.trim()) {
+        errors.push({ field: 'field-signName', message: 'Signature name is required' });
+      }
+      if (!document.getElementById('signTitle').value.trim()) {
+        errors.push({ field: 'field-signTitle', message: 'Signature title is required' });
+      }
+      if (!document.getElementById('signDate').value) {
+        errors.push({ field: 'field-signDate', message: 'Signature date is required' });
+      }
+
+      // Display errors if any
+      if (errors.length > 0) {
+        errors.forEach(err => {
+          if (err.field) showValidationError(err.field, err.message);
+          else {
+            const list = document.getElementById('validationList');
+            const li = document.createElement('li');
+            li.textContent = err.message;
+            list.appendChild(li);
+          }
+        });
+        document.getElementById('validationSummary').classList.add('show');
+        document.getElementById('validationSummary').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        return false;
+      }
+
+      return true;
+    }
+
+    // Submit handler
     const form = document.getElementById('registerForm');
     const submitBtn = document.getElementById('submitBtn');
 
     submitBtn?.addEventListener('click', async () => {
-      if (!form.checkValidity()) { alert('Please complete all required fields.'); return; }
-      if (!isValidNPI(npiInput.value.trim())) { alert('Please validate your NPI.'); return; }
-      if (!document.getElementById('agreeMSA').checked || !document.getElementById('agreeBAA').checked) {
-        alert('You must agree to the MSA and BAA.'); return;
+      // Run comprehensive validation
+      if (!validateForm()) {
+        return;
       }
 
+      const selectedType = document.querySelector('input[name="userType"]:checked');
+
       const payload = {
+        userType: selectedType.value,
         email: document.getElementById('email').value.trim(),
         password: document.getElementById('password').value,
-        practiceName: document.getElementById('practiceName').value.trim(),
-        firstName: document.getElementById('firstName').value.trim(),
-        lastName: document.getElementById('lastName').value.trim(),
-        npi: document.getElementById('npi').value.trim(),
-        license: document.getElementById('license').value.trim(),
-        licenseState: document.getElementById('licenseState').value,
-        licenseExpiry: document.getElementById('licenseExpiry').value,
-        accountType: document.querySelector('input[name="acctType"]:checked').value,
-        dmeNumber: document.getElementById('dmeNumber')?.value || null,
+        firstName: document.getElementById('firstName')?.value.trim() || null,
+        lastName: document.getElementById('lastName')?.value.trim() || null,
+        npi: document.getElementById('npi')?.value.trim() || null,
+        license: document.getElementById('license')?.value.trim() || null,
+        licenseState: document.getElementById('licenseState')?.value || null,
+        licenseExpiry: document.getElementById('licenseExpiry')?.value || null,
+        practiceName: document.getElementById('practiceName')?.value.trim() || null,
+        taxId: document.getElementById('taxId')?.value.trim() || null,
+        address: document.getElementById('address')?.value.trim() || null,
+        city: document.getElementById('city')?.value.trim() || null,
+        state: document.getElementById('state')?.value || null,
+        zip: document.getElementById('zip')?.value.trim() || null,
+        phone: document.getElementById('phone')?.value.trim() || null,
+        dmeNumber: document.getElementById('dmeNumber')?.value.trim() || null,
         dmeState: document.getElementById('dmeState')?.value || null,
         dmeExpiry: document.getElementById('dmeExpiry')?.value || null,
+        practiceManagerEmail: document.getElementById('practiceManagerEmail')?.value.trim() || null,
+        additionalPhysicians: selectedType.value === 'practice_admin' ? collectAdditionalPhysicians() : [],
         agreeMSA: document.getElementById('agreeMSA').checked,
         agreeBAA: document.getElementById('agreeBAA').checked,
         signName: document.getElementById('signName').value.trim(),
         signTitle: document.getElementById('signTitle').value.trim(),
-        signDate: document.getElementById('signDate').value,
-        phone: document.getElementById('phone')?.value || null
+        signDate: document.getElementById('signDate').value
       };
 
       try {
@@ -485,12 +1088,10 @@
         console.error(err);
       }
     });
-  })();
-  </script>
-  <!-- === /YOUR ORIGINAL JS === -->
 
-  <script>
+    // Set year in footer
     document.getElementById('year').textContent = new Date().getFullYear();
+  })();
   </script>
 </body>
 </html>
