@@ -7,14 +7,30 @@ require_admin();
 $admin = current_admin();
 $adminRole = $admin['role'] ?? '';
 $adminId = $admin['id'] ?? '';
+$adminName = $admin['name'] ?? 'Admin';
 
 // Determine message access based on role
-// Super admin: sees all messages
-// Employees: sees messages from their assigned physicians only
-// Manufacturer: sees all physician/practice messages
-
 $messages = [];
-$canCompose = true; // All admin users can compose messages
+$canCompose = true;
+
+// Get list of providers for compose dropdown
+$providers = [];
+if ($adminRole === 'superadmin' || $adminRole === 'manufacturer') {
+  // Can message any provider
+  $stmt = $pdo->query("SELECT id, first_name, last_name, email, practice_name FROM users WHERE role IN ('physician', 'practice_admin') ORDER BY first_name, last_name");
+  $providers = $stmt->fetchAll();
+} else {
+  // Employees can only message their assigned physicians
+  $stmt = $pdo->prepare("
+    SELECT u.id, u.first_name, u.last_name, u.email, u.practice_name
+    FROM users u
+    INNER JOIN admin_physicians ap ON ap.physician_user_id = u.id
+    WHERE ap.admin_id = ?
+    ORDER BY u.first_name, u.last_name
+  ");
+  $stmt->execute([$adminId]);
+  $providers = $stmt->fetchAll();
+}
 
 if ($adminRole === 'superadmin') {
   // Super admin sees ALL messages
@@ -67,11 +83,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
   }
 
-  if ($action === 'reply') {
-    // TODO: Implement reply functionality
-    // Would need to determine recipient based on original message sender
+  if ($action === 'compose' || $action === 'reply') {
+    $recipientId = trim($_POST['recipient_id'] ?? '');
+    $subject = trim($_POST['subject'] ?? '');
+    $body = trim($_POST['body'] ?? '');
+    $patientId = trim($_POST['patient_id'] ?? '') ?: null;
+
+    if (!$subject || !$body) {
+      $error = 'Subject and message body are required';
+    } else {
+      // Insert message
+      $stmt = $pdo->prepare("
+        INSERT INTO messages (
+          sender_type, sender_id, sender_name,
+          recipient_type, recipient_id,
+          subject, body, patient_id,
+          created_at
+        ) VALUES (
+          'admin', ?, ?,
+          'provider', ?,
+          ?, ?, ?,
+          NOW()
+        )
+      ");
+      $stmt->execute([
+        $adminId,
+        $adminName,
+        $recipientId,
+        $subject,
+        $body,
+        $patientId
+      ]);
+
+      header('Location: /admin/messages.php?success=1');
+      exit;
+    }
   }
 }
+
+$success = isset($_GET['success']);
 
 include __DIR__ . '/_header.php';
 ?>
@@ -80,11 +130,26 @@ include __DIR__ . '/_header.php';
   <div class="flex items-center justify-between mb-4">
     <h1 class="text-xl font-semibold">Messages</h1>
     <?php if ($canCompose): ?>
-    <button class="btn btn-primary" onclick="alert('Compose functionality coming soon')">
+    <button class="btn btn-primary" onclick="showComposeDialog()">
+      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+      </svg>
       Compose Message
     </button>
     <?php endif; ?>
   </div>
+
+  <?php if ($success): ?>
+  <div class="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded">
+    Message sent successfully!
+  </div>
+  <?php endif; ?>
+
+  <?php if (isset($error)): ?>
+  <div class="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded">
+    <?= htmlspecialchars($error) ?>
+  </div>
+  <?php endif; ?>
 
   <div class="bg-white border rounded-lg overflow-hidden">
     <div class="grid grid-cols-12">
@@ -140,6 +205,61 @@ include __DIR__ . '/_header.php';
   </div>
 </div>
 
+<!-- Compose Message Dialog -->
+<dialog id="compose-dialog" class="rounded-lg shadow-lg p-0" style="max-width: 600px; width: 90%;">
+  <form method="post" class="p-6">
+    <?= csrf_field() ?>
+    <input type="hidden" name="action" value="compose" id="compose-action">
+    <input type="hidden" name="original_message_id" id="original-message-id">
+
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-xl font-semibold" id="dialog-title">Compose Message</h2>
+      <button type="button" onclick="document.getElementById('compose-dialog').close()" class="text-slate-400 hover:text-slate-600">
+        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium mb-1">To</label>
+        <select name="recipient_id" id="compose-recipient" class="w-full border rounded px-3 py-2" required>
+          <option value="">Select recipient</option>
+          <?php foreach ($providers as $provider): ?>
+            <option value="<?= $provider['id'] ?>">
+              <?= htmlspecialchars($provider['first_name'] . ' ' . $provider['last_name']) ?>
+              <?php if ($provider['practice_name']): ?>
+                (<?= htmlspecialchars($provider['practice_name']) ?>)
+              <?php endif; ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Subject</label>
+        <input type="text" name="subject" id="compose-subject" class="w-full border rounded px-3 py-2" required>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Message</label>
+        <textarea name="body" id="compose-body" rows="8" class="w-full border rounded px-3 py-2" required></textarea>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Related Patient (Optional)</label>
+        <input type="text" name="patient_id" id="compose-patient" class="w-full border rounded px-3 py-2" placeholder="Patient ID">
+      </div>
+    </div>
+
+    <div class="flex justify-end gap-3 mt-6">
+      <button type="button" onclick="document.getElementById('compose-dialog').close()" class="btn">Cancel</button>
+      <button type="submit" class="btn btn-primary">Send Message</button>
+    </div>
+  </form>
+</dialog>
+
 <script>
 // Store messages data for client-side display
 const messagesData = <?= json_encode($messages) ?>;
@@ -168,26 +288,53 @@ function showMessage(messageId) {
         <div class="text-xs text-slate-500">${createdDate}</div>
       </div>
 
-      ${!message.is_read ? `
-        <form method="post" class="inline">
-          <input type="hidden" name="csrf" value="<?= $_SESSION['csrf'] ?? '' ?>">
-          <input type="hidden" name="action" value="mark_read">
-          <input type="hidden" name="message_id" value="${message.id}">
-          <button type="submit" class="text-xs text-blue-600 hover:underline">Mark as read</button>
-        </form>
-      ` : ''}
+      <div class="flex gap-2">
+        ${!message.is_read ? `
+          <form method="post" class="inline">
+            <input type="hidden" name="csrf" value="<?= $_SESSION['csrf'] ?? '' ?>">
+            <input type="hidden" name="action" value="mark_read">
+            <input type="hidden" name="message_id" value="${message.id}">
+            <button type="submit" class="text-xs text-blue-600 hover:underline">Mark as read</button>
+          </form>
+        ` : ''}
+        <button onclick="showReplyDialog(${message.id})" class="btn btn-primary text-sm">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
+          </svg>
+          Reply
+        </button>
+      </div>
     </div>
 
     <div class="prose max-w-none">
       <div class="whitespace-pre-wrap">${escapeHtml(message.body)}</div>
     </div>
-
-    <div class="mt-6 pt-6 border-t">
-      <button class="btn btn-primary" onclick="alert('Reply functionality coming soon')">
-        Reply
-      </button>
-    </div>
   `;
+}
+
+function showComposeDialog() {
+  document.getElementById('dialog-title').textContent = 'Compose Message';
+  document.getElementById('compose-action').value = 'compose';
+  document.getElementById('compose-recipient').value = '';
+  document.getElementById('compose-subject').value = '';
+  document.getElementById('compose-body').value = '';
+  document.getElementById('compose-patient').value = '';
+  document.getElementById('original-message-id').value = '';
+  document.getElementById('compose-dialog').showModal();
+}
+
+function showReplyDialog(messageId) {
+  const message = messagesData.find(m => m.id == messageId);
+  if (!message) return;
+
+  document.getElementById('dialog-title').textContent = 'Reply to Message';
+  document.getElementById('compose-action').value = 'reply';
+  document.getElementById('compose-recipient').value = message.sender_id;
+  document.getElementById('compose-subject').value = 'Re: ' + message.subject;
+  document.getElementById('compose-body').value = '';
+  document.getElementById('compose-patient').value = message.patient_id || '';
+  document.getElementById('original-message-id').value = message.id;
+  document.getElementById('compose-dialog').showModal();
 }
 
 function escapeHtml(text) {
