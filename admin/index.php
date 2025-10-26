@@ -100,6 +100,102 @@ try {
   error_log("[projectedRevenue] ".$e->getMessage());
 }
 
+/* ---------- Revenue Dashboard ----------
+   Calculate total revenue, practice revenue, and product revenue
+   Revenue = total product count × reimbursement rate
+--------------------------------------------------- */
+$totalRevenue = 0.0;
+$practiceRevenue = [];
+$productRevenue = [];
+
+try {
+  // Check for HCPCS vs CPT column
+  $hcpcsCol = 'cpt_code';
+  if ($hasProducts) {
+    $prodCols = $pdo->query("SELECT column_name FROM information_schema.columns WHERE table_name = 'products'")->fetchAll(PDO::FETCH_COLUMN);
+    $hcpcsCol = in_array('hcpcs_code', $prodCols) ? 'hcpcs_code' : 'cpt_code';
+  }
+
+  // Get all orders with products and calculate revenue
+  $sql = "SELECT
+            o.id, o.user_id, o.product, o.frequency, o.product_price,
+            o.frequency_per_week, o.qty_per_change, o.duration_days, o.refills_allowed,
+            ".($hasShipRem?"o.shipments_remaining,":"")."
+            ".($hasProducts?"pr.$hcpcsCol, pr.name AS product_name,":"")."
+            u.first_name AS phys_first, u.last_name AS phys_last, u.practice_name
+          FROM orders o
+          ".($hasProducts?"LEFT JOIN products pr ON pr.id = o.product_id":"")."
+          LEFT JOIN users u ON u.id = o.user_id
+          WHERE o.status NOT IN ('rejected', 'cancelled')";
+
+  $stmt = $pdo->query($sql);
+
+  // Prefetch rate map
+  $rates = [];
+  if ($hasRates) {
+    foreach ($pdo->query("SELECT cpt_code, COALESCE(rate_non_rural,0) rate FROM reimbursement_rates") as $r) {
+      $rates[$r['cpt_code']] = (float)$r['rate'];
+    }
+  }
+
+  foreach ($stmt as $row) {
+    // Calculate patches/units for this order
+    $fpw = (int)($row['frequency_per_week'] ?? 0);
+    if ($fpw <= 0) $fpw = patches_per_week($row['frequency'] ?? '');
+
+    $qty = max(1, (int)($row['qty_per_change'] ?? 1));
+    $days = max(0, (int)($row['duration_days'] ?? 0));
+    $ref = max(0, (int)($row['refills_allowed'] ?? 0));
+
+    $weeks_authorized = ($days > 0) ? (int)ceil($days / 7) : 4;
+    $weeks_total = $weeks_authorized * (1 + $ref);
+
+    $shipRem = $hasShipRem ? (int)($row['shipments_remaining'] ?? 0) : 0;
+    $remaining_weeks = $shipRem > 0 ? min($shipRem, $weeks_total) : $weeks_total;
+
+    $units = $remaining_weeks * $fpw * $qty;
+
+    // Get unit price (reimbursement rate or product price)
+    $unitPrice = 0.0;
+    $cptCode = $hasProducts ? ($row[$hcpcsCol] ?? null) : null;
+    if ($hasProducts && !empty($cptCode) && isset($rates[$cptCode]) && $rates[$cptCode] > 0) {
+      $unitPrice = $rates[$cptCode];
+    } else {
+      $unitPrice = (float)($row['product_price'] ?? 0);
+    }
+
+    if ($unitPrice <= 0 || $units <= 0) continue;
+
+    $orderRevenue = $unitPrice * $units;
+    $totalRevenue += $orderRevenue;
+
+    // Practice revenue breakdown
+    $practiceName = $row['practice_name'] ?? 'Unknown Practice';
+    if (!isset($practiceRevenue[$practiceName])) {
+      $practiceRevenue[$practiceName] = 0.0;
+    }
+    $practiceRevenue[$practiceName] += $orderRevenue;
+
+    // Product revenue breakdown
+    $productName = ($hasProducts && !empty($row['product_name'])) ? $row['product_name'] : ($row['product'] ?? 'Unknown Product');
+    if (!isset($productRevenue[$productName])) {
+      $productRevenue[$productName] = 0.0;
+    }
+    $productRevenue[$productName] += $orderRevenue;
+  }
+
+  // Sort by revenue descending
+  arsort($practiceRevenue);
+  arsort($productRevenue);
+
+  // Keep top 5 for display
+  $practiceRevenue = array_slice($practiceRevenue, 0, 5, true);
+  $productRevenue = array_slice($productRevenue, 0, 5, true);
+
+} catch (Throwable $e) {
+  error_log("[revenue-dashboard] " . $e->getMessage());
+}
+
 /* ---------- Recent activity ---------- */
 $recent = [];
 try {
@@ -201,6 +297,96 @@ include __DIR__.'/_header.php';
         <li><span class="font-medium">Shipments delayed (&gt; 7 days):</span> <?=$delayedShipments?></li>
       </ul>
     </aside>
+  </div>
+
+  <!-- Revenue Dashboard -->
+  <div class="mt-6">
+    <section class="bg-white border rounded-2xl p-5">
+      <h3 class="font-semibold mb-4 text-lg">Revenue Dashboard</h3>
+
+      <div class="grid grid-cols-3 gap-6 mb-6">
+        <div class="border-l-4 border-brand pl-4">
+          <div class="text-sm text-slate-600 mb-1">Total Revenue</div>
+          <div class="text-3xl font-bold text-brand">$<?=number_format($totalRevenue, 2)?></div>
+          <div class="text-xs text-slate-500 mt-1">All orders (not rejected/cancelled)</div>
+        </div>
+        <div class="border-l-4 border-green-500 pl-4">
+          <div class="text-sm text-slate-600 mb-1">Top Practice Revenue</div>
+          <div class="text-2xl font-bold text-green-700">
+            <?php if (!empty($practiceRevenue)): ?>
+              $<?=number_format(reset($practiceRevenue), 2)?>
+            <?php else: ?>
+              $0.00
+            <?php endif; ?>
+          </div>
+          <div class="text-xs text-slate-500 mt-1">
+            <?php if (!empty($practiceRevenue)): ?>
+              <?=e(key($practiceRevenue))?>
+            <?php else: ?>
+              No practice data
+            <?php endif; ?>
+          </div>
+        </div>
+        <div class="border-l-4 border-blue-500 pl-4">
+          <div class="text-sm text-slate-600 mb-1">Top Product Revenue</div>
+          <div class="text-2xl font-bold text-blue-700">
+            <?php if (!empty($productRevenue)): ?>
+              $<?=number_format(reset($productRevenue), 2)?>
+            <?php else: ?>
+              $0.00
+            <?php endif; ?>
+          </div>
+          <div class="text-xs text-slate-500 mt-1">
+            <?php if (!empty($productRevenue)): ?>
+              <?=e(key($productRevenue))?>
+            <?php else: ?>
+              No product data
+            <?php endif; ?>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-6">
+        <!-- Practice Revenue Breakdown -->
+        <div>
+          <h4 class="font-semibold mb-3 text-sm">Practice Revenue (Top 5)</h4>
+          <?php if (!empty($practiceRevenue)): ?>
+            <div class="space-y-2">
+              <?php foreach ($practiceRevenue as $practice => $revenue): ?>
+                <div class="flex items-center justify-between text-sm pb-2 border-b">
+                  <span class="text-slate-700 truncate max-w-[250px]" title="<?=e($practice)?>"><?=e($practice)?></span>
+                  <span class="font-medium text-brand whitespace-nowrap ml-2">$<?=number_format($revenue, 2)?></span>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          <?php else: ?>
+            <p class="text-sm text-slate-500 italic">No practice revenue data available</p>
+          <?php endif; ?>
+        </div>
+
+        <!-- Product Revenue Breakdown -->
+        <div>
+          <h4 class="font-semibold mb-3 text-sm">Product Revenue (Top 5)</h4>
+          <?php if (!empty($productRevenue)): ?>
+            <div class="space-y-2">
+              <?php foreach ($productRevenue as $product => $revenue): ?>
+                <div class="flex items-center justify-between text-sm pb-2 border-b">
+                  <span class="text-slate-700 truncate max-w-[250px]" title="<?=e($product)?>"><?=e($product)?></span>
+                  <span class="font-medium text-blue-600 whitespace-nowrap ml-2">$<?=number_format($revenue, 2)?></span>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          <?php else: ?>
+            <p class="text-sm text-slate-500 italic">No product revenue data available</p>
+          <?php endif; ?>
+        </div>
+      </div>
+
+      <div class="mt-4 pt-4 border-t text-xs text-slate-500">
+        <p><strong>Calculation:</strong> Revenue = Total product count × Reimbursement rate (or product price as fallback)</p>
+        <p class="mt-1">Based on active orders (excluding rejected and cancelled orders)</p>
+      </div>
+    </section>
   </div>
 
   <?php if ($adminRole === 'manufacturer' && !empty($notifications)): ?>
