@@ -3971,7 +3971,6 @@ async function toggleAccordion(rowEl, patientId, page){
         </svg>
         Make an Appointment
       </button>
-      <button class="btn" type="button">Message</button>
       <button class="btn" type="button">•••</button>
     </div>
 
@@ -4959,7 +4958,6 @@ function renderPatientDetailPage(p, orders, isEditing) {
             </svg>
             New Order
           </button>
-          <button class="btn" type="button" onclick="alert('Message feature coming soon')">Message</button>
           <button class="btn" type="button" onclick="document.getElementById('action-menu-${esc(p.id)}').classList.toggle('hidden')">•••</button>
         </div>
         <!-- Action Menu -->
