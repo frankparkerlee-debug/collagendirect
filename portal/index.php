@@ -593,11 +593,20 @@ if ($action) {
       $patientOwnerId = $p['user_id'] ?? $userId;
 
       $oid=bin2hex(random_bytes(16));
+      // Calculate expiration date: start_date + duration_days (including refills if needed)
+      // For now, just calculate based on initial duration
+      $expires_at = null;
+      if ($start_date) {
+        $start = new DateTime($start_date);
+        $start->modify("+{$duration_days} days");
+        $expires_at = $start->format('Y-m-d');
+      }
+
       $ins=$pdo->prepare("INSERT INTO orders
         (id,patient_id,user_id,product,product_id,product_price,status,shipments_remaining,delivery_mode,payment_type,
          wound_location,wound_laterality,wound_notes,
          shipping_name,shipping_phone,shipping_address,shipping_city,shipping_state,shipping_zip,
-         sign_name,sign_title,signed_at,created_at,updated_at,
+         sign_name,sign_title,signed_at,created_at,updated_at,expires_at,
          icd10_primary,icd10_secondary,wound_length_cm,wound_width_cm,wound_depth_cm,
          wound_type,wound_stage,last_eval_date,start_date,frequency_per_week,qty_per_change,duration_days,refills_allowed,additional_instructions,secondary_dressing,
          wounds_data,
@@ -605,7 +614,7 @@ if ($action) {
         VALUES (?,?,?,?,?,?,?,?,?,?,
                 ?,?,?,
                 ?,?,?,?,?,?,
-                ?,?,NOW(),NOW(),NOW(),
+                ?,?,NOW(),NOW(),NOW(),?,
                 ?,?,?,?,?,
                 ?,?,?,?,?,?,?,?,?,?,
                 ?::jsonb,
@@ -614,7 +623,7 @@ if ($action) {
         $oid,$pid,$patientOwnerId,$prod['name'],$prod['id'],$prod['price_admin'],'submitted',$shipments_remaining,$delivery_mode,$payment_type,
         $wound_location,$wound_laterality,$wound_notes,
         (string)$ship_name,(string)$ship_phone,(string)$ship_addr,(string)$ship_city,(string)$ship_state,(string)$ship_zip,
-        $sign_name,$sign_title,
+        $sign_name,$sign_title,$expires_at,
         $icd10_primary,$icd10_secondary,$wlen,$wwid,$wdep,
         $wtype,$wstage,$last_eval,$start_date,$freq_per_week,$qty_per_change,$duration_days,$refills_allowed,$additional_instructions,$secondary_dressing,
         $wounds_json,
@@ -697,13 +706,16 @@ if ($action) {
     if ($userRole === 'superadmin') {
       $where="1=1"; $args=[];
     } else {
-      $where="user_id=?"; $args=[$userId];
+      $where="o.user_id=?"; $args=[$userId];
     }
 
-    if($q!==''){ $where.=" AND (product LIKE ? OR shipping_name LIKE ?)"; $like="%$q%"; array_push($args,$like,$like); }
-    if($status!==''){ $where.=" AND status=?"; $args[]=$status; }
-    $st=$pdo->prepare("SELECT id,patient_id,product,shipments_remaining,status,delivery_mode,created_at,expires_at
-                       FROM orders WHERE $where ORDER BY created_at DESC LIMIT 300");
+    if($q!==''){ $where.=" AND (o.product LIKE ? OR o.shipping_name LIKE ? OR p.first_name LIKE ? OR p.last_name LIKE ?)"; $like="%$q%"; array_push($args,$like,$like,$like,$like); }
+    if($status!==''){ $where.=" AND o.status=?"; $args[]=$status; }
+    $st=$pdo->prepare("SELECT o.id,o.patient_id,o.product,o.shipments_remaining,o.status,o.delivery_mode,o.created_at,o.expires_at,
+                              p.first_name,p.last_name
+                       FROM orders o
+                       LEFT JOIN patients p ON p.id = o.patient_id
+                       WHERE $where ORDER BY o.created_at DESC LIMIT 300");
     $st->execute($args); jok(['rows'=>$st->fetchAll(PDO::FETCH_ASSOC)]);
   }
 
@@ -2282,7 +2294,7 @@ if ($page==='logout'){
       <table class="w-full text-sm">
         <thead class="border-b">
           <tr class="text-left">
-            <th class="py-2">Created</th><th class="py-2">Product</th><th class="py-2">Status</th><th class="py-2">Bandage Count</th><th class="py-2">Deliver To</th><th class="py-2">Expires</th><th class="py-2">Action</th>
+            <th class="py-2">Created</th><th class="py-2">Patient</th><th class="py-2">Product</th><th class="py-2">Status</th><th class="py-2">Bandage Count</th><th class="py-2">Deliver To</th><th class="py-2">Expires</th><th class="py-2">Action</th>
           </tr>
         </thead>
         <tbody id="orders-tb"></tbody>
@@ -3968,6 +3980,7 @@ if (<?php echo json_encode($page==='orders'); ?>){
     tb.innerHTML = rows.map(o=>`
       <tr class="border-b hover:bg-slate-50">
         <td class="py-2">${fmt(o.created_at)}</td>
+        <td class="py-2">${esc(o.first_name||'')} ${esc(o.last_name||'')}</td>
         <td class="py-2">${esc(o.product||'')}</td>
         <td class="py-2">${pill(o.status)}</td>
         <td class="py-2">${o.shipments_remaining??0}</td>
