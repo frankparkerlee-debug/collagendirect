@@ -117,7 +117,7 @@ try {
 $expiringOrders = 0; $delayedShipments = 0;
 try {
   if (has_column($pdo,'orders','expires_at')) {
-    $expiringOrders = qCount($pdo,"SELECT COUNT(*) c FROM orders WHERE expires_at IS NOT NULL AND expires_at < DATE_ADD(NOW(), INTERVAL 7 DAY) AND status IN ('approved','in_transit')");
+    $expiringOrders = qCount($pdo,"SELECT COUNT(*) c FROM orders WHERE expires_at IS NOT NULL AND expires_at < (NOW() + INTERVAL '7 days') AND status IN ('approved','in_transit')");
   }
 } catch(Throwable $e){}
 try {

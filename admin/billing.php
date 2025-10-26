@@ -102,7 +102,7 @@ function render_view_link($paths, $empty='—') {
 $from = isset($_GET['from']) ? $_GET['from'] : date('Y-m-d', strtotime('-6 months'));
 $to   = isset($_GET['to'])   ? $_GET['to']   : date('Y-m-d');
 $phys = isset($_GET['phys']) ? $_GET['phys'] : '';
-$where  = "o.created_at BETWEEN :from AND DATE_ADD(:to, INTERVAL 1 DAY) AND o.status NOT IN ('rejected','cancelled')";
+$where  = "o.created_at BETWEEN :from AND (:to::date + INTERVAL '1 day') AND o.status NOT IN ('rejected','cancelled')";
 $params = ['from'=>$from, 'to'=>$to];
 if ($phys!==''){ $where.=" AND o.user_id=:phys"; $params['phys']=$phys; }
 
