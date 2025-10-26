@@ -400,7 +400,11 @@ if ($action) {
       jok(['path'=>$rel,'name'=>'AOB.txt','mime'=>'text/plain','stamped'=>true]);
     }
 
-    if($type!=='aob' && (empty($_FILES['file']) || $_FILES['file']['error']!==UPLOAD_ERR_OK)) jerr('No file uploaded');
+    if($type!=='aob' && (empty($_FILES['file']) || $_FILES['file']['error']!==UPLOAD_ERR_OK)) {
+      $errorDetails = empty($_FILES['file']) ? 'FILES array is empty' : 'Upload error code: ' . $_FILES['file']['error'];
+      error_log("[patient.upload] Upload failed for patient $pid, type $type: $errorDetails");
+      jerr('No file uploaded - ' . $errorDetails);
+    }
 
     if ($type!=='aob'){
       $f=$_FILES['file']; if($f['size']>25*1024*1024) jerr('File too large (max 25MB)');
