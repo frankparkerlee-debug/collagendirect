@@ -96,7 +96,8 @@ function render_view_link($paths, $empty='—') {
 }
 
 /* ================= Filters ================= */
-$from = isset($_GET['from']) ? $_GET['from'] : date('Y-m-01');
+// Default to last 6 months instead of just current month
+$from = isset($_GET['from']) ? $_GET['from'] : date('Y-m-d', strtotime('-6 months'));
 $to   = isset($_GET['to'])   ? $_GET['to']   : date('Y-m-d');
 $phys = isset($_GET['phys']) ? $_GET['phys'] : '';
 $where  = "o.created_at BETWEEN :from AND DATE_ADD(:to, INTERVAL 1 DAY) AND o.status NOT IN ('rejected','cancelled')";
