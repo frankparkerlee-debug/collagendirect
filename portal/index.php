@@ -3265,6 +3265,18 @@ if ($page==='logout'){
   </form>
 </dialog>
 
+<dialog id="dlg-order-details" class="rounded-2xl w-full max-w-3xl">
+  <form method="dialog" class="p-0">
+    <div class="p-5 border-b flex items-center justify-between">
+      <h3 class="text-lg font-semibold">Order Details</h3>
+      <button class="btn" type="button" onclick="document.getElementById('dlg-order-details').close()">Close</button>
+    </div>
+    <div id="order-details-content" class="p-5">
+      <!-- Content will be populated by JavaScript -->
+    </div>
+  </form>
+</dialog>
+
 <script>
 const $=s=>document.querySelector(s);
 const fd=o=>{const f=new FormData(); for(const [k,v] of Object.entries(o)) f.append(k,v??''); return f;};
@@ -4270,6 +4282,108 @@ async function toggleAccordion(rowEl, patientId, page){
   acc.querySelectorAll('[data-restart]').forEach(b=>b.onclick=()=> openRestartDialog(b.dataset.restart, ()=>toggleAccordion(rowEl,p.id,page)));
 }
 
+/* ORDER DETAILS VIEWER */
+function viewOrderDetails(order) {
+  const dlg = document.getElementById('dlg-order-details');
+  const content = document.getElementById('order-details-content');
+
+  const statusBadge = {
+    'active': '<span class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">Active</span>',
+    'submitted': '<span class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">Submitted</span>',
+    'approved': '<span class="px-2 py-1 bg-emerald-100 text-emerald-800 rounded text-xs font-medium">Approved</span>',
+    'stopped': '<span class="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-medium">Stopped</span>',
+    'completed': '<span class="px-2 py-1 bg-slate-100 text-slate-800 rounded text-xs font-medium">Completed</span>'
+  };
+
+  content.innerHTML = `
+    <div class="grid gap-6">
+      <!-- Order Header -->
+      <div class="pb-4 border-b">
+        <div class="flex items-center justify-between mb-2">
+          <h4 class="text-lg font-semibold">${esc(order.product || 'Wound Care Product')}</h4>
+          ${statusBadge[order.status] || statusBadge['submitted']}
+        </div>
+        <div class="text-sm text-slate-600">
+          Order ID: ${esc(order.id || 'N/A')}
+        </div>
+      </div>
+
+      <!-- Product & Pricing -->
+      <div class="grid md:grid-cols-2 gap-4">
+        <div>
+          <h5 class="font-semibold text-sm mb-2">Product Information</h5>
+          <div class="space-y-1 text-sm">
+            <div><span class="text-slate-600">Product:</span> ${esc(order.product || 'N/A')}</div>
+            <div><span class="text-slate-600">Price:</span> $${order.product_price || '0.00'}</div>
+            <div><span class="text-slate-600">Payment:</span> ${esc(order.payment_type || 'Insurance')}</div>
+            <div><span class="text-slate-600">Delivery:</span> ${esc(order.delivery_mode || 'Ship to patient')}</div>
+          </div>
+        </div>
+
+        <div>
+          <h5 class="font-semibold text-sm mb-2">Order Status</h5>
+          <div class="space-y-1 text-sm">
+            <div><span class="text-slate-600">Shipments Remaining:</span> ${order.shipments_remaining || 0}</div>
+            <div><span class="text-slate-600">Created:</span> ${fmt(order.created_at)}</div>
+            ${order.expires_at ? `<div><span class="text-slate-600">Expires:</span> ${fmt(order.expires_at)}</div>` : ''}
+            ${order.signed_at ? `<div><span class="text-slate-600">Signed:</span> ${fmt(order.signed_at)}</div>` : ''}
+          </div>
+        </div>
+      </div>
+
+      <!-- Shipping Information -->
+      ${order.shipping_name ? `
+        <div>
+          <h5 class="font-semibold text-sm mb-2">Shipping Address</h5>
+          <div class="text-sm text-slate-700">
+            ${esc(order.shipping_name)}<br>
+            ${esc(order.shipping_address || '')}<br>
+            ${esc(order.shipping_city || '')}, ${esc(order.shipping_state || '')} ${esc(order.shipping_zip || '')}<br>
+            ${order.shipping_phone ? `Phone: ${esc(order.shipping_phone)}` : ''}
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- Wound Information -->
+      ${order.wound_location || order.wound_laterality || order.wound_notes ? `
+        <div>
+          <h5 class="font-semibold text-sm mb-2">Wound Details</h5>
+          <div class="space-y-1 text-sm">
+            ${order.wound_location ? `<div><span class="text-slate-600">Location:</span> ${esc(order.wound_location)}</div>` : ''}
+            ${order.wound_laterality ? `<div><span class="text-slate-600">Laterality:</span> ${esc(order.wound_laterality)}</div>` : ''}
+            ${order.wound_notes ? `<div><span class="text-slate-600">Notes:</span> ${esc(order.wound_notes)}</div>` : ''}
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- Provider Signature -->
+      ${order.sign_name ? `
+        <div>
+          <h5 class="font-semibold text-sm mb-2">Provider Signature</h5>
+          <div class="text-sm">
+            <div>${esc(order.sign_name)} - ${esc(order.sign_title || '')}</div>
+            ${order.signed_at ? `<div class="text-slate-600 text-xs mt-1">Signed: ${fmt(order.signed_at)}</div>` : ''}
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- Clinical Notes -->
+      ${order.rx_note_path ? `
+        <div>
+          <h5 class="font-semibold text-sm mb-2">Clinical Notes</h5>
+          <div class="text-sm">
+            <a href="?action=file.download&path=${encodeURIComponent(order.rx_note_path)}" target="_blank" class="text-blue-600 hover:underline">
+              ${esc(order.rx_note_name || 'View Clinical Note')}
+            </a>
+          </div>
+        </div>
+      ` : ''}
+    </div>
+  `;
+
+  dlg.showModal();
+}
+
 /* STOP / RESTART */
 let _pendingOrderId=null;
 function openStopDialog(orderId, onDone){
@@ -5139,7 +5253,7 @@ function renderPatientDetailPage(p, orders, isEditing) {
                       <div class="font-medium text-sm mb-1">${esc(o.product||'Wound Care Product')}</div>
                       <div class="text-xs text-slate-600">${fmt(o.created_at)} • ${esc(o.frequency||'Weekly')}</div>
                     </div>
-                    <button class="btn btn-sm" onclick="alert('View order details')">View Details</button>
+                    <button class="btn btn-sm" onclick='viewOrderDetails(${JSON.stringify(o)})'>View Details</button>
                   </div>
                 `;
               }).join('')}
