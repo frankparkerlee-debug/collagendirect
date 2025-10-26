@@ -2288,12 +2288,18 @@ if ($page==='logout'){
   <section class="card p-6">
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-semibold" style="color: var(--ink);">Patients list</h3>
-      <div class="flex gap-2">
-        <button class="btn btn-outline">
+      <div class="flex gap-2 items-center">
+        <input type="text" id="dashboard-search" class="w-64" placeholder="Search patients..." style="display: none;">
+        <select id="dashboard-status-filter" class="text-sm" style="display: none;">
+          <option value="">All Status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+        <button class="btn btn-outline" id="btn-dashboard-filter">
           <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
           Filter
         </button>
-        <button class="btn btn-outline">
+        <button class="btn btn-outline" id="btn-dashboard-export">
           <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
           Export
         </button>
@@ -3857,6 +3863,88 @@ if (<?php echo json_encode($page==='dashboard'); ?>){
     }
   }
   loadPatients('');
+
+  // Dashboard filter toggle
+  const filterBtn = $('#btn-dashboard-filter');
+  const searchInput = $('#dashboard-search');
+  const statusFilter = $('#dashboard-status-filter');
+  let filterVisible = false;
+
+  if (filterBtn) {
+    filterBtn.addEventListener('click', () => {
+      filterVisible = !filterVisible;
+      searchInput.style.display = filterVisible ? 'block' : 'none';
+      statusFilter.style.display = filterVisible ? 'block' : 'none';
+      if (filterVisible) {
+        searchInput.focus();
+      } else {
+        searchInput.value = '';
+        statusFilter.value = '';
+        loadPatients('');
+      }
+    });
+  }
+
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      loadPatients(e.target.value);
+    });
+  }
+
+  if (statusFilter) {
+    statusFilter.addEventListener('change', (e) => {
+      // For now, just reload - could add status filtering to API
+      loadPatients(searchInput.value);
+    });
+  }
+
+  // Dashboard export to CSV
+  const exportBtn = $('#btn-dashboard-export');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', () => {
+      if (!rows.length) {
+        alert('No data to export');
+        return;
+      }
+
+      // Create CSV content
+      const headers = ['Patient Name', 'Patient ID', 'Age', 'Date of Birth', 'Location', 'Email', 'Status'];
+      const csvRows = [headers.join(',')];
+
+      rows.forEach(p => {
+        const age = calculateAge(p.dob);
+        const dob = formatDate(p.dob);
+        const location = p.city && p.state ? `${p.city}, ${p.state}` : '';
+        const name = `"${p.first_name || ''} ${p.last_name || ''}"`;
+        const email = p.email || '';
+        const status = p.last_status || 'Unknown';
+
+        csvRows.push([
+          name,
+          p.mrn || '',
+          age,
+          dob,
+          `"${location}"`,
+          email,
+          status
+        ].join(','));
+      });
+
+      // Create and download file
+      const csvContent = csvRows.join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `patients-dashboard-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      alert(`Exported ${rows.length} patient${rows.length === 1 ? '' : 's'} to CSV`);
+    });
+  }
 }
 
 /* PATIENTS page */
