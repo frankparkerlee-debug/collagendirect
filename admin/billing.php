@@ -23,13 +23,15 @@ if (!function_exists('e')) {
 /* ================= Helpers ================= */
 function has_table(PDO $pdo, $t) {
   try {
-    $st=$pdo->prepare("SELECT COUNT(*) c FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?");
+    // PostgreSQL doesn't have DATABASE(), use current_schema() or just check table_name
+    $st=$pdo->prepare("SELECT COUNT(*) c FROM INFORMATION_SCHEMA.TABLES WHERE table_name=?");
     $st->execute([$t]); $r=$st->fetch(); return (int)($r['c']??0) > 0;
   } catch (Throwable $e) { error_log($e->getMessage()); return false; }
 }
 function has_column(PDO $pdo, $tbl, $col) {
   try {
-    $st=$pdo->prepare("SELECT COUNT(*) c FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND COLUMN_NAME=?");
+    // PostgreSQL doesn't have DATABASE(), use current_schema() or just check table_name
+    $st=$pdo->prepare("SELECT COUNT(*) c FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name=? AND column_name=?");
     $st->execute([$tbl,$col]); $r=$st->fetch(); return (int)($r['c']??0) > 0;
   } catch (Throwable $e) { error_log($e->getMessage()); return false; }
 }
@@ -133,6 +135,13 @@ try {
   $activeCheck = $pdo->query("SELECT COUNT(*) as cnt FROM orders WHERE status NOT IN ('rejected','cancelled')")->fetch();
   error_log("[billing-debug] Active orders (not rejected/cancelled): " . ($activeCheck['cnt'] ?? 0));
 
+  // Check which HCPCS/CPT column exists in products table
+  $hcpcsCol = 'cpt_code'; // default
+  if ($hasProducts) {
+    $prodCols = $pdo->query("SELECT column_name FROM information_schema.columns WHERE table_name = 'products'")->fetchAll(PDO::FETCH_COLUMN);
+    $hcpcsCol = in_array('hcpcs_code', $prodCols) ? 'hcpcs_code' : 'cpt_code';
+  }
+
   $sql = "
     SELECT
       o.id, o.user_id, o.patient_id, o.product_id, o.product, o.frequency,
@@ -141,7 +150,7 @@ try {
       o.product_price, o.created_at, o.rx_note_name AS tracking, o.rx_note_mime AS carrier,
       o.insurer_name, o.member_id, o.group_id, o.payer_phone,
       p.first_name, p.last_name, p.dob
-      ".($hasProducts?", pr.name AS prod_name, pr.size AS prod_size, pr.sku, pr.cpt_code, pr.price_admin":"")."
+      ".($hasProducts?", pr.name AS prod_name, pr.size AS prod_size, pr.sku, pr.$hcpcsCol AS cpt_code, pr.price_admin":"")."
     FROM orders o
     LEFT JOIN patients p ON p.id=o.patient_id
     ".($hasProducts?"LEFT JOIN products pr ON pr.id=o.product_id":"")."
