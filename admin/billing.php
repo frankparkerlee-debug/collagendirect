@@ -117,6 +117,12 @@ $hasShipRem  = has_column($pdo,'orders','shipments_remaining');
 
 /* ================= Data ================= */
 try {
+  // Debug logging
+  error_log("[billing-debug] Admin Role: " . ($adminRole ?: 'NONE'));
+  error_log("[billing-debug] Admin ID: " . ($adminId ?: 'NONE'));
+  error_log("[billing-debug] WHERE clause: " . $where);
+  error_log("[billing-debug] Params: " . json_encode($params));
+
   $sql = "
     SELECT
       o.id, o.user_id, o.patient_id, o.product_id, o.product, o.frequency,
@@ -133,6 +139,7 @@ try {
     ORDER BY o.created_at DESC
   ";
   $st=$pdo->prepare($sql); $st->execute($params); $rows=$st->fetchAll();
+  error_log("[billing-debug] Found " . count($rows) . " rows");
 } catch (Throwable $e) {
   error_log("[billing-data] ".$e->getMessage());
   $rows = [];
