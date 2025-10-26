@@ -1170,22 +1170,32 @@ if ($action) {
     // Generate physician ID or NPI
     $physicianId = bin2hex(random_bytes(16));
 
+    // Build dynamic INSERT with only existing columns
+    $columns = [$adminCol, $physicianIdCol, $firstNameCol, $lastNameCol, $emailCol];
+    $values = [$userId, $physicianId, $first, $last, $email];
+    $placeholders = ['?', '?', '?', '?', '?'];
+
+    // Add optional columns only if they exist
+    if (in_array($licenseCol, $ppCols)) {
+      $columns[] = $licenseCol;
+      $values[] = $license ?: null;
+      $placeholders[] = '?';
+    }
+    if (in_array($licenseStateCol, $ppCols)) {
+      $columns[] = $licenseStateCol;
+      $values[] = $license_state ?: null;
+      $placeholders[] = '?';
+    }
+    if (in_array($licenseExpiryCol, $ppCols)) {
+      $columns[] = $licenseExpiryCol;
+      $values[] = !empty($license_expiry) ? $license_expiry : null;
+      $placeholders[] = '?';
+    }
+
     // Insert physician
-    $stmt = $pdo->prepare("
-      INSERT INTO practice_physicians
-      ({$adminCol}, {$physicianIdCol}, {$firstNameCol}, {$lastNameCol}, {$emailCol}, {$licenseCol}, {$licenseStateCol}, {$licenseExpiryCol})
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ");
-    $stmt->execute([
-      $userId,
-      $physicianId,
-      $first,
-      $last,
-      $email,
-      $license ?: null,
-      $license_state ?: null,
-      !empty($license_expiry) ? $license_expiry : null
-    ]);
+    $sql = "INSERT INTO practice_physicians (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($values);
 
     jok(['physician_id' => $physicianId]);
   }
