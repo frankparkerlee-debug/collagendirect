@@ -29,11 +29,11 @@ function qCount(PDO $pdo, string $sql, array $p=[]): int {
   catch(Throwable $e){ error_log("[qCount] ".$e->getMessage()); return 0; }
 }
 function has_table(PDO $pdo, string $tbl): bool {
-  try { $st=$pdo->prepare("SELECT COUNT(*) c FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?");
+  try { $st=$pdo->prepare("SELECT COUNT(*) c FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME=?");
         $st->execute([$tbl]); return ((int)$st->fetch()['c'])>0; } catch(Throwable $e){ return false; }
 }
 function has_column(PDO $pdo, string $tbl, string $col): bool {
-  try { $st=$pdo->prepare("SELECT COUNT(*) c FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND COLUMN_NAME=?");
+  try { $st=$pdo->prepare("SELECT COUNT(*) c FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME=? AND COLUMN_NAME=?");
         $st->execute([$tbl,$col]); return ((int)$st->fetch()['c'])>0; } catch(Throwable $e){ return false; }
 }
 /* patches/week from frequency (integer) */
