@@ -1240,20 +1240,38 @@ if ($action) {
   if ($action==='practice.get_info'){
     if ($userRole !== 'practice_admin') jerr('Access denied', 403);
 
-    // Get practice admin's user information (which contains practice info)
-    $stmt = $pdo->prepare("
-      SELECT first_name, last_name, email, phone, npi,
-             practice_name, practice_address, practice_city, practice_state, practice_zip,
-             practice_phone, practice_email, practice_npi,
-             license_number, license_state, license_expiry,
-             sign_name, sign_title
-      FROM users
-      WHERE id = ?
-    ");
+    // Check which columns exist in users table
+    $userCols = $pdo->query("
+      SELECT column_name FROM information_schema.columns
+      WHERE table_name = 'users'
+    ")->fetchAll(PDO::FETCH_COLUMN);
+
+    // Build SELECT with only existing columns
+    $baseFields = ['first_name', 'last_name', 'email'];
+    $optionalFields = [
+      'phone', 'npi', 'practice_name', 'practice_address', 'practice_city',
+      'practice_state', 'practice_zip', 'practice_phone', 'practice_email',
+      'practice_npi', 'license_number', 'license_state', 'license_expiry',
+      'sign_name', 'sign_title'
+    ];
+
+    $selectFields = array_merge($baseFields, array_filter($optionalFields, function($field) use ($userCols) {
+      return in_array($field, $userCols);
+    }));
+
+    $sql = "SELECT " . implode(', ', $selectFields) . " FROM users WHERE id = ?";
+    $stmt = $pdo->prepare($sql);
     $stmt->execute([$userId]);
     $info = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$info) jerr('Practice information not found', 404);
+
+    // Fill in missing fields with null
+    foreach ($optionalFields as $field) {
+      if (!isset($info[$field])) {
+        $info[$field] = null;
+      }
+    }
 
     jok(['practice' => $info]);
   }
@@ -1288,50 +1306,51 @@ if ($action) {
     if ($firstName === '' || $lastName === '') jerr('First and last name are required');
     if ($practiceName === '') jerr('Practice name is required');
 
-    // Update user/practice information
-    $stmt = $pdo->prepare("
-      UPDATE users SET
-        first_name = ?,
-        last_name = ?,
-        phone = ?,
-        npi = ?,
-        license_number = ?,
-        license_state = ?,
-        license_expiry = ?,
-        practice_name = ?,
-        practice_address = ?,
-        practice_city = ?,
-        practice_state = ?,
-        practice_zip = ?,
-        practice_phone = ?,
-        practice_email = ?,
-        practice_npi = ?,
-        sign_name = ?,
-        sign_title = ?,
-        updated_at = NOW()
-      WHERE id = ?
-    ");
+    // Check which columns exist in users table (backward compatibility)
+    $userCols = $pdo->query("
+      SELECT column_name FROM information_schema.columns
+      WHERE table_name = 'users'
+    ")->fetchAll(PDO::FETCH_COLUMN);
 
-    $stmt->execute([
-      $firstName,
-      $lastName,
-      $phone ?: null,
-      $npi ?: null,
-      $license ?: null,
-      $licenseState ?: null,
-      $licenseExpiry ?: null,
-      $practiceName,
-      $practiceAddress ?: null,
-      $practiceCity ?: null,
-      $practiceState ?: null,
-      $practiceZip ?: null,
-      $practicePhone ?: null,
-      $practiceEmail ?: null,
-      $practiceNpi ?: null,
-      $signName ?: null,
-      $signTitle ?: null,
-      $userId
-    ]);
+    // Build dynamic UPDATE with only existing columns
+    $updates = ['first_name = ?', 'last_name = ?'];
+    $params = [$firstName, $lastName];
+
+    $optionalUpdates = [
+      'phone' => $phone ?: null,
+      'npi' => $npi ?: null,
+      'license_number' => $license ?: null,
+      'license_state' => $licenseState ?: null,
+      'license_expiry' => $licenseExpiry ?: null,
+      'practice_name' => $practiceName,
+      'practice_address' => $practiceAddress ?: null,
+      'practice_city' => $practiceCity ?: null,
+      'practice_state' => $practiceState ?: null,
+      'practice_zip' => $practiceZip ?: null,
+      'practice_phone' => $practicePhone ?: null,
+      'practice_email' => $practiceEmail ?: null,
+      'practice_npi' => $practiceNpi ?: null,
+      'sign_name' => $signName ?: null,
+      'sign_title' => $signTitle ?: null,
+    ];
+
+    foreach ($optionalUpdates as $col => $val) {
+      if (in_array($col, $userCols)) {
+        $updates[] = "$col = ?";
+        $params[] = $val;
+      }
+    }
+
+    // Add updated_at if it exists
+    if (in_array('updated_at', $userCols)) {
+      $updates[] = 'updated_at = NOW()';
+    }
+
+    $params[] = $userId; // WHERE id = ?
+
+    $sql = "UPDATE users SET " . implode(', ', $updates) . " WHERE id = ?";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
 
     jok(['message' => 'Practice information updated successfully']);
   }
