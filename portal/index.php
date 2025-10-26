@@ -179,8 +179,18 @@ if ($action) {
     }
     // Practice admins can only see patients from their practice physicians
     elseif ($userRole === 'practice_admin') {
+      // Check which column exists in practice_physicians table (backward compatibility)
+      $ppCols = $pdo->query("
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'practice_physicians'
+        AND column_name IN ('physician_id', 'physician_npi', 'practice_admin_id', 'practice_manager_id')
+      ")->fetchAll(PDO::FETCH_COLUMN);
+
+      $physicianCol = in_array('physician_id', $ppCols) ? 'physician_id' : 'physician_npi';
+      $adminCol = in_array('practice_admin_id', $ppCols) ? 'practice_admin_id' : 'practice_manager_id';
+
       // Get list of physician IDs in this practice
-      $pracStmt = $pdo->prepare("SELECT physician_id FROM practice_physicians WHERE practice_admin_id = ?");
+      $pracStmt = $pdo->prepare("SELECT {$physicianCol} FROM practice_physicians WHERE {$adminCol} = ?");
       $pracStmt->execute([$userId]);
       $physicianIds = $pracStmt->fetchAll(PDO::FETCH_COLUMN);
       $physicianIds[] = $userId; // Include practice admin's own patients
