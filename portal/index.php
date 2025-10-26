@@ -410,10 +410,20 @@ if ($action) {
       if(!$ud || empty($ud['npi'])){ $pdo->rollBack(); jerr('Provider NPI is required. Please add your NPI in your profile.'); }
 
       $pid=(string)($_POST['patient_id']??''); if($pid==='') jerr('patient_id is required');
-      $own=$pdo->prepare("SELECT id,first_name,last_name,address,city,state,zip,phone,email,
-                                 id_card_path,ins_card_path,aob_path
-                          FROM patients WHERE id=? AND user_id=? FOR UPDATE");
-      $own->execute([$pid,$userId]); $p=$own->fetch(PDO::FETCH_ASSOC);
+
+      // Superadmins can create orders for any patient, others only their own
+      if ($userRole === 'superadmin') {
+        $own=$pdo->prepare("SELECT id,first_name,last_name,address,city,state,zip,phone,email,
+                                   id_card_path,ins_card_path,aob_path,user_id
+                            FROM patients WHERE id=? FOR UPDATE");
+        $own->execute([$pid]);
+      } else {
+        $own=$pdo->prepare("SELECT id,first_name,last_name,address,city,state,zip,phone,email,
+                                   id_card_path,ins_card_path,aob_path,user_id
+                            FROM patients WHERE id=? AND user_id=? FOR UPDATE");
+        $own->execute([$pid,$userId]);
+      }
+      $p=$own->fetch(PDO::FETCH_ASSOC);
       if(!$p){ $pdo->rollBack(); jerr('Patient not found',404); }
 
       $payment_type=$_POST['payment_type'] ?? 'insurance';
@@ -520,6 +530,9 @@ if ($action) {
       $secondary_dressing = trim((string)($_POST['secondary_dressing']??''));
       if($freq_per_week<=0){ $pdo->rollBack(); jerr('Frequency per week is required.'); }
 
+      // Use patient's actual owner user_id, not current logged-in user (for superadmin compatibility)
+      $patientOwnerId = $p['user_id'] ?? $userId;
+
       $oid=bin2hex(random_bytes(16));
       $ins=$pdo->prepare("INSERT INTO orders
         (id,patient_id,user_id,product,product_id,product_price,status,shipments_remaining,delivery_mode,payment_type,
@@ -539,7 +552,7 @@ if ($action) {
                 ?::jsonb,
                 ?)");
       $ins->execute([
-        $oid,$pid,$userId,$prod['name'],$prod['id'],$prod['price_admin'],'submitted',0,$delivery_mode,$payment_type, // shipments_remaining=0
+        $oid,$pid,$patientOwnerId,$prod['name'],$prod['id'],$prod['price_admin'],'submitted',0,$delivery_mode,$payment_type, // shipments_remaining=0
         $wound_location,$wound_laterality,$wound_notes,
         (string)$ship_name,(string)$ship_phone,(string)$ship_addr,(string)$ship_city,(string)$ship_state,(string)$ship_zip,
         $sign_name,$sign_title,
