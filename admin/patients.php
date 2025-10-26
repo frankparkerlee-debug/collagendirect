@@ -253,7 +253,7 @@ include __DIR__.'/_header.php';
               ];
               $statusColor = $statusColors[$status] ?? 'bg-slate-100 text-slate-600';
             ?>
-            <tr class="border-t hover:bg-slate-50">
+            <tr class="border-t hover:bg-slate-50" data-patient-id="<?=e($pid)?>">
               <td class="py-2">
                 <div class="font-medium"><?=e($fullname ?: '—')?></div>
                 <div class="text-[11px] text-slate-500">ID: <?=e($pid)?></div>
@@ -284,7 +284,54 @@ include __DIR__.'/_header.php';
               <td class="py-2"><?=render_view_link($idLinks)?></td>
               <td class="py-2"><?=render_view_link($insLinks)?></td>
               <td class="py-2">
-                <a href="/portal/patient-detail.php?id=<?=e($pid)?>" class="text-brand underline text-xs" target="_blank">View Details</a>
+                <button
+                  onclick="togglePatientDetails('<?=e($pid)?>')"
+                  class="text-brand underline text-xs hover:text-brand-dark cursor-pointer"
+                >
+                  <span class="expand-text">View Details</span>
+                  <span class="collapse-text hidden">Hide Details</span>
+                </button>
+              </td>
+            </tr>
+            <tr id="patient-details-<?=e($pid)?>" class="patient-details-row hidden border-t bg-slate-50">
+              <td colspan="10" class="py-4 px-6">
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <h4 class="font-semibold mb-3">Patient Information</h4>
+                    <div class="space-y-2">
+                      <div><span class="text-slate-600">Name:</span> <strong><?=e($fullname)?></strong></div>
+                      <div><span class="text-slate-600">Email:</span> <?=e($row['email'] ?? '—')?></div>
+                      <div><span class="text-slate-600">Phone:</span> <?=e($row['phone'] ?? '—')?></div>
+                      <div><span class="text-slate-600">DOB:</span> <?=e($row['dob'] ?? '—')?></div>
+                      <div><span class="text-slate-600">Patient ID:</span> <?=e($pid)?></div>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 class="font-semibold mb-3">Provider Information</h4>
+                    <div class="space-y-2">
+                      <div><span class="text-slate-600">Physician:</span> <?=e($physName ?: '—')?></div>
+                      <div><span class="text-slate-600">Practice:</span> <?=e($practiceName ?: '—')?></div>
+                      <div><span class="text-slate-600">Status:</span> <span class="<?=$statusColor?> px-2 py-0.5 rounded text-xs"><?=e(ucfirst($status))?></span></div>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 class="font-semibold mb-3">Order Summary</h4>
+                    <div class="space-y-2">
+                      <div><span class="text-slate-600">Total Orders:</span> <?=$orderCount?></div>
+                      <?php if ($lastOrder): ?>
+                        <div><span class="text-slate-600">Last Order:</span> <?=e(substr($lastOrder,0,10))?></div>
+                      <?php endif; ?>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 class="font-semibold mb-3">Documents</h4>
+                    <div class="space-y-2">
+                      <div><span class="text-slate-600">Notes:</span> <?=render_view_link($noteLinks)?></div>
+                      <div><span class="text-slate-600">ID Card:</span> <?=render_view_link($idLinks)?></div>
+                      <div><span class="text-slate-600">Insurance:</span> <?=render_view_link($insLinks)?></div>
+                    </div>
+                  </div>
+                </div>
               </td>
             </tr>
             <?php endforeach; ?>
@@ -298,4 +345,33 @@ include __DIR__.'/_header.php';
     </div>
   </section>
 </div>
+
+<script>
+function togglePatientDetails(patientId) {
+  const detailsRow = document.getElementById('patient-details-' + patientId);
+  const button = document.querySelector('[data-patient-id="' + patientId + '"] button');
+  const expandText = button.querySelector('.expand-text');
+  const collapseText = button.querySelector('.collapse-text');
+
+  if (detailsRow.classList.contains('hidden')) {
+    // Close all other open details
+    document.querySelectorAll('.patient-details-row').forEach(row => {
+      row.classList.add('hidden');
+    });
+    document.querySelectorAll('.expand-text').forEach(el => el.classList.remove('hidden'));
+    document.querySelectorAll('.collapse-text').forEach(el => el.classList.add('hidden'));
+
+    // Open this one
+    detailsRow.classList.remove('hidden');
+    expandText.classList.add('hidden');
+    collapseText.classList.remove('hidden');
+  } else {
+    // Close this one
+    detailsRow.classList.add('hidden');
+    expandText.classList.remove('hidden');
+    collapseText.classList.add('hidden');
+  }
+}
+</script>
+
 <?php include __DIR__.'/_footer.php'; ?>
