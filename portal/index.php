@@ -1170,8 +1170,14 @@ if ($action) {
     $check->execute([$userId, $email]);
     if ($check->fetch()) jerr('This physician is already in your practice');
 
-    // Generate physician ID or NPI
-    $physicianId = bin2hex(random_bytes(16));
+    // Generate physician ID or NPI based on column type
+    // If using physician_npi (VARCHAR(20)), generate shorter 16-char ID
+    // If using physician_id (VARCHAR(64)), generate longer 32-char ID
+    if ($physicianIdCol === 'physician_npi') {
+      $physicianId = substr(bin2hex(random_bytes(16)), 0, 20);
+    } else {
+      $physicianId = bin2hex(random_bytes(16));
+    }
 
     // Build dynamic INSERT with only existing columns
     $columns = [$adminCol, $physicianIdCol, $firstNameCol, $lastNameCol, $emailCol];
