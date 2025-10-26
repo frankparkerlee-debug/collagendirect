@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/db.php';
 $bootstrap = __DIR__.'/_bootstrap.php'; if (is_file($bootstrap)) require_once $bootstrap;
-$auth      = __DIR__ . '/auth.php';      if (is_file($auth) && function_exists('require_admin')) require_admin();
+$auth      = __DIR__ . '/auth.php';      if (is_file($auth)) require_once $auth;
+if (function_exists('require_admin')) require_admin();
 
 // Get current admin user and role
 $admin = current_admin();
