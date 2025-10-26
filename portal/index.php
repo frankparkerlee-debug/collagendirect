@@ -4880,12 +4880,25 @@ if (<?php echo json_encode($page==='profile'); ?>){
         form.addEventListener('submit', async (e) => {
           e.preventDefault();
 
-          const firstName = form.querySelector('#phys-first-name').value.trim();
-          const lastName = form.querySelector('#phys-last-name').value.trim();
-          const email = form.querySelector('#phys-email').value.trim();
-          const license = form.querySelector('#phys-license').value.trim();
-          const licenseState = form.querySelector('#phys-license-state').value;
-          const licenseExpiry = form.querySelector('#phys-license-expiry').value;
+          const firstNameEl = form.querySelector('#phys-first-name');
+          const lastNameEl = form.querySelector('#phys-last-name');
+          const emailEl = form.querySelector('#phys-email');
+          const licenseEl = form.querySelector('#phys-license');
+          const licenseStateEl = form.querySelector('#phys-license-state');
+          const licenseExpiryEl = form.querySelector('#phys-license-expiry');
+
+          if (!firstNameEl || !lastNameEl || !emailEl) {
+            alert('Form elements not found. Please try again.');
+            console.error('Missing form elements:', {firstNameEl, lastNameEl, emailEl});
+            return;
+          }
+
+          const firstName = firstNameEl.value.trim();
+          const lastName = lastNameEl.value.trim();
+          const email = emailEl.value.trim();
+          const license = licenseEl ? licenseEl.value.trim() : '';
+          const licenseState = licenseStateEl ? licenseStateEl.value : '';
+          const licenseExpiry = licenseExpiryEl ? licenseExpiryEl.value : '';
 
           if (!firstName || !lastName) {
             alert('First and last name are required');
@@ -4915,7 +4928,8 @@ if (<?php echo json_encode($page==='profile'); ?>){
               alert(j.error || 'Failed to add physician');
             }
           } catch (err) {
-            alert('Error adding physician');
+            console.error('Error adding physician:', err);
+            alert('Error adding physician: ' + err.message);
           }
         });
       }
