@@ -3992,11 +3992,6 @@ async function toggleAccordion(rowEl, patientId, page){
         <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-2">Email</label>
         <input class="w-full" id="acc-email-${esc(p.id)}" value="${esc(p.email||'')}">
       </div>
-
-      <div>
-        <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-2">Blood group</label>
-        <div class="text-sm font-medium">A+</div>
-      </div>
     </div>
 
     <!-- Hidden form fields -->
@@ -4007,9 +4002,6 @@ async function toggleAccordion(rowEl, patientId, page){
     <input type="hidden" id="acc-city-${esc(p.id)}" value="${esc(p.city||'')}">
     <input type="hidden" id="acc-state-${esc(p.id)}" value="${esc(p.state||'')}">
     <input type="hidden" id="acc-zip-${esc(p.id)}" value="${esc(p.zip||'')}">
-
-    <!-- Medical History - Future Feature -->
-    <!-- Medical history tracking not yet implemented -->
 
     <!-- Insurance Information -->
     <div class="mb-6 pb-6 border-t pt-6">
@@ -5007,21 +4999,6 @@ function renderPatientDetailPage(p, orders, isEditing) {
           <input type="hidden" id="edit-insurance-group-id" value="${esc(p.insurance_group_id||'')}">
           <input type="hidden" id="edit-insurance-payer-phone" value="${esc(p.insurance_payer_phone||'')}">
         ` : ''}
-
-        <div>
-          <div class="text-slate-500 text-xs mb-1">Blood group</div>
-          <div class="font-medium">A+</div>
-        </div>
-      </div>
-
-      <!-- Medical History - Compact -->
-      <div class="mb-4 pb-4 border-t pt-4">
-        <div class="text-slate-500 text-xs mb-2">Medical history</div>
-        <div class="flex flex-wrap gap-1">
-          <span class="px-2 py-1 bg-slate-100 text-slate-700 rounded text-xs">Hypertension</span>
-          <span class="px-2 py-1 bg-slate-100 text-slate-700 rounded text-xs">Asthma</span>
-          <span class="px-2 py-1 bg-slate-100 text-slate-700 rounded text-xs">Diabetes</span>
-        </div>
       </div>
 
       <!-- Insurance Information - PRIORITIZED SECTION -->
