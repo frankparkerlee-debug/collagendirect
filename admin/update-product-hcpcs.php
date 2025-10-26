@@ -5,13 +5,28 @@ header('Content-Type: text/plain; charset=utf-8');
 
 echo "=== Updating Product HCPCS Codes and Reimbursements ===\n\n";
 
-// Step 1: Add reimbursement_amount column if it doesn't exist
-echo "Step 1: Adding reimbursement_amount column...\n";
-try {
-    $pdo->exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS reimbursement_amount DECIMAL(10,2)");
-    echo "✓ Column added successfully\n\n";
-} catch (PDOException $e) {
-    echo "Note: " . $e->getMessage() . "\n\n";
+// Step 1: Check if reimbursement_amount column exists, add if not
+echo "Step 1: Checking for reimbursement_amount column...\n";
+
+// Check if column exists
+$checkColumn = $pdo->query("
+    SELECT column_name
+    FROM information_schema.columns
+    WHERE table_name = 'products'
+    AND column_name = 'reimbursement_amount'
+");
+
+if ($checkColumn->rowCount() === 0) {
+    echo "Column does not exist, adding it...\n";
+    try {
+        $pdo->exec("ALTER TABLE products ADD COLUMN reimbursement_amount DECIMAL(10,2)");
+        echo "✓ Column added successfully\n\n";
+    } catch (PDOException $e) {
+        echo "ERROR adding column: " . $e->getMessage() . "\n\n";
+        exit(1);
+    }
+} else {
+    echo "✓ Column already exists\n\n";
 }
 
 // Step 2: Update products with correct HCPCS codes and reimbursements
