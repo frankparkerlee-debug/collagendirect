@@ -581,6 +581,14 @@ if ($action) {
       $secondary_dressing = trim((string)($_POST['secondary_dressing']??''));
       if($freq_per_week<=0){ $pdo->rollBack(); jerr('Frequency per week is required.'); }
 
+      // Calculate bandage count: (Frequency/7 days) × Duration × Quantity per change × (1 + Refills)
+      // This gives total number of bandages needed for the entire treatment including refills
+      $changes_per_day = $freq_per_week / 7.0;
+      $total_changes = $changes_per_day * $duration_days;
+      $bandages_per_fill = $total_changes * $qty_per_change;
+      $total_bandages = $bandages_per_fill * (1 + $refills_allowed);
+      $shipments_remaining = (int)ceil($total_bandages);
+
       // Use patient's actual owner user_id, not current logged-in user (for superadmin compatibility)
       $patientOwnerId = $p['user_id'] ?? $userId;
 
@@ -603,7 +611,7 @@ if ($action) {
                 ?::jsonb,
                 ?)");
       $ins->execute([
-        $oid,$pid,$patientOwnerId,$prod['name'],$prod['id'],$prod['price_admin'],'submitted',0,$delivery_mode,$payment_type, // shipments_remaining=0
+        $oid,$pid,$patientOwnerId,$prod['name'],$prod['id'],$prod['price_admin'],'submitted',$shipments_remaining,$delivery_mode,$payment_type,
         $wound_location,$wound_laterality,$wound_notes,
         (string)$ship_name,(string)$ship_phone,(string)$ship_addr,(string)$ship_city,(string)$ship_state,(string)$ship_zip,
         $sign_name,$sign_title,
