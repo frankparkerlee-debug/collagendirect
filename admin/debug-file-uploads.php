@@ -22,7 +22,29 @@ $uploadsRoot = uploads_root_abs();
 echo "1. Uploads root directory:\n";
 echo "   Path: $uploadsRoot\n";
 echo "   Exists: " . (is_dir($uploadsRoot) ? 'YES' : 'NO') . "\n";
-echo "   Writable: " . (is_writable($uploadsRoot) ? 'YES' : 'NO') . "\n\n";
+echo "   Writable: " . (is_writable($uploadsRoot) ? 'YES' : 'NO') . "\n";
+
+// Check all candidate paths
+echo "\n   All candidate paths checked:\n";
+$cands = [
+  realpath(__DIR__ . '/../uploads'),
+  isset($_SERVER['DOCUMENT_ROOT']) ? realpath($_SERVER['DOCUMENT_ROOT'] . '/public/uploads') : false,
+  isset($_SERVER['DOCUMENT_ROOT']) ? realpath($_SERVER['DOCUMENT_ROOT'] . '/uploads') : false,
+];
+foreach ($cands as $i => $p) {
+  echo "     [" . ($i + 1) . "] " . ($p ?: 'FALSE') . " - Exists: " . ($p && is_dir($p) ? 'YES' : 'NO') . "\n";
+}
+
+// Check /public/uploads specifically
+$publicUploads = $_SERVER['DOCUMENT_ROOT'] . '/public/uploads';
+echo "\n   Direct check /public/uploads:\n";
+echo "     DOCUMENT_ROOT: " . ($_SERVER['DOCUMENT_ROOT'] ?? 'NOT SET') . "\n";
+echo "     /public/uploads: $publicUploads\n";
+echo "     Exists: " . (is_dir($publicUploads) ? 'YES' : 'NO') . "\n";
+if (is_dir($publicUploads)) {
+  echo "     Contents: " . implode(', ', scandir($publicUploads)) . "\n";
+}
+echo "\n";
 
 // Check bucket directories
 $buckets = ['notes', 'ids', 'insurance'];
