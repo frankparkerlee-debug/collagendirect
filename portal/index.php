@@ -837,7 +837,7 @@ if ($action) {
       // Get sender info
       $senderName = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
 
-      // Ensure messages table exists
+      // Ensure messages table exists with threading support
       $pdo->exec("
         CREATE TABLE IF NOT EXISTS messages (
           id SERIAL PRIMARY KEY,
@@ -849,11 +849,39 @@ if ($action) {
           subject VARCHAR(500) NOT NULL,
           body TEXT NOT NULL,
           patient_id VARCHAR(64),
+          parent_id INTEGER,
+          thread_id INTEGER,
           is_read BOOLEAN DEFAULT FALSE,
           read_at TIMESTAMP,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (parent_id) REFERENCES messages(id) ON DELETE CASCADE,
+          FOREIGN KEY (thread_id) REFERENCES messages(id) ON DELETE CASCADE
         )
       ");
+
+      // Add threading columns if they don't exist (for existing tables)
+      $pdo->exec("ALTER TABLE messages ADD COLUMN IF NOT EXISTS parent_id INTEGER");
+      $pdo->exec("ALTER TABLE messages ADD COLUMN IF NOT EXISTS thread_id INTEGER");
+
+      // Check if this is a reply (has parent_id)
+      $parentId = !empty($_POST['parent_id']) ? (int)$_POST['parent_id'] : null;
+      $threadId = null;
+
+      // If replying, get the thread_id from parent message
+      if ($parentId) {
+        $parentStmt = $pdo->prepare("SELECT id, thread_id, subject FROM messages WHERE id = ?");
+        $parentStmt->execute([$parentId]);
+        $parent = $parentStmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($parent) {
+          // Use parent's thread_id, or parent's id if it's the root message
+          $threadId = $parent['thread_id'] ?: $parent['id'];
+          // For replies, keep the original subject with "Re: " prefix if not already present
+          if (!str_starts_with($subject, 'Re: ')) {
+            $subject = 'Re: ' . $parent['subject'];
+          }
+        }
+      }
 
       // Insert message
       $stmt = $pdo->prepare("
@@ -861,13 +889,15 @@ if ($action) {
           sender_type, sender_id, sender_name,
           recipient_type, recipient_id,
           subject, body, patient_id,
+          parent_id, thread_id,
           created_at
         ) VALUES (
           'provider', ?, ?,
           ?, NULL,
           ?, ?, ?,
+          ?, ?,
           NOW()
-        )
+        ) RETURNING id
       ");
 
       $stmt->execute([
@@ -876,10 +906,19 @@ if ($action) {
         $recipient,
         $subject,
         $body,
-        $patientId ?: null
+        $patientId ?: null,
+        $parentId,
+        $threadId
       ]);
 
-      jok(['message_id' => $pdo->lastInsertId()]);
+      $newMessageId = $stmt->fetch(PDO::FETCH_ASSOC)['id'];
+
+      // If this is a new thread (not a reply), set thread_id to its own id
+      if (!$parentId) {
+        $pdo->prepare("UPDATE messages SET thread_id = id WHERE id = ?")->execute([$newMessageId]);
+      }
+
+      jok(['message_id' => $newMessageId]);
     } catch (Throwable $e) {
       error_log('Message send error: ' . $e->getMessage());
       jerr('Failed to send message: ' . $e->getMessage(), 500);
@@ -5670,6 +5709,61 @@ if (<?php echo json_encode($page === 'messages'); ?>) {
     if (!message.is_read) {
       markMessageAsRead(message.id);
       message.is_read = true;
+    }
+
+    // Attach reply handler
+    const replyBtn = document.getElementById('btn-send-reply');
+    const replyInput = document.getElementById('msg-reply-input');
+
+    if (replyBtn && replyInput) {
+      replyBtn.onclick = async () => {
+        const replyText = replyInput.value.trim();
+        if (!replyText) {
+          alert('Please enter a reply message');
+          return;
+        }
+
+        try {
+          replyBtn.disabled = true;
+          replyBtn.textContent = 'Sending...';
+
+          const response = await fetch('?action=message.send', {
+            method: 'POST',
+            body: fd({
+              parent_id: message.id,
+              subject: message.subject, // Will be prefixed with "Re:" server-side
+              body: replyText,
+              patient_id: message.patient_id || '',
+              recipient_type: 'collagendirect'
+            })
+          });
+
+          const result = await response.json();
+
+          if (result.ok) {
+            replyInput.value = '';
+            alert('Reply sent successfully!');
+            // Reload messages to show the reply
+            const data = await api('action=messages');
+            allMessages = data.messages || [];
+            renderMessagesList(allMessages);
+            // Close the detail view
+            document.getElementById('msg-detail-pane').style.display = 'none';
+          } else {
+            alert('Failed to send reply: ' + (result.error || 'Unknown error'));
+          }
+        } catch (e) {
+          console.error('Reply error:', e);
+          alert('Failed to send reply. Please try again.');
+        } finally {
+          replyBtn.disabled = false;
+          replyBtn.innerHTML = `
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+            </svg>
+          `;
+        }
+      };
     }
   }
 
