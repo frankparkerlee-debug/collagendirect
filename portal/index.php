@@ -2346,12 +2346,6 @@ if ($page==='logout'){
         <span>Transactions</span>
       </a>
       <?php endif; ?>
-      <?php if ($userRole === 'practice_admin'): ?>
-      <a class="<?php echo $page==='practice'?'active':''; ?>" href="?page=practice">
-        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-        <span>Manage Physicians</span>
-      </a>
-      <?php endif; ?>
       <a class="<?php echo $page==='profile'?'active':''; ?>" href="?page=profile">
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
         <span>Profile</span>
@@ -2881,78 +2875,6 @@ if ($page==='logout'){
       </div>
     </div>
   </section>
-
-<?php elseif ($page==='practice'): ?>
-  <?php if ($userRole !== 'practice_admin'): header('Location: ?page=dashboard'); exit; endif; ?>
-
-  <div class="flex items-center gap-3 mb-4">
-    <h2 class="text-lg font-semibold">Manage Physicians</h2>
-    <button class="btn btn-primary ml-auto" id="btn-add-physician">
-      <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right: 0.5rem;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-      Add Physician
-    </button>
-  </div>
-
-  <section class="card p-5">
-    <div style="margin-bottom: 1.5rem;">
-      <p class="text-sm text-muted">Physicians in your practice can create orders for patients. You can create orders under any physician in your practice.</p>
-    </div>
-
-    <div id="physicians-list">
-      <!-- Physicians will be loaded here -->
-      <div style="text-align: center; padding: 3rem; color: var(--muted);">
-        <div style="margin-bottom: 1rem;">Loading physicians...</div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Add Physician Dialog -->
-  <dialog id="dlg-add-physician" class="dialog">
-    <div class="dialog-content" style="max-width: 500px;">
-      <div class="dialog-header">
-        <h3 class="dialog-title">Add Physician to Practice</h3>
-        <button class="dialog-close" onclick="document.getElementById('dlg-add-physician').close()">×</button>
-      </div>
-      <div class="dialog-body">
-        <div style="margin-bottom: 1rem;">
-          <label class="block text-sm font-medium mb-1">First Name*</label>
-          <input type="text" id="phys-first" class="w-full" required>
-        </div>
-        <div style="margin-bottom: 1rem;">
-          <label class="block text-sm font-medium mb-1">Last Name*</label>
-          <input type="text" id="phys-last" class="w-full" required>
-        </div>
-        <div style="margin-bottom: 1rem;">
-          <label class="block text-sm font-medium mb-1">Email*</label>
-          <input type="email" id="phys-email" class="w-full" required>
-        </div>
-        <div style="margin-bottom: 1rem;">
-          <label class="block text-sm font-medium mb-1">License Number</label>
-          <input type="text" id="phys-license" class="w-full">
-        </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-          <div>
-            <label class="block text-sm font-medium mb-1">License State</label>
-            <select id="phys-license-state" class="w-full">
-              <option value="">Select state</option>
-              <?php foreach(usStates() as $st): ?>
-              <option value="<?php echo $st; ?>"><?php echo $st; ?></option>
-              <?php endforeach; ?>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">License Expiry</label>
-            <input type="date" id="phys-license-expiry" class="w-full">
-          </div>
-        </div>
-        <div id="add-phys-error" style="color: var(--error); font-size: 0.875rem; margin-top: 0.5rem; display: none;"></div>
-      </div>
-      <div class="dialog-footer">
-        <button class="btn btn-ghost" onclick="document.getElementById('dlg-add-physician').close()">Cancel</button>
-        <button class="btn btn-primary" id="btn-save-physician">Add Physician</button>
-      </div>
-    </div>
-  </dialog>
 
 <?php elseif ($page==='profile'): ?>
   <div class="mb-4">
@@ -4597,11 +4519,263 @@ if (<?php echo json_encode($page==='orders'); ?>){
 
 /* ADMIN: change password */
 if (<?php echo json_encode($page==='profile'); ?>){
-  $('#btn-pw').onclick=async()=>{
-    const r=await fetch('?action=user.change_password',{method:'POST',body:fd({current:$('#pw-cur').value,new:$('#pw-new').value,confirm:$('#pw-con').value})});
-    const j=await r.json(); $('#pw-hint').textContent = j.ok ? 'Password updated.' : (j.error||'Failed to update');
-    if(j.ok){ $('#pw-cur').value=''; $('#pw-new').value=''; $('#pw-con').value=''; }
+  // Tab switching
+  document.querySelectorAll('.profile-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const tabName = tab.dataset.tab;
+
+      // Update tab styles
+      document.querySelectorAll('.profile-tab').forEach(t => {
+        t.classList.remove('active', 'border-blue-600', 'text-blue-600');
+        t.classList.add('border-transparent', 'text-slate-600');
+      });
+      tab.classList.add('active', 'border-blue-600', 'text-blue-600');
+      tab.classList.remove('border-transparent', 'text-slate-600');
+
+      // Show/hide content
+      document.querySelectorAll('.profile-tab-content').forEach(content => {
+        if (content.dataset.tabContent === tabName) {
+          content.classList.remove('hidden');
+        } else {
+          content.classList.add('hidden');
+        }
+      });
+    });
+  });
+
+  // Load practice information on page load (for practice admins)
+  <?php if ($userRole === 'practice_admin'): ?>
+  (async () => {
+    try {
+      const data = await api('action=practice.get_info');
+      const p = data.practice;
+
+      // Populate personal info
+      $('#profile-first-name').value = p.first_name || '';
+      $('#profile-last-name').value = p.last_name || '';
+      $('#profile-email').value = p.email || '';
+      $('#profile-phone').value = p.phone || '';
+      $('#profile-npi').value = p.npi || '';
+      $('#profile-license').value = p.license_number || '';
+      $('#profile-license-state').value = p.license_state || '';
+      $('#profile-license-expiry').value = p.license_expiry || '';
+
+      // Populate signature info
+      $('#profile-sign-name').value = p.sign_name || '';
+      $('#profile-sign-title').value = p.sign_title || '';
+
+      // Populate practice info
+      $('#practice-name').value = p.practice_name || '';
+      $('#practice-address').value = p.practice_address || '';
+      $('#practice-city').value = p.practice_city || '';
+      $('#practice-state').value = p.practice_state || '';
+      $('#practice-zip').value = p.practice_zip || '';
+      $('#practice-phone').value = p.practice_phone || '';
+      $('#practice-email').value = p.practice_email || '';
+      $('#practice-npi').value = p.practice_npi || '';
+    } catch (e) {
+      console.error('Error loading practice info:', e);
+    }
+  })();
+  <?php endif; ?>
+
+  // Personal info form submit
+  const personalForm = document.getElementById('personal-info-form');
+  if (personalForm) {
+    personalForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData();
+      formData.append('first_name', $('#profile-first-name').value);
+      formData.append('last_name', $('#profile-last-name').value);
+      formData.append('phone', $('#profile-phone').value);
+      formData.append('npi', $('#profile-npi').value);
+      formData.append('license_number', $('#profile-license').value);
+      formData.append('license_state', $('#profile-license-state').value);
+      formData.append('license_expiry', $('#profile-license-expiry').value);
+      formData.append('practice_name', $('#practice-name')?.value || '');
+
+      try {
+        const r = await fetch('?action=practice.update_info', {method: 'POST', body: formData});
+        const j = await r.json();
+        if (j.ok) {
+          alert('Personal information updated successfully');
+        } else {
+          alert(j.error || 'Failed to update');
+        }
+      } catch (e) {
+        alert('Error updating personal information');
+      }
+    });
+  }
+
+  // Signature form submit
+  const signatureForm = document.getElementById('signature-form');
+  if (signatureForm) {
+    signatureForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData();
+      formData.append('first_name', $('#profile-first-name').value);
+      formData.append('last_name', $('#profile-last-name').value);
+      formData.append('practice_name', $('#practice-name')?.value || '');
+      formData.append('sign_name', $('#profile-sign-name').value);
+      formData.append('sign_title', $('#profile-sign-title').value);
+
+      try {
+        const r = await fetch('?action=practice.update_info', {method: 'POST', body: formData});
+        const j = await r.json();
+        if (j.ok) {
+          alert('Signature information updated successfully');
+        } else {
+          alert(j.error || 'Failed to update');
+        }
+      } catch (e) {
+        alert('Error updating signature');
+      }
+    });
+  }
+
+  // Practice info form submit
+  const practiceForm = document.getElementById('practice-info-form');
+  if (practiceForm) {
+    practiceForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData();
+      formData.append('first_name', $('#profile-first-name').value);
+      formData.append('last_name', $('#profile-last-name').value);
+      formData.append('practice_name', $('#practice-name').value);
+      formData.append('practice_address', $('#practice-address').value);
+      formData.append('practice_city', $('#practice-city').value);
+      formData.append('practice_state', $('#practice-state').value);
+      formData.append('practice_zip', $('#practice-zip').value);
+      formData.append('practice_phone', $('#practice-phone').value);
+      formData.append('practice_email', $('#practice-email').value);
+      formData.append('practice_npi', $('#practice-npi').value);
+
+      try {
+        const r = await fetch('?action=practice.update_info', {method: 'POST', body: formData});
+        const j = await r.json();
+        if (j.ok) {
+          alert('Practice information updated successfully');
+        } else {
+          alert(j.error || 'Failed to update');
+        }
+      } catch (e) {
+        alert('Error updating practice information');
+      }
+    });
+  }
+
+  // Load physicians list
+  async function loadPhysicians() {
+    try {
+      const data = await api('action=practice.physicians');
+      const physicians = data.physicians || [];
+      const list = document.getElementById('physicians-list');
+
+      if (!list) return;
+
+      if (physicians.length === 0) {
+        list.innerHTML = '<div class="text-center py-8 text-slate-500">No physicians added yet. Click "Add Physician" to get started.</div>';
+        return;
+      }
+
+      list.innerHTML = physicians.map(phys => `
+        <div class="flex items-center justify-between p-4 bg-white border rounded-lg hover:shadow-sm">
+          <div class="flex-1">
+            <div class="font-medium">${esc(phys.first_name)} ${esc(phys.last_name)}</div>
+            <div class="text-sm text-slate-600">${esc(phys.email || '')}</div>
+            ${phys.license ? `<div class="text-xs text-slate-500 mt-1">License: ${esc(phys.license)}${phys.license_state ? ' (' + esc(phys.license_state) + ')' : ''}</div>` : ''}
+          </div>
+          <button class="btn btn-outline text-red-600 hover:bg-red-50" onclick="removePhysician('${esc(phys.physician_id)}')">
+            Remove
+          </button>
+        </div>
+      `).join('');
+    } catch (e) {
+      console.error('Error loading physicians:', e);
+    }
+  }
+
+  // Add physician button
+  const btnAddPhysician = document.getElementById('btn-add-physician');
+  if (btnAddPhysician) {
+    btnAddPhysician.addEventListener('click', () => {
+      const dialog = document.getElementById('dlg-add-physician');
+      const container = document.getElementById('physician-form-container');
+      const formContent = document.getElementById('add-physician-form-content');
+      container.innerHTML = formContent.innerHTML;
+      dialog.showModal();
+    });
+  }
+
+  // Add physician form submit
+  document.addEventListener('submit', async (e) => {
+    if (e.target.id === 'add-physician-form') {
+      e.preventDefault();
+      const formData = new FormData();
+      formData.append('first_name', document.getElementById('phys-first-name').value);
+      formData.append('last_name', document.getElementById('phys-last-name').value);
+      formData.append('email', document.getElementById('phys-email').value);
+      formData.append('license', document.getElementById('phys-license').value);
+      formData.append('license_state', document.getElementById('phys-license-state').value);
+      formData.append('license_expiry', document.getElementById('phys-license-expiry').value);
+
+      try {
+        const r = await fetch('?action=practice.add_physician', {method: 'POST', body: formData});
+        const j = await r.json();
+        if (j.ok) {
+          document.getElementById('dlg-add-physician').close();
+          loadPhysicians();
+          e.target.reset();
+        } else {
+          alert(j.error || 'Failed to add physician');
+        }
+      } catch (err) {
+        alert('Error adding physician');
+      }
+    }
+  });
+
+  // Remove physician function
+  window.removePhysician = async (physicianId) => {
+    if (!confirm('Remove this physician from your practice?')) return;
+
+    const formData = new FormData();
+    formData.append('physician_id', physicianId);
+
+    try {
+      const r = await fetch('?action=practice.remove_physician', {method: 'POST', body: formData});
+      const j = await r.json();
+      if (j.ok) {
+        loadPhysicians();
+      } else {
+        alert(j.error || 'Failed to remove physician');
+      }
+    } catch (e) {
+      alert('Error removing physician');
+    }
   };
+
+  // Load physicians on physician tab
+  <?php if ($userRole === 'practice_admin'): ?>
+  loadPhysicians();
+  <?php endif; ?>
+
+  // Password change form
+  const passwordForm = document.getElementById('password-form');
+  if (passwordForm) {
+    passwordForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const r = await fetch('?action=user.change_password', {method:'POST', body:fd({current:$('#pw-cur').value, new:$('#pw-new').value, confirm:$('#pw-con').value})});
+      const j = await r.json();
+      $('#pw-hint').textContent = j.ok ? 'Password updated.' : (j.error||'Failed to update');
+      if (j.ok) {
+        $('#pw-cur').value = '';
+        $('#pw-new').value = '';
+        $('#pw-con').value = '';
+      }
+    });
+  }
 }
 
 /* Patient detail navigation is handled by page-specific handler below (line ~3564) */
