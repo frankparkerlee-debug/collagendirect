@@ -478,7 +478,19 @@ if ($action) {
   }
 
   if ($action==='products'){
-    $rows=$pdo->query("SELECT id,name,size,size AS uom,price_admin AS price,hcpcs_code AS hcpcs,category FROM products WHERE active=TRUE ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
+    // Check which HCPCS column exists (backward compatibility)
+    $colCheck = $pdo->query("
+      SELECT column_name FROM information_schema.columns
+      WHERE table_name = 'products' AND column_name IN ('hcpcs_code', 'cpt_code')
+    ")->fetchAll(PDO::FETCH_COLUMN);
+
+    $hcpcsCol = in_array('hcpcs_code', $colCheck) ? 'hcpcs_code' : 'cpt_code';
+    $categoryCol = in_array('category', $colCheck) ? ', category' : '';
+
+    $sql = "SELECT id, name, size, size AS uom, price_admin AS price, {$hcpcsCol} AS hcpcs{$categoryCol}
+            FROM products WHERE active=TRUE ORDER BY name ASC";
+
+    $rows = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     jok(['rows'=>$rows]);
   }
 
@@ -512,7 +524,17 @@ if ($action) {
       $payment_type=$_POST['payment_type'] ?? 'insurance';
 
       $product_id=(int)($_POST['product_id']??0);
-      $pr=$pdo->prepare("SELECT id,name,size,price_admin,hcpcs_code,category FROM products WHERE id=? AND active=TRUE");
+
+      // Check which columns exist (backward compatibility)
+      $prodColCheck = $pdo->query("
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'products' AND column_name IN ('hcpcs_code', 'cpt_code', 'category')
+      ")->fetchAll(PDO::FETCH_COLUMN);
+
+      $hcpcsCol = in_array('hcpcs_code', $prodColCheck) ? 'hcpcs_code' : 'cpt_code';
+      $categorySelect = in_array('category', $prodColCheck) ? ', category' : '';
+
+      $pr=$pdo->prepare("SELECT id, name, size, price_admin, {$hcpcsCol} as hcpcs_code{$categorySelect} FROM products WHERE id=? AND active=TRUE");
       $pr->execute([$product_id]); $prod=$pr->fetch(PDO::FETCH_ASSOC);
       if(!$prod){ $pdo->rollBack(); jerr('Product not found',404); }
 
