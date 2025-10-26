@@ -124,6 +124,14 @@ try {
   error_log("[billing-debug] WHERE clause: " . $where);
   error_log("[billing-debug] Params: " . json_encode($params));
 
+  // Check total orders in database
+  $totalCheck = $pdo->query("SELECT COUNT(*) as cnt FROM orders")->fetch();
+  error_log("[billing-debug] Total orders in database: " . ($totalCheck['cnt'] ?? 0));
+
+  // Check orders NOT rejected/cancelled
+  $activeCheck = $pdo->query("SELECT COUNT(*) as cnt FROM orders WHERE status NOT IN ('rejected','cancelled')")->fetch();
+  error_log("[billing-debug] Active orders (not rejected/cancelled): " . ($activeCheck['cnt'] ?? 0));
+
   $sql = "
     SELECT
       o.id, o.user_id, o.patient_id, o.product_id, o.product, o.frequency,
@@ -139,10 +147,12 @@ try {
     WHERE $where
     ORDER BY o.created_at DESC
   ";
+  error_log("[billing-debug] Full SQL: " . $sql);
   $st=$pdo->prepare($sql); $st->execute($params); $rows=$st->fetchAll();
-  error_log("[billing-debug] Found " . count($rows) . " rows");
+  error_log("[billing-debug] Found " . count($rows) . " rows after query");
 } catch (Throwable $e) {
-  error_log("[billing-data] ".$e->getMessage());
+  error_log("[billing-data] ERROR: ".$e->getMessage());
+  error_log("[billing-data] Stack trace: ".$e->getTraceAsString());
   $rows = [];
 }
 
