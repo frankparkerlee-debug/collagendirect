@@ -19,7 +19,9 @@ $columns = [
     'hcpcs_description' => "TEXT",
     'bill_rate_min' => "DECIMAL(10,2)",
     'bill_rate_max' => "DECIMAL(10,2)",
-    'reimbursement_amount' => "DECIMAL(10,2)"
+    'reimbursement_amount' => "DECIMAL(10,2)",
+    'created_at' => "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+    'updated_at' => "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
 ];
 
 foreach ($columns as $colName => $colType) {
@@ -300,14 +302,36 @@ echo "✓ Cleared product table\n\n";
 echo "Inserting new product catalog...\n";
 $inserted = 0;
 
+// Check which timestamp columns exist
+$allCols = $pdo->query("
+    SELECT column_name FROM information_schema.columns
+    WHERE table_name = 'products'
+")->fetchAll(PDO::FETCH_COLUMN);
+
+$hasCreatedAt = in_array('created_at', $allCols);
+$hasUpdatedAt = in_array('updated_at', $allCols);
+
+// Build INSERT statement dynamically
+$timestampCols = '';
+$timestampVals = '';
+
+if ($hasCreatedAt) {
+    $timestampCols .= ', created_at';
+    $timestampVals .= ', NOW()';
+}
+if ($hasUpdatedAt) {
+    $timestampCols .= ', updated_at';
+    $timestampVals .= ', NOW()';
+}
+
 foreach ($products as $p) {
     $stmt = $pdo->prepare("
         INSERT INTO products (
             name, size, sku, category, hcpcs_code, cpt_code,
             hcpcs_description, bill_rate_min, bill_rate_max,
-            price_admin, reimbursement_amount, active, created_at, updated_at
+            price_admin, reimbursement_amount, active{$timestampCols}
         ) VALUES (
-            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, NOW(), NOW()
+            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE{$timestampVals}
         )
     ");
 
