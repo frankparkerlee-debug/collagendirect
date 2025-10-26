@@ -288,7 +288,7 @@ include __DIR__.'/_header.php';
               echo e($fpwDisp.'×/week');
             ?>
           </td>
-          <td class="py-2"><?= $hasShipRem ? e($row['shipments_remaining'] ?? 0) : '—' ?></td>
+          <td class="py-2"><?= $hasShipRem ? e((string)($row['shipments_remaining'] ?? 0)) : '—' ?></td>
           <td class="py-2"><?=e($row['cpt_code'] ?? '—')?></td>
           <td class="py-2 font-semibold">$<?=number_format($rev,2)?></td>
           <td class="py-2"><?=render_view_link($noteLinks)?></td>
