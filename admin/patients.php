@@ -122,11 +122,20 @@ try {
              p.status, p.created_at, u.first_name, u.last_name, u.practice_name
     ORDER BY p.created_at DESC
   ";
+  error_log("[patients-debug] Admin Role: " . ($adminRole ?: 'NONE'));
+  error_log("[patients-debug] Admin ID: " . ($adminId ?: 'NONE'));
+  error_log("[patients-debug] WHERE clause: " . $where);
+  error_log("[patients-debug] Params: " . json_encode($params));
+  error_log("[patients-debug] Full SQL: " . $sql);
+
   $st = $pdo->prepare($sql);
   $st->execute($params);
   $rows = $st->fetchAll();
+
+  error_log("[patients-debug] Found " . count($rows) . " rows");
 } catch (Throwable $e) {
-  error_log("[patients-data] " . $e->getMessage());
+  error_log("[patients-data] ERROR: " . $e->getMessage());
+  error_log("[patients-data] Stack trace: " . $e->getTraceAsString());
   $rows = [];
 }
 
