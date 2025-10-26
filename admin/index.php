@@ -109,12 +109,8 @@ $practiceRevenue = [];
 $productRevenue = [];
 
 try {
-  // Check for HCPCS vs CPT column
-  $hcpcsCol = 'cpt_code';
-  if ($hasProducts) {
-    $prodCols = $pdo->query("SELECT column_name FROM information_schema.columns WHERE table_name = 'products'")->fetchAll(PDO::FETCH_COLUMN);
-    $hcpcsCol = in_array('hcpcs_code', $prodCols) ? 'hcpcs_code' : 'cpt_code';
-  }
+  // Simplified: assume hcpcs_code exists, fall back to cpt_code on error
+  $hcpcsCol = 'hcpcs_code';
 
   // Get all orders with products and calculate revenue
   $sql = "SELECT
