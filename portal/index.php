@@ -1236,6 +1236,106 @@ if ($action) {
     jok(['physicians' => $physicians]);
   }
 
+  // Practice Information Management
+  if ($action==='practice.get_info'){
+    if ($userRole !== 'practice_admin') jerr('Access denied', 403);
+
+    // Get practice admin's user information (which contains practice info)
+    $stmt = $pdo->prepare("
+      SELECT first_name, last_name, email, phone, npi,
+             practice_name, practice_address, practice_city, practice_state, practice_zip,
+             practice_phone, practice_email, practice_npi,
+             license_number, license_state, license_expiry,
+             sign_name, sign_title
+      FROM users
+      WHERE id = ?
+    ");
+    $stmt->execute([$userId]);
+    $info = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$info) jerr('Practice information not found', 404);
+
+    jok(['practice' => $info]);
+  }
+
+  if ($action==='practice.update_info'){
+    if ($userRole !== 'practice_admin') jerr('Access denied', 403);
+
+    // Personal information
+    $firstName = trim((string)($_POST['first_name'] ?? ''));
+    $lastName = trim((string)($_POST['last_name'] ?? ''));
+    $phone = trim((string)($_POST['phone'] ?? ''));
+    $npi = trim((string)($_POST['npi'] ?? ''));
+    $license = trim((string)($_POST['license_number'] ?? ''));
+    $licenseState = trim((string)($_POST['license_state'] ?? ''));
+    $licenseExpiry = $_POST['license_expiry'] ?? null;
+
+    // Practice information
+    $practiceName = trim((string)($_POST['practice_name'] ?? ''));
+    $practiceAddress = trim((string)($_POST['practice_address'] ?? ''));
+    $practiceCity = trim((string)($_POST['practice_city'] ?? ''));
+    $practiceState = trim((string)($_POST['practice_state'] ?? ''));
+    $practiceZip = trim((string)($_POST['practice_zip'] ?? ''));
+    $practicePhone = trim((string)($_POST['practice_phone'] ?? ''));
+    $practiceEmail = trim((string)($_POST['practice_email'] ?? ''));
+    $practiceNpi = trim((string)($_POST['practice_npi'] ?? ''));
+
+    // Signature information
+    $signName = trim((string)($_POST['sign_name'] ?? ''));
+    $signTitle = trim((string)($_POST['sign_title'] ?? ''));
+
+    // Validate required fields
+    if ($firstName === '' || $lastName === '') jerr('First and last name are required');
+    if ($practiceName === '') jerr('Practice name is required');
+
+    // Update user/practice information
+    $stmt = $pdo->prepare("
+      UPDATE users SET
+        first_name = ?,
+        last_name = ?,
+        phone = ?,
+        npi = ?,
+        license_number = ?,
+        license_state = ?,
+        license_expiry = ?,
+        practice_name = ?,
+        practice_address = ?,
+        practice_city = ?,
+        practice_state = ?,
+        practice_zip = ?,
+        practice_phone = ?,
+        practice_email = ?,
+        practice_npi = ?,
+        sign_name = ?,
+        sign_title = ?,
+        updated_at = NOW()
+      WHERE id = ?
+    ");
+
+    $stmt->execute([
+      $firstName,
+      $lastName,
+      $phone ?: null,
+      $npi ?: null,
+      $license ?: null,
+      $licenseState ?: null,
+      $licenseExpiry ?: null,
+      $practiceName,
+      $practiceAddress ?: null,
+      $practiceCity ?: null,
+      $practiceState ?: null,
+      $practiceZip ?: null,
+      $practicePhone ?: null,
+      $practiceEmail ?: null,
+      $practiceNpi ?: null,
+      $signName ?: null,
+      $signTitle ?: null,
+      $userId
+    ]);
+
+    jok(['message' => 'Practice information updated successfully']);
+  }
+
   jerr('Unknown action',404);
 }
 
@@ -2855,25 +2955,280 @@ if ($page==='logout'){
   </dialog>
 
 <?php elseif ($page==='profile'): ?>
-  <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-    <div class="card p-5 lg:col-span-2">
-      <h2 class="text-lg font-semibold mb-3">Business Agreements</h2>
-      <ul class="list-disc pl-6 text-sm">
-        <li><a class="underline" href="/assets/baa.pdf" target="_blank">Business Associate Agreement (BAA)</a></li>
-        <li><a class="underline" href="/assets/terms.pdf" target="_blank">Terms &amp; Conditions</a></li>
-      </ul>
+  <div class="mb-4">
+    <h1 class="text-2xl font-bold">Profile & Settings</h1>
+    <p class="text-slate-600 mt-1">Manage your profile, practice information, and account settings</p>
+  </div>
+
+  <!-- Tab Navigation -->
+  <div class="border-b border-slate-200 mb-6">
+    <div class="flex gap-4">
+      <button class="profile-tab active px-4 py-2 border-b-2 border-blue-600 text-blue-600 font-medium" data-tab="personal">
+        Personal Info
+      </button>
+      <?php if ($userRole === 'practice_admin'): ?>
+      <button class="profile-tab px-4 py-2 border-b-2 border-transparent text-slate-600 hover:text-slate-900 font-medium" data-tab="practice">
+        Practice Details
+      </button>
+      <button class="profile-tab px-4 py-2 border-b-2 border-transparent text-slate-600 hover:text-slate-900 font-medium" data-tab="physicians">
+        Physician Roster
+      </button>
+      <?php endif; ?>
+      <button class="profile-tab px-4 py-2 border-b-2 border-transparent text-slate-600 hover:text-slate-900 font-medium" data-tab="security">
+        Security
+      </button>
+      <button class="profile-tab px-4 py-2 border-b-2 border-transparent text-slate-600 hover:text-slate-900 font-medium" data-tab="legal">
+        Legal
+      </button>
     </div>
-    <div class="card p-5">
-      <h2 class="text-lg font-semibold mb-3">Change Password</h2>
-      <div class="grid gap-3">
-        <input id="pw-cur" type="password" placeholder="Current password">
-        <input id="pw-new" type="password" placeholder="New password">
-        <input id="pw-con" type="password" placeholder="Confirm new password">
-        <button id="btn-pw" class="btn btn-primary" type="button">Update Password</button>
-        <div id="pw-hint" class="text-xs text-slate-500"></div>
+  </div>
+
+  <!-- Tab Content -->
+  <div id="profile-tabs-content">
+
+    <!-- Personal Info Tab -->
+    <div class="profile-tab-content" data-tab-content="personal">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="card p-6">
+          <h2 class="text-lg font-semibold mb-4">Personal Information</h2>
+          <form id="personal-info-form" class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="text-sm font-medium text-slate-700">First Name *</label>
+                <input type="text" id="profile-first-name" class="w-full mt-1" required>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-700">Last Name *</label>
+                <input type="text" id="profile-last-name" class="w-full mt-1" required>
+              </div>
+            </div>
+            <div>
+              <label class="text-sm font-medium text-slate-700">Email</label>
+              <input type="email" id="profile-email" class="w-full mt-1 bg-slate-100" readonly>
+              <p class="text-xs text-slate-500 mt-1">Email cannot be changed</p>
+            </div>
+            <div>
+              <label class="text-sm font-medium text-slate-700">Phone</label>
+              <input type="tel" id="profile-phone" class="w-full mt-1">
+            </div>
+            <div>
+              <label class="text-sm font-medium text-slate-700">NPI Number</label>
+              <input type="text" id="profile-npi" class="w-full mt-1">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="text-sm font-medium text-slate-700">License Number</label>
+                <input type="text" id="profile-license" class="w-full mt-1">
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-700">License State</label>
+                <select id="profile-license-state" class="w-full mt-1">
+                  <option value="">Select State</option>
+                  <option value="AL">Alabama</option>
+                  <option value="NY">New York</option>
+                  <!-- Add all states -->
+                </select>
+              </div>
+            </div>
+            <div>
+              <label class="text-sm font-medium text-slate-700">License Expiry</label>
+              <input type="date" id="profile-license-expiry" class="w-full mt-1">
+            </div>
+            <button type="submit" class="btn btn-primary w-full">Save Personal Info</button>
+          </form>
+        </div>
+
+        <div class="card p-6">
+          <h2 class="text-lg font-semibold mb-4">Signature Information</h2>
+          <form id="signature-form" class="space-y-4">
+            <div>
+              <label class="text-sm font-medium text-slate-700">Signature Name</label>
+              <input type="text" id="profile-sign-name" class="w-full mt-1" placeholder="Dr. John Smith">
+              <p class="text-xs text-slate-500 mt-1">Name as it appears on prescriptions and orders</p>
+            </div>
+            <div>
+              <label class="text-sm font-medium text-slate-700">Title</label>
+              <input type="text" id="profile-sign-title" class="w-full mt-1" placeholder="MD, DO, NP, PA">
+            </div>
+            <button type="submit" class="btn btn-primary w-full">Save Signature</button>
+          </form>
+        </div>
       </div>
     </div>
-  </section>
+
+    <?php if ($userRole === 'practice_admin'): ?>
+    <!-- Practice Details Tab -->
+    <div class="profile-tab-content hidden" data-tab-content="practice">
+      <div class="card p-6 max-w-4xl">
+        <h2 class="text-lg font-semibold mb-4">Practice Information</h2>
+        <form id="practice-info-form" class="space-y-4">
+          <div>
+            <label class="text-sm font-medium text-slate-700">Practice Name *</label>
+            <input type="text" id="practice-name" class="w-full mt-1" required>
+          </div>
+          <div>
+            <label class="text-sm font-medium text-slate-700">Practice Address</label>
+            <input type="text" id="practice-address" class="w-full mt-1" placeholder="Street Address">
+          </div>
+          <div class="grid grid-cols-3 gap-4">
+            <div>
+              <label class="text-sm font-medium text-slate-700">City</label>
+              <input type="text" id="practice-city" class="w-full mt-1">
+            </div>
+            <div>
+              <label class="text-sm font-medium text-slate-700">State</label>
+              <select id="practice-state" class="w-full mt-1">
+                <option value="">Select State</option>
+                <option value="AL">Alabama</option>
+                <option value="NY">New York</option>
+                <!-- Add all states -->
+              </select>
+            </div>
+            <div>
+              <label class="text-sm font-medium text-slate-700">ZIP Code</label>
+              <input type="text" id="practice-zip" class="w-full mt-1">
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-sm font-medium text-slate-700">Practice Phone</label>
+              <input type="tel" id="practice-phone" class="w-full mt-1">
+            </div>
+            <div>
+              <label class="text-sm font-medium text-slate-700">Practice Email</label>
+              <input type="email" id="practice-email" class="w-full mt-1">
+            </div>
+          </div>
+          <div>
+            <label class="text-sm font-medium text-slate-700">Practice NPI</label>
+            <input type="text" id="practice-npi" class="w-full mt-1">
+          </div>
+          <button type="submit" class="btn btn-primary">Save Practice Info</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Physician Roster Tab -->
+    <div class="profile-tab-content hidden" data-tab-content="physicians">
+      <div class="card p-6 max-w-6xl">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-lg font-semibold">Physician Roster</h2>
+          <button id="btn-add-physician" class="btn btn-primary">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: inline; margin-right: 4px;">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            Add Physician
+          </button>
+        </div>
+
+        <div id="physicians-list" class="space-y-2">
+          <!-- Physicians will be loaded here -->
+        </div>
+
+        <!-- Add Physician Modal Content (will be moved to dialog) -->
+        <div id="add-physician-form-content" style="display: none;">
+          <form id="add-physician-form" class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="text-sm font-medium">First Name *</label>
+                <input type="text" id="phys-first-name" class="w-full mt-1" required>
+              </div>
+              <div>
+                <label class="text-sm font-medium">Last Name *</label>
+                <input type="text" id="phys-last-name" class="w-full mt-1" required>
+              </div>
+            </div>
+            <div>
+              <label class="text-sm font-medium">Email *</label>
+              <input type="email" id="phys-email" class="w-full mt-1" required>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="text-sm font-medium">License Number</label>
+                <input type="text" id="phys-license" class="w-full mt-1">
+              </div>
+              <div>
+                <label class="text-sm font-medium">License State</label>
+                <select id="phys-license-state" class="w-full mt-1">
+                  <option value="">Select State</option>
+                  <option value="AL">Alabama</option>
+                  <option value="NY">New York</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label class="text-sm font-medium">License Expiry</label>
+              <input type="date" id="phys-license-expiry" class="w-full mt-1">
+            </div>
+            <div class="flex gap-2 justify-end">
+              <button type="button" class="btn btn-outline" onclick="document.getElementById('dlg-add-physician').close()">Cancel</button>
+              <button type="submit" class="btn btn-primary">Add Physician</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- Security Tab -->
+    <div class="profile-tab-content hidden" data-tab-content="security">
+      <div class="card p-6 max-w-lg">
+        <h2 class="text-lg font-semibold mb-4">Change Password</h2>
+        <form id="password-form" class="space-y-4">
+          <div>
+            <label class="text-sm font-medium text-slate-700">Current Password</label>
+            <input type="password" id="pw-cur" class="w-full mt-1" placeholder="Enter current password" required>
+          </div>
+          <div>
+            <label class="text-sm font-medium text-slate-700">New Password</label>
+            <input type="password" id="pw-new" class="w-full mt-1" placeholder="Enter new password" required>
+          </div>
+          <div>
+            <label class="text-sm font-medium text-slate-700">Confirm New Password</label>
+            <input type="password" id="pw-con" class="w-full mt-1" placeholder="Confirm new password" required>
+          </div>
+          <div id="pw-hint" class="text-xs text-slate-500"></div>
+          <button type="submit" id="btn-pw" class="btn btn-primary w-full">Update Password</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Legal Tab -->
+    <div class="profile-tab-content hidden" data-tab-content="legal">
+      <div class="card p-6 max-w-4xl">
+        <h2 class="text-lg font-semibold mb-4">Business Agreements</h2>
+        <div class="space-y-3">
+          <div class="flex items-start gap-3 p-4 bg-slate-50 rounded-lg">
+            <svg class="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            <div class="flex-1">
+              <h3 class="font-medium">Business Associate Agreement (BAA)</h3>
+              <p class="text-sm text-slate-600 mt-1">HIPAA-compliant agreement for handling protected health information</p>
+              <a href="/assets/baa.pdf" target="_blank" class="text-blue-600 hover:underline text-sm mt-2 inline-block">View Document →</a>
+            </div>
+          </div>
+          <div class="flex items-start gap-3 p-4 bg-slate-50 rounded-lg">
+            <svg class="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            <div class="flex-1">
+              <h3 class="font-medium">Terms & Conditions</h3>
+              <p class="text-sm text-slate-600 mt-1">Terms of service and usage agreement</p>
+              <a href="/assets/terms.pdf" target="_blank" class="text-blue-600 hover:underline text-sm mt-2 inline-block">View Document →</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Add Physician Dialog -->
+  <dialog id="dlg-add-physician" class="rounded-lg shadow-xl p-6 max-w-2xl w-full">
+    <h2 class="text-xl font-bold mb-4">Add Physician to Practice</h2>
+    <div id="physician-form-container"></div>
+  </dialog>
 
 <?php elseif ($page==='patient-detail' || $page==='patient-edit'): ?>
   <?php
