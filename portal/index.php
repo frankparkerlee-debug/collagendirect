@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 /* ------------ DB + session/bootstrap ------------ */
 require __DIR__ . '/../api/db.php'; // defines $pdo + session helpers
+require __DIR__ . '/../api/lib/sg_curl.php'; // SendGrid email helper
 
 // BLOCK ADMIN USERS (employees, manufacturer) from accessing physician portal
 // Exception: super admin can access both portals
@@ -1205,6 +1206,56 @@ if ($action) {
       $sql = "INSERT INTO practice_physicians (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")";
       $stmt = $pdo->prepare($sql);
       $stmt->execute($values);
+
+      // Send welcome email to the physician
+      $practiceName = $user['practice_name'] ?? 'the practice';
+      $physicianFullName = trim($first . ' ' . $last);
+
+      $emailSubject = "You've been added to $practiceName on CollagenDirect";
+      $emailHtml = "
+        <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+          <h2 style='color: #2563eb;'>Welcome to CollagenDirect</h2>
+          <p>Hello Dr. $physicianFullName,</p>
+          <p>You have been added as a physician to <strong>$practiceName</strong> on the CollagenDirect platform.</p>
+
+          <h3>What is CollagenDirect?</h3>
+          <p>CollagenDirect is a comprehensive wound care management platform that enables healthcare providers to:</p>
+          <ul>
+            <li>Order advanced wound care products for patients</li>
+            <li>Track patient progress and treatment outcomes</li>
+            <li>Access clinical resources and support</li>
+            <li>Streamline the ordering and fulfillment process</li>
+          </ul>
+
+          <h3>Next Steps</h3>
+          <p>Your practice administrator at $practiceName can now create orders on your behalf. If you need to access the portal directly or have questions about the platform, please contact your practice administrator.</p>
+
+          <div style='margin-top: 30px; padding: 20px; background-color: #f3f4f6; border-radius: 8px;'>
+            <p style='margin: 0; font-size: 14px; color: #6b7280;'>
+              <strong>Questions?</strong> Contact our support team at
+              <a href='mailto:clinical@collagendirect.com' style='color: #2563eb;'>clinical@collagendirect.com</a>
+            </p>
+          </div>
+
+          <p style='margin-top: 30px; font-size: 12px; color: #9ca3af;'>
+            Best regards,<br>
+            The CollagenDirect Team
+          </p>
+        </div>
+      ";
+
+      // Send email (non-blocking, log errors but don't fail the request)
+      try {
+        sg_send(
+          ['email' => $email, 'name' => $physicianFullName],
+          $emailSubject,
+          $emailHtml,
+          ['categories' => ['physician', 'welcome']]
+        );
+      } catch (Exception $emailError) {
+        error_log("Failed to send welcome email to physician $email: " . $emailError->getMessage());
+        // Don't fail the request if email fails
+      }
 
       jok(['physician_id' => $physicianId]);
     } catch (Exception $e) {
