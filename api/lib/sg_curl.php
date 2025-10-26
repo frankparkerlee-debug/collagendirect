@@ -33,7 +33,7 @@ require_once __DIR__ . '/env.php';
  */
 function sg_send($to, ?string $subject, ?string $html, array $opts = []): bool {
   $apiKey = env('SENDGRID_API_KEY');
-  $from   = env('SMTP_FROM', 'info@collagendirect.health');
+  $from   = env('SMTP_FROM', 'no-reply@collagendirect.health');
   $fromNm = env('SMTP_FROM_NAME', 'CollagenDirect');
   if (!$apiKey) { error_log('sg_send: missing SENDGRID_API_KEY'); return false; }
 

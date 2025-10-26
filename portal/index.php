@@ -1246,14 +1246,19 @@ if ($action) {
 
       // Send email (non-blocking, log errors but don't fail the request)
       try {
-        sg_send(
+        $emailSent = sg_send(
           ['email' => $email, 'name' => $physicianFullName],
           $emailSubject,
           $emailHtml,
           ['categories' => ['physician', 'welcome']]
         );
+        if ($emailSent) {
+          error_log("Welcome email sent successfully to physician: $email");
+        } else {
+          error_log("Failed to send welcome email to physician: $email (sg_send returned false)");
+        }
       } catch (Exception $emailError) {
-        error_log("Failed to send welcome email to physician $email: " . $emailError->getMessage());
+        error_log("Exception sending welcome email to physician $email: " . $emailError->getMessage());
         // Don't fail the request if email fails
       }
 
