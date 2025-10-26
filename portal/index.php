@@ -251,6 +251,54 @@ if ($action) {
     jok(['patient'=>$p,'orders'=>$orders]);
   }
 
+  if ($action==='file.download'){
+    $path=(string)($_GET['path']??'');
+    if($path==='') jerr('Missing file path');
+
+    // Security: only allow files from /uploads/ directory
+    if(!str_starts_with($path, '/uploads/')) jerr('Invalid file path', 403);
+
+    // Extract patient_id or order_id from the path to verify access
+    // Path format: /uploads/{type}/{filename} where filename contains patient/order ID
+    $fullPath = __DIR__ . '/../' . ltrim($path, '/');
+
+    if (!file_exists($fullPath)) {
+      jerr('File not found', 404);
+    }
+
+    // Check if user has access to this file
+    // For patient documents (ID, Insurance, AOB), check patient access
+    if (str_contains($path, '/uploads/ids/') || str_contains($path, '/uploads/insurance/') || str_contains($path, '/uploads/aob/')) {
+      // Extract patient ID from filename (format: name-YYYYMMDD-HHMMSS-{patient_id_prefix}.ext)
+      preg_match('/-([a-f0-9]{6})\.[^.]+$/', $path, $matches);
+      if (!$matches) jerr('Invalid file path format', 400);
+
+      $patientIdPrefix = $matches[1];
+
+      // Find patient by ID prefix and verify access
+      if ($userRole === 'superadmin') {
+        $stmt = $pdo->prepare("SELECT id FROM patients WHERE id LIKE ?");
+        $stmt->execute([$patientIdPrefix . '%']);
+      } else {
+        $stmt = $pdo->prepare("SELECT id FROM patients WHERE id LIKE ? AND user_id=?");
+        $stmt->execute([$patientIdPrefix . '%', $userId]);
+      }
+
+      if (!$stmt->fetch()) {
+        jerr('Access denied', 403);
+      }
+    }
+
+    // Serve the file
+    $mime = mime_content_type($fullPath);
+    header('Content-Type: ' . $mime);
+    header('Content-Disposition: inline; filename="' . basename($path) . '"');
+    header('Content-Length: ' . filesize($fullPath));
+    header('Cache-Control: private, max-age=3600');
+    readfile($fullPath);
+    exit;
+  }
+
   if ($action==='patient.save'){
     $pid=(string)($_POST['id']??'');
     $first=trim((string)($_POST['first_name']??''));
@@ -340,13 +388,16 @@ if ($action) {
       $abs=$DIRS[$folder].'/'.$final; if(!move_uploaded_file($f['tmp_name'],$abs)) jerr('Failed to save',500);
       $rel='/uploads/'.$folder.'/'.$final;
 
+      // Use patient's actual user_id from $prow, not current $userId (for superadmin compatibility)
+      $patientOwnerId = $prow['user_id'];
+
       if ($type==='id'){
         $stmt = $pdo->prepare("UPDATE patients SET id_card_path=?, id_card_mime=?, updated_at=NOW() WHERE id=? AND user_id=?");
-        $stmt->execute([$rel,$mime,$pid,$userId]);
+        $stmt->execute([$rel,$mime,$pid,$patientOwnerId]);
         if ($stmt->rowCount() === 0) jerr('Failed to update patient record - patient not found or no changes made');
       } elseif ($type==='ins'){
         $stmt = $pdo->prepare("UPDATE patients SET ins_card_path=?, ins_card_mime=?, updated_at=NOW() WHERE id=? AND user_id=?");
-        $stmt->execute([$rel,$mime,$pid,$userId]);
+        $stmt->execute([$rel,$mime,$pid,$patientOwnerId]);
         if ($stmt->rowCount() === 0) jerr('Failed to update patient record - patient not found or no changes made');
       }
       jok(['path'=>$rel,'name'=>$f['name'],'mime'=>$mime,'uploaded'=>true]);
@@ -4036,12 +4087,12 @@ async function toggleAccordion(rowEl, patientId, page){
       <div class="space-y-3">
         <div>
           <label class="text-xs">ID Card / Driver's License ${p.id_card_path ? '<span class="text-green-600">✓</span>' : '<span class="text-red-600">*</span>'}</label>
-          ${p.id_card_path ? `<div class="text-xs text-slate-600 mb-1"><a href="${esc(p.id_card_path)}" target="_blank" class="underline">View current file</a></div>` : ''}
+          ${p.id_card_path ? `<div class="text-xs text-slate-600 mb-1"><a href="?action=file.download&path=${encodeURIComponent(esc(p.id_card_path))}" target="_blank" class="underline">View current file</a></div>` : ''}
           <input type="file" class="w-full text-sm" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic" onchange="uploadPatientFile('${esc(p.id)}', 'id', this.files[0])">
         </div>
         <div>
           <label class="text-xs">Insurance Card ${p.ins_card_path ? '<span class="text-green-600">✓</span>' : '<span class="text-red-600">*</span>'}</label>
-          ${p.ins_card_path ? `<div class="text-xs text-slate-600 mb-1"><a href="${esc(p.ins_card_path)}" target="_blank" class="underline">View current file</a></div>` : ''}
+          ${p.ins_card_path ? `<div class="text-xs text-slate-600 mb-1"><a href="?action=file.download&path=${encodeURIComponent(esc(p.ins_card_path))}" target="_blank" class="underline">View current file</a></div>` : ''}
           <input type="file" class="w-full text-sm" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic" onchange="uploadPatientFile('${esc(p.id)}', 'ins', this.files[0])">
         </div>
         <div>
@@ -5026,12 +5077,12 @@ function renderPatientDetailPage(p, orders, isEditing) {
           <div class="space-y-3">
             <div>
               <label class="text-xs">ID Card ${p.id_card_path ? '<span class="text-green-600">✓</span>' : '<span class="text-red-600">*</span>'}</label>
-              ${p.id_card_path ? `<div class="text-xs text-slate-600 mb-1"><a href="${esc(p.id_card_path)}" target="_blank" class="underline">View current file</a></div>` : ''}
+              ${p.id_card_path ? `<div class="text-xs text-slate-600 mb-1"><a href="?action=file.download&path=${encodeURIComponent(esc(p.id_card_path))}" target="_blank" class="underline">View current file</a></div>` : ''}
               <input type="file" class="w-full text-sm" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic" onchange="uploadPatientFile('${esc(p.id)}', 'id', this.files[0])">
             </div>
             <div>
               <label class="text-xs">Insurance Card ${p.ins_card_path ? '<span class="text-green-600">✓</span>' : '<span class="text-red-600">*</span>'}</label>
-              ${p.ins_card_path ? `<div class="text-xs text-slate-600 mb-1"><a href="${esc(p.ins_card_path)}" target="_blank" class="underline">View current file</a></div>` : ''}
+              ${p.ins_card_path ? `<div class="text-xs text-slate-600 mb-1"><a href="?action=file.download&path=${encodeURIComponent(esc(p.ins_card_path))}" target="_blank" class="underline">View current file</a></div>` : ''}
               <input type="file" class="w-full text-sm" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic" onchange="uploadPatientFile('${esc(p.id)}', 'ins', this.files[0])">
             </div>
             <div>
