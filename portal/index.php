@@ -779,7 +779,8 @@ if ($action) {
 
     // Superadmins see all messages, others see only their own
     if ($userRole === 'superadmin') {
-      $sql = "SELECT m.id, m.sender_type, m.sender_name, m.subject, m.body, m.patient_id, m.order_id,
+      $sql = "SELECT m.id, m.sender_type, m.sender_name, m.subject, m.body, m.patient_id,
+                     m.parent_id, m.thread_id,
                      m.is_read, m.created_at, m.updated_at, m.recipient_type, m.recipient_id,
                      p.first_name as patient_first, p.last_name as patient_last
               FROM messages m
@@ -789,16 +790,17 @@ if ($action) {
       $stmt = $pdo->prepare($sql);
       $stmt->execute();
     } else {
-      $sql = "SELECT m.id, m.sender_type, m.sender_name, m.subject, m.body, m.patient_id, m.order_id,
+      $sql = "SELECT m.id, m.sender_type, m.sender_name, m.subject, m.body, m.patient_id,
+                     m.parent_id, m.thread_id,
                      m.is_read, m.created_at, m.updated_at,
                      p.first_name as patient_first, p.last_name as patient_last
               FROM messages m
               LEFT JOIN patients p ON p.id = m.patient_id
-              WHERE m.recipient_type = 'provider' AND m.recipient_id = ?
+              WHERE m.sender_id = ? OR (m.recipient_type = 'provider' AND m.recipient_id = ?)
               ORDER BY m.created_at DESC
               LIMIT $limit OFFSET $offset";
       $stmt = $pdo->prepare($sql);
-      $stmt->execute([$userId]);
+      $stmt->execute([$userId, $userId]);
     }
 
     $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -5211,7 +5213,8 @@ function renderPatientDetailPage(p, orders, isEditing) {
         </div>
         <!-- Action Menu -->
         <div id="action-menu-${esc(p.id)}" class="hidden mb-4 p-2 bg-slate-50 rounded border">
-          <a href="?page=patient-edit&id=${esc(p.id)}" class="block px-3 py-2 text-sm hover:bg-white rounded">Edit profile patient</a>
+          <a href="?page=patient-detail&id=${esc(p.id)}" class="block px-3 py-2 text-sm hover:bg-white rounded">View Profile</a>
+          <a href="?page=patient-edit&id=${esc(p.id)}" class="block px-3 py-2 text-sm hover:bg-white rounded">Edit Patient</a>
           <button onclick="if(confirm('Delete this patient?')) deletePatient('${esc(p.id)}')" class="block w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-white rounded">Delete patient</button>
         </div>
       ` : ''}
