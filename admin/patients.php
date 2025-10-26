@@ -94,11 +94,11 @@ try {
     $params['search'] = '%' . $search . '%';
   }
 
-  // Status filter
+  // Status filter (patients table uses 'state' not 'status')
   if ($status === 'active') {
-    $where .= " AND p.status = 'active'";
+    $where .= " AND p.state = 'active'";
   } elseif ($status === 'pending') {
-    $where .= " AND p.status = 'pending'";
+    $where .= " AND p.state = 'pending'";
   }
 
   // Physician filter
@@ -110,7 +110,7 @@ try {
   $sql = "
     SELECT
       p.id, p.user_id, p.first_name, p.last_name, p.email, p.phone, p.dob,
-      p.status, p.created_at,
+      p.state, p.created_at,
       u.first_name AS phys_first, u.last_name AS phys_last, u.practice_name,
       COUNT(DISTINCT o.id) AS order_count,
       MAX(o.created_at) AS last_order_date
@@ -119,7 +119,7 @@ try {
     LEFT JOIN orders o ON o.patient_id = p.id AND o.status NOT IN ('rejected','cancelled')
     WHERE $where
     GROUP BY p.id, p.user_id, p.first_name, p.last_name, p.email, p.phone, p.dob,
-             p.status, p.created_at, u.first_name, u.last_name, u.practice_name
+             p.state, p.created_at, u.first_name, u.last_name, u.practice_name
     ORDER BY p.created_at DESC
   ";
   error_log("[patients-debug] Admin Role: " . ($adminRole ?: 'NONE'));
@@ -233,7 +233,7 @@ include __DIR__.'/_header.php';
               $practiceName = $row['practice_name'] ?? '';
               $orderCount = (int)($row['order_count'] ?? 0);
               $lastOrder = $row['last_order_date'] ?? null;
-              $status = $row['status'] ?? 'pending';
+              $status = $row['state'] ?? 'pending'; // patients table uses 'state' column
 
               $statusColors = [
                 'active' => 'bg-green-100 text-green-700',

@@ -29,17 +29,17 @@ try {
 
   if ($result['cnt'] > 0) {
     echo "<h3>Sample Patients (first 5)</h3>";
-    $stmt = $pdo->query("SELECT id, first_name, last_name, email, user_id, status, created_at FROM patients ORDER BY created_at DESC LIMIT 5");
+    $stmt = $pdo->query("SELECT id, first_name, last_name, email, user_id, state, created_at FROM patients ORDER BY created_at DESC LIMIT 5");
     $patients = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    echo "<table><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>User ID</th><th>Status</th><th>Created</th></tr></thead><tbody>";
+    echo "<table><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>User ID</th><th>State/Status</th><th>Created</th></tr></thead><tbody>";
     foreach ($patients as $p) {
       echo "<tr>";
       echo "<td>" . htmlspecialchars($p['id']) . "</td>";
       echo "<td>" . htmlspecialchars(($p['first_name'] ?? '') . ' ' . ($p['last_name'] ?? '')) . "</td>";
       echo "<td>" . htmlspecialchars($p['email'] ?? '-') . "</td>";
       echo "<td>" . htmlspecialchars($p['user_id'] ?? '-') . "</td>";
-      echo "<td>" . htmlspecialchars($p['status'] ?? '-') . "</td>";
+      echo "<td>" . htmlspecialchars($p['state'] ?? '-') . "</td>";
       echo "<td>" . htmlspecialchars($p['created_at'] ?? '-') . "</td>";
       echo "</tr>";
     }
