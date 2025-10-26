@@ -1233,7 +1233,7 @@ if ($action) {
           <div style='margin-top: 30px; padding: 20px; background-color: #f3f4f6; border-radius: 8px;'>
             <p style='margin: 0; font-size: 14px; color: #6b7280;'>
               <strong>Questions?</strong> Contact our support team at
-              <a href='mailto:clinical@collagendirect.com' style='color: #2563eb;'>clinical@collagendirect.com</a>
+              <a href='mailto:support@collagendirect.health' style='color: #2563eb;'>support@collagendirect.health</a>
             </p>
           </div>
 

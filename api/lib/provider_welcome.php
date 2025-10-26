@@ -13,7 +13,7 @@ function send_provider_welcome_email(string $email, string $name, string $role, 
     return false;
   }
 
-  $fromEmail = getenv('SMTP_FROM') ?: 'clinical@collagendirect.com';
+  $fromEmail = getenv('SMTP_FROM') ?: 'no-reply@collagendirect.health';
   $fromName = getenv('SMTP_FROM_NAME') ?: 'CollagenDirect';
 
   // Determine role-specific message

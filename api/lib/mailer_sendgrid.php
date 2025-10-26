@@ -10,7 +10,7 @@ function sendgrid_send_template(string $toEmail, string $toName, string $templat
   $sg = new \SendGrid(env('SENDGRID_API_KEY'));
   $email = new Mail();
 
-  $fromEmail = $fromEmail ?: env('SMTP_FROM', 'clinical@collagendirect.com');
+  $fromEmail = $fromEmail ?: env('SMTP_FROM', 'no-reply@collagendirect.health');
   $fromName  = $fromName  ?: env('SMTP_FROM_NAME', 'CollagenDirect');
 
   $email->setFrom($fromEmail, $fromName);
