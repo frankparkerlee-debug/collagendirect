@@ -478,7 +478,7 @@ if ($action) {
   }
 
   if ($action==='products'){
-    $rows=$pdo->query("SELECT id,name,size,size AS uom,price_admin AS price,cpt_code AS hcpcs FROM products WHERE active=TRUE ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
+    $rows=$pdo->query("SELECT id,name,size,size AS uom,price_admin AS price,hcpcs_code AS hcpcs,category FROM products WHERE active=TRUE ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
     jok(['rows'=>$rows]);
   }
 
@@ -512,7 +512,7 @@ if ($action) {
       $payment_type=$_POST['payment_type'] ?? 'insurance';
 
       $product_id=(int)($_POST['product_id']??0);
-      $pr=$pdo->prepare("SELECT id,name,price_admin,cpt_code FROM products WHERE id=? AND active=TRUE");
+      $pr=$pdo->prepare("SELECT id,name,size,price_admin,hcpcs_code,category FROM products WHERE id=? AND active=TRUE");
       $pr->execute([$product_id]); $prod=$pr->fetch(PDO::FETCH_ASSOC);
       if(!$prod){ $pdo->rollBack(); jerr('Product not found',404); }
 
@@ -659,7 +659,7 @@ if ($action) {
         $icd10_primary,$icd10_secondary,$wlen,$wwid,$wdep,
         $wtype,$wstage,$last_eval,$start_date,$freq_per_week,$qty_per_change,$duration_days,$refills_allowed,$additional_instructions,$secondary_dressing,
         $wounds_json,
-        $prod['cpt_code'] ?? null
+        $prod['hcpcs_code'] ?? null
       ]);
 
       // Visit note (optional)
