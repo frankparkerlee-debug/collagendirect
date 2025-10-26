@@ -1104,11 +1104,29 @@ if ($action) {
   if ($action==='practice.physicians'){
     if ($userRole !== 'practice_admin') jerr('Access denied', 403);
 
+    // Detect column names
+    $ppCols = $pdo->query("
+      SELECT column_name FROM information_schema.columns
+      WHERE table_name = 'practice_physicians'
+    ")->fetchAll(PDO::FETCH_COLUMN);
+
+    $adminCol = in_array('practice_admin_id', $ppCols) ? 'practice_admin_id' : 'practice_manager_id';
+    $physicianIdCol = in_array('physician_id', $ppCols) ? 'physician_id' : 'physician_npi';
+    $firstNameCol = in_array('first_name', $ppCols) ? 'first_name' : 'physician_first_name';
+    $lastNameCol = in_array('last_name', $ppCols) ? 'last_name' : 'physician_last_name';
+    $emailCol = in_array('email', $ppCols) ? 'email' : 'physician_email';
+    $licenseCol = in_array('license', $ppCols) ? 'license' : 'physician_license';
+    $licenseStateCol = in_array('license_state', $ppCols) ? 'license_state' : 'physician_license_state';
+    $licenseExpiryCol = in_array('license_expiry', $ppCols) ? 'license_expiry' : 'physician_license_expiry';
+    $timestampCol = in_array('added_at', $ppCols) ? 'added_at' : 'created_at';
+
     $stmt = $pdo->prepare("
-      SELECT id, physician_id, first_name, last_name, email, license, license_state, license_expiry, added_at
+      SELECT id, {$physicianIdCol} as physician_id, {$firstNameCol} as first_name, {$lastNameCol} as last_name,
+             {$emailCol} as email, {$licenseCol} as license, {$licenseStateCol} as license_state,
+             {$licenseExpiryCol} as license_expiry, {$timestampCol} as added_at
       FROM practice_physicians
-      WHERE practice_admin_id = ?
-      ORDER BY added_at DESC
+      WHERE {$adminCol} = ?
+      ORDER BY {$timestampCol} DESC
     ");
     $stmt->execute([$userId]);
     $physicians = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -1129,18 +1147,33 @@ if ($action) {
     if ($first === '' || $last === '') jerr('First and last name are required');
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) jerr('Invalid email address');
 
+    // Detect column names
+    $ppCols = $pdo->query("
+      SELECT column_name FROM information_schema.columns
+      WHERE table_name = 'practice_physicians'
+    ")->fetchAll(PDO::FETCH_COLUMN);
+
+    $adminCol = in_array('practice_admin_id', $ppCols) ? 'practice_admin_id' : 'practice_manager_id';
+    $physicianIdCol = in_array('physician_id', $ppCols) ? 'physician_id' : 'physician_npi';
+    $firstNameCol = in_array('first_name', $ppCols) ? 'first_name' : 'physician_first_name';
+    $lastNameCol = in_array('last_name', $ppCols) ? 'last_name' : 'physician_last_name';
+    $emailCol = in_array('email', $ppCols) ? 'email' : 'physician_email';
+    $licenseCol = in_array('license', $ppCols) ? 'license' : 'physician_license';
+    $licenseStateCol = in_array('license_state', $ppCols) ? 'license_state' : 'physician_license_state';
+    $licenseExpiryCol = in_array('license_expiry', $ppCols) ? 'license_expiry' : 'physician_license_expiry';
+
     // Check if physician already exists in this practice
-    $check = $pdo->prepare("SELECT id FROM practice_physicians WHERE practice_admin_id = ? AND email = ?");
+    $check = $pdo->prepare("SELECT id FROM practice_physicians WHERE {$adminCol} = ? AND {$emailCol} = ?");
     $check->execute([$userId, $email]);
     if ($check->fetch()) jerr('This physician is already in your practice');
 
-    // Generate physician ID
+    // Generate physician ID or NPI
     $physicianId = bin2hex(random_bytes(16));
 
     // Insert physician
     $stmt = $pdo->prepare("
       INSERT INTO practice_physicians
-      (practice_admin_id, physician_id, first_name, last_name, email, license, license_state, license_expiry)
+      ({$adminCol}, {$physicianIdCol}, {$firstNameCol}, {$lastNameCol}, {$emailCol}, {$licenseCol}, {$licenseStateCol}, {$licenseExpiryCol})
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ");
     $stmt->execute([
@@ -1163,8 +1196,17 @@ if ($action) {
     $physicianId = (string)($_POST['physician_id'] ?? '');
     if ($physicianId === '') jerr('Physician ID is required');
 
+    // Detect column names
+    $ppCols = $pdo->query("
+      SELECT column_name FROM information_schema.columns
+      WHERE table_name = 'practice_physicians'
+    ")->fetchAll(PDO::FETCH_COLUMN);
+
+    $adminCol = in_array('practice_admin_id', $ppCols) ? 'practice_admin_id' : 'practice_manager_id';
+    $physicianIdCol = in_array('physician_id', $ppCols) ? 'physician_id' : 'physician_npi';
+
     // Delete physician from practice
-    $stmt = $pdo->prepare("DELETE FROM practice_physicians WHERE practice_admin_id = ? AND physician_id = ?");
+    $stmt = $pdo->prepare("DELETE FROM practice_physicians WHERE {$adminCol} = ? AND {$physicianIdCol} = ?");
     $stmt->execute([$userId, $physicianId]);
 
     jok();
