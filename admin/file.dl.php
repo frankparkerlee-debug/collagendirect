@@ -30,14 +30,16 @@ $publicRoot  = realpath(__DIR__ . '/..');                 // .../public
 $uploadsRoot = realpath($publicRoot . '/uploads');        // .../public/uploads
 $abs         = realpath($publicRoot . $relLocal);         // target file abs path
 
+error_log("[file.dl] DEBUG: publicRoot={$publicRoot}, uploadsRoot={$uploadsRoot}, abs={$abs}, relLocal={$relLocal}");
+
 if (!$publicRoot || !$uploadsRoot || !$abs) {
-  error_log("[file.dl] path resolve failed: rel={$rel} local={$relLocal}");
+  error_log("[file.dl] path resolve failed: rel={$rel} local={$relLocal}, publicRoot={$publicRoot}, uploadsRoot={$uploadsRoot}, abs={$abs}");
   http_response_code(404); echo "not_found"; exit;
 }
 
 /* Must stay inside /public/uploads and be a regular file */
 if (strncmp($abs, $uploadsRoot, strlen($uploadsRoot)) !== 0 || !is_file($abs)) {
-  error_log("[file.dl] outside uploads or not a file: $abs");
+  error_log("[file.dl] outside uploads or not a file: $abs, uploadsRoot={$uploadsRoot}, is_file=" . (is_file($abs) ? 'true' : 'false'));
   http_response_code(404); echo "not_found"; exit;
 }
 
