@@ -200,9 +200,9 @@ try {
   // Files (optional). Keep your existing subdirectories.
   // These are WEB paths; filesystem destination is resolved from DOCUMENT_ROOT.
   try {
-    [$rx_path,  $rx_mime]  = save_upload('rx_note',  '/public/uploads/notes');
-    [$ins_path, $ins_mime] = save_upload('ins_card','/public/uploads/insurance');
-    [$id_path,  $id_mime]  = save_upload('id_card',  '/public/uploads/ids');
+    [$rx_path,  $rx_mime]  = save_upload('rx_note',  '/uploads/notes');
+    [$ins_path, $ins_mime] = save_upload('ins_card','/uploads/insurance');
+    [$id_path,  $id_mime]  = save_upload('id_card',  '/uploads/ids');
 
     // Validate insurance docs if insurance payment and files were not uploaded
     if ($payment_type === 'insurance') {

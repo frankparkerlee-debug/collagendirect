@@ -70,10 +70,10 @@ function uploads_rel($abs) {
   $root = uploads_root_abs();
   if ($root && strpos($abs, $root) === 0) {
     $suffix = substr($abs, strlen($root)); // /ids/file.pdf
-    return '/public/uploads' . $suffix;
+    return '/uploads' . $suffix;
   }
   if (preg_match('~/(public/)?uploads/.*$~', $abs, $m)) return '/' . ltrim($m[0], '/');
-  return '/public/uploads/' . basename($abs);
+  return '/uploads/' . basename($abs);
 }
 function list_bucket_files_abs($bucket) {
   $dir = uploads_root_abs() . '/' . trim($bucket, '/');

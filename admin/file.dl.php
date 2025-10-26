@@ -25,20 +25,20 @@ if (strpos($rel, '/public/uploads/') === 0) {
   http_response_code(400); echo "bad_path"; exit;
 }
 
-/* ---- Resolve safely under /public/uploads ---- */
-$publicRoot  = realpath(__DIR__ . '/..');                 // .../public
-$uploadsRoot = realpath($publicRoot . '/uploads');        // .../public/uploads
-$abs         = realpath($publicRoot . $relLocal);         // target file abs path
+/* ---- Resolve safely under uploads directory ---- */
+$docRoot = realpath(__DIR__ . '/..');                     // DOCUMENT_ROOT (e.g., /var/www/html)
+$abs = realpath($docRoot . $relLocal);                    // target file abs path
 
-error_log("[file.dl] DEBUG: publicRoot={$publicRoot}, uploadsRoot={$uploadsRoot}, abs={$abs}, relLocal={$relLocal}");
+error_log("[file.dl] DEBUG: docRoot={$docRoot}, abs={$abs}, relLocal={$relLocal}");
 
-if (!$publicRoot || !$uploadsRoot || !$abs) {
-  error_log("[file.dl] path resolve failed: rel={$rel} local={$relLocal}, publicRoot={$publicRoot}, uploadsRoot={$uploadsRoot}, abs={$abs}");
+if (!$docRoot || !$abs) {
+  error_log("[file.dl] path resolve failed: rel={$rel} local={$relLocal}, docRoot={$docRoot}, abs={$abs}");
   http_response_code(404); echo "not_found"; exit;
 }
 
-/* Must stay inside /public/uploads and be a regular file */
-if (strncmp($abs, $uploadsRoot, strlen($uploadsRoot)) !== 0 || !is_file($abs)) {
+/* Must stay inside /uploads and be a regular file */
+$uploadsRoot = realpath($docRoot . '/uploads');
+if (!$uploadsRoot || strncmp($abs, $uploadsRoot, strlen($uploadsRoot)) !== 0 || !is_file($abs)) {
   error_log("[file.dl] outside uploads or not a file: $abs, uploadsRoot={$uploadsRoot}, is_file=" . (is_file($abs) ? 'true' : 'false'));
   http_response_code(404); echo "not_found"; exit;
 }
