@@ -200,25 +200,53 @@ if ($action) {
 
   if ($action==='patient.get'){
     $pid=(string)($_GET['id']??''); if($pid==='') jerr('Missing patient id');
-    $s=$pdo->prepare("SELECT id,user_id,first_name,last_name,dob,mrn,phone,email,address,city,state,zip,sex,
-                             insurance_provider,insurance_member_id,insurance_group_id,insurance_payer_phone,
-                             id_card_path,id_card_mime,ins_card_path,ins_card_mime,
-                             aob_path,aob_signed_at,
-                             created_at,updated_at
-                      FROM patients WHERE id=? AND user_id=?");
-    $s->execute([$pid,$userId]); $p=$s->fetch(PDO::FETCH_ASSOC);
+
+    // Superadmins can see all patients, others only their own
+    if ($userRole === 'superadmin') {
+      $s=$pdo->prepare("SELECT id,user_id,first_name,last_name,dob,mrn,phone,email,address,city,state,zip,sex,
+                               insurance_provider,insurance_member_id,insurance_group_id,insurance_payer_phone,
+                               id_card_path,id_card_mime,ins_card_path,ins_card_mime,
+                               aob_path,aob_signed_at,
+                               created_at,updated_at
+                        FROM patients WHERE id=?");
+      $s->execute([$pid]);
+    } else {
+      $s=$pdo->prepare("SELECT id,user_id,first_name,last_name,dob,mrn,phone,email,address,city,state,zip,sex,
+                               insurance_provider,insurance_member_id,insurance_group_id,insurance_payer_phone,
+                               id_card_path,id_card_mime,ins_card_path,ins_card_mime,
+                               aob_path,aob_signed_at,
+                               created_at,updated_at
+                        FROM patients WHERE id=? AND user_id=?");
+      $s->execute([$pid,$userId]);
+    }
+    $p=$s->fetch(PDO::FETCH_ASSOC);
     if(!$p) jerr('Patient not found',404);
 
-    $o=$pdo->prepare("SELECT id,status,product,product_id,product_price,shipments_remaining,delivery_mode,payment_type,
-                             shipping_name,shipping_phone,shipping_address,shipping_city,shipping_state,shipping_zip,
-                             wound_location,wound_laterality,wound_notes,
-                             created_at,updated_at,expires_at,
-                             sign_name,sign_title,signed_at,
-                             rx_note_name,rx_note_mime,rx_note_path
-                      FROM orders
-                      WHERE patient_id=? AND user_id=?
-                      ORDER BY created_at DESC");
-    $o->execute([$pid,$userId]); $orders=$o->fetchAll(PDO::FETCH_ASSOC);
+    // Superadmins can see all orders, others only their own
+    if ($userRole === 'superadmin') {
+      $o=$pdo->prepare("SELECT id,status,product,product_id,product_price,shipments_remaining,delivery_mode,payment_type,
+                               shipping_name,shipping_phone,shipping_address,shipping_city,shipping_state,shipping_zip,
+                               wound_location,wound_laterality,wound_notes,
+                               created_at,updated_at,expires_at,
+                               sign_name,sign_title,signed_at,
+                               rx_note_name,rx_note_mime,rx_note_path
+                        FROM orders
+                        WHERE patient_id=?
+                        ORDER BY created_at DESC");
+      $o->execute([$pid]);
+    } else {
+      $o=$pdo->prepare("SELECT id,status,product,product_id,product_price,shipments_remaining,delivery_mode,payment_type,
+                               shipping_name,shipping_phone,shipping_address,shipping_city,shipping_state,shipping_zip,
+                               wound_location,wound_laterality,wound_notes,
+                               created_at,updated_at,expires_at,
+                               sign_name,sign_title,signed_at,
+                               rx_note_name,rx_note_mime,rx_note_path
+                        FROM orders
+                        WHERE patient_id=? AND user_id=?
+                        ORDER BY created_at DESC");
+      $o->execute([$pid,$userId]);
+    }
+    $orders=$o->fetchAll(PDO::FETCH_ASSOC);
 
     jok(['patient'=>$p,'orders'=>$orders]);
   }
@@ -261,7 +289,15 @@ if ($action) {
   if ($action==='patient.upload'){
     $pid=(string)($_POST['patient_id']??''); $type=(string)($_POST['type']??''); // id|ins|rx|aob
     if($pid==='' || !in_array($type,['id','ins','rx','aob'],true)) jerr('Invalid upload');
-    $chk=$pdo->prepare("SELECT id,first_name,last_name FROM patients WHERE id=? AND user_id=?"); $chk->execute([$pid,$userId]);
+
+    // Superadmins can upload for any patient, others only their own
+    if ($userRole === 'superadmin') {
+      $chk=$pdo->prepare("SELECT id,first_name,last_name,user_id FROM patients WHERE id=?");
+      $chk->execute([$pid]);
+    } else {
+      $chk=$pdo->prepare("SELECT id,first_name,last_name,user_id FROM patients WHERE id=? AND user_id=?");
+      $chk->execute([$pid,$userId]);
+    }
     $prow=$chk->fetch(PDO::FETCH_ASSOC); if(!$prow) jerr('Patient not found',404);
 
     $allowed=['application/pdf'=>'pdf','image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp','image/heic'=>'heic','text/plain'=>'txt'];
@@ -280,8 +316,10 @@ if ($action) {
       file_put_contents($abs,$content);
       $rel='/uploads/aob/'.$final;
 
+      // Use patient's actual user_id from $prow, not current $userId (for superadmin compatibility)
+      $patientOwnerId = $prow['user_id'];
       $pdo->prepare("UPDATE patients SET aob_path=?, aob_signed_at=?, aob_ip=?, updated_at=NOW() WHERE id=? AND user_id=?")
-          ->execute([$rel,$now,$ip,$pid,$userId]);
+          ->execute([$rel,$now,$ip,$pid,$patientOwnerId]);
 
       jok(['path'=>$rel,'name'=>'AOB.txt','mime'=>'text/plain','stamped'=>true]);
     }
