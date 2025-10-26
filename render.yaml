@@ -28,6 +28,10 @@ services:
           property: password
       - key: SENDGRID_API_KEY
         sync: false
+      - key: SMTP_FROM
+        value: no-reply@collagendirect.health
+      - key: SMTP_FROM_NAME
+        value: CollagenDirect
     healthCheckPath: /portal/health.php
 
 databases:
