@@ -585,7 +585,7 @@ if ($action) {
       }
 
       // snapshot provider signature
-      $pdo->prepare("UPDATE users SET sign_name=?,sign_title=?,sign_date=CURDATE(),updated_at=NOW() WHERE id=?")
+      $pdo->prepare("UPDATE users SET sign_name=?,sign_title=?,sign_date=CURRENT_DATE,updated_at=NOW() WHERE id=?")
           ->execute([$sign_name,$sign_title,$userId]);
 
       $pdo->commit();

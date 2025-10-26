@@ -42,7 +42,7 @@ try {
     SELECT COUNT(*) AS c
     FROM orders
     WHERE user_id = ?
-      AND shipped_at >= DATE_SUB(CURDATE(), INTERVAL (WEEKDAY(CURDATE())+0) DAY)
+      AND shipped_at >= CURRENT_DATE - INTERVAL '1 day' * EXTRACT(DOW FROM CURRENT_DATE)
   ");
   $stmt->execute([$uid]);
   $shippedThisWeek = (int)($stmt->fetchColumn() ?: 0);
