@@ -5591,13 +5591,32 @@ if (<?php echo json_encode($page === 'messages'); ?>) {
       return;
     }
 
-    messagesList.innerHTML = messages.map((msg, index) => {
+    // Group messages by thread_id - show only root messages (thread starters)
+    const threads = {};
+    messages.forEach(msg => {
+      const threadId = msg.thread_id || msg.id;
+      if (!threads[threadId]) {
+        threads[threadId] = [];
+      }
+      threads[threadId].push(msg);
+    });
+
+    // Get root message for each thread (the one with no parent_id or where id === thread_id)
+    const threadRoots = Object.values(threads).map(thread => {
+      const root = thread.find(m => !m.parent_id || m.id === m.thread_id) || thread[0];
+      root._replyCount = thread.length - 1; // Number of replies
+      root._hasUnread = thread.some(m => !m.is_read);
+      return root;
+    }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    messagesList.innerHTML = threadRoots.map((msg, index) => {
       const senderName = msg.sender_name || 'System';
       const initials = getInitials(senderName.split(' ')[0] || 'S', senderName.split(' ')[1] || 'Y');
       const timeAgo = formatTimeAgo(msg.created_at);
       const preview = (msg.body || '').substring(0, 60) + (msg.body && msg.body.length > 60 ? '...' : '');
-      const isUnread = !msg.is_read;
+      const isUnread = msg._hasUnread;
       const isFirst = index === 0;
+      const replyCount = msg._replyCount || 0;
 
       return `
         <button
@@ -5612,7 +5631,7 @@ if (<?php echo json_encode($page === 'messages'); ?>) {
             <div style="flex: 1; min-width: 0;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
                 <div style="font-weight: ${isUnread ? '600' : '500'}; font-size: 0.875rem; color: var(--ink);">
-                  ${esc(senderName)}
+                  ${esc(senderName)} ${replyCount > 0 ? `<span style="font-size: 0.75rem; color: var(--muted);">(${replyCount} ${replyCount === 1 ? 'reply' : 'replies'})</span>` : ''}
                 </div>
                 <div style="font-size: 0.75rem; color: var(--muted);">${timeAgo}</div>
               </div>
@@ -5646,50 +5665,63 @@ if (<?php echo json_encode($page === 'messages'); ?>) {
   }
 
   // Show selected message thread
-  function showMessageThread(message) {
+  function showMessageThread(rootMessage) {
     const threadContainer = document.getElementById('message-thread');
     if (!threadContainer) return;
 
-    const senderName = message.sender_name || 'System';
-    const initials = getInitials(senderName.split(' ')[0] || 'S', senderName.split(' ')[1] || 'Y');
-    const timeAgo = formatTimeAgo(message.created_at);
-    const patientName = message.patient_first && message.patient_last
-      ? `${message.patient_first} ${message.patient_last}`
+    // Get all messages in this thread
+    const threadId = rootMessage.thread_id || rootMessage.id;
+    const threadMessages = allMessages
+      .filter(m => (m.thread_id === threadId) || (m.id === threadId))
+      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+    const rootSenderName = rootMessage.sender_name || 'System';
+    const rootInitials = getInitials(rootSenderName.split(' ')[0] || 'S', rootSenderName.split(' ')[1] || 'Y');
+    const patientName = rootMessage.patient_first && rootMessage.patient_last
+      ? `${rootMessage.patient_first} ${rootMessage.patient_last}`
       : null;
 
     threadContainer.innerHTML = `
       <div style="padding: 1rem; border-bottom: 1px solid var(--border);">
         <div style="display: flex; align-items: center; gap: 0.75rem;">
           <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--brand); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600;">
-            ${initials}
+            ${rootInitials}
           </div>
           <div>
-            <div style="font-weight: 600; color: var(--ink);">${esc(senderName)}</div>
+            <div style="font-weight: 600; color: var(--ink);">${esc(rootMessage.subject || 'No subject')}</div>
             ${patientName ? `<div style="font-size: 0.75rem; color: var(--muted);">Patient: ${esc(patientName)}</div>` : ''}
+            <div style="font-size: 0.75rem; color: var(--muted);">${threadMessages.length} ${threadMessages.length === 1 ? 'message' : 'messages'}</div>
           </div>
         </div>
       </div>
 
       <div style="flex: 1; overflow-y: auto; padding: 1.5rem; background: #f8fafc;">
-        <div style="margin-bottom: 1.5rem;">
-          <div style="display: flex; gap: 0.75rem;">
-            <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--brand); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.75rem; flex-shrink: 0;">
-              ${initials}
+        ${threadMessages.map((msg, index) => {
+          const senderName = msg.sender_name || 'System';
+          const initials = getInitials(senderName.split(' ')[0] || 'S', senderName.split(' ')[1] || 'Y');
+          const timeAgo = formatTimeAgo(msg.created_at);
+          const isReply = msg.parent_id != null;
+
+          return `
+            <div style="margin-bottom: 1.5rem; ${isReply ? 'margin-left: 2rem;' : ''}">
+              <div style="display: flex; gap: 0.75rem;">
+                <div style="width: 32px; height: 32px; border-radius: 50%; background: ${isReply ? '#64748b' : 'var(--brand)'}; color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.75rem; flex-shrink: 0;">
+                  ${initials}
+                </div>
+                <div style="flex: 1;">
+                  <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                    <span style="font-weight: 600; font-size: 0.875rem;">${esc(senderName)}</span>
+                    <span style="font-size: 0.75rem; color: var(--muted);">${timeAgo}</span>
+                    ${isReply ? '<span style="font-size: 0.75rem; color: var(--muted); font-style: italic;">replied</span>' : ''}
+                  </div>
+                  <div style="background: white; padding: 1rem; border-radius: var(--radius-lg); border: 1px solid var(--border); font-size: 0.875rem; line-height: 1.5; white-space: pre-wrap;">
+                    ${esc(msg.body || '')}
+                  </div>
+                </div>
+              </div>
             </div>
-            <div style="flex: 1;">
-              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
-                <span style="font-weight: 600; font-size: 0.875rem;">${esc(senderName)}</span>
-                <span style="font-size: 0.75rem; color: var(--muted);">${timeAgo}</span>
-              </div>
-              <div style="font-weight: 600; font-size: 0.9375rem; margin-bottom: 0.75rem; color: var(--ink);">
-                ${esc(message.subject || 'No subject')}
-              </div>
-              <div style="background: white; padding: 1rem; border-radius: var(--radius-lg); border: 1px solid var(--border); font-size: 0.875rem; line-height: 1.5; white-space: pre-wrap;">
-                ${esc(message.body || '')}
-              </div>
-            </div>
-          </div>
-        </div>
+          `;
+        }).join('')}
       </div>
 
       <div style="padding: 1rem; border-top: 1px solid var(--border); background: white;">
@@ -5708,13 +5740,15 @@ if (<?php echo json_encode($page === 'messages'); ?>) {
       </div>
     `;
 
-    // Mark message as read if unread
-    if (!message.is_read) {
-      markMessageAsRead(message.id);
-      message.is_read = true;
-    }
+    // Mark all unread messages in thread as read
+    threadMessages.forEach(msg => {
+      if (!msg.is_read) {
+        markMessageAsRead(msg.id);
+        msg.is_read = true;
+      }
+    });
 
-    // Attach reply handler
+    // Attach reply handler - reply to the root message
     const replyBtn = document.getElementById('btn-send-reply');
     const replyInput = document.getElementById('msg-reply-input');
 
@@ -5733,10 +5767,10 @@ if (<?php echo json_encode($page === 'messages'); ?>) {
           const response = await fetch('?action=message.send', {
             method: 'POST',
             body: fd({
-              parent_id: message.id,
-              subject: message.subject, // Will be prefixed with "Re:" server-side
+              parent_id: rootMessage.id,
+              subject: rootMessage.subject, // Will be prefixed with "Re:" server-side
               body: replyText,
-              patient_id: message.patient_id || '',
+              patient_id: rootMessage.patient_id || '',
               recipient_type: 'collagendirect'
             })
           });
