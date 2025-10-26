@@ -429,7 +429,7 @@ if ($action) {
       $payment_type=$_POST['payment_type'] ?? 'insurance';
 
       $product_id=(int)($_POST['product_id']??0);
-      $pr=$pdo->prepare("SELECT id,name,price_admin,cpt_code FROM products WHERE id=? AND active=1");
+      $pr=$pdo->prepare("SELECT id,name,price_admin,cpt_code FROM products WHERE id=? AND active=TRUE");
       $pr->execute([$product_id]); $prod=$pr->fetch(PDO::FETCH_ASSOC);
       if(!$prod){ $pdo->rollBack(); jerr('Product not found',404); }
 

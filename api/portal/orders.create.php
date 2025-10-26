@@ -88,7 +88,7 @@ try {
   // 2) Resolve product
   $product_id = (int)($_POST['product_id'] ?? 0);
   if ($product_id <= 0) { http_response_code(400); echo json_encode(['ok'=>false,'error'=>'missing_product']); exit; }
-  $ps = $pdo->prepare("SELECT id, name, price_admin, cpt_code FROM products WHERE id=? AND active=1");
+  $ps = $pdo->prepare("SELECT id, name, price_admin, cpt_code FROM products WHERE id=? AND active=TRUE");
   $ps->execute([$product_id]);
   $prod = $ps->fetch(PDO::FETCH_ASSOC);
   if (!$prod) { http_response_code(404); echo json_encode(['ok'=>false,'error'=>'invalid_product']); exit; }

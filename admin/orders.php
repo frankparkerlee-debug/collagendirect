@@ -20,7 +20,7 @@ if (!function_exists('detect_carrier')) { // tiny fallback
 if (!function_exists('fetch_tracking_status')) { function fetch_tracking_status(string $t, ?string $c=null){ return ['carrier'=>$c?:detect_carrier($t),'status'=>null,'eta'=>null,'delivered_at'=>null,'raw'=>null]; } }
 
 /* Catalog (optional) + frequency */
-try { $products = $pdo->query("SELECT id,name,size,sku,price_admin FROM products WHERE active=1 ORDER BY name,size")->fetchAll(); }
+try { $products = $pdo->query("SELECT id,name,size,sku,price_admin FROM products WHERE active=TRUE ORDER BY name,size")->fetchAll(); }
 catch(Throwable $e){ $products = []; }
 $freqOptions = ['Daily','Every other Day','Weekly'];
 
