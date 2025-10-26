@@ -2966,8 +2966,55 @@ if ($page==='logout'){
                 <select id="profile-license-state" class="w-full mt-1">
                   <option value="">Select State</option>
                   <option value="AL">Alabama</option>
+                  <option value="AK">Alaska</option>
+                  <option value="AZ">Arizona</option>
+                  <option value="AR">Arkansas</option>
+                  <option value="CA">California</option>
+                  <option value="CO">Colorado</option>
+                  <option value="CT">Connecticut</option>
+                  <option value="DE">Delaware</option>
+                  <option value="FL">Florida</option>
+                  <option value="GA">Georgia</option>
+                  <option value="HI">Hawaii</option>
+                  <option value="ID">Idaho</option>
+                  <option value="IL">Illinois</option>
+                  <option value="IN">Indiana</option>
+                  <option value="IA">Iowa</option>
+                  <option value="KS">Kansas</option>
+                  <option value="KY">Kentucky</option>
+                  <option value="LA">Louisiana</option>
+                  <option value="ME">Maine</option>
+                  <option value="MD">Maryland</option>
+                  <option value="MA">Massachusetts</option>
+                  <option value="MI">Michigan</option>
+                  <option value="MN">Minnesota</option>
+                  <option value="MS">Mississippi</option>
+                  <option value="MO">Missouri</option>
+                  <option value="MT">Montana</option>
+                  <option value="NE">Nebraska</option>
+                  <option value="NV">Nevada</option>
+                  <option value="NH">New Hampshire</option>
+                  <option value="NJ">New Jersey</option>
+                  <option value="NM">New Mexico</option>
                   <option value="NY">New York</option>
-                  <!-- Add all states -->
+                  <option value="NC">North Carolina</option>
+                  <option value="ND">North Dakota</option>
+                  <option value="OH">Ohio</option>
+                  <option value="OK">Oklahoma</option>
+                  <option value="OR">Oregon</option>
+                  <option value="PA">Pennsylvania</option>
+                  <option value="RI">Rhode Island</option>
+                  <option value="SC">South Carolina</option>
+                  <option value="SD">South Dakota</option>
+                  <option value="TN">Tennessee</option>
+                  <option value="TX">Texas</option>
+                  <option value="UT">Utah</option>
+                  <option value="VT">Vermont</option>
+                  <option value="VA">Virginia</option>
+                  <option value="WA">Washington</option>
+                  <option value="WV">West Virginia</option>
+                  <option value="WI">Wisconsin</option>
+                  <option value="WY">Wyoming</option>
                 </select>
               </div>
             </div>
@@ -3021,8 +3068,55 @@ if ($page==='logout'){
               <select id="practice-state" class="w-full mt-1">
                 <option value="">Select State</option>
                 <option value="AL">Alabama</option>
+                <option value="AK">Alaska</option>
+                <option value="AZ">Arizona</option>
+                <option value="AR">Arkansas</option>
+                <option value="CA">California</option>
+                <option value="CO">Colorado</option>
+                <option value="CT">Connecticut</option>
+                <option value="DE">Delaware</option>
+                <option value="FL">Florida</option>
+                <option value="GA">Georgia</option>
+                <option value="HI">Hawaii</option>
+                <option value="ID">Idaho</option>
+                <option value="IL">Illinois</option>
+                <option value="IN">Indiana</option>
+                <option value="IA">Iowa</option>
+                <option value="KS">Kansas</option>
+                <option value="KY">Kentucky</option>
+                <option value="LA">Louisiana</option>
+                <option value="ME">Maine</option>
+                <option value="MD">Maryland</option>
+                <option value="MA">Massachusetts</option>
+                <option value="MI">Michigan</option>
+                <option value="MN">Minnesota</option>
+                <option value="MS">Mississippi</option>
+                <option value="MO">Missouri</option>
+                <option value="MT">Montana</option>
+                <option value="NE">Nebraska</option>
+                <option value="NV">Nevada</option>
+                <option value="NH">New Hampshire</option>
+                <option value="NJ">New Jersey</option>
+                <option value="NM">New Mexico</option>
                 <option value="NY">New York</option>
-                <!-- Add all states -->
+                <option value="NC">North Carolina</option>
+                <option value="ND">North Dakota</option>
+                <option value="OH">Ohio</option>
+                <option value="OK">Oklahoma</option>
+                <option value="OR">Oregon</option>
+                <option value="PA">Pennsylvania</option>
+                <option value="RI">Rhode Island</option>
+                <option value="SC">South Carolina</option>
+                <option value="SD">South Dakota</option>
+                <option value="TN">Tennessee</option>
+                <option value="TX">Texas</option>
+                <option value="UT">Utah</option>
+                <option value="VT">Vermont</option>
+                <option value="VA">Virginia</option>
+                <option value="WA">Washington</option>
+                <option value="WV">West Virginia</option>
+                <option value="WI">Wisconsin</option>
+                <option value="WY">Wyoming</option>
               </select>
             </div>
             <div>
@@ -3093,7 +3187,55 @@ if ($page==='logout'){
                 <select id="phys-license-state" class="w-full mt-1">
                   <option value="">Select State</option>
                   <option value="AL">Alabama</option>
+                  <option value="AK">Alaska</option>
+                  <option value="AZ">Arizona</option>
+                  <option value="AR">Arkansas</option>
+                  <option value="CA">California</option>
+                  <option value="CO">Colorado</option>
+                  <option value="CT">Connecticut</option>
+                  <option value="DE">Delaware</option>
+                  <option value="FL">Florida</option>
+                  <option value="GA">Georgia</option>
+                  <option value="HI">Hawaii</option>
+                  <option value="ID">Idaho</option>
+                  <option value="IL">Illinois</option>
+                  <option value="IN">Indiana</option>
+                  <option value="IA">Iowa</option>
+                  <option value="KS">Kansas</option>
+                  <option value="KY">Kentucky</option>
+                  <option value="LA">Louisiana</option>
+                  <option value="ME">Maine</option>
+                  <option value="MD">Maryland</option>
+                  <option value="MA">Massachusetts</option>
+                  <option value="MI">Michigan</option>
+                  <option value="MN">Minnesota</option>
+                  <option value="MS">Mississippi</option>
+                  <option value="MO">Missouri</option>
+                  <option value="MT">Montana</option>
+                  <option value="NE">Nebraska</option>
+                  <option value="NV">Nevada</option>
+                  <option value="NH">New Hampshire</option>
+                  <option value="NJ">New Jersey</option>
+                  <option value="NM">New Mexico</option>
                   <option value="NY">New York</option>
+                  <option value="NC">North Carolina</option>
+                  <option value="ND">North Dakota</option>
+                  <option value="OH">Ohio</option>
+                  <option value="OK">Oklahoma</option>
+                  <option value="OR">Oregon</option>
+                  <option value="PA">Pennsylvania</option>
+                  <option value="RI">Rhode Island</option>
+                  <option value="SC">South Carolina</option>
+                  <option value="SD">South Dakota</option>
+                  <option value="TN">Tennessee</option>
+                  <option value="TX">Texas</option>
+                  <option value="UT">Utah</option>
+                  <option value="VT">Vermont</option>
+                  <option value="VA">Virginia</option>
+                  <option value="WA">Washington</option>
+                  <option value="WV">West Virginia</option>
+                  <option value="WI">Wisconsin</option>
+                  <option value="WY">Wyoming</option>
                 </select>
               </div>
             </div>
@@ -4618,6 +4760,8 @@ if (<?php echo json_encode($page==='profile'); ?>){
         const j = await r.json();
         if (j.ok) {
           alert('Personal information updated successfully');
+          // Reload page to reflect changes
+          window.location.reload();
         } else {
           alert(j.error || 'Failed to update');
         }
@@ -4644,6 +4788,8 @@ if (<?php echo json_encode($page==='profile'); ?>){
         const j = await r.json();
         if (j.ok) {
           alert('Signature information updated successfully');
+          // Reload page to reflect changes
+          window.location.reload();
         } else {
           alert(j.error || 'Failed to update');
         }
@@ -4675,6 +4821,8 @@ if (<?php echo json_encode($page==='profile'); ?>){
         const j = await r.json();
         if (j.ok) {
           alert('Practice information updated successfully');
+          // Reload page to reflect changes
+          window.location.reload();
         } else {
           alert(j.error || 'Failed to update');
         }
@@ -4722,38 +4870,59 @@ if (<?php echo json_encode($page==='profile'); ?>){
       const dialog = document.getElementById('dlg-add-physician');
       const container = document.getElementById('physician-form-container');
       const formContent = document.getElementById('add-physician-form-content');
+
+      // Clone the form content into the dialog
       container.innerHTML = formContent.innerHTML;
+
+      // Attach submit handler to the newly created form
+      const form = container.querySelector('#add-physician-form');
+      if (form) {
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+
+          const firstName = form.querySelector('#phys-first-name').value.trim();
+          const lastName = form.querySelector('#phys-last-name').value.trim();
+          const email = form.querySelector('#phys-email').value.trim();
+          const license = form.querySelector('#phys-license').value.trim();
+          const licenseState = form.querySelector('#phys-license-state').value;
+          const licenseExpiry = form.querySelector('#phys-license-expiry').value;
+
+          if (!firstName || !lastName) {
+            alert('First and last name are required');
+            return;
+          }
+
+          if (!email) {
+            alert('Email is required');
+            return;
+          }
+
+          const formData = new FormData();
+          formData.append('first_name', firstName);
+          formData.append('last_name', lastName);
+          formData.append('email', email);
+          formData.append('license', license);
+          formData.append('license_state', licenseState);
+          formData.append('license_expiry', licenseExpiry);
+
+          try {
+            const r = await fetch('?action=practice.add_physician', {method: 'POST', body: formData});
+            const j = await r.json();
+            if (j.ok) {
+              dialog.close();
+              loadPhysicians();
+            } else {
+              alert(j.error || 'Failed to add physician');
+            }
+          } catch (err) {
+            alert('Error adding physician');
+          }
+        });
+      }
+
       dialog.showModal();
     });
   }
-
-  // Add physician form submit
-  document.addEventListener('submit', async (e) => {
-    if (e.target.id === 'add-physician-form') {
-      e.preventDefault();
-      const formData = new FormData();
-      formData.append('first_name', document.getElementById('phys-first-name').value);
-      formData.append('last_name', document.getElementById('phys-last-name').value);
-      formData.append('email', document.getElementById('phys-email').value);
-      formData.append('license', document.getElementById('phys-license').value);
-      formData.append('license_state', document.getElementById('phys-license-state').value);
-      formData.append('license_expiry', document.getElementById('phys-license-expiry').value);
-
-      try {
-        const r = await fetch('?action=practice.add_physician', {method: 'POST', body: formData});
-        const j = await r.json();
-        if (j.ok) {
-          document.getElementById('dlg-add-physician').close();
-          loadPhysicians();
-          e.target.reset();
-        } else {
-          alert(j.error || 'Failed to add physician');
-        }
-      } catch (err) {
-        alert('Error adding physician');
-      }
-    }
-  });
 
   // Remove physician function
   window.removePhysician = async (physicianId) => {
