@@ -295,42 +295,105 @@ include __DIR__.'/_header.php';
             </tr>
             <tr id="patient-details-<?=e($pid)?>" class="patient-details-row hidden border-t bg-slate-50">
               <td colspan="10" class="py-4 px-6">
-                <div class="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <h4 class="font-semibold mb-3">Patient Information</h4>
-                    <div class="space-y-2">
-                      <div><span class="text-slate-600">Name:</span> <strong><?=e($fullname)?></strong></div>
-                      <div><span class="text-slate-600">Email:</span> <?=e($row['email'] ?? '—')?></div>
-                      <div><span class="text-slate-600">Phone:</span> <?=e($row['phone'] ?? '—')?></div>
-                      <div><span class="text-slate-600">DOB:</span> <?=e($row['dob'] ?? '—')?></div>
-                      <div><span class="text-slate-600">Patient ID:</span> <?=e($pid)?></div>
+                <!-- View Mode -->
+                <div id="view-mode-<?=e($pid)?>" class="view-mode">
+                  <div class="flex justify-between items-center mb-4">
+                    <h4 class="font-semibold">Patient Details</h4>
+                    <button onclick="enableEditMode('<?=e($pid)?>')" class="px-3 py-1 bg-brand text-white rounded text-xs hover:bg-brand-dark">
+                      Edit Patient
+                    </button>
+                  </div>
+                  <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <h4 class="font-semibold mb-3">Patient Information</h4>
+                      <div class="space-y-2">
+                        <div><span class="text-slate-600">Name:</span> <strong><?=e($fullname)?></strong></div>
+                        <div><span class="text-slate-600">Email:</span> <?=e($row['email'] ?? '—')?></div>
+                        <div><span class="text-slate-600">Phone:</span> <?=e($row['phone'] ?? '—')?></div>
+                        <div><span class="text-slate-600">DOB:</span> <?=e($row['dob'] ?? '—')?></div>
+                        <div><span class="text-slate-600">Patient ID:</span> <?=e($pid)?></div>
+                      </div>
+                    </div>
+                    <div>
+                      <h4 class="font-semibold mb-3">Provider Information</h4>
+                      <div class="space-y-2">
+                        <div><span class="text-slate-600">Physician:</span> <?=e($physName ?: '—')?></div>
+                        <div><span class="text-slate-600">Practice:</span> <?=e($practiceName ?: '—')?></div>
+                        <div><span class="text-slate-600">Status:</span> <span class="<?=$statusColor?> px-2 py-0.5 rounded text-xs"><?=e(ucfirst($status))?></span></div>
+                      </div>
+                    </div>
+                    <div>
+                      <h4 class="font-semibold mb-3">Order Summary</h4>
+                      <div class="space-y-2">
+                        <div><span class="text-slate-600">Total Orders:</span> <?=$orderCount?></div>
+                        <?php if ($lastOrder): ?>
+                          <div><span class="text-slate-600">Last Order:</span> <?=e(substr($lastOrder,0,10))?></div>
+                        <?php endif; ?>
+                      </div>
+                    </div>
+                    <div>
+                      <h4 class="font-semibold mb-3">Documents</h4>
+                      <div class="space-y-2">
+                        <div><span class="text-slate-600">Notes:</span> <?=render_view_link($noteLinks)?></div>
+                        <div><span class="text-slate-600">ID Card:</span> <?=render_view_link($idLinks)?></div>
+                        <div><span class="text-slate-600">Insurance:</span> <?=render_view_link($insLinks)?></div>
+                      </div>
                     </div>
                   </div>
-                  <div>
-                    <h4 class="font-semibold mb-3">Provider Information</h4>
-                    <div class="space-y-2">
-                      <div><span class="text-slate-600">Physician:</span> <?=e($physName ?: '—')?></div>
-                      <div><span class="text-slate-600">Practice:</span> <?=e($practiceName ?: '—')?></div>
-                      <div><span class="text-slate-600">Status:</span> <span class="<?=$statusColor?> px-2 py-0.5 rounded text-xs"><?=e(ucfirst($status))?></span></div>
-                    </div>
+                </div>
+
+                <!-- Edit Mode -->
+                <div id="edit-mode-<?=e($pid)?>" class="edit-mode hidden">
+                  <div class="flex justify-between items-center mb-4">
+                    <h4 class="font-semibold">Edit Patient Information</h4>
+                    <button onclick="cancelEditMode('<?=e($pid)?>')" class="px-3 py-1 bg-slate-400 text-white rounded text-xs hover:bg-slate-500">
+                      Cancel
+                    </button>
                   </div>
-                  <div>
-                    <h4 class="font-semibold mb-3">Order Summary</h4>
-                    <div class="space-y-2">
-                      <div><span class="text-slate-600">Total Orders:</span> <?=$orderCount?></div>
-                      <?php if ($lastOrder): ?>
-                        <div><span class="text-slate-600">Last Order:</span> <?=e(substr($lastOrder,0,10))?></div>
-                      <?php endif; ?>
+                  <form id="edit-form-<?=e($pid)?>" onsubmit="savePatient(event, '<?=e($pid)?>')">
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                      <div class="space-y-3">
+                        <div>
+                          <label class="block text-slate-600 mb-1">First Name</label>
+                          <input type="text" name="first_name" value="<?=e($row['first_name'] ?? '')?>" class="w-full px-2 py-1 border rounded" required>
+                        </div>
+                        <div>
+                          <label class="block text-slate-600 mb-1">Last Name</label>
+                          <input type="text" name="last_name" value="<?=e($row['last_name'] ?? '')?>" class="w-full px-2 py-1 border rounded" required>
+                        </div>
+                        <div>
+                          <label class="block text-slate-600 mb-1">Email</label>
+                          <input type="email" name="email" value="<?=e($row['email'] ?? '')?>" class="w-full px-2 py-1 border rounded">
+                        </div>
+                        <div>
+                          <label class="block text-slate-600 mb-1">Phone</label>
+                          <input type="tel" name="phone" value="<?=e($row['phone'] ?? '')?>" class="w-full px-2 py-1 border rounded">
+                        </div>
+                      </div>
+                      <div class="space-y-3">
+                        <div>
+                          <label class="block text-slate-600 mb-1">Date of Birth</label>
+                          <input type="date" name="dob" value="<?=e($row['dob'] ?? '')?>" class="w-full px-2 py-1 border rounded">
+                        </div>
+                        <div>
+                          <label class="block text-slate-600 mb-1">Status</label>
+                          <select name="state" class="w-full px-2 py-1 border rounded">
+                            <option value="active" <?=$status==='active'?'selected':''?>>Active</option>
+                            <option value="pending" <?=$status==='pending'?'selected':''?>>Pending</option>
+                            <option value="inactive" <?=$status==='inactive'?'selected':''?>>Inactive</option>
+                          </select>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <h4 class="font-semibold mb-3">Documents</h4>
-                    <div class="space-y-2">
-                      <div><span class="text-slate-600">Notes:</span> <?=render_view_link($noteLinks)?></div>
-                      <div><span class="text-slate-600">ID Card:</span> <?=render_view_link($idLinks)?></div>
-                      <div><span class="text-slate-600">Insurance:</span> <?=render_view_link($insLinks)?></div>
+                    <div class="mt-4 flex gap-2">
+                      <button type="submit" class="px-4 py-2 bg-brand text-white rounded hover:bg-brand-dark">
+                        Save Changes
+                      </button>
+                      <button type="button" onclick="cancelEditMode('<?=e($pid)?>')" class="px-4 py-2 bg-slate-200 text-slate-700 rounded hover:bg-slate-300">
+                        Cancel
+                      </button>
                     </div>
-                  </div>
+                  </form>
                 </div>
               </td>
             </tr>
@@ -360,6 +423,9 @@ function togglePatientDetails(patientId) {
     });
     document.querySelectorAll('.expand-text').forEach(el => el.classList.remove('hidden'));
     document.querySelectorAll('.collapse-text').forEach(el => el.classList.add('hidden'));
+    // Reset all to view mode
+    document.querySelectorAll('.edit-mode').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.view-mode').forEach(el => el.classList.remove('hidden'));
 
     // Open this one
     detailsRow.classList.remove('hidden');
@@ -370,6 +436,42 @@ function togglePatientDetails(patientId) {
     detailsRow.classList.add('hidden');
     expandText.classList.remove('hidden');
     collapseText.classList.add('hidden');
+  }
+}
+
+function enableEditMode(patientId) {
+  document.getElementById('view-mode-' + patientId).classList.add('hidden');
+  document.getElementById('edit-mode-' + patientId).classList.remove('hidden');
+}
+
+function cancelEditMode(patientId) {
+  document.getElementById('edit-mode-' + patientId).classList.add('hidden');
+  document.getElementById('view-mode-' + patientId).classList.remove('hidden');
+}
+
+async function savePatient(event, patientId) {
+  event.preventDefault();
+  const form = event.target;
+  const formData = new FormData(form);
+  formData.append('patient_id', patientId);
+
+  try {
+    const response = await fetch('/admin/update-patient.php', {
+      method: 'POST',
+      body: formData
+    });
+
+    const result = await response.json();
+
+    if (result.ok) {
+      alert('Patient updated successfully!');
+      location.reload(); // Reload to show updated data
+    } else {
+      alert('Error: ' + (result.error || 'Failed to update patient'));
+    }
+  } catch (error) {
+    console.error('Save error:', error);
+    alert('Error saving patient: ' + error.message);
   }
 }
 </script>
