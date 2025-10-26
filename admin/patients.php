@@ -19,12 +19,23 @@ if (!function_exists('e')) {
 
 /* ---------- robust uploads root & linking ---------- */
 function uploads_root_abs() {
-  $cands = [
-    realpath(__DIR__ . '/../uploads'),
-    isset($_SERVER['DOCUMENT_ROOT']) ? realpath($_SERVER['DOCUMENT_ROOT'] . '/public/uploads') : false,
-    isset($_SERVER['DOCUMENT_ROOT']) ? realpath($_SERVER['DOCUMENT_ROOT'] . '/uploads') : false,
-  ];
-  foreach ($cands as $p) { if ($p && is_dir($p)) return rtrim($p, '/'); }
+  // Check /public/uploads first (where orders.create.php saves files)
+  $docRoot = rtrim($_SERVER['DOCUMENT_ROOT'] ?? '', '/');
+  if ($docRoot) {
+    $publicUploads = realpath($docRoot . '/public/uploads');
+    if ($publicUploads && is_dir($publicUploads)) {
+      return rtrim($publicUploads, '/');
+    }
+    $uploads = realpath($docRoot . '/uploads');
+    if ($uploads && is_dir($uploads)) {
+      return rtrim($uploads, '/');
+    }
+  }
+  // Fallback to relative path
+  $relative = realpath(__DIR__ . '/../uploads');
+  if ($relative && is_dir($relative)) {
+    return rtrim($relative, '/');
+  }
   return rtrim(__DIR__ . '/../uploads', '/');
 }
 function uploads_rel($abs) {
