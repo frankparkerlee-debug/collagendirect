@@ -573,14 +573,14 @@ if ($action) {
         $abs=$DIRS['notes'].'/'.$final; if(!@move_uploaded_file($f['tmp_name'],$abs)) jerr('Failed to save file',500);
         $rel='/uploads/notes/'.$final;
         $pdo->prepare("UPDATE orders SET rx_note_name=?, rx_note_mime=?, rx_note_path=?, updated_at=NOW() WHERE id=? AND user_id=?")
-            ->execute([$f['name'],$mime,$rel,$oid,$userId]);
+            ->execute([$f['name'],$mime,$rel,$oid,$patientOwnerId]);
       } else {
-        $notes_text=trim((string)($_POST['notes_text']??'')); 
+        $notes_text=trim((string)($_POST['notes_text']??''));
         if($notes_text!==''){
           $safe='clinical-note-'.date('Ymd-His').'-'.substr($oid,0,6).'.txt';
           file_put_contents($DIRS['notes'].'/'.$safe, $notes_text);
           $pdo->prepare("UPDATE orders SET rx_note_name=?,rx_note_mime=?,rx_note_path=?,updated_at=NOW() WHERE id=? AND user_id=?")
-              ->execute(['clinical-note.txt','text/plain','/uploads/notes/'.$safe,$oid,$userId]);
+              ->execute(['clinical-note.txt','text/plain','/uploads/notes/'.$safe,$oid,$patientOwnerId]);
         }
       }
 
