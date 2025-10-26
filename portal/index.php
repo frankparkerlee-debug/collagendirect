@@ -1137,21 +1137,24 @@ if ($action) {
   if ($action==='practice.add_physician'){
     if ($userRole !== 'practice_admin') jerr('Access denied', 403);
 
-    $first = trim((string)($_POST['first_name'] ?? ''));
-    $last = trim((string)($_POST['last_name'] ?? ''));
-    $email = strtolower(trim((string)($_POST['email'] ?? '')));
-    $license = trim((string)($_POST['license'] ?? ''));
-    $license_state = trim((string)($_POST['license_state'] ?? ''));
-    $license_expiry = $_POST['license_expiry'] ?? null;
+    try {
+      $first = trim((string)($_POST['first_name'] ?? ''));
+      $last = trim((string)($_POST['last_name'] ?? ''));
+      $email = strtolower(trim((string)($_POST['email'] ?? '')));
+      $license = trim((string)($_POST['license'] ?? ''));
+      $license_state = trim((string)($_POST['license_state'] ?? ''));
+      $license_expiry = $_POST['license_expiry'] ?? null;
 
-    if ($first === '' || $last === '') jerr('First and last name are required');
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) jerr('Invalid email address');
+      if ($first === '' || $last === '') jerr('First and last name are required');
+      if (!filter_var($email, FILTER_VALIDATE_EMAIL)) jerr('Invalid email address');
 
-    // Detect column names
-    $ppCols = $pdo->query("
-      SELECT column_name FROM information_schema.columns
-      WHERE table_name = 'practice_physicians'
-    ")->fetchAll(PDO::FETCH_COLUMN);
+      // Detect column names
+      $ppCols = $pdo->query("
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'practice_physicians'
+      ")->fetchAll(PDO::FETCH_COLUMN);
+
+      if (empty($ppCols)) jerr('practice_physicians table not found');
 
     $adminCol = in_array('practice_admin_id', $ppCols) ? 'practice_admin_id' : 'practice_manager_id';
     $physicianIdCol = in_array('physician_id', $ppCols) ? 'physician_id' : 'physician_npi';
@@ -1192,12 +1195,16 @@ if ($action) {
       $placeholders[] = '?';
     }
 
-    // Insert physician
-    $sql = "INSERT INTO practice_physicians (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")";
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($values);
+      // Insert physician
+      $sql = "INSERT INTO practice_physicians (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")";
+      $stmt = $pdo->prepare($sql);
+      $stmt->execute($values);
 
-    jok(['physician_id' => $physicianId]);
+      jok(['physician_id' => $physicianId]);
+    } catch (Exception $e) {
+      error_log("Error adding physician: " . $e->getMessage());
+      jerr('Database error: ' . $e->getMessage());
+    }
   }
 
   if ($action==='practice.remove_physician'){
