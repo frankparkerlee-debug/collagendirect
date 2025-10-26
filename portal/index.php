@@ -132,6 +132,34 @@ if ($action) {
     jok(['chart'=>['months'=>$months,'patients'=>$patientCounts,'orders'=>$orderCounts]]);
   }
 
+  if ($action==='debug.session'){
+    header('Content-Type: text/plain');
+    echo "=== Session Debug ===\n\n";
+    echo "Session ID: " . session_id() . "\n";
+    echo "User ID: " . ($userId ?? 'NOT SET') . "\n";
+    echo "User Role: " . ($userRole ?? 'NOT SET') . "\n";
+    echo "Email: " . ($user['email'] ?? 'NOT SET') . "\n\n";
+
+    echo "Full User Data:\n";
+    print_r($user);
+    echo "\n";
+
+    // Get patients owned by this user
+    $stmt = $pdo->prepare("SELECT id, first_name, last_name, user_id, created_at FROM patients WHERE user_id = ? ORDER BY created_at DESC LIMIT 5");
+    $stmt->execute([$userId]);
+    $patients = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    echo "Patients owned by this user (user_id = $userId):\n";
+    if (empty($patients)) {
+      echo "  No patients found!\n\n";
+    } else {
+      foreach ($patients as $p) {
+        echo "  - {$p['first_name']} {$p['last_name']} (ID: {$p['id']}, owner: {$p['user_id']})\n";
+      }
+    }
+    exit;
+  }
+
   if ($action==='patients'){
     $q=trim((string)($_GET['q']??'')); $limit=max(1,min(300,(int)($_GET['limit']??100))); $offset=max(0,(int)($_GET['offset']??0));
 
