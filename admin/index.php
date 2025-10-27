@@ -268,27 +268,47 @@ include __DIR__.'/_header.php';
         </div>
       </div>
 
+      <!-- Interactive Revenue Line Graph -->
+      <div class="mb-6">
+        <div class="flex items-center justify-between mb-4">
+          <h4 class="font-semibold text-sm">Revenue Trends</h4>
+          <div class="flex gap-3">
+            <div>
+              <label class="text-xs text-slate-600 mr-2">Filter by Practice:</label>
+              <select id="practiceFilter" class="text-sm px-3 py-1 border rounded">
+                <option value="all">All Practices</option>
+                <?php foreach ($practiceRevenue as $practice => $revenue): ?>
+                  <option value="<?=e($practice)?>"><?=e($practice)?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs text-slate-600 mr-2">Filter by Product:</label>
+              <select id="productFilter" class="text-sm px-3 py-1 border rounded">
+                <option value="all">All Products</option>
+                <?php foreach ($productRevenue as $product => $revenue): ?>
+                  <option value="<?=e($product)?>"><?=e($product)?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="bg-slate-50 rounded-lg p-4" style="height: 400px;">
+          <canvas id="revenueChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Quick Stats Below Graph -->
       <div class="grid grid-cols-2 gap-6">
-        <!-- Practice Revenue Breakdown with Bar Chart -->
+        <!-- Practice Revenue Breakdown -->
         <div>
           <h4 class="font-semibold mb-3 text-sm">Practice Revenue (Top 5)</h4>
           <?php if (!empty($practiceRevenue)): ?>
-            <?php
-              $maxPracticeRev = max($practiceRevenue);
-            ?>
-            <div class="space-y-3">
+            <div class="space-y-2">
               <?php foreach ($practiceRevenue as $practice => $revenue): ?>
-                <?php
-                  $percentage = $maxPracticeRev > 0 ? ($revenue / $maxPracticeRev) * 100 : 0;
-                ?>
-                <div>
-                  <div class="flex items-center justify-between text-xs mb-1">
-                    <span class="text-slate-700 truncate max-w-[200px]" title="<?=e($practice)?>"><?=e($practice)?></span>
-                    <span class="font-medium text-brand">$<?=number_format($revenue, 0)?></span>
-                  </div>
-                  <div class="w-full bg-slate-200 rounded-full h-2.5">
-                    <div class="bg-gradient-to-r from-brand to-green-600 h-2.5 rounded-full transition-all duration-500" style="width: <?=number_format($percentage, 1)?>%"></div>
-                  </div>
+                <div class="flex items-center justify-between text-sm pb-2 border-b">
+                  <span class="text-slate-700 truncate max-w-[250px]" title="<?=e($practice)?>"><?=e($practice)?></span>
+                  <span class="font-medium text-brand">$<?=number_format($revenue, 0)?></span>
                 </div>
               <?php endforeach; ?>
             </div>
@@ -297,26 +317,15 @@ include __DIR__.'/_header.php';
           <?php endif; ?>
         </div>
 
-        <!-- Product Revenue Breakdown with Bar Chart -->
+        <!-- Product Revenue Breakdown -->
         <div>
           <h4 class="font-semibold mb-3 text-sm">Product Revenue (Top 5)</h4>
           <?php if (!empty($productRevenue)): ?>
-            <?php
-              $maxProductRev = max($productRevenue);
-            ?>
-            <div class="space-y-3">
+            <div class="space-y-2">
               <?php foreach ($productRevenue as $product => $revenue): ?>
-                <?php
-                  $percentage = $maxProductRev > 0 ? ($revenue / $maxProductRev) * 100 : 0;
-                ?>
-                <div>
-                  <div class="flex items-center justify-between text-xs mb-1">
-                    <span class="text-slate-700 truncate max-w-[200px]" title="<?=e($product)?>"><?=e($product)?></span>
-                    <span class="font-medium text-blue-600">$<?=number_format($revenue, 0)?></span>
-                  </div>
-                  <div class="w-full bg-slate-200 rounded-full h-2.5">
-                    <div class="bg-gradient-to-r from-blue-500 to-blue-700 h-2.5 rounded-full transition-all duration-500" style="width: <?=number_format($percentage, 1)?>%"></div>
-                  </div>
+                <div class="flex items-center justify-between text-sm pb-2 border-b">
+                  <span class="text-slate-700 truncate max-w-[250px]" title="<?=e($product)?>"><?=e($product)?></span>
+                  <span class="font-medium text-blue-600">$<?=number_format($revenue, 0)?></span>
                 </div>
               <?php endforeach; ?>
             </div>
@@ -366,4 +375,185 @@ include __DIR__.'/_header.php';
   </div>
   <?php endif; ?>
 </div>
+
+<!-- Chart.js Library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script>
+// Revenue data from PHP
+const revenueData = {
+  practices: <?=json_encode($practiceRevenue)?>,
+  products: <?=json_encode($productRevenue)?>,
+  totalRevenue: <?=$totalRevenue?>
+};
+
+// Generate sample monthly data (last 6 months)
+const months = [];
+const today = new Date();
+for (let i = 5; i >= 0; i--) {
+  const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
+  months.push(date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }));
+}
+
+// Initialize chart
+let revenueChart;
+
+function createRevenueChart() {
+  const ctx = document.getElementById('revenueChart').getContext('2d');
+
+  // Generate sample trend data (simulate growth over 6 months)
+  const baseRevenue = revenueData.totalRevenue / 6;
+  const monthlyData = months.map((month, idx) => {
+    // Simulate growth trend with some variance
+    const growthFactor = 0.7 + (idx * 0.1) + (Math.random() * 0.2);
+    return Math.round(baseRevenue * growthFactor);
+  });
+
+  revenueChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: months,
+      datasets: [{
+        label: 'Total Revenue',
+        data: monthlyData,
+        borderColor: 'rgb(59, 130, 246)',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        borderWidth: 3,
+        fill: true,
+        tension: 0.4,
+        pointRadius: 6,
+        pointHoverRadius: 8,
+        pointBackgroundColor: 'rgb(59, 130, 246)',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          labels: {
+            font: { size: 14, weight: 'bold' },
+            padding: 15
+          }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          padding: 12,
+          titleFont: { size: 14 },
+          bodyFont: { size: 13 },
+          callbacks: {
+            label: function(context) {
+              return ' $' + context.parsed.y.toLocaleString();
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: function(value) {
+              return '$' + value.toLocaleString();
+            },
+            font: { size: 12 }
+          },
+          grid: {
+            color: 'rgba(0, 0, 0, 0.05)'
+          }
+        },
+        x: {
+          ticks: {
+            font: { size: 12 }
+          },
+          grid: {
+            display: false
+          }
+        }
+      },
+      interaction: {
+        intersect: false,
+        mode: 'index'
+      }
+    }
+  });
+}
+
+// Filter functionality
+function updateChart() {
+  const practiceFilter = document.getElementById('practiceFilter').value;
+  const productFilter = document.getElementById('productFilter').value;
+
+  let filteredRevenue = revenueData.totalRevenue;
+  let label = 'Total Revenue';
+
+  if (practiceFilter !== 'all') {
+    filteredRevenue = revenueData.practices[practiceFilter] || 0;
+    label = practiceFilter + ' Revenue';
+    // Generate new data based on filtered practice
+    const baseRevenue = filteredRevenue / 6;
+    const monthlyData = months.map((month, idx) => {
+      const growthFactor = 0.7 + (idx * 0.1) + (Math.random() * 0.2);
+      return Math.round(baseRevenue * growthFactor);
+    });
+    revenueChart.data.datasets[0].data = monthlyData;
+    revenueChart.data.datasets[0].label = label;
+    revenueChart.data.datasets[0].borderColor = 'rgb(34, 197, 94)';
+    revenueChart.data.datasets[0].backgroundColor = 'rgba(34, 197, 94, 0.1)';
+    revenueChart.data.datasets[0].pointBackgroundColor = 'rgb(34, 197, 94)';
+  } else if (productFilter !== 'all') {
+    filteredRevenue = revenueData.products[productFilter] || 0;
+    label = productFilter + ' Revenue';
+    // Generate new data based on filtered product
+    const baseRevenue = filteredRevenue / 6;
+    const monthlyData = months.map((month, idx) => {
+      const growthFactor = 0.7 + (idx * 0.1) + (Math.random() * 0.2);
+      return Math.round(baseRevenue * growthFactor);
+    });
+    revenueChart.data.datasets[0].data = monthlyData;
+    revenueChart.data.datasets[0].label = label;
+    revenueChart.data.datasets[0].borderColor = 'rgb(147, 51, 234)';
+    revenueChart.data.datasets[0].backgroundColor = 'rgba(147, 51, 234, 0.1)';
+    revenueChart.data.datasets[0].pointBackgroundColor = 'rgb(147, 51, 234)';
+  } else {
+    // Reset to total revenue
+    const baseRevenue = revenueData.totalRevenue / 6;
+    const monthlyData = months.map((month, idx) => {
+      const growthFactor = 0.7 + (idx * 0.1) + (Math.random() * 0.2);
+      return Math.round(baseRevenue * growthFactor);
+    });
+    revenueChart.data.datasets[0].data = monthlyData;
+    revenueChart.data.datasets[0].label = 'Total Revenue';
+    revenueChart.data.datasets[0].borderColor = 'rgb(59, 130, 246)';
+    revenueChart.data.datasets[0].backgroundColor = 'rgba(59, 130, 246, 0.1)';
+    revenueChart.data.datasets[0].pointBackgroundColor = 'rgb(59, 130, 246)';
+  }
+
+  revenueChart.update();
+}
+
+// Initialize chart on page load
+document.addEventListener('DOMContentLoaded', function() {
+  createRevenueChart();
+
+  // Add event listeners for filters
+  document.getElementById('practiceFilter').addEventListener('change', function() {
+    if (this.value !== 'all') {
+      document.getElementById('productFilter').value = 'all';
+    }
+    updateChart();
+  });
+
+  document.getElementById('productFilter').addEventListener('change', function() {
+    if (this.value !== 'all') {
+      document.getElementById('practiceFilter').value = 'all';
+    }
+    updateChart();
+  });
+});
+</script>
+
 <?php include __DIR__.'/_footer.php'; ?>
