@@ -160,6 +160,7 @@ try {
       ".($hasShipRem?"o.shipments_remaining,":"")."
       o.product_price, o.created_at, o.rx_note_name AS tracking, o.rx_note_mime AS carrier,
       o.insurer_name, o.member_id, o.group_id, o.payer_phone,
+      o.rx_note_path, o.ins_card_path, o.id_card_path,
       p.first_name, p.last_name, p.dob
       ".($hasProducts?", pr.name AS prod_name, pr.size AS prod_size, pr.sku, pr.$hcpcsCol AS cpt_code, pr.price_admin":"")."
     FROM orders o
@@ -264,12 +265,10 @@ include __DIR__.'/_header.php';
           $pid      = (string)($row['patient_id'] ?? '');
           $oid      = (string)($row['id'] ?? '');
           $fullname = trim(($row['first_name'] ?? '').' '.($row['last_name'] ?? ''));
-          $slug     = preg_replace('/[^a-z0-9]+/i','_', strtolower($fullname));
-          $tokens   = array_filter([$pid, $oid, $slug]);
-
-          $noteLinks = find_bucket_files('notes',     $tokens);
-          $idLinks   = find_bucket_files('ids',       $tokens);
-          $insLinks  = find_bucket_files('insurance', $tokens);
+          // Use document paths from database instead of filesystem scan
+          $noteLinks = !empty($row['rx_note_path']) ? [$row['rx_note_path']] : [];
+          $idLinks   = !empty($row['id_card_path']) ? [$row['id_card_path']] : [];
+          $insLinks  = !empty($row['ins_card_path']) ? [$row['ins_card_path']] : [];
 
           $orderUrl = '/admin/order.pdf.php?id=' . rawurlencode($row['id']) . '&csrf=' . rawurlencode($_SESSION['csrf'] ?? '');
           $downloadAllUrl = '/admin/download-all.php?id=' . rawurlencode($row['id']) . '&csrf=' . rawurlencode($_SESSION['csrf'] ?? '');

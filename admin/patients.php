@@ -122,6 +122,8 @@ try {
     SELECT
       p.id, p.user_id, p.first_name, p.last_name, p.email, p.phone, p.dob,
       p.state, p.created_at,
+      p.note_path, p.ins_card_path, p.id_card_path,
+      p.insurance_provider, p.insurance_member_id, p.insurance_group_id, p.insurance_payer_phone,
       u.first_name AS phys_first, u.last_name AS phys_last, u.practice_name,
       COUNT(DISTINCT o.id) AS order_count,
       MAX(o.created_at) AS last_order_date
@@ -130,7 +132,9 @@ try {
     LEFT JOIN orders o ON o.patient_id = p.id AND o.status NOT IN ('rejected','cancelled')
     WHERE $where
     GROUP BY p.id, p.user_id, p.first_name, p.last_name, p.email, p.phone, p.dob,
-             p.state, p.created_at, u.first_name, u.last_name, u.practice_name
+             p.state, p.created_at, p.note_path, p.ins_card_path, p.id_card_path,
+             p.insurance_provider, p.insurance_member_id, p.insurance_group_id, p.insurance_payer_phone,
+             u.first_name, u.last_name, u.practice_name
     ORDER BY p.created_at DESC
   ";
   error_log("[patients-debug] Admin Role: " . ($adminRole ?: 'NONE'));
@@ -233,12 +237,10 @@ include __DIR__.'/_header.php';
             <?php foreach($rows as $row):
               $pid = (string)($row['id'] ?? '');
               $fullname = trim(($row['first_name'] ?? '').' '.($row['last_name'] ?? ''));
-              $slug = preg_replace('/[^a-z0-9]+/i','_', strtolower($fullname));
-              $tokens = array_filter([$pid, $slug]);
-
-              $noteLinks = find_bucket_files('notes', $tokens);
-              $idLinks = find_bucket_files('ids', $tokens);
-              $insLinks = find_bucket_files('insurance', $tokens);
+              // Use document paths from database instead of filesystem scan
+              $noteLinks = !empty($row['note_path']) ? [$row['note_path']] : [];
+              $idLinks   = !empty($row['id_card_path']) ? [$row['id_card_path']] : [];
+              $insLinks  = !empty($row['ins_card_path']) ? [$row['ins_card_path']] : [];
 
               $physName = trim(($row['phys_first'] ?? '').' '.($row['phys_last'] ?? ''));
               $practiceName = $row['practice_name'] ?? '';
