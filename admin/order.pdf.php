@@ -14,6 +14,7 @@ try {
   $sql = "SELECT
             o.*,
             p.first_name, p.last_name, p.dob, p.address, p.city, p.state, p.zip,
+            p.insurance_provider, p.insurance_member_id, p.insurance_group_id, p.insurance_payer_phone,
             u.first_name AS doc_first, u.last_name AS doc_last, u.license, u.license_state, u.npi,
             u.sign_name, u.sign_title, u.sign_date, u.practice_name
           FROM orders o
@@ -57,7 +58,40 @@ $sec_physician = '
     <tr><td class="key">Practice</td><td>'.h($o['practice_name'] ?? "—").'</td></tr>
     <tr><td class="key">NPI</td><td>'.h($o['npi'] ?? "—").'</td></tr>
     <tr><td class="key">License</td><td>'.h($o['license'] ?? "—").' ('.h($o['license_state'] ?? "—").')</td></tr>
-    <tr><td class="key">Signature</td><td>'.h($o['sign_name'] ?? "—").' '.($o['sign_title']?("(".h($o['sign_title']).")"):"").', '.h($o['sign_date'] ?? "—").'</td></tr>
+  </table></div>
+';
+
+// E-Signature Section with Compliance Notice
+$eSignName = $o['e_sign_name'] ?? $o['sign_name'] ?? '—';
+$eSignTitle = $o['e_sign_title'] ?? $o['sign_title'] ?? '—';
+$eSignDate = $o['e_sign_at'] ?? $o['sign_date'] ?? '—';
+$eSignIP = $o['e_sign_ip'] ?? '—';
+
+$sec_esignature = '
+  <h2>Electronic Signature</h2>
+  <div class="box" style="background:#f9fafb">
+    <table class="kv">
+      <tr><td class="key">Signed By</td><td><strong>'.h($eSignName).'</strong></td></tr>
+      <tr><td class="key">Title</td><td>'.h($eSignTitle).'</td></tr>
+      <tr><td class="key">Date & Time</td><td>'.h($eSignDate).'</td></tr>
+      <tr><td class="key">IP Address</td><td>'.h($eSignIP).'</td></tr>
+    </table>
+    <div style="margin-top:10px;padding:8px;background:#fff3cd;border:1px solid #ffc107;border-radius:4px;font-size:10px">
+      <strong>E-Signature Notice:</strong> By electronically signing this order, I certify that I am the prescribing physician or authorized representative,
+      and that this order is medically necessary and appropriate for this patient. This electronic signature has the same legal effect as a handwritten signature
+      in accordance with the ESIGN Act (15 U.S.C. § 7001) and applicable state law.
+    </div>
+  </div>
+';
+
+// Insurance Information Section
+$sec_insurance = '
+  <h2>Insurance Information</h2>
+  <div class="box"><table class="kv">
+    <tr><td class="key">Insurance Provider</td><td>'.h($o['insurance_provider'] ?? $o['insurer_name'] ?? "—").'</td></tr>
+    <tr><td class="key">Member ID</td><td>'.h($o['insurance_member_id'] ?? $o['member_id'] ?? "—").'</td></tr>
+    <tr><td class="key">Group ID</td><td>'.h($o['insurance_group_id'] ?? $o['group_id'] ?? "—").'</td></tr>
+    <tr><td class="key">Payer Phone</td><td>'.h($o['insurance_payer_phone'] ?? $o['payer_phone'] ?? "—").'</td></tr>
   </table></div>
 ';
 
@@ -112,14 +146,18 @@ $html = '
  .box{ border:1px solid #ccc; border-radius:8px; padding:10px; margin-bottom:10px; }
  table{ width:100%; border-collapse:collapse; }
  .kv td{ padding:4px 6px; vertical-align:top; }
- .kv td.key{ width:200px; color:#555; }
- .footer{ margin-top:18px; color:#666; font-size:10px; text-align:center; }
+ .kv td.key{ width:200px; color:#555; font-weight:500; }
+ .footer{ margin-top:18px; color:#666; font-size:10px; text-align:center; border-top:1px solid #ddd; padding-top:10px; }
  @media print { .no-print{ display:none } }
 </style></head><body>
   <h1>CollagenDirect — Physician Order</h1>
-  <div style="color:#666;font-size:11px;margin-bottom:8px">Generated: '.h($today).'</div>
-  '.$sec_patient.$sec_physician.$sec_wound.$sec_order.$sec_shipping.'
-  <div class="footer">This document contains PHI. Handle per HIPAA guidelines.</div>
+  <div style="color:#666;font-size:11px;margin-bottom:8px">Generated: '.h($today).' | Order #'.h($o['id']).'</div>
+  '.$sec_patient.$sec_insurance.$sec_physician.$sec_esignature.$sec_wound.$sec_order.$sec_shipping.'
+  <div class="footer">
+    <strong>CONFIDENTIAL:</strong> This document contains Protected Health Information (PHI).
+    Handle per HIPAA guidelines. Unauthorized disclosure is prohibited.<br>
+    CollagenDirect | Medical Wound Care Products | © '.date('Y').'
+  </div>
   <div class="no-print" style="margin-top:10px"><button onclick="window.print()">Print / Save as PDF</button></div>
 </body></html>';
 // Try Dompdf
