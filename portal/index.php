@@ -941,8 +941,8 @@ if ($action) {
       // Physicians can only send to CollagenDirect (all_admins)
       // This allows super admin, assigned employee, and manufacturer to view
       if ($userRole === 'physician' || $userRole === 'practice_admin') {
-        $recipient = 'collagendirect';
-      } elseif (!in_array($recipient, ['collagendirect', 'all_admins', 'manufacturer'])) {
+        $recipient = 'all_admins';
+      } elseif (!in_array($recipient, ['all_admins', 'manufacturer', 'admin'])) {
         jerr('Invalid recipient');
       }
 
@@ -2775,15 +2775,15 @@ if ($page==='logout'){
       <div class="dialog-body">
         <?php if ($userRole === 'physician' || $userRole === 'practice_admin'): ?>
         <!-- Physicians automatically send to CollagenDirect - no choice needed -->
-        <input type="hidden" id="compose-recipient" value="collagendirect">
+        <input type="hidden" id="compose-recipient" value="all_admins">
         <?php else: ?>
         <!-- Super admins and other roles can choose recipients -->
         <div style="margin-bottom: 1rem;">
           <label class="block text-sm font-medium mb-1">To</label>
           <select id="compose-recipient" class="w-full">
-            <option value="collagendirect">CollagenDirect Support Team</option>
+            <option value="all_admins">CollagenDirect Support Team</option>
             <option value="manufacturer">Manufacturer</option>
-            <option value="all_admins">All Administrators</option>
+            <option value="admin">Specific Administrator</option>
           </select>
           <div style="font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem;">
             Your message will be sent to the appropriate team
@@ -6876,7 +6876,7 @@ if (<?php echo json_encode($page === 'messages'); ?>) {
               subject: rootMessage.subject, // Will be prefixed with "Re:" server-side
               body: replyText,
               patient_id: rootMessage.patient_id || '',
-              recipient_type: 'collagendirect'
+              recipient_type: 'all_admins'
             })
           });
 
