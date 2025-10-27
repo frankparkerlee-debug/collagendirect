@@ -64,7 +64,7 @@ try {
           tracking_code,
           carrier
         ) VALUES (
-          NEW.id,
+          CAST(NEW.id AS INTEGER),  -- Cast VARCHAR to INTEGER
           OLD.status,
           NEW.status,
           NEW.reviewed_by,
