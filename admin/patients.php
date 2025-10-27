@@ -334,6 +334,15 @@ include __DIR__.'/_header.php';
                       </div>
                     </div>
                     <div>
+                      <h4 class="font-semibold mb-3">Insurance Information</h4>
+                      <div class="space-y-2">
+                        <div><span class="text-slate-600">Provider:</span> <?=e($row['insurance_provider'] ?? '—')?></div>
+                        <div><span class="text-slate-600">Member ID:</span> <?=e($row['insurance_member_id'] ?? '—')?></div>
+                        <div><span class="text-slate-600">Group ID:</span> <?=e($row['insurance_group_id'] ?? '—')?></div>
+                        <div><span class="text-slate-600">Payer Phone:</span> <?=e($row['insurance_payer_phone'] ?? '—')?></div>
+                      </div>
+                    </div>
+                    <div>
                       <h4 class="font-semibold mb-3">Documents</h4>
                       <div class="space-y-2">
                         <div><span class="text-slate-600">Notes:</span> <?=render_view_link($noteLinks)?></div>
@@ -380,10 +389,33 @@ include __DIR__.'/_header.php';
                         <div>
                           <label class="block text-slate-600 mb-1">Status</label>
                           <select name="state" class="w-full px-2 py-1 border rounded">
+                            <option value="new" <?=$status==='new'?'selected':''?>>New</option>
+                            <option value="approved" <?=$status==='approved'?'selected':''?>>Approved</option>
                             <option value="active" <?=$status==='active'?'selected':''?>>Active</option>
+                            <option value="no_coverage" <?=$status==='no_coverage'?'selected':''?>>No Coverage</option>
+                            <option value="benefits_expired" <?=$status==='benefits_expired'?'selected':''?>>Benefits Expired</option>
                             <option value="pending" <?=$status==='pending'?'selected':''?>>Pending</option>
                             <option value="inactive" <?=$status==='inactive'?'selected':''?>>Inactive</option>
                           </select>
+                        </div>
+                      </div>
+                      <div class="space-y-3">
+                        <h4 class="font-semibold mb-2">Insurance Information</h4>
+                        <div>
+                          <label class="block text-slate-600 mb-1">Insurance Provider</label>
+                          <input type="text" name="insurance_provider" value="<?=e($row['insurance_provider'] ?? '')?>" class="w-full px-2 py-1 border rounded" placeholder="e.g. Blue Cross Blue Shield">
+                        </div>
+                        <div>
+                          <label class="block text-slate-600 mb-1">Member ID</label>
+                          <input type="text" name="insurance_member_id" value="<?=e($row['insurance_member_id'] ?? '')?>" class="w-full px-2 py-1 border rounded">
+                        </div>
+                        <div>
+                          <label class="block text-slate-600 mb-1">Group ID</label>
+                          <input type="text" name="insurance_group_id" value="<?=e($row['insurance_group_id'] ?? '')?>" class="w-full px-2 py-1 border rounded">
+                        </div>
+                        <div>
+                          <label class="block text-slate-600 mb-1">Payer Phone</label>
+                          <input type="tel" name="insurance_payer_phone" value="<?=e($row['insurance_payer_phone'] ?? '')?>" class="w-full px-2 py-1 border rounded" placeholder="1-800-XXX-XXXX">
                         </div>
                       </div>
                     </div>

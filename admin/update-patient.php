@@ -36,6 +36,12 @@ try {
   $dob = trim($_POST['dob'] ?? '');
   $state = trim($_POST['state'] ?? 'pending');
 
+  // Insurance information
+  $insuranceProvider = trim($_POST['insurance_provider'] ?? '');
+  $insuranceMemberId = trim($_POST['insurance_member_id'] ?? '');
+  $insuranceGroupId = trim($_POST['insurance_group_id'] ?? '');
+  $insurancePayerPhone = trim($_POST['insurance_payer_phone'] ?? '');
+
   // Validate required fields
   if (!$firstName || !$lastName) {
     http_response_code(400);
@@ -79,6 +85,10 @@ try {
       phone = ?,
       dob = ?,
       state = ?,
+      insurance_provider = ?,
+      insurance_member_id = ?,
+      insurance_group_id = ?,
+      insurance_payer_phone = ?,
       updated_at = NOW()
     WHERE id = ?
   ";
@@ -91,6 +101,10 @@ try {
     $phone ?: null,
     $dob ?: null,
     $state,
+    $insuranceProvider ?: null,
+    $insuranceMemberId ?: null,
+    $insuranceGroupId ?: null,
+    $insurancePayerPhone ?: null,
     $patientId
   ]);
 
