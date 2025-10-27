@@ -101,22 +101,83 @@ try {
 }
 
 /* ---------- Revenue Dashboard ----------
-   Simplified revenue display for performance
+   Calculate actual revenue from orders with real data
 --------------------------------------------------- */
-// Use existing order counts from above
-$totalRevenue = $totalOrders * 150.0; // Estimate based on total orders
-$practiceRevenue = [
-  'Primary Care Associates' => $totalRevenue * 0.4,
-  'Metro Health Group' => $totalRevenue * 0.3,
-  'Community Medical' => $totalRevenue * 0.2,
-  'Family Practice Center' => $totalRevenue * 0.1
-];
-$productRevenue = [
-  'CollaGEN Plus 4x4' => $totalRevenue * 0.35,
-  'CollaGEN Plus 6x6' => $totalRevenue * 0.30,
-  'CollaGEN Matrix' => $totalRevenue * 0.25,
-  'CollaGEN Advanced' => $totalRevenue * 0.10
-];
+$totalRevenue = 0.0;
+$practiceRevenue = [];
+$productRevenue = [];
+
+try {
+  // Calculate total billed revenue from all orders
+  $revenueQuery = "
+    SELECT
+      o.id,
+      o.product_price,
+      o.frequency_per_week,
+      o.duration_days,
+      o.refills_allowed,
+      o.qty_per_change,
+      " . ($hasShipRem ? "o.shipments_remaining," : "0 AS shipments_remaining,") . "
+      u.practice_name,
+      " . ($hasProducts ? "pr.name AS product_name, pr.hcpcs_code AS cpt_code" : "'Unknown' AS product_name, '' AS cpt_code") . "
+    FROM orders o
+    LEFT JOIN users u ON u.id = o.user_id
+    " . ($hasProducts ? "LEFT JOIN products pr ON pr.id = o.product_id" : "") . "
+    WHERE o.status NOT IN ('rejected', 'cancelled', 'draft')
+  ";
+
+  foreach ($pdo->query($revenueQuery) as $order) {
+    // Calculate revenue per order
+    $fpw = (int)($order['frequency_per_week'] ?? 0);
+    if ($fpw <= 0) $fpw = patches_per_week($order['frequency'] ?? '');
+
+    $qty = max(1, (int)($order['qty_per_change'] ?? 1));
+    $days = max(0, (int)($order['duration_days'] ?? 0));
+    $refills = max(0, (int)($order['refills_allowed'] ?? 0));
+
+    $weeks = ($days > 0) ? (int)ceil($days / 7) : 4;
+    $total_weeks = $weeks * (1 + $refills);
+
+    // Use reimbursement rate if available
+    $unit_price = 0.0;
+    $cpt = $order['cpt_code'] ?? '';
+    if ($hasRates && $cpt && isset($rates[$cpt]) && $rates[$cpt] > 0) {
+      $unit_price = $rates[$cpt];
+    } else {
+      $unit_price = (float)($order['product_price'] ?? 0);
+    }
+
+    if ($unit_price <= 0) $unit_price = 150.0; // Conservative fallback
+
+    $patches_total = $fpw * $total_weeks * $qty;
+    $order_revenue = $unit_price * $patches_total;
+
+    $totalRevenue += $order_revenue;
+
+    // Group by practice
+    $practice = $order['practice_name'] ?: 'Independent Provider';
+    if (!isset($practiceRevenue[$practice])) {
+      $practiceRevenue[$practice] = 0.0;
+    }
+    $practiceRevenue[$practice] += $order_revenue;
+
+    // Group by product
+    $product = $order['product_name'] ?: 'Standard Product';
+    if (!isset($productRevenue[$product])) {
+      $productRevenue[$product] = 0.0;
+    }
+    $productRevenue[$product] += $order_revenue;
+  }
+
+  // Sort by revenue descending
+  arsort($practiceRevenue);
+  arsort($productRevenue);
+
+} catch (Throwable $e) {
+  error_log("[revenue-dashboard] " . $e->getMessage());
+  // Fallback to simple estimate if query fails
+  $totalRevenue = $totalOrders * 150.0;
+}
 
 /* ---------- Recent activity ---------- */
 $recent = [];
@@ -165,59 +226,125 @@ if ($adminRole === 'manufacturer' && has_table($pdo, 'notifications')) {
 include __DIR__.'/_header.php';
 ?>
 <div>
-  <div class="grid grid-cols-4 gap-4 mb-8">
-    <div class="bg-white border rounded-2xl p-4 shadow-soft">
-      <div class="text-xs text-slate-500">Total Orders</div>
-      <div class="text-2xl font-bold"><?=number_format($totalOrders)?></div>
-    </div>
-    <div class="bg-white border rounded-2xl p-4 shadow-soft">
-      <div class="text-xs text-slate-500">Pending Approvals</div>
-      <div class="text-2xl font-bold text-amber-600"><?=number_format($pendingApprovals)?></div>
-    </div>
-    <div class="bg-white border rounded-2xl p-4 shadow-soft">
-      <div class="text-xs text-slate-500">Active Patients</div>
-      <div class="text-2xl font-bold"><?=number_format($activePatients)?></div>
-    </div>
-    <div class="bg-white border rounded-2xl p-4 shadow-soft">
-      <div class="text-xs text-slate-500">Projected Remaining Revenue</div>
-      <div class="text-2xl font-bold text-brand">$<?=number_format($projectedRemaining,2)?></div>
-    </div>
+  <!-- Dashboard Tiles - Mobile Responsive Grid -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <!-- Total Orders Tile -->
+    <a href="/admin/orders.php" class="block bg-white border rounded-2xl p-4 shadow-soft hover:shadow-md transition-shadow cursor-pointer group">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-xs text-slate-500 mb-1">Total Orders</div>
+          <div class="text-2xl font-bold group-hover:text-brand transition-colors"><?=number_format($totalOrders)?></div>
+        </div>
+        <svg class="w-8 h-8 text-slate-300 group-hover:text-brand transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+        </svg>
+      </div>
+      <div class="text-xs text-slate-400 mt-2">Click to view all orders →</div>
+    </a>
+
+    <!-- Pending Approvals Tile -->
+    <a href="/admin/orders.php?status=pending" class="block bg-white border rounded-2xl p-4 shadow-soft hover:shadow-md transition-shadow cursor-pointer group">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-xs text-slate-500 mb-1">Pending Approvals</div>
+          <div class="text-2xl font-bold text-amber-600 group-hover:text-amber-700 transition-colors"><?=number_format($pendingApprovals)?></div>
+        </div>
+        <svg class="w-8 h-8 text-amber-300 group-hover:text-amber-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+      </div>
+      <div class="text-xs text-slate-400 mt-2">Review & approve →</div>
+    </a>
+
+    <!-- Active Patients Tile -->
+    <a href="/admin/patients.php?status=active" class="block bg-white border rounded-2xl p-4 shadow-soft hover:shadow-md transition-shadow cursor-pointer group">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-xs text-slate-500 mb-1">Active Patients</div>
+          <div class="text-2xl font-bold group-hover:text-brand transition-colors"><?=number_format($activePatients)?></div>
+        </div>
+        <svg class="w-8 h-8 text-slate-300 group-hover:text-brand transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+        </svg>
+      </div>
+      <div class="text-xs text-slate-400 mt-2">Manage patients →</div>
+    </a>
+
+    <!-- Projected Remaining Revenue Tile -->
+    <a href="/admin/billing.php" class="block bg-white border rounded-2xl p-4 shadow-soft hover:shadow-md transition-shadow cursor-pointer group relative">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-xs text-slate-500 mb-1 flex items-center gap-1">
+            Projected Remaining Revenue
+            <span class="inline-block w-3 h-3 rounded-full bg-slate-200 text-[10px] leading-3 text-center text-slate-600 cursor-help" title="Future billable revenue from active orders with remaining shipments">?</span>
+          </div>
+          <div class="text-2xl font-bold text-brand group-hover:text-blue-700 transition-colors">$<?=number_format($projectedRemaining,2)?></div>
+        </div>
+        <svg class="w-8 h-8 text-green-300 group-hover:text-green-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+      </div>
+      <div class="text-xs text-slate-400 mt-2">View billing →</div>
+      <div class="text-[10px] text-slate-400 mt-1">From <?=number_format($totalOrders)?> active orders</div>
+    </a>
   </div>
 
-  <div class="grid grid-cols-12 gap-6">
-    <section class="col-span-7 bg-white border rounded-2xl p-4">
+  <!-- Recent Activity and Reminders - Mobile Responsive -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <section class="lg:col-span-7 bg-white border rounded-2xl p-4">
       <h3 class="font-semibold mb-3">Recent Activity</h3>
-      <table class="w-full text-sm">
-        <thead class="border-b">
-          <tr class="text-left">
-            <th class="py-2">Patient</th>
-            <th class="py-2">Order</th>
-            <th class="py-2">Product</th>
-            <th class="py-2">Status</th>
-            <th class="py-2">Updated</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php foreach($recent as $r): ?>
-          <tr class="border-b hover:bg-slate-50">
-            <td class="py-3"><?=e(trim(($r['first_name']??'').' '.($r['last_name']??'')) ?: '—')?></td>
-            <td class="py-3"><a class="text-brand hover:underline" href="/admin/orders.php?focus=<?=e($r['id'])?>">#<?=e($r['id'])?></a></td>
-            <td class="py-3"><?=e($r['product'] ?? '')?></td>
-            <td class="py-3"><?=e(ucwords(str_replace('_',' ', $r['status'] ?? '')))?></td>
-            <td class="py-3"><?=e($r['ts'] ?? '')?></td>
-          </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="border-b">
+            <tr class="text-left">
+              <th class="py-2 px-2">Patient</th>
+              <th class="py-2 px-2">Order</th>
+              <th class="py-2 px-2 hidden sm:table-cell">Product</th>
+              <th class="py-2 px-2">Status</th>
+              <th class="py-2 px-2 hidden md:table-cell">Updated</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php foreach($recent as $r): ?>
+            <tr class="border-b hover:bg-slate-50">
+              <td class="py-3 px-2"><?=e(trim(($r['first_name']??'').' '.($r['last_name']??'')) ?: '—')?></td>
+              <td class="py-3 px-2"><a class="text-brand hover:underline" href="/admin/orders.php?focus=<?=e($r['id'])?>">#<?=e($r['id'])?></a></td>
+              <td class="py-3 px-2 hidden sm:table-cell text-xs"><?=e($r['product'] ?? '')?></td>
+              <td class="py-3 px-2">
+                <span class="inline-block px-2 py-1 text-xs rounded-full bg-slate-100">
+                  <?=e(ucwords(str_replace('_',' ', $r['status'] ?? '')))?>
+                </span>
+              </td>
+              <td class="py-3 px-2 hidden md:table-cell text-xs text-slate-600"><?=e($r['ts'] ?? '')?></td>
+            </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
     </section>
 
-    <aside class="col-span-5 bg-white border rounded-2xl p-4">
+    <aside class="lg:col-span-5 bg-white border rounded-2xl p-4">
       <h3 class="font-semibold mb-3">Reminders</h3>
-      <ul class="text-sm space-y-2">
-        <li><span class="font-medium">Pending Approvals:</span> <?=$pendingApprovals?></li>
-        <li><span class="font-medium">Orders expiring (7 days):</span> <?=$expiringOrders?></li>
-        <li><span class="font-medium">Shipments delayed (&gt; 7 days):</span> <?=$delayedShipments?></li>
-      </ul>
+      <div class="space-y-3">
+        <a href="/admin/orders.php?status=pending" class="block p-3 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-medium text-amber-900">Pending Approvals</span>
+            <span class="text-xl font-bold text-amber-600"><?=$pendingApprovals?></span>
+          </div>
+        </a>
+        <a href="/admin/orders.php?filter=expiring" class="block p-3 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-medium text-red-900">Orders Expiring (7 days)</span>
+            <span class="text-xl font-bold text-red-600"><?=$expiringOrders?></span>
+          </div>
+        </a>
+        <a href="/admin/shipments.php" class="block p-3 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-medium text-blue-900">Delayed Shipments (&gt;7 days)</span>
+            <span class="text-xl font-bold text-blue-600"><?=$delayedShipments?></span>
+          </div>
+        </a>
+      </div>
     </aside>
   </div>
 
