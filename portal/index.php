@@ -80,48 +80,101 @@ $action = $_GET['action'] ?? null;
 if ($action) {
 
   if ($action==='metrics'){
+    $productId = trim((string)($_GET['product_id'] ?? ''));
+    $dateRange = trim((string)($_GET['date_range'] ?? '3'));
+
+    // Build filter conditions
+    $dateFilter = '';
+    if ($dateRange !== 'all') {
+      $months = (int)$dateRange;
+      $dateFilter = " AND created_at >= (NOW() - INTERVAL '" . $months . " months')";
+    }
+
+    $productFilter = '';
+    $productArgs = [];
+    if ($productId !== '') {
+      $productFilter = " AND product_id = ?";
+      $productArgs[] = $productId;
+    }
+
     // Superadmins see all data, others see only their own
     if ($userRole === 'superadmin') {
-      $q=$pdo->query("SELECT COUNT(*) FROM patients"); $patients=(int)$q->fetchColumn();
-      $q=$pdo->query("SELECT COUNT(*) FROM orders WHERE status IN ('submitted','pending')"); $pending=(int)$q->fetchColumn();
-      $q=$pdo->query("SELECT COUNT(*) FROM orders WHERE status IN ('approved','active','shipped')"); $active=(int)$q->fetchColumn();
-      $q=$pdo->query("SELECT COUNT(*) FROM orders"); $total=(int)$q->fetchColumn();
+      // Count distinct patients with orders matching filters
+      $sql = "SELECT COUNT(DISTINCT patient_id) FROM orders WHERE 1=1" . $dateFilter . $productFilter;
+      $q = $pdo->prepare($sql); $q->execute($productArgs); $patients = (int)$q->fetchColumn();
+
+      $sql = "SELECT COUNT(*) FROM orders WHERE status IN ('submitted','pending')" . $dateFilter . $productFilter;
+      $q = $pdo->prepare($sql); $q->execute($productArgs); $pending = (int)$q->fetchColumn();
+
+      $sql = "SELECT COUNT(*) FROM orders WHERE status IN ('approved','active','shipped')" . $dateFilter . $productFilter;
+      $q = $pdo->prepare($sql); $q->execute($productArgs); $active = (int)$q->fetchColumn();
+
+      $sql = "SELECT COUNT(*) FROM orders WHERE 1=1" . $dateFilter . $productFilter;
+      $q = $pdo->prepare($sql); $q->execute($productArgs); $total = (int)$q->fetchColumn();
     } else {
-      $q=$pdo->prepare("SELECT COUNT(*) FROM patients WHERE user_id=?"); $q->execute([$userId]); $patients=(int)$q->fetchColumn();
-      $q=$pdo->prepare("SELECT COUNT(*) FROM orders WHERE user_id=? AND status IN ('submitted','pending')"); $q->execute([$userId]); $pending=(int)$q->fetchColumn();
-      $q=$pdo->prepare("SELECT COUNT(*) FROM orders WHERE user_id=? AND status IN ('approved','active','shipped')"); $q->execute([$userId]); $active=(int)$q->fetchColumn();
-      $q=$pdo->prepare("SELECT COUNT(*) FROM orders WHERE user_id=?"); $q->execute([$userId]); $total=(int)$q->fetchColumn();
+      $args = array_merge([$userId], $productArgs);
+
+      $sql = "SELECT COUNT(DISTINCT patient_id) FROM orders WHERE user_id=?" . $dateFilter . $productFilter;
+      $q = $pdo->prepare($sql); $q->execute($args); $patients = (int)$q->fetchColumn();
+
+      $sql = "SELECT COUNT(*) FROM orders WHERE user_id=? AND status IN ('submitted','pending')" . $dateFilter . $productFilter;
+      $q = $pdo->prepare($sql); $q->execute($args); $pending = (int)$q->fetchColumn();
+
+      $sql = "SELECT COUNT(*) FROM orders WHERE user_id=? AND status IN ('approved','active','shipped')" . $dateFilter . $productFilter;
+      $q = $pdo->prepare($sql); $q->execute($args); $active = (int)$q->fetchColumn();
+
+      $sql = "SELECT COUNT(*) FROM orders WHERE user_id=?" . $dateFilter . $productFilter;
+      $q = $pdo->prepare($sql); $q->execute($args); $total = (int)$q->fetchColumn();
     }
     jok(['metrics'=>['patients'=>$patients,'pending'=>$pending,'active_orders'=>$active,'total_orders'=>$total]]);
   }
 
   if ($action==='chart_data'){
-    // Get monthly patient and order counts for the last 12 months
+    $productId = trim((string)($_GET['product_id'] ?? ''));
+    $dateRange = trim((string)($_GET['date_range'] ?? '3'));
+
+    // Determine how many months to show based on date range
+    $numMonths = $dateRange === 'all' ? 12 : min(12, (int)$dateRange);
+
+    // Get monthly patient and order counts
     $months = [];
     $patientCounts = [];
     $orderCounts = [];
 
-    for ($i = 11; $i >= 0; $i--) {
+    $productFilter = '';
+    $productArgs = [];
+    if ($productId !== '') {
+      $productFilter = " AND product_id = ?";
+      $productArgs[] = $productId;
+    }
+
+    for ($i = $numMonths - 1; $i >= 0; $i--) {
       $monthStart = date('Y-m-01', strtotime("-$i months"));
       $monthEnd = date('Y-m-t', strtotime("-$i months"));
       $monthLabel = date('M', strtotime("-$i months"));
 
-      // Count patients created in this month - superadmins see all
+      // Count distinct patients with orders in this month
       if ($userRole === 'superadmin') {
-        $q = $pdo->prepare("SELECT COUNT(*) FROM patients WHERE created_at >= ? AND created_at <= ?");
-        $q->execute([$monthStart, $monthEnd . ' 23:59:59']);
+        $sql = "SELECT COUNT(DISTINCT patient_id) FROM orders WHERE created_at >= ? AND created_at <= ?" . $productFilter;
+        $args = array_merge([$monthStart, $monthEnd . ' 23:59:59'], $productArgs);
+        $q = $pdo->prepare($sql);
+        $q->execute($args);
         $patientCount = (int)$q->fetchColumn();
 
-        $q = $pdo->prepare("SELECT COUNT(*) FROM orders WHERE created_at >= ? AND created_at <= ?");
-        $q->execute([$monthStart, $monthEnd . ' 23:59:59']);
+        $sql = "SELECT COUNT(*) FROM orders WHERE created_at >= ? AND created_at <= ?" . $productFilter;
+        $q = $pdo->prepare($sql);
+        $q->execute($args);
         $orderCount = (int)$q->fetchColumn();
       } else {
-        $q = $pdo->prepare("SELECT COUNT(*) FROM patients WHERE user_id=? AND created_at >= ? AND created_at <= ?");
-        $q->execute([$userId, $monthStart, $monthEnd . ' 23:59:59']);
+        $sql = "SELECT COUNT(DISTINCT patient_id) FROM orders WHERE user_id=? AND created_at >= ? AND created_at <= ?" . $productFilter;
+        $args = array_merge([$userId, $monthStart, $monthEnd . ' 23:59:59'], $productArgs);
+        $q = $pdo->prepare($sql);
+        $q->execute($args);
         $patientCount = (int)$q->fetchColumn();
 
-        $q = $pdo->prepare("SELECT COUNT(*) FROM orders WHERE user_id=? AND created_at >= ? AND created_at <= ?");
-        $q->execute([$userId, $monthStart, $monthEnd . ' 23:59:59']);
+        $sql = "SELECT COUNT(*) FROM orders WHERE user_id=? AND created_at >= ? AND created_at <= ?" . $productFilter;
+        $q = $pdo->prepare($sql);
+        $q->execute($args);
         $orderCount = (int)$q->fetchColumn();
       }
 
@@ -4085,16 +4138,44 @@ function getInitials(first, last){
 
 /* Metrics (dashboard) */
 if (<?php echo json_encode($page==='dashboard'); ?>) {
-  (async()=>{ try{const m=await api('action=metrics'); $('#m-patients').textContent=m.metrics.patients; $('#m-pending').textContent=m.metrics.pending; $('#m-active').textContent=m.metrics.active_orders; $('#m-total').textContent=m.metrics.total_orders;}catch(e){} })();
+  let patientChart = null;
 
-  // Initialize Chart.js for patient growth visualization
-  const ctx = document.getElementById('patientChart');
-  if (ctx) {
-    // Fetch real chart data
-    (async () => {
-      try {
-        const chartData = await api('action=chart_data');
-        new Chart(ctx, {
+  // Load metrics with filters
+  async function loadMetrics(productId = '', dateRange = '3') {
+    try {
+      let url = 'action=metrics';
+      if (productId) url += '&product_id=' + encodeURIComponent(productId);
+      if (dateRange) url += '&date_range=' + encodeURIComponent(dateRange);
+
+      const m = await api(url);
+      $('#m-patients').textContent = m.metrics.patients;
+      $('#m-pending').textContent = m.metrics.pending;
+      $('#m-active').textContent = m.metrics.active_orders;
+      $('#m-total').textContent = m.metrics.total_orders;
+    } catch(e) {
+      console.error('Failed to load metrics:', e);
+    }
+  }
+
+  // Load chart with filters
+  async function loadChart(productId = '', dateRange = '3') {
+    try {
+      let url = 'action=chart_data';
+      if (productId) url += '&product_id=' + encodeURIComponent(productId);
+      if (dateRange) url += '&date_range=' + encodeURIComponent(dateRange);
+
+      const chartData = await api(url);
+
+      const ctx = document.getElementById('patientChart');
+      if (!ctx) return;
+
+      // Destroy existing chart if it exists
+      if (patientChart) {
+        patientChart.destroy();
+      }
+
+      // Create new chart
+      patientChart = new Chart(ctx, {
           type: 'line',
           data: {
             labels: chartData.chart.months,
@@ -4195,12 +4276,15 @@ if (<?php echo json_encode($page==='dashboard'); ?>) {
           mode: 'index'
         }
       }
-        });
-      } catch (error) {
-        console.error('Failed to load chart data:', error);
-      }
-    })();
+      });
+    } catch (error) {
+      console.error('Failed to load chart data:', error);
+    }
   }
+
+  // Initial load
+  loadMetrics('', '3');
+  loadChart('', '3');
 }
 
 /* Helper functions are now defined at the top of the script block */
@@ -4522,6 +4606,8 @@ if (<?php echo json_encode($page==='dashboard'); ?>){
     const productId = productFilter ? productFilter.value : '';
     const dateRange = dateFilter ? dateFilter.value : '3';
     loadPatients(q, productId, dateRange);
+    loadMetrics(productId, dateRange);
+    loadChart(productId, dateRange);
   }
 
   // Add event listeners
