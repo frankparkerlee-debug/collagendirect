@@ -5,7 +5,7 @@ require_admin();
 require_once __DIR__ . '/../api/lib/provider_welcome.php'; // Email notifications
 
 $admin = current_admin();
-$isOwner = in_array(($admin['role'] ?? ''), ['owner','superadmin','admin','practice_admin']); // practice_admin sees all physicians too
+$isOwner = in_array(($admin['role'] ?? ''), ['owner','superadmin','admin','practice_admin','manufacturer']); // Manufacturer has same rights as superadmin
 $tab = $_GET['tab'] ?? 'physicians';
 $msg='';
 
@@ -113,6 +113,24 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
   if ($act==='map_phys' && !$isOwner && ($admin['role'] ?? '') !== 'practice_admin') {
     $pdo->prepare("INSERT IGNORE INTO admin_physicians(admin_id, physician_user_id) VALUES(?,?)")->execute([$admin['id'], $_POST['phys_id']]);
     $msg='Physician assigned to you';
+  }
+  if ($act==='assign_physicians' && $isOwner) {
+    $empId = (int)$_POST['employee_id'];
+    $physicians = $_POST['physicians'] ?? [];
+
+    // Clear existing assignments
+    $pdo->prepare("DELETE FROM admin_physicians WHERE admin_id = ?")->execute([$empId]);
+
+    // Add new assignments
+    $assigned = 0;
+    foreach ($physicians as $physId) {
+      $pdo->prepare("INSERT INTO admin_physicians(admin_id, physician_user_id, created_at) VALUES(?,?,NOW())")
+          ->execute([$empId, $physId]);
+      $assigned++;
+    }
+
+    $msg = "Assigned $assigned physician(s) to employee";
+    $tab = 'employees';
   }
   header('Location: /admin/users.php?tab='.$tab); exit;
 }
@@ -272,6 +290,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 <input type="password" name="newpw" class="border rounded px-2 py-0.5 text-xs" placeholder="New pw" required>
                 <button class="text-brand text-xs">Reset PW</button>
               </form>
+              <button onclick="showAssignDialog(<?=$e['id']?>, '<?=e($e['name'])?>')" class="text-blue-600 text-xs">Assign Physicians</button>
               <form method="post" class="inline" onsubmit="return confirm('Delete employee?')"><?=csrf_field()?>
                 <input type="hidden" name="action" value="delete_emp"><input type="hidden" name="emp_id" value="<?=$e['id']?>">
                 <button class="text-rose-600 text-xs">Delete</button>
@@ -360,5 +379,126 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
   </div>
 <?php endif; ?>
 </div>
+
+<!-- Physician Assignment Dialog -->
+<dialog id="assign-dialog" class="rounded-lg shadow-lg p-0" style="max-width: 600px; width: 90%;">
+  <form method="post" class="p-6">
+    <?=csrf_field()?>
+    <input type="hidden" name="action" value="assign_physicians">
+    <input type="hidden" name="employee_id" id="assign-employee-id">
+
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-xl font-semibold">Assign Physicians to <span id="assign-employee-name"></span></h2>
+      <button type="button" onclick="document.getElementById('assign-dialog').close()" class="text-slate-400 hover:text-slate-600">
+        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+
+    <div class="mb-4 text-sm text-slate-600">
+      Select which physicians this employee can access. They will only see patients and orders from these physicians.
+    </div>
+
+    <div class="border rounded p-3 max-h-96 overflow-y-auto mb-4">
+      <div class="mb-2">
+        <label class="flex items-center">
+          <input type="checkbox" id="select-all-physicians" onchange="toggleAllPhysicians()">
+          <span class="ml-2 font-semibold">Select All</span>
+        </label>
+      </div>
+      <div class="border-t pt-2">
+        <?php
+        // Get all physicians for assignment
+        $allPhysicians = $pdo->query("
+          SELECT id, first_name, last_name, email, practice_name, role
+          FROM users
+          WHERE role IN ('physician', 'practice_admin')
+          ORDER BY first_name, last_name
+        ")->fetchAll();
+
+        foreach ($allPhysicians as $p):
+        ?>
+        <label class="flex items-center py-2 hover:bg-slate-50 px-2 rounded">
+          <input type="checkbox" name="physicians[]" value="<?=e($p['id'])?>" class="physician-checkbox" data-employee-id="">
+          <span class="ml-2 text-sm">
+            <?=e($p['first_name'])?> <?=e($p['last_name'])?>
+            <?php if ($p['practice_name']): ?>
+              <span class="text-slate-500">(<?=e($p['practice_name'])?>)</span>
+            <?php endif; ?>
+            <span class="text-xs text-slate-400"><?=e($p['email'])?></span>
+          </span>
+        </label>
+        <?php endforeach; ?>
+      </div>
+    </div>
+
+    <div class="flex justify-end gap-3">
+      <button type="button" onclick="document.getElementById('assign-dialog').close()" class="btn">Cancel</button>
+      <button type="submit" class="btn btn-primary">Save Assignments</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+// Store physician assignments data
+const physicianAssignments = <?php
+  $assignments = [];
+  $stmt = $pdo->query("
+    SELECT admin_id, physician_user_id
+    FROM admin_physicians
+  ");
+  while ($row = $stmt->fetch()) {
+    if (!isset($assignments[$row['admin_id']])) {
+      $assignments[$row['admin_id']] = [];
+    }
+    $assignments[$row['admin_id']][] = $row['physician_user_id'];
+  }
+  echo json_encode($assignments);
+?>;
+
+function showAssignDialog(employeeId, employeeName) {
+  document.getElementById('assign-employee-id').value = employeeId;
+  document.getElementById('assign-employee-name').textContent = employeeName;
+
+  // Uncheck all first
+  document.querySelectorAll('.physician-checkbox').forEach(cb => {
+    cb.checked = false;
+  });
+
+  // Check currently assigned physicians
+  const assigned = physicianAssignments[employeeId] || [];
+  assigned.forEach(physId => {
+    const checkbox = document.querySelector(`.physician-checkbox[value="${physId}"]`);
+    if (checkbox) checkbox.checked = true;
+  });
+
+  // Update select all state
+  updateSelectAllState();
+
+  document.getElementById('assign-dialog').showModal();
+}
+
+function toggleAllPhysicians() {
+  const selectAll = document.getElementById('select-all-physicians');
+  document.querySelectorAll('.physician-checkbox').forEach(cb => {
+    cb.checked = selectAll.checked;
+  });
+}
+
+function updateSelectAllState() {
+  const checkboxes = document.querySelectorAll('.physician-checkbox');
+  const checked = document.querySelectorAll('.physician-checkbox:checked');
+  const selectAll = document.getElementById('select-all-physicians');
+  selectAll.checked = checkboxes.length === checked.length;
+}
+
+// Update select all state when individual checkboxes change
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.physician-checkbox').forEach(cb => {
+    cb.addEventListener('change', updateSelectAllState);
+  });
+});
+</script>
 
 <?php include __DIR__ . '/_footer.php'; ?>
