@@ -163,19 +163,23 @@ if ($action) {
 
   if ($action==='patients'){
     $q=trim((string)($_GET['q']??'')); $limit=max(1,min(300,(int)($_GET['limit']??100))); $offset=max(0,(int)($_GET['offset']??0));
+    $productId = trim((string)($_GET['product_id'] ?? ''));
+    $dateRange = trim((string)($_GET['date_range'] ?? '3')); // Default to 3 months
 
     // Superadmins see all patients
     if ($userRole === 'superadmin') {
       $args = [];
       $join = "LEFT JOIN (
-          SELECT o1.patient_id,o1.status,o1.shipments_remaining,o1.created_at
+          SELECT o1.patient_id,o1.status,o1.shipments_remaining,o1.created_at,o1.product_id
           FROM orders o1
           JOIN (SELECT patient_id,MAX(created_at) m FROM orders GROUP BY patient_id) last
             ON last.patient_id=o1.patient_id AND last.m=o1.created_at
         ) lo ON lo.patient_id=p.id";
-      $sql = "SELECT p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.state,p.zip,p.mrn,
+      $sql = "SELECT DISTINCT p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.state,p.zip,p.mrn,
                    lo.status last_status,lo.shipments_remaining last_remaining
-            FROM patients p $join
+            FROM patients p
+            INNER JOIN orders o ON o.patient_id = p.id
+            $join
             WHERE 1=1";
     }
     // Practice admins can only see patients from their practice physicians
@@ -201,29 +205,33 @@ if ($action) {
       $args = array_merge($physicianIds, $physicianIds, $physicianIds);
 
       $join = "LEFT JOIN (
-          SELECT o1.patient_id,o1.status,o1.shipments_remaining,o1.created_at
+          SELECT o1.patient_id,o1.status,o1.shipments_remaining,o1.created_at,o1.product_id
           FROM orders o1
           JOIN (SELECT patient_id,MAX(created_at) m FROM orders WHERE user_id IN ($placeholders) GROUP BY patient_id) last
             ON last.patient_id=o1.patient_id AND last.m=o1.created_at
           WHERE o1.user_id IN ($placeholders)
         ) lo ON lo.patient_id=p.id";
-      $sql = "SELECT p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.state,p.zip,p.mrn,
+      $sql = "SELECT DISTINCT p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.state,p.zip,p.mrn,
                    lo.status last_status,lo.shipments_remaining last_remaining
-            FROM patients p $join
+            FROM patients p
+            INNER JOIN orders o ON o.patient_id = p.id
+            $join
             WHERE p.user_id IN ($placeholders)";
     } else {
       // Regular physicians only see their own patients
       $args = [$userId, $userId, $userId];
       $join = "LEFT JOIN (
-          SELECT o1.patient_id,o1.status,o1.shipments_remaining,o1.created_at
+          SELECT o1.patient_id,o1.status,o1.shipments_remaining,o1.created_at,o1.product_id
           FROM orders o1
           JOIN (SELECT patient_id,MAX(created_at) m FROM orders WHERE user_id=? GROUP BY patient_id) last
             ON last.patient_id=o1.patient_id AND last.m=o1.created_at
           WHERE o1.user_id=?
         ) lo ON lo.patient_id=p.id";
-      $sql = "SELECT p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.state,p.zip,p.mrn,
+      $sql = "SELECT DISTINCT p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.state,p.zip,p.mrn,
                    lo.status last_status,lo.shipments_remaining last_remaining
-            FROM patients p $join
+            FROM patients p
+            INNER JOIN orders o ON o.patient_id = p.id
+            $join
             WHERE p.user_id=?";
     }
 
@@ -232,6 +240,20 @@ if ($action) {
       $sql.=" AND (p.first_name LIKE ? OR p.last_name LIKE ? OR p.phone LIKE ? OR p.email LIKE ? OR p.mrn LIKE ?)";
       array_push($args,$like,$like,$like,$like,$like);
     }
+
+    // Filter by product
+    if ($productId !== '') {
+      $sql .= " AND o.product_id = ?";
+      $args[] = $productId;
+    }
+
+    // Filter by date range
+    if ($dateRange !== 'all') {
+      $months = (int)$dateRange;
+      $sql .= " AND o.created_at >= DATE_SUB(NOW(), INTERVAL ? MONTH)";
+      $args[] = $months;
+    }
+
     $sql.=" ORDER BY p.updated_at DESC,p.created_at DESC LIMIT $limit OFFSET $offset";
     $st=$pdo->prepare($sql); $st->execute($args);
     jok(['rows'=>$st->fetchAll(PDO::FETCH_ASSOC)]);
@@ -2555,11 +2577,15 @@ if ($page==='logout'){
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-semibold" style="color: var(--ink);">Patients list</h3>
       <div class="flex gap-2 items-center">
-        <input type="text" id="dashboard-search" class="w-64" placeholder="Search patients..." style="display: none;">
-        <select id="dashboard-status-filter" class="text-sm" style="display: none;">
-          <option value="">All Status</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
+        <input type="text" id="dashboard-search" class="w-64" placeholder="Search patients...">
+        <select id="dashboard-product-filter" class="text-sm">
+          <option value="">All Products</option>
+        </select>
+        <select id="dashboard-date-filter" class="text-sm">
+          <option value="3">Last 3 months</option>
+          <option value="6">Last 6 months</option>
+          <option value="12">Last 12 months</option>
+          <option value="all">All time</option>
         </select>
         <button class="btn btn-outline" id="btn-dashboard-filter">
           <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
@@ -4406,7 +4432,14 @@ function formatTimeAgo(dateString) {
 /* DASHBOARD table (view-only) */
 if (<?php echo json_encode($page==='dashboard'); ?>){
   let rows=[];
-  async function loadPatients(q=''){ const res=await api('action=patients&limit=50&q='+encodeURIComponent(q)); rows=res.rows||[]; render(); }
+  async function loadPatients(q='', productId='', dateRange='3'){
+    let url = 'action=patients&limit=50&q='+encodeURIComponent(q);
+    if (productId) url += '&product_id=' + encodeURIComponent(productId);
+    if (dateRange) url += '&date_range=' + encodeURIComponent(dateRange);
+    const res = await api(url);
+    rows = res.rows||[];
+    render();
+  }
   function render(){
     const tb=$('#patients-tbody'); tb.innerHTML='';
     if(!rows.length){
@@ -4453,40 +4486,53 @@ if (<?php echo json_encode($page==='dashboard'); ?>){
         </tr>`);
     }
   }
-  loadPatients('');
 
-  // Dashboard filter toggle
-  const filterBtn = $('#btn-dashboard-filter');
-  const searchInput = $('#dashboard-search');
-  const statusFilter = $('#dashboard-status-filter');
-  let filterVisible = false;
-
-  if (filterBtn) {
-    filterBtn.addEventListener('click', () => {
-      filterVisible = !filterVisible;
-      searchInput.style.display = filterVisible ? 'block' : 'none';
-      statusFilter.style.display = filterVisible ? 'block' : 'none';
-      if (filterVisible) {
-        searchInput.focus();
-      } else {
-        searchInput.value = '';
-        statusFilter.value = '';
-        loadPatients('');
+  // Load products into dropdown
+  async function loadProducts() {
+    try {
+      const res = await api('action=products.list');
+      const products = res.rows || [];
+      const productFilter = $('#dashboard-product-filter');
+      if (productFilter) {
+        products.forEach(p => {
+          const option = document.createElement('option');
+          option.value = p.id;
+          option.textContent = p.name + (p.size ? ' ' + p.size : '');
+          productFilter.appendChild(option);
+        });
       }
-    });
+    } catch (e) {
+      console.error('Failed to load products:', e);
+    }
   }
 
+  loadProducts();
+  loadPatients('', '', '3'); // Default to 3 months
+
+  // Filter elements
+  const searchInput = $('#dashboard-search');
+  const productFilter = $('#dashboard-product-filter');
+  const dateFilter = $('#dashboard-date-filter');
+
+  // Apply filters function
+  function applyFilters() {
+    const q = searchInput ? searchInput.value : '';
+    const productId = productFilter ? productFilter.value : '';
+    const dateRange = dateFilter ? dateFilter.value : '3';
+    loadPatients(q, productId, dateRange);
+  }
+
+  // Add event listeners
   if (searchInput) {
-    searchInput.addEventListener('input', (e) => {
-      loadPatients(e.target.value);
-    });
+    searchInput.addEventListener('input', applyFilters);
   }
 
-  if (statusFilter) {
-    statusFilter.addEventListener('change', (e) => {
-      // For now, just reload - could add status filtering to API
-      loadPatients(searchInput.value);
-    });
+  if (productFilter) {
+    productFilter.addEventListener('change', applyFilters);
+  }
+
+  if (dateFilter) {
+    dateFilter.addEventListener('change', applyFilters);
   }
 
   // Dashboard export to CSV
