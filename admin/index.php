@@ -269,15 +269,26 @@ include __DIR__.'/_header.php';
       </div>
 
       <div class="grid grid-cols-2 gap-6">
-        <!-- Practice Revenue Breakdown -->
+        <!-- Practice Revenue Breakdown with Bar Chart -->
         <div>
           <h4 class="font-semibold mb-3 text-sm">Practice Revenue (Top 5)</h4>
           <?php if (!empty($practiceRevenue)): ?>
-            <div class="space-y-2">
+            <?php
+              $maxPracticeRev = max($practiceRevenue);
+            ?>
+            <div class="space-y-3">
               <?php foreach ($practiceRevenue as $practice => $revenue): ?>
-                <div class="flex items-center justify-between text-sm pb-2 border-b">
-                  <span class="text-slate-700 truncate max-w-[250px]" title="<?=e($practice)?>"><?=e($practice)?></span>
-                  <span class="font-medium text-brand whitespace-nowrap ml-2">$<?=number_format($revenue, 2)?></span>
+                <?php
+                  $percentage = $maxPracticeRev > 0 ? ($revenue / $maxPracticeRev) * 100 : 0;
+                ?>
+                <div>
+                  <div class="flex items-center justify-between text-xs mb-1">
+                    <span class="text-slate-700 truncate max-w-[200px]" title="<?=e($practice)?>"><?=e($practice)?></span>
+                    <span class="font-medium text-brand">$<?=number_format($revenue, 0)?></span>
+                  </div>
+                  <div class="w-full bg-slate-200 rounded-full h-2.5">
+                    <div class="bg-gradient-to-r from-brand to-green-600 h-2.5 rounded-full transition-all duration-500" style="width: <?=number_format($percentage, 1)?>%"></div>
+                  </div>
                 </div>
               <?php endforeach; ?>
             </div>
@@ -286,15 +297,26 @@ include __DIR__.'/_header.php';
           <?php endif; ?>
         </div>
 
-        <!-- Product Revenue Breakdown -->
+        <!-- Product Revenue Breakdown with Bar Chart -->
         <div>
           <h4 class="font-semibold mb-3 text-sm">Product Revenue (Top 5)</h4>
           <?php if (!empty($productRevenue)): ?>
-            <div class="space-y-2">
+            <?php
+              $maxProductRev = max($productRevenue);
+            ?>
+            <div class="space-y-3">
               <?php foreach ($productRevenue as $product => $revenue): ?>
-                <div class="flex items-center justify-between text-sm pb-2 border-b">
-                  <span class="text-slate-700 truncate max-w-[250px]" title="<?=e($product)?>"><?=e($product)?></span>
-                  <span class="font-medium text-blue-600 whitespace-nowrap ml-2">$<?=number_format($revenue, 2)?></span>
+                <?php
+                  $percentage = $maxProductRev > 0 ? ($revenue / $maxProductRev) * 100 : 0;
+                ?>
+                <div>
+                  <div class="flex items-center justify-between text-xs mb-1">
+                    <span class="text-slate-700 truncate max-w-[200px]" title="<?=e($product)?>"><?=e($product)?></span>
+                    <span class="font-medium text-blue-600">$<?=number_format($revenue, 0)?></span>
+                  </div>
+                  <div class="w-full bg-slate-200 rounded-full h-2.5">
+                    <div class="bg-gradient-to-r from-blue-500 to-blue-700 h-2.5 rounded-full transition-all duration-500" style="width: <?=number_format($percentage, 1)?>%"></div>
+                  </div>
                 </div>
               <?php endforeach; ?>
             </div>
