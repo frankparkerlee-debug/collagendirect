@@ -176,6 +176,7 @@ if ($action) {
             ON last.patient_id=o1.patient_id AND last.m=o1.created_at
         ) lo ON lo.patient_id=p.id";
       $sql = "SELECT DISTINCT p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.state,p.zip,p.mrn,
+                   p.updated_at,p.created_at,
                    lo.status last_status,lo.shipments_remaining last_remaining
             FROM patients p
             INNER JOIN orders o ON o.patient_id = p.id
@@ -212,6 +213,7 @@ if ($action) {
           WHERE o1.user_id IN ($placeholders)
         ) lo ON lo.patient_id=p.id";
       $sql = "SELECT DISTINCT p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.state,p.zip,p.mrn,
+                   p.updated_at,p.created_at,
                    lo.status last_status,lo.shipments_remaining last_remaining
             FROM patients p
             INNER JOIN orders o ON o.patient_id = p.id
@@ -228,6 +230,7 @@ if ($action) {
           WHERE o1.user_id=?
         ) lo ON lo.patient_id=p.id";
       $sql = "SELECT DISTINCT p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.state,p.zip,p.mrn,
+                   p.updated_at,p.created_at,
                    lo.status last_status,lo.shipments_remaining last_remaining
             FROM patients p
             INNER JOIN orders o ON o.patient_id = p.id
@@ -4489,7 +4492,7 @@ if (<?php echo json_encode($page==='dashboard'); ?>){
   // Load products into dropdown
   async function loadProducts() {
     try {
-      const res = await api('action=products.list');
+      const res = await api('action=products');
       const products = res.rows || [];
       const productFilter = $('#dashboard-product-filter');
       if (productFilter) {
