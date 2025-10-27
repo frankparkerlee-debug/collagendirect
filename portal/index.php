@@ -247,11 +247,10 @@ if ($action) {
       $args[] = $productId;
     }
 
-    // Filter by date range
+    // Filter by date range (PostgreSQL syntax)
     if ($dateRange !== 'all') {
       $months = (int)$dateRange;
-      $sql .= " AND o.created_at >= DATE_SUB(NOW(), INTERVAL ? MONTH)";
-      $args[] = $months;
+      $sql .= " AND o.created_at >= (NOW() - INTERVAL '" . $months . " months')";
     }
 
     $sql.=" ORDER BY p.updated_at DESC,p.created_at DESC LIMIT $limit OFFSET $offset";
