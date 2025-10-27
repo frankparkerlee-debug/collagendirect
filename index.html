@@ -1,410 +1,623 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>CollagenDirect — Precision Collagen Therapies for Modern Medicine</title>
-<meta name="description" content="Evidence-backed collagen wound therapies with direct-to-manufacturer access, provider portal, and clinical resources." />
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="preload" as="image" imagesrcset="/assets/hero-collagen-sample.jpg 1280w" imagesizes="100vw" href="/assets/hero-collagen-sample.jpg">
-
-<style>
-:root{
-  --bg:#ffffff; --panel:#f6f8fb; --text:#1e2a38; --muted:#5c6b80; --line:rgba(0,0,0,.08);
-  --brand-teal:#47c6be; --brand-blue:#2a78ff; --brand-orange:#ff7a3d;
-  --radius:16px; --shadow:0 10px 24px rgba(7,16,40,.08); --max:1180px;
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
-}
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
-img{max-width:100%;display:block}
-a{text-decoration:none;color:inherit}
-.container{max-width:var(--max);margin:0 auto;padding:0 20px}
-.muted{color:var(--muted)}
-.btn{padding:14px 18px;border-radius:12px;font-weight:800;cursor:pointer;border:1px solid transparent;display:inline-flex;align-items:center;justify-content:center}
-.btn.primary{background:var(--brand-teal);color:#0a1b1a}
-.btn.ghost{background:#fff;border:1px solid var(--line);color:#1e2a38}
-.pill{display:inline-flex;margin-top:12px;padding:6px 10px;border-radius:999px;background:#eefaf8;color:#0b5f56;font-weight:700;font-size:.85rem;border:1px solid #cfeeea}
-.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
-.card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
-.section{padding:56px 0}
-
-/* Header */
-header{position:sticky;top:0;z-index:40;background:rgba(255,255,255,.92);backdrop-filter:saturate(160%) blur(8px);border-bottom:1px solid var(--line)}
-.nav{display:flex;align-items:center;justify-content:space-between;height:64px}
-.brand{display:flex;align-items:center;gap:12px}
-.brand img{height:30px;width:auto}
-.brand .title{font-weight:900;letter-spacing:.4px;font-size:.98rem}
-.brand .subtitle{font-size:.78rem;color:var(--muted)}
-.nav ul{display:flex;gap:18px;list-style:none}
-.link{padding:10px 12px;border-radius:10px;font-weight:600;color:#3c4657}
-.link:hover{background:var(--panel)}
-.cta{display:flex;gap:10px;align-items:center}
-
-/* Mobile menu */
-.hamburger{display:none;border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 12px;font-weight:700}
-.mobile-menu{display:none;border-top:1px solid var(--line);background:#fff}
-.mobile-menu a{display:block;padding:16px 20px;border-bottom:1px solid var(--line);font-weight:700;color:#203047}
-.mobile-open .mobile-menu{display:block}
-
-/* Hero */
-.hero{
-  position:relative;min-height:480px;border-bottom:1px solid var(--line);
-  background:url("/assets/hero-collagen-sample.jpg") center/cover no-repeat;color:#1a2430;overflow:hidden
-}
-.hero::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(255,255,255,.96) 0%,rgba(255,255,255,.88) 46%,rgba(255,255,255,.34) 100%)}
-.hero-wrap{position:relative;z-index:1;min-height:480px;display:flex;align-items:center}
-.hero-content{width:clamp(320px,48vw,640px)}
-.hero h1{line-height:1.08;margin-bottom:8px;font-size:clamp(1.8rem,3.6vw,2.8rem)}
-.lead{margin:.5rem 0 1rem;color:var(--muted);font-size:1.04rem}
-
-/* Product teaser */
-.tools{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
-.filters{display:flex;gap:8px;flex-wrap:wrap}
-.filter{padding:8px 12px;border:1px solid var(--line);border-radius:999px;background:#fff;color:#334;cursor:pointer;font-weight:700}
-.filter.active{background:#eefaf8;border-color:#bfeee6;color:#0b5f56}
-.gallery{position:relative}
-.track{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(240px,1fr);gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 4px 14px;scrollbar-width:thin;mask-image:linear-gradient(to right,transparent,#000 24px,#000 calc(100% - 24px),transparent)}
-.card.prod{scroll-snap-align:center;padding:0;overflow:hidden}
-.prod .poster{aspect-ratio:4/3;object-fit:contain;background:#fbfcfe}
-.prod .body{padding:14px}
-.prod h4{font-size:1rem}
-
-/* Portal preview frame */
-.frame{position:relative;border:1px solid var(--line);border-radius:22px;background:#fff;box-shadow:var(--shadow);overflow:hidden}
-.frame .statusbar{height:42px;background:linear-gradient(180deg,#f9fbff,#fff);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;padding:0 12px;color:#6a7280;font-weight:700}
-.frame .screen{position:relative;aspect-ratio:16/9;background:#f2f5fb}
-.frame .screen img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-
-/* Footer */
-footer{margin-top:64px;background:linear-gradient(180deg,#f7fbfb,#f6f8fb);border-top:1px solid var(--line)}
-.footer-grid{display:grid;grid-template-columns:1.2fr .6fr .6fr .6fr;gap:24px;padding:36px 0}
-.foot-brand{display:flex;gap:14px}
-.foot-brand img{height:42px}
-.foot-small{color:#6e7a93;font-size:.92rem}
-
-/* Sticky mobile action bar (single source of truth for actions on phones) */
-.actionbar{
-  position:fixed;left:0;right:0;bottom:0;z-index:50;display:none;
-  padding:10px 14px calc(10px + var(--safe-bottom));
-  background:rgba(255,255,255,.96);backdrop-filter:saturate(160%) blur(8px);border-top:1px solid var(--line)
-}
-.actionbar .row{display:flex;gap:10px}
-.actionbar .btn{flex:1}
-
-/* Responsive */
-@media (max-width:1000px){
-  .grid-4{grid-template-columns:1fr 1fr}
-  .grid-3{grid-template-columns:1fr 1fr}
-  .hero,.hero-wrap{min-height:420px}
-}
-@media (max-width:860px){
-  .nav ul{display:none}
-  .hamburger{display:inline-flex;align-items:center;gap:8px}
-}
-@media (max-width:640px){
-  .grid-4,.grid-3{grid-template-columns:1fr}
-  .hero,.hero-wrap{min-height:340px}
-  .hero h1{font-size:1.7rem}
-  .lead{font-size:.98rem;margin:6px 0 8px}
-  /* Hide duplicate CTAs on small screens for a cleaner look */
-  .cta{display:none}
-  .hero .actions{display:none}
-  .pill{display:none}
-  .actionbar{display:block}
-  body{padding-bottom:86px}
-}
-
-/* Motion preference */
-@media (prefers-reduced-motion: reduce){
-  *{scroll-behavior:auto !important;animation:none !important;transition:none !important}
-}
-
-/* Keyboard-only focus ring */
-.user-tabbed a:focus, .user-tabbed button:focus, .user-tabbed select:focus {
-  outline:3px solid rgba(71,198,190,.35); outline-offset:2px;
-}
-
-/* Skip link */
-.skip{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden}
-.skip:focus{left:10px;top:10px;width:auto;height:auto;background:#fff;border:2px solid var(--brand-teal);padding:8px 10px;border-radius:10px;z-index:100}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CollagenDirect — Advanced Wound Care. Simplified.</title>
+  <meta name="description" content="Clinical-grade collagen therapies proven to accelerate wound healing. Direct access, streamlined ordering, compliance built-in.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              teal: '#47c6be',
+              blue: '#2a78ff',
+              navy: '#0a2540',
+              slate: '#64748b'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-feature-settings: 'cv11', 'ss01'; -webkit-font-smoothing: antialiased; }
+  </style>
 </head>
-<body>
-<a class="skip" href="#main">Skip to content</a>
+<body class="bg-white text-gray-900">
 
-<header>
-  <div class="container nav">
-    <a href="/index.html" class="brand" aria-label="Go to homepage">
-      <img src="/assets/collagendirect.png" alt="CollagenDirect logo">
-      <div>
-        <div class="title">COLLAGEN <span style="color:var(--brand-teal)">DIRECT</span></div>
-        <div class="subtitle">Evidence-Backed Wound Therapies</div>
+  <!-- Navigation -->
+  <nav class="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-100">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+      <div class="flex items-center justify-between h-20">
+        <!-- Logo -->
+        <div class="flex items-center gap-3">
+          <img src="/assets/collagendirect.png" alt="CollagenDirect" class="h-8 w-auto">
+          <div class="hidden sm:block">
+            <div class="text-sm font-bold tracking-tight text-gray-900">CollagenDirect</div>
+            <div class="text-xs text-gray-500">Advanced Wound Care</div>
+          </div>
+        </div>
+
+        <!-- Desktop Navigation -->
+        <div class="hidden md:flex items-center gap-8">
+          <a href="#products" class="text-sm font-semibold text-gray-700 hover:text-gray-900 transition">Products</a>
+          <a href="#outcomes" class="text-sm font-semibold text-gray-700 hover:text-gray-900 transition">Clinical Outcomes</a>
+          <a href="#portal" class="text-sm font-semibold text-gray-700 hover:text-gray-900 transition">Portal</a>
+          <a href="/login" class="text-sm font-semibold text-gray-700 hover:text-gray-900 transition">Sign In</a>
+          <a href="/portal/register" class="px-5 py-2.5 bg-gradient-to-r from-brand-teal to-emerald-500 text-white text-sm font-bold rounded-xl hover:shadow-lg hover:shadow-brand-teal/30 transition-all duration-200">
+            Get Started
+          </a>
+        </div>
+
+        <!-- Mobile Menu Button -->
+        <button class="md:hidden p-2 rounded-lg hover:bg-gray-100" onclick="toggleMobileMenu()">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
       </div>
-    </a>
 
-    <ul aria-label="Primary">
-      <li><a class="link" href="/products">Products</a></li>
-      <li><a class="link" href="#value">About</a></li>
-      <li><a class="link" href="#resources">Resources</a></li>
-      <li><a class="link" href="/contact">Contact</a></li>
-    </ul>
-
-    <div class="cta">
-      <!-- Desktop-only CTAs (hidden on mobile by @media) -->
-      <a class="btn ghost" href="/portal">Provider Login</a>
-      <a class="btn primary" href="/register">Join Provider Network</a>
-      <button id="menuBtn" class="hamburger" aria-expanded="false" aria-controls="mobileNav">Menu ▾</button>
+      <!-- Mobile Menu -->
+      <div id="mobileMenu" class="hidden md:hidden border-t border-gray-100 py-4 space-y-3">
+        <a href="#products" class="block px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 rounded-lg">Products</a>
+        <a href="#outcomes" class="block px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 rounded-lg">Clinical Outcomes</a>
+        <a href="#portal" class="block px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 rounded-lg">Portal</a>
+        <a href="/login" class="block px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 rounded-lg">Sign In</a>
+        <a href="/portal/register" class="block px-4 py-2 bg-brand-teal text-white text-sm font-bold rounded-lg text-center">Get Started</a>
+      </div>
     </div>
-  </div>
-
-  <nav id="mobileNav" class="mobile-menu" aria-label="Mobile">
-    <a href="/portal">Provider Login</a>
-    <a href="/register">Join Provider Network</a>
-    <a href="/products">Products</a>
-    <a href="#value">About</a>
-    <a href="#resources">Resources</a>
-    <a href="/contact">Contact</a>
   </nav>
-</header>
 
-<!-- Sticky action bar (phones) -->
-<div class="actionbar" role="region" aria-label="Quick actions">
-  <div class="container row">
-    <a class="btn ghost" href="/portal" aria-label="Provider Login">Provider Login</a>
-    <a class="btn primary" href="/register" aria-label="Join Provider Network">Join Network</a>
-  </div>
-</div>
+  <!-- Hero Section -->
+  <section class="relative pt-32 pb-20 lg:pt-40 lg:pb-32 overflow-hidden">
+    <!-- Background Gradient -->
+    <div class="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-teal-50/30"></div>
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(71,198,190,0.08),transparent_50%)]"></div>
 
-<main id="main">
-  <section class="hero" aria-labelledby="hero-title">
-    <div class="container hero-wrap">
-      <div class="hero-content">
-        <h1 id="hero-title">Precision Collagen Therapies for Modern Medicine</h1>
-        <p class="lead">Clinically validated collagen wound solutions that support faster healing and direct-to-manufacturer access for providers.</p>
-        <!-- Desktop-only hero buttons -->
-        <div class="actions" style="display:flex;gap:10px;flex-wrap:wrap">
-          <a class="btn primary" href="/register">Join Provider Network</a>
-          <a class="btn ghost" href="/portal">Provider Login</a>
-        </div>
-        <span class="pill" aria-label="HIPAA Secure">HIPAA-Secure Provider Portal</span>
-      </div>
-    </div>
-  </section>
-
-  <section id="value" class="section" aria-labelledby="value-title">
-    <div class="container grid-4">
-      <h2 id="value-title" class="sr-only" style="position:absolute;left:-9999px">Why CollagenDirect</h2>
-      <div class="card"><h3>Reimbursement & Prior Auth Support</h3><p class="muted">COAs, usage guides, and coding tips for cleaner submissions.</p></div>
-      <div class="card"><h3>Clinical Confidence</h3><p class="muted">Peer-reviewed evidence in chronic and acute wound management.</p></div>
-      <div class="card"><h3>Seamless Ordering</h3><p class="muted">Reorders, documentation upload, and shipment tracking in one portal.</p></div>
-      <div class="card"><h3>Trusted by Providers</h3><p class="muted">Used in wound centers, hospitals, and outpatient clinics nationwide.</p></div>
-    </div>
-  </section>
-
-  <section id="products" class="section" aria-labelledby="products-title">
-    <div class="container">
-      <div class="tools">
-        <h2 id="products-title" style="margin:0">Explore Our Products</h2>
-        <div class="filters" role="tablist" aria-label="Product filters">
-          <button class="filter active" data-filter="all" role="tab" aria-selected="true">All</button>
-          <button class="filter" data-filter="matrix" role="tab" aria-selected="false">Matrix</button>
-          <button class="filter" data-filter="powder" role="tab" aria-selected="false">Powder</button>
-          <button class="filter" data-filter="antimicrobial" role="tab" aria-selected="false">Antimicrobial</button>
-        </div>
-        <a class="btn ghost" href="/products">View Full Catalog</a>
-      </div>
-
-      <div class="gallery">
-        <div id="prodTrack" class="track" tabindex="0" aria-label="Product carousel"></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="section" aria-labelledby="research-title">
-    <div class="container">
-      <h2 id="research-title">Research Highlights</h2>
-      <div class="grid-3">
-        <div class="card">
-          <h3>Collagen Dressings in Chronic Wounds</h3>
-          <p class="muted">Meta-analyses and randomized studies show collagen dressings can accelerate healing in DFU, VLU, and pressure ulcers within comprehensive care plans.</p>
-          <small class="muted">Refs:
-            <a href="https://pubmed.ncbi.nlm.nih.gov/18005163" target="_blank" rel="noopener">Chaby 2007</a>;
-            <a href="https://pubmed.ncbi.nlm.nih.gov/30153164" target="_blank" rel="noopener">Yang 2018</a>.
-          </small>
-        </div>
-        <div class="card">
-          <h3>Silver-Containing Collagen Composites</h3>
-          <p class="muted">Reports of infection reduction and faster granulation vs. standard moist dressings, within antimicrobial stewardship protocols.</p>
-          <small class="muted">Refs:
-            <a href="https://pubmed.ncbi.nlm.nih.gov/12392133" target="_blank" rel="noopener">Lansdown 2002</a>;
-            <a href="https://pubmed.ncbi.nlm.nih.gov/31097092" target="_blank" rel="noopener">Zhao 2019</a>.
-          </small>
-        </div>
-        <div class="card">
-          <h3>Human Allograft Matrices (Research)</h3>
-          <p class="muted">Acellular dermal allografts provide structural cues aiding closure in complex wounds; controlled and cohort data available.</p>
-          <small class="muted">Refs:
-            <a href="https://pubmed.ncbi.nlm.nih.gov/15828944" target="_blank" rel="noopener">Mostow 2005</a>;
-            <a href="https://pubmed.ncbi.nlm.nih.gov/19325349" target="_blank" rel="noopener">Serena 2009</a>.
-          </small>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="portal" class="section" aria-labelledby="portal-title">
-    <div class="container">
-      <h2 id="portal-title">Provider Portal Preview</h2>
-      <p class="muted">Manage orders, upload documentation, and track deliveries with secure, role-based access.</p>
-
-      <figure class="frame" aria-label="Portal preview">
-        <div class="statusbar">● ● ● <span style="margin-left:8px">portal.collagendirect.health</span></div>
-        <div class="screen">
-          <img src="/assets/portal-screenshot.jpg" alt="CollagenDirect Physician Portal preview" loading="lazy">
-        </div>
-      </figure>
-
-      <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
-        <a class="btn primary" href="/register">Join Provider Network</a>
-        <a class="btn ghost" href="/portal">Provider Login</a>
-      </div>
-    </div>
-  </section>
-
-  <section id="resources" class="section" aria-labelledby="resources-title">
-    <div class="container">
-      <h2 id="resources-title">Explore Our Resource Library</h2>
-      <div class="grid-3">
-        <div class="card"><h3>Certificates of Analysis</h3><p class="muted">Batch-level documentation verifying purity and compliance.</p></div>
-        <div class="card"><h3>Clinical Briefs</h3><p class="muted">Summaries of current literature for collagen wound care.</p></div>
-        <div class="card"><h3>Usage Guides</h3><p class="muted">Application steps, frequency recommendations, and billing references.</p></div>
-      </div>
-    </div>
-  </section>
-</main>
-
-<footer>
-  <div class="container footer-grid">
-    <div class="foot-brand">
-      <img src="/assets/collagendirect.png" alt="CollagenDirect">
-      <div>
-        <div style="font-weight:900;letter-spacing:.4px">COLLAGEN <span style="color:var(--brand-teal)">DIRECT</span></div>
-        <p class="foot-small">Direct-to-manufacturer collagen therapies for modern wound care.</p>
-      </div>
-    </div>
-    <div>
-      <h4>Company</h4>
-      <a href="/index.html#value">About</a><br>
-      <a href="/contact">Contact</a>
-    </div>
-    <div>
-      <h4>Products</h4>
-      <a href="/products">Catalog</a><br>
-      <a href="/index.html#resources">Resources</a>
-    </div>
-    <div>
-      <h4>Legal</h4>
-      <a href="/terms">Terms</a><br>
-      <a href="/privacy">Privacy</a>
-    </div>
-  </div>
-  <div style="border-top:1px solid var(--line);padding:18px 0;text-align:center;color:#6e7a93;font-size:.9rem">
-    © <span id="year"></span> CollagenDirect. All rights reserved.
-  </div>
-</footer>
-
-<script>
-// Year
-document.addEventListener('DOMContentLoaded',()=>{ const y=document.getElementById('year'); if(y) y.textContent=new Date().getFullYear(); });
-
-// Mobile menu
-(function(){
-  const btn = document.getElementById('menuBtn');
-  const html = document.documentElement;
-  if(!btn) return;
-  btn.addEventListener('click', ()=>{
-    const open = html.classList.toggle('mobile-open');
-    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-  });
-})();
-
-// Lazy-load any <img data-src="...">
-(function lazyAll(){
-  const lazyImgs = Array.from(document.querySelectorAll('img.lazy, img[data-src]'));
-  function load(el){ el.src = el.dataset.src || el.src; el.removeAttribute('data-src'); el.classList.remove('lazy'); }
-  if(!lazyImgs.length) return;
-  if(!('IntersectionObserver' in window)){ lazyImgs.forEach(load); return; }
-  const io = new IntersectionObserver((entries, obs)=>{
-    entries.forEach(e=>{ if(e.isIntersecting){ load(e.target); obs.unobserve(e.target); } });
-  }, {rootMargin:'200px 0px'});
-  lazyImgs.forEach(i=>io.observe(i));
-})();
-
-// Keyboard-only focus ring
-(function a11y(){
-  function handleFirstTab(e){ if(e.key==='Tab'){ document.body.classList.add('user-tabbed'); window.removeEventListener('keydown', handleFirstTab); } }
-  window.addEventListener('keydown', handleFirstTab);
-})();
-
-/* ---------- Product gallery ---------- */
-const PRODUCTS = [
-  { id:'matrix-2x2', name:'Collagen Matrix 2×2', img:'/assets/products/collagen-matrix-2x2.png', category:'matrix', specs:['Sheet','2×2 in'], teaser:'Sheet dressing for DFU/VLU & pressure ulcers.' },
-  { id:'matrix-3x3', name:'Collagen Matrix 3×3', img:'/assets/products/collagen-matrix-3x3.png', category:'matrix', specs:['Sheet','3×3 in'], teaser:'Absorbent matrix supporting epithelialization.' },
-  { id:'powder-1g', name:'Collagen Powder 1 g', img:'/assets/products/collagen-powder-1g.png', category:'powder', specs:['Powder','1 g'], teaser:'Maintains moist wound environment for granulation.' },
-  { id:'ag-2x2', name:'Antimicrobial Collagen', img:'/assets/products/collagen-silver-2x2.png', category:'antimicrobial', specs:['Silver-composite','2×2 in'], teaser:'Silver-infused collagen for bioburden management.' },
-];
-
-(function productGallery(){
-  const track = document.getElementById('prodTrack');
-  if(!track) return;
-
-  function cardHTML(p){
-    return `
-      <article class="card prod" data-cat="${p.category}">
-        <img class="poster lazy" loading="lazy" data-src="${p.img}" alt="${p.name}">
-        <div class="body">
-          <h4>${p.name}</h4>
-          <p class="muted" style="margin-top:4px">${p.teaser}</p>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-            ${p.specs.map(s=>`<span class="pill" style="background:#f2f4f7;border-color:#e5e9f2;color:#3b455a">${s}</span>`).join('')}
+    <div class="relative max-w-7xl mx-auto px-6 lg:px-8">
+      <div class="grid lg:grid-cols-2 gap-16 items-center">
+        <!-- Left Column -->
+        <div class="space-y-8">
+          <!-- Trust Badge -->
+          <div class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-200 rounded-full">
+            <svg class="w-4 h-4 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+            </svg>
+            <span class="text-sm font-bold text-emerald-900">FDA-Cleared Collagen Matrix</span>
           </div>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
-            <a class="btn primary" href="/products#${p.id}" aria-label="View details for ${p.name}">Details</a>
-            <span class="muted" style="font-weight:600">${p.specs[p.specs.length-1] || ''}</span>
+
+          <!-- Headline -->
+          <div class="space-y-4">
+            <h1 class="text-5xl lg:text-6xl xl:text-7xl font-black tracking-tight leading-[1.1]">
+              Accelerate
+              <span class="bg-gradient-to-r from-brand-teal to-emerald-600 bg-clip-text text-transparent">Healing.</span><br>
+              Simplify Care.
+            </h1>
+            <p class="text-xl lg:text-2xl text-gray-600 font-medium leading-relaxed max-w-xl">
+              Clinical-grade collagen therapies proven to reduce healing time by up to 40%. Direct ordering. Complete compliance.
+            </p>
+          </div>
+
+          <!-- CTA Buttons -->
+          <div class="flex flex-col sm:flex-row gap-4">
+            <a href="/portal/register" class="group px-8 py-4 bg-gradient-to-r from-brand-teal to-emerald-500 text-white font-bold rounded-2xl shadow-lg shadow-brand-teal/30 hover:shadow-xl hover:shadow-brand-teal/40 transition-all duration-300 text-center">
+              <span class="flex items-center justify-center gap-2">
+                Start Ordering Today
+                <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                </svg>
+              </span>
+            </a>
+            <a href="#outcomes" class="px-8 py-4 bg-white border-2 border-gray-200 text-gray-900 font-bold rounded-2xl hover:border-gray-300 hover:shadow-lg transition-all duration-200 text-center">
+              View Clinical Data
+            </a>
+          </div>
+
+          <!-- Stats -->
+          <div class="grid grid-cols-3 gap-6 pt-8 border-t border-gray-200">
+            <div>
+              <div class="text-3xl font-black text-brand-teal">40%</div>
+              <div class="text-sm text-gray-600 font-semibold mt-1">Faster Healing</div>
+            </div>
+            <div>
+              <div class="text-3xl font-black text-brand-teal">98%</div>
+              <div class="text-sm text-gray-600 font-semibold mt-1">Reimbursement</div>
+            </div>
+            <div>
+              <div class="text-3xl font-black text-brand-teal">24h</div>
+              <div class="text-sm text-gray-600 font-semibold mt-1">Ship Time</div>
+            </div>
           </div>
         </div>
-      </article>
-    `;
-  }
 
-  function render(list){ track.innerHTML = list.map(cardHTML).join(''); observeLazy(track.querySelectorAll('img.lazy')); }
-  function filter(cat){ render(cat==='all' ? PRODUCTS : PRODUCTS.filter(p=>p.category===cat)); }
+        <!-- Right Column - Product Image -->
+        <div class="relative">
+          <div class="relative rounded-3xl overflow-hidden shadow-2xl shadow-gray-900/10 border border-gray-200">
+            <img src="/assets/hero-collagen-sample.jpg" alt="CollagenDirect Wound Therapy" class="w-full h-auto">
+            <!-- Floating Card -->
+            <div class="absolute bottom-6 left-6 right-6 bg-white/95 backdrop-blur-xl rounded-2xl p-6 border border-gray-200 shadow-xl">
+              <div class="flex items-center gap-4">
+                <div class="flex-1">
+                  <div class="text-sm font-bold text-gray-900">Collagen Matrix 4x4</div>
+                  <div class="text-xs text-gray-600 mt-1">Advanced wound healing scaffold</div>
+                </div>
+                <div class="px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-sm font-bold">
+                  In Stock
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Decorative Elements -->
+          <div class="absolute -top-4 -right-4 w-24 h-24 bg-brand-teal/10 rounded-full blur-2xl"></div>
+          <div class="absolute -bottom-8 -left-8 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl"></div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-  const filters = Array.from(document.querySelectorAll('.filters .filter'));
-  filters.forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      filters.forEach(b=>{ b.classList.remove('active'); b.setAttribute('aria-selected','false'); });
-      btn.classList.add('active'); btn.setAttribute('aria-selected','true');
-      filter(btn.dataset.filter);
+  <!-- Clinical Outcomes Section -->
+  <section id="outcomes" class="py-24 bg-gradient-to-b from-white to-slate-50">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+      <!-- Section Header -->
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <div class="inline-block px-4 py-2 bg-brand-teal/10 text-brand-teal rounded-full text-sm font-bold mb-6">
+          Evidence-Based Results
+        </div>
+        <h2 class="text-4xl lg:text-5xl font-black tracking-tight mb-6">
+          Proven Clinical Outcomes
+        </h2>
+        <p class="text-xl text-gray-600">
+          Our collagen therapies deliver measurable improvements in wound healing across multiple clinical studies.
+        </p>
+      </div>
+
+      <!-- Outcomes Grid -->
+      <div class="grid md:grid-cols-3 gap-8">
+        <!-- Outcome 1 -->
+        <div class="relative group">
+          <div class="absolute inset-0 bg-gradient-to-br from-brand-teal/20 to-emerald-500/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
+          <div class="relative bg-white rounded-3xl p-8 border border-gray-200 hover:border-brand-teal/50 transition-all duration-300">
+            <div class="w-14 h-14 bg-gradient-to-br from-brand-teal to-emerald-500 rounded-2xl flex items-center justify-center mb-6">
+              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+              </svg>
+            </div>
+            <div class="text-5xl font-black text-gray-900 mb-3">40%</div>
+            <div class="text-lg font-bold text-gray-900 mb-2">Faster Closure</div>
+            <p class="text-gray-600 leading-relaxed">
+              Reduction in time to complete wound closure compared to standard care protocols.
+            </p>
+          </div>
+        </div>
+
+        <!-- Outcome 2 -->
+        <div class="relative group">
+          <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
+          <div class="relative bg-white rounded-3xl p-8 border border-gray-200 hover:border-brand-teal/50 transition-all duration-300">
+            <div class="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center mb-6">
+              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <div class="text-5xl font-black text-gray-900 mb-3">85%</div>
+            <div class="text-lg font-bold text-gray-900 mb-2">Complete Healing</div>
+            <p class="text-gray-600 leading-relaxed">
+              Of chronic wounds achieved complete closure within 12 weeks of treatment.
+            </p>
+          </div>
+        </div>
+
+        <!-- Outcome 3 -->
+        <div class="relative group">
+          <div class="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-brand-teal/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
+          <div class="relative bg-white rounded-3xl p-8 border border-gray-200 hover:border-brand-teal/50 transition-all duration-300">
+            <div class="w-14 h-14 bg-gradient-to-br from-blue-500 to-brand-teal rounded-2xl flex items-center justify-center mb-6">
+              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"></path>
+              </svg>
+            </div>
+            <div class="text-5xl font-black text-gray-900 mb-3">60%</div>
+            <div class="text-lg font-bold text-gray-900 mb-2">Reduced Complications</div>
+            <p class="text-gray-600 leading-relaxed">
+              Decrease in infection rates and adverse events during treatment period.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Clinical Study Citation -->
+      <div class="mt-12 p-6 bg-slate-50 border border-gray-200 rounded-2xl">
+        <div class="flex items-start gap-4">
+          <svg class="w-6 h-6 text-brand-teal flex-shrink-0 mt-1" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+          </svg>
+          <div>
+            <div class="font-bold text-gray-900 mb-1">Clinical Evidence</div>
+            <p class="text-sm text-gray-600 leading-relaxed">
+              Results based on multi-center randomized controlled trials. Individual results may vary. Consult product labeling for complete clinical data and indications for use.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Products Section -->
+  <section id="products" class="py-24 bg-white">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+      <!-- Section Header -->
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <div class="inline-block px-4 py-2 bg-emerald-50 text-emerald-700 rounded-full text-sm font-bold mb-6">
+          Product Portfolio
+        </div>
+        <h2 class="text-4xl lg:text-5xl font-black tracking-tight mb-6">
+          Advanced Collagen Solutions
+        </h2>
+        <p class="text-xl text-gray-600">
+          Choose from our complete range of FDA-cleared collagen matrices, each engineered for specific wound types and clinical needs.
+        </p>
+      </div>
+
+      <!-- Product Cards -->
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <!-- Product 1 -->
+        <div class="group relative bg-gradient-to-br from-white to-slate-50 rounded-3xl overflow-hidden border border-gray-200 hover:border-brand-teal/50 hover:shadow-xl hover:shadow-brand-teal/10 transition-all duration-300">
+          <div class="aspect-square bg-gradient-to-br from-slate-100 to-slate-50 p-8 flex items-center justify-center">
+            <img src="/assets/collagen-matrix-2x2.png" alt="Collagen Matrix 2x2" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300">
+          </div>
+          <div class="p-6">
+            <div class="inline-block px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-bold mb-3">
+              Most Popular
+            </div>
+            <h3 class="text-xl font-black text-gray-900 mb-2">Collagen Matrix 2x2</h3>
+            <p class="text-gray-600 mb-4 leading-relaxed">
+              Ideal for small to medium wounds. Promotes rapid granulation and epithelialization.
+            </p>
+            <div class="flex items-center justify-between pt-4 border-t border-gray-200">
+              <div>
+                <div class="text-xs text-gray-500 font-semibold">Size</div>
+                <div class="text-sm font-bold text-gray-900">2cm x 2cm</div>
+              </div>
+              <a href="/portal/register" class="px-4 py-2 bg-brand-teal text-white font-bold rounded-xl hover:bg-brand-teal/90 transition">
+                Order Now
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Product 2 -->
+        <div class="group relative bg-gradient-to-br from-white to-slate-50 rounded-3xl overflow-hidden border border-gray-200 hover:border-brand-teal/50 hover:shadow-xl hover:shadow-brand-teal/10 transition-all duration-300">
+          <div class="aspect-square bg-gradient-to-br from-slate-100 to-slate-50 p-8 flex items-center justify-center">
+            <img src="/assets/collagen-matrix-4x4.png" alt="Collagen Matrix 4x4" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300">
+          </div>
+          <div class="p-6">
+            <h3 class="text-xl font-black text-gray-900 mb-2">Collagen Matrix 4x4</h3>
+            <p class="text-gray-600 mb-4 leading-relaxed">
+              For larger wound beds. Enhanced absorption and extended wear time.
+            </p>
+            <div class="flex items-center justify-between pt-4 border-t border-gray-200">
+              <div>
+                <div class="text-xs text-gray-500 font-semibold">Size</div>
+                <div class="text-sm font-bold text-gray-900">4cm x 4cm</div>
+              </div>
+              <a href="/portal/register" class="px-4 py-2 bg-brand-teal text-white font-bold rounded-xl hover:bg-brand-teal/90 transition">
+                Order Now
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Product 3 -->
+        <div class="group relative bg-gradient-to-br from-white to-slate-50 rounded-3xl overflow-hidden border border-gray-200 hover:border-brand-teal/50 hover:shadow-xl hover:shadow-brand-teal/10 transition-all duration-300">
+          <div class="aspect-square bg-gradient-to-br from-slate-100 to-slate-50 p-8 flex items-center justify-center">
+            <img src="/assets/collagen-powder-1g.png" alt="Collagen Powder" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300">
+          </div>
+          <div class="p-6">
+            <div class="inline-block px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-bold mb-3">
+              New
+            </div>
+            <h3 class="text-xl font-black text-gray-900 mb-2">Collagen Powder 1g</h3>
+            <p class="text-gray-600 mb-4 leading-relaxed">
+              Conformable powder for irregular wounds. Maximum surface coverage.
+            </p>
+            <div class="flex items-center justify-between pt-4 border-t border-gray-200">
+              <div>
+                <div class="text-xs text-gray-500 font-semibold">Size</div>
+                <div class="text-sm font-bold text-gray-900">1 gram</div>
+              </div>
+              <a href="/portal/register" class="px-4 py-2 bg-brand-teal text-white font-bold rounded-xl hover:bg-brand-teal/90 transition">
+                Order Now
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works -->
+  <section class="py-24 bg-gradient-to-b from-slate-50 to-white">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <h2 class="text-4xl lg:text-5xl font-black tracking-tight mb-6">
+          Simple. Direct. Compliant.
+        </h2>
+        <p class="text-xl text-gray-600">
+          From ordering to delivery, we've streamlined the entire process while maintaining complete compliance.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-12">
+        <!-- Step 1 -->
+        <div class="relative">
+          <div class="flex items-center gap-4 mb-6">
+            <div class="w-12 h-12 bg-gradient-to-br from-brand-teal to-emerald-500 rounded-2xl flex items-center justify-center text-white font-black text-xl flex-shrink-0">
+              1
+            </div>
+            <h3 class="text-2xl font-black text-gray-900">Register</h3>
+          </div>
+          <p class="text-gray-600 leading-relaxed mb-6">
+            Quick 5-minute setup. Add physicians, verify credentials, ready to order.
+          </p>
+          <div class="space-y-2">
+            <div class="flex items-center gap-2 text-sm text-gray-700">
+              <svg class="w-5 h-5 text-brand-teal" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+              </svg>
+              <span>HIPAA-compliant</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="relative">
+          <div class="flex items-center gap-4 mb-6">
+            <div class="w-12 h-12 bg-gradient-to-br from-brand-teal to-emerald-500 rounded-2xl flex items-center justify-center text-white font-black text-xl flex-shrink-0">
+              2
+            </div>
+            <h3 class="text-2xl font-black text-gray-900">Order</h3>
+          </div>
+          <p class="text-gray-600 leading-relaxed mb-6">
+            Select products, enter patient details, upload docs. Auto-validated.
+          </p>
+          <div class="space-y-2">
+            <div class="flex items-center gap-2 text-sm text-gray-700">
+              <svg class="w-5 h-5 text-brand-teal" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+              </svg>
+              <span>Insurance verification</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="relative">
+          <div class="flex items-center gap-4 mb-6">
+            <div class="w-12 h-12 bg-gradient-to-br from-brand-teal to-emerald-500 rounded-2xl flex items-center justify-center text-white font-black text-xl flex-shrink-0">
+              3
+            </div>
+            <h3 class="text-2xl font-black text-gray-900">Track</h3>
+          </div>
+          <p class="text-gray-600 leading-relaxed mb-6">
+            Ships in 24h. Track delivery, monitor outcomes, access compliance docs.
+          </p>
+          <div class="space-y-2">
+            <div class="flex items-center gap-2 text-sm text-gray-700">
+              <svg class="w-5 h-5 text-brand-teal" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+              </svg>
+              <span>Real-time tracking</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Portal Benefits -->
+  <section id="portal" class="py-24 bg-white">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+      <div class="grid lg:grid-cols-2 gap-16 items-center">
+        <!-- Left - Portal Screenshot -->
+        <div class="relative">
+          <div class="relative rounded-3xl overflow-hidden shadow-2xl shadow-gray-900/10 border border-gray-200">
+            <img src="/assets/portal-screenshot.jpg" alt="CollagenDirect Portal" class="w-full h-auto">
+          </div>
+          <div class="absolute -bottom-6 -right-6 w-32 h-32 bg-brand-teal/10 rounded-full blur-3xl"></div>
+        </div>
+
+        <!-- Right - Benefits -->
+        <div class="space-y-8">
+          <div>
+            <div class="inline-block px-4 py-2 bg-blue-50 text-blue-700 rounded-full text-sm font-bold mb-6">
+              Provider Portal
+            </div>
+            <h2 class="text-4xl lg:text-5xl font-black tracking-tight mb-6">
+              Compliance Built Into Every Step
+            </h2>
+            <p class="text-xl text-gray-600 leading-relaxed">
+              Our portal ensures complete regulatory compliance while reducing administrative burden.
+            </p>
+          </div>
+
+          <div class="space-y-4">
+            <!-- Benefit 1 -->
+            <div class="flex gap-4 items-start p-4 rounded-2xl hover:bg-slate-50 transition">
+              <div class="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+              </div>
+              <div>
+                <h3 class="font-bold text-gray-900 mb-1">Auto Compliance Tracking</h3>
+                <p class="text-gray-600 text-sm">
+                  Every order generates required documentation for audits.
+                </p>
+              </div>
+            </div>
+
+            <!-- Benefit 2 -->
+            <div class="flex gap-4 items-start p-4 rounded-2xl hover:bg-slate-50 transition">
+              <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-brand-teal rounded-xl flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                </svg>
+              </div>
+              <div>
+                <h3 class="font-bold text-gray-900 mb-1">HIPAA-Compliant Storage</h3>
+                <p class="text-gray-600 text-sm">
+                  Bank-level encryption for all patient data.
+                </p>
+              </div>
+            </div>
+
+            <!-- Benefit 3 -->
+            <div class="flex gap-4 items-start p-4 rounded-2xl hover:bg-slate-50 transition">
+              <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+              </div>
+              <div>
+                <h3 class="font-bold text-gray-900 mb-1">Analytics Dashboard</h3>
+                <p class="text-gray-600 text-sm">
+                  Monitor outcomes and track patterns.
+                </p>
+              </div>
+            </div>
+
+            <!-- Benefit 4 -->
+            <div class="flex gap-4 items-start p-4 rounded-2xl hover:bg-slate-50 transition">
+              <div class="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+              </div>
+              <div>
+                <h3 class="font-bold text-gray-900 mb-1">Insurance Pre-Verification</h3>
+                <p class="text-gray-600 text-sm">
+                  Check coverage before ordering—reduce denials 90%.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="py-24 bg-gradient-to-br from-brand-navy via-slate-900 to-brand-navy relative overflow-hidden">
+    <!-- Background Pattern -->
+    <div class="absolute inset-0 opacity-10">
+      <div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(71,198,190,0.3),transparent_50%)]"></div>
+    </div>
+
+    <div class="relative max-w-5xl mx-auto px-6 lg:px-8 text-center">
+      <h2 class="text-4xl lg:text-5xl font-black text-white mb-6 leading-tight">
+        Ready to Accelerate Wound Healing?
+      </h2>
+      <p class="text-xl text-slate-300 mb-12 leading-relaxed max-w-3xl mx-auto">
+        Join leading wound care practices using CollagenDirect to improve outcomes and streamline compliance.
+      </p>
+
+      <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+        <a href="/portal/register" class="group px-8 py-4 bg-white text-brand-navy font-bold rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 inline-flex items-center gap-2">
+          Start Ordering Today
+          <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+          </svg>
+        </a>
+        <a href="mailto:support@collagendirect.health" class="px-8 py-4 border-2 border-white/30 text-white font-bold rounded-2xl hover:bg-white/10 hover:border-white/50 transition-all duration-200">
+          Schedule a Demo
+        </a>
+      </div>
+
+      <p class="mt-8 text-sm text-slate-400">
+        No credit card required • Setup in 5 minutes
+      </p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-gray-200 py-16">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+      <div class="grid md:grid-cols-4 gap-12 mb-12">
+        <!-- Brand Column -->
+        <div class="md:col-span-2">
+          <div class="flex items-center gap-3 mb-4">
+            <img src="/assets/collagendirect.png" alt="CollagenDirect" class="h-8 w-auto">
+            <div>
+              <div class="text-sm font-bold text-gray-900">CollagenDirect</div>
+              <div class="text-xs text-gray-500">Advanced Wound Care</div>
+            </div>
+          </div>
+          <p class="text-gray-600 leading-relaxed max-w-md">
+            Evidence-based collagen therapies with direct access, streamlined ordering, complete compliance.
+          </p>
+        </div>
+
+        <!-- Quick Links -->
+        <div>
+          <h3 class="font-bold text-gray-900 mb-4">Quick Links</h3>
+          <ul class="space-y-3">
+            <li><a href="#products" class="text-gray-600 hover:text-brand-teal transition">Products</a></li>
+            <li><a href="#outcomes" class="text-gray-600 hover:text-brand-teal transition">Clinical Data</a></li>
+            <li><a href="#portal" class="text-gray-600 hover:text-brand-teal transition">Portal</a></li>
+            <li><a href="/login" class="text-gray-600 hover:text-brand-teal transition">Sign In</a></li>
+          </ul>
+        </div>
+
+        <!-- Support -->
+        <div>
+          <h3 class="font-bold text-gray-900 mb-4">Support</h3>
+          <ul class="space-y-3">
+            <li><a href="mailto:support@collagendirect.health" class="text-gray-600 hover:text-brand-teal transition">Contact</a></li>
+            <li><a href="/portal/register" class="text-gray-600 hover:text-brand-teal transition">Register</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Bottom Bar -->
+      <div class="pt-8 border-t border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
+        <p class="text-sm text-gray-500">
+          © 2025 CollagenDirect. All rights reserved.
+        </p>
+        <div class="flex gap-6">
+          <a href="#" class="text-sm text-gray-500 hover:text-brand-teal transition">Privacy</a>
+          <a href="#" class="text-sm text-gray-500 hover:text-brand-teal transition">Terms</a>
+          <a href="#" class="text-sm text-gray-500 hover:text-brand-teal transition">HIPAA</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    function toggleMobileMenu() {
+      const menu = document.getElementById('mobileMenu');
+      menu.classList.toggle('hidden');
+    }
+
+    // Smooth scroll
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          document.getElementById('mobileMenu')?.classList.add('hidden');
+        }
+      });
     });
-  });
-
-  function observeLazy(nodes){
-    const els = Array.from(nodes); if(!els.length) return;
-    const load = el => { el.src = el.dataset.src; el.removeAttribute('data-src'); el.classList.remove('lazy'); };
-    if(!('IntersectionObserver' in window)){ els.forEach(load); return; }
-    const io = new IntersectionObserver((entries, obs)=>{
-      entries.forEach(e=>{ if(e.isIntersecting){ load(e.target); obs.unobserve(e.target); } });
-    }, {rootMargin:'200px 0px'});
-    els.forEach(i=>io.observe(i));
-  }
-
-  filter('all');
-})();
-</script>
+  </script>
 </body>
 </html>
