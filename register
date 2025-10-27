@@ -17,7 +17,7 @@
     }
     *{box-sizing:border-box;margin:0;padding:0}
     body{
-      background:var(--bg);
+      background: linear-gradient(to bottom right, #f8fafc 0%, #ffffff 50%, rgba(71, 198, 190, 0.03) 100%);
       color:var(--text);
       font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,sans-serif;
       line-height:1.6;

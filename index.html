@@ -30,6 +30,21 @@
   </script>
   <style>
     body { font-feature-settings: 'cv11', 'ss01'; -webkit-font-smoothing: antialiased; }
+
+    /* Hide scrollbar but keep functionality */
+    .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* Smooth scroll behavior */
+    .overflow-x-auto {
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+    }
   </style>
 </head>
 <body class="bg-white text-gray-900">
@@ -139,26 +154,42 @@
           </div>
         </div>
 
-        <!-- Right Column - Product Image -->
+        <!-- Right Column - Product Showcase -->
         <div class="relative">
-          <div class="relative rounded-3xl overflow-hidden shadow-2xl shadow-gray-900/10 border border-gray-200">
-            <img src="/assets/hero-collagen-sample.jpg" alt="CollagenDirect Wound Therapy" class="w-full h-auto">
-            <!-- Floating Card -->
-            <div class="absolute bottom-6 left-6 right-6 bg-white/95 backdrop-blur-xl rounded-2xl p-6 border border-gray-200 shadow-xl">
-              <div class="flex items-center gap-4">
-                <div class="flex-1">
-                  <div class="text-sm font-bold text-gray-900">Collagen Matrix 4x4</div>
-                  <div class="text-xs text-gray-600 mt-1">Advanced wound healing scaffold</div>
+          <!-- Main Product Display -->
+          <div class="relative">
+            <!-- Background Glow -->
+            <div class="absolute inset-0 bg-gradient-to-br from-brand-teal/20 to-emerald-500/20 rounded-full blur-3xl scale-110"></div>
+
+            <!-- Product Grid -->
+            <div class="relative grid grid-cols-2 gap-6">
+              <!-- Large Featured Product -->
+              <div class="col-span-2 bg-white rounded-3xl p-8 shadow-2xl border border-gray-200/50 backdrop-blur-sm">
+                <img src="/assets/collagen-matrix-4x4(A6210).png" alt="CollagenDirect Collagen Matrix" class="w-full h-auto">
+                <div class="mt-4 flex items-center justify-between">
+                  <div>
+                    <div class="text-sm font-bold text-gray-900">CollaHeal™ Matrix</div>
+                    <div class="text-xs text-brand-teal font-bold mt-1">HCPCS: A6210</div>
+                  </div>
+                  <div class="px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-bold">
+                    In Stock
+                  </div>
                 </div>
-                <div class="px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-sm font-bold">
-                  In Stock
-                </div>
+              </div>
+
+              <!-- Small Product 1 -->
+              <div class="bg-white/60 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-gray-200/50">
+                <img src="/assets/algiheal2x2 (A6196).jpg" alt="AlgiHeal Alginate" class="w-full h-auto">
+                <div class="mt-2 text-xs font-bold text-gray-700">AlgiHeal™</div>
+              </div>
+
+              <!-- Small Product 2 -->
+              <div class="bg-white/60 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-gray-200/50">
+                <img src="/assets/silverwoundgel(A6249).jpg" alt="HydraCare AG Silver Gel" class="w-full h-auto">
+                <div class="mt-2 text-xs font-bold text-gray-700">HydraCare AG™</div>
               </div>
             </div>
           </div>
-          <!-- Decorative Elements -->
-          <div class="absolute -top-4 -right-4 w-24 h-24 bg-brand-teal/10 rounded-full blur-2xl"></div>
-          <div class="absolute -bottom-8 -left-8 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl"></div>
         </div>
       </div>
     </div>
@@ -266,7 +297,7 @@
           FDA-cleared wound dressings engineered for optimal healing across all wound types. From collagen matrices to antimicrobial hydrogels.
         </p>
         <div class="mt-8">
-          <a href="/products.html" class="inline-flex items-center gap-2 px-6 py-3 bg-brand-teal text-white font-bold rounded-xl hover:bg-brand-teal/90 transition">
+          <a href="/products/" class="inline-flex items-center gap-2 px-6 py-3 bg-brand-teal text-white font-bold rounded-xl hover:bg-brand-teal/90 transition">
             View Full Product Catalog
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
@@ -275,10 +306,13 @@
         </div>
       </div>
 
-      <!-- Product Grid -->
-      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <!-- Horizontal Scrolling Product Carousel -->
+      <div class="relative">
+        <!-- Scroll Container -->
+        <div class="overflow-x-auto scrollbar-hide pb-8 -mx-6 px-6">
+          <div class="flex gap-6 min-w-max">
         <!-- CollaHeal Collagen Matrix 2x2 -->
-        <div class="group relative bg-gradient-to-br from-white to-slate-50 rounded-3xl overflow-hidden border border-gray-200 hover:border-brand-teal/50 hover:shadow-xl hover:shadow-brand-teal/10 transition-all duration-300">
+        <div class="group relative bg-gradient-to-br from-white to-slate-50 rounded-3xl overflow-hidden border border-gray-200 hover:border-brand-teal/50 hover:shadow-xl hover:shadow-brand-teal/10 transition-all duration-300 w-80 flex-shrink-0">
           <div class="aspect-square bg-gradient-to-br from-slate-100 to-slate-50 p-8 flex items-center justify-center">
             <img src="/assets/collagen-matrix-2x2 (A6021).png" alt="CollaHeal Collagen Matrix 2x2" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300">
           </div>
@@ -304,7 +338,7 @@
         </div>
 
         <!-- CollaHeal Collagen Matrix 4x4 -->
-        <div class="group relative bg-gradient-to-br from-white to-slate-50 rounded-3xl overflow-hidden border border-gray-200 hover:border-brand-teal/50 hover:shadow-xl hover:shadow-brand-teal/10 transition-all duration-300">
+        <div class="group relative bg-gradient-to-br from-white to-slate-50 rounded-3xl overflow-hidden border border-gray-200 hover:border-brand-teal/50 hover:shadow-xl hover:shadow-brand-teal/10 transition-all duration-300 w-80 flex-shrink-0">
           <div class="aspect-square bg-gradient-to-br from-slate-100 to-slate-50 p-8 flex items-center justify-center">
             <img src="/assets/collagen-matrix-4x4(A6210).png" alt="CollaHeal Collagen Matrix 4x4" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300">
           </div>
@@ -327,7 +361,7 @@
         </div>
 
         <!-- CollaHeal Collagen Powder -->
-        <div class="group relative bg-gradient-to-br from-white to-slate-50 rounded-3xl overflow-hidden border border-gray-200 hover:border-brand-teal/50 hover:shadow-xl hover:shadow-brand-teal/10 transition-all duration-300">
+        <div class="group relative bg-gradient-to-br from-white to-slate-50 rounded-3xl overflow-hidden border border-gray-200 hover:border-brand-teal/50 hover:shadow-xl hover:shadow-brand-teal/10 transition-all duration-300 w-80 flex-shrink-0">
           <div class="aspect-square bg-gradient-to-br from-slate-100 to-slate-50 p-8 flex items-center justify-center">
             <img src="/assets/collagen-powder-1g(A6010).png" alt="CollaHeal Collagen Powder" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300">
           </div>
@@ -350,7 +384,7 @@
         </div>
 
         <!-- AlgiHeal Alginate -->
-        <div class="group relative bg-gradient-to-br from-white to-slate-50 rounded-3xl overflow-hidden border border-gray-200 hover:border-brand-teal/50 hover:shadow-xl hover:shadow-brand-teal/10 transition-all duration-300">
+        <div class="group relative bg-gradient-to-br from-white to-slate-50 rounded-3xl overflow-hidden border border-gray-200 hover:border-brand-teal/50 hover:shadow-xl hover:shadow-brand-teal/10 transition-all duration-300 w-80 flex-shrink-0">
           <div class="aspect-square bg-gradient-to-br from-slate-100 to-slate-50 p-8 flex items-center justify-center">
             <img src="/assets/algiheal2x2 (A6196).jpg" alt="AlgiHeal Alginate Dressing" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300">
           </div>
@@ -373,7 +407,7 @@
         </div>
 
         <!-- HydraPad Super Absorbent -->
-        <div class="group relative bg-gradient-to-br from-white to-slate-50 rounded-3xl overflow-hidden border border-gray-200 hover:border-brand-teal/50 hover:shadow-xl hover:shadow-brand-teal/10 transition-all duration-300">
+        <div class="group relative bg-gradient-to-br from-white to-slate-50 rounded-3xl overflow-hidden border border-gray-200 hover:border-brand-teal/50 hover:shadow-xl hover:shadow-brand-teal/10 transition-all duration-300 w-80 flex-shrink-0">
           <div class="aspect-square bg-gradient-to-br from-slate-100 to-slate-50 p-8 flex items-center justify-center">
             <img src="/assets/hydrapad(A6254).jpg" alt="HydraPad Super Absorbent Dressing" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300">
           </div>
@@ -396,7 +430,7 @@
         </div>
 
         <!-- HydraCare Hydrogel -->
-        <div class="group relative bg-gradient-to-br from-white to-slate-50 rounded-3xl overflow-hidden border border-gray-200 hover:border-brand-teal/50 hover:shadow-xl hover:shadow-brand-teal/10 transition-all duration-300">
+        <div class="group relative bg-gradient-to-br from-white to-slate-50 rounded-3xl overflow-hidden border border-gray-200 hover:border-brand-teal/50 hover:shadow-xl hover:shadow-brand-teal/10 transition-all duration-300 w-80 flex-shrink-0">
           <div class="aspect-square bg-gradient-to-br from-slate-100 to-slate-50 p-8 flex items-center justify-center">
             <img src="/assets/hydrogel(A6248).png" alt="HydraCare Amorphous Hydrogel" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300">
           </div>
@@ -422,7 +456,7 @@
         </div>
 
         <!-- HydraCare AG Silver Gel -->
-        <div class="group relative bg-gradient-to-br from-white to-slate-50 rounded-3xl overflow-hidden border border-gray-200 hover:border-brand-teal/50 hover:shadow-xl hover:shadow-brand-teal/10 transition-all duration-300">
+        <div class="group relative bg-gradient-to-br from-white to-slate-50 rounded-3xl overflow-hidden border border-gray-200 hover:border-brand-teal/50 hover:shadow-xl hover:shadow-brand-teal/10 transition-all duration-300 w-80 flex-shrink-0">
           <div class="aspect-square bg-gradient-to-br from-slate-100 to-slate-50 p-8 flex items-center justify-center">
             <img src="/assets/silverwoundgel(A6249).jpg" alt="HydraCare AG Silver Wound Gel" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300">
           </div>
@@ -446,11 +480,13 @@
             </div>
           </div>
         </div>
+          </div>
+        </div>
       </div>
 
       <!-- View All Products CTA -->
-      <div class="mt-16 text-center">
-        <a href="/products.html" class="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-brand-teal to-emerald-500 text-white font-bold rounded-2xl shadow-lg shadow-brand-teal/30 hover:shadow-xl hover:shadow-brand-teal/40 transition-all duration-300">
+      <div class="mt-12 text-center">
+        <a href="/products/" class="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-brand-teal to-emerald-500 text-white font-bold rounded-2xl shadow-lg shadow-brand-teal/30 hover:shadow-xl hover:shadow-brand-teal/40 transition-all duration-300">
           <span>Explore Complete Product Line</span>
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
