@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Product Catalog — CollagenDirect Advanced Wound Care</title>
+  <meta name="description" content="Explore our complete line of FDA-cleared wound care products. Collagen matrices, alginate dressings, antimicrobial hydrogels with full HCPCS codes and clinical data.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              teal: '#47c6be',
+              blue: '#2a78ff',
+              navy: '#0a2540',
+              slate: '#64748b'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-feature-settings: 'cv11', 'ss01'; -webkit-font-smoothing: antialiased; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+  </style>
+</head>
+<body class="bg-white text-gray-900">
+
+  <!-- Navigation -->
+  <nav class="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-100">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+      <div class="flex items-center justify-between h-20">
+        <div class="flex items-center gap-3">
+          <a href="/" class="flex items-center gap-3">
+            <img src="/assets/collagendirect.png" alt="CollagenDirect" class="h-8 w-auto">
+            <div class="hidden sm:block">
+              <div class="text-sm font-bold tracking-tight text-gray-900">CollagenDirect</div>
+              <div class="text-xs text-gray-500">Advanced Wound Care</div>
+            </div>
+          </a>
+        </div>
+        <div class="hidden md:flex items-center gap-8">
+          <a href="/" class="text-sm font-semibold text-gray-700 hover:text-gray-900 transition">Home</a>
+          <a href="/products/" class="text-sm font-semibold text-brand-teal">Products</a>
+          <a href="/#outcomes" class="text-sm font-semibold text-gray-700 hover:text-gray-900 transition">Clinical Data</a>
+          <a href="/login" class="text-sm font-semibold text-gray-700 hover:text-gray-900 transition">Sign In</a>
+          <a href="/register" class="px-5 py-2.5 bg-gradient-to-r from-brand-teal to-emerald-500 text-white text-sm font-bold rounded-xl hover:shadow-lg hover:shadow-brand-teal/30 transition-all duration-200">
+            Get Started
+          </a>
+        </div>
+        <button class="md:hidden p-2 rounded-lg hover:bg-gray-100" onclick="toggleMobileMenu()">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
+      </div>
+      <div id="mobileMenu" class="hidden md:hidden border-t border-gray-100 py-4 space-y-3">
+        <a href="/" class="block px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 rounded-lg">Home</a>
+        <a href="/products/" class="block px-4 py-2 text-sm font-semibold text-brand-teal bg-teal-50 rounded-lg">Products</a>
+        <a href="/#outcomes" class="block px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 rounded-lg">Clinical Data</a>
+        <a href="/login" class="block px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 rounded-lg">Sign In</a>
+        <a href="/register" class="block px-4 py-2 bg-brand-teal text-white text-sm font-bold rounded-lg text-center">Get Started</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="relative pt-32 pb-16 bg-gradient-to-br from-slate-50 via-white to-teal-50/30">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+      <div class="text-center max-w-4xl mx-auto">
+        <div class="inline-block px-4 py-2 bg-emerald-50 border border-emerald-200 rounded-full mb-6">
+          <span class="text-sm font-bold text-emerald-900">Complete Product Portfolio</span>
+        </div>
+        <h1 class="text-5xl lg:text-6xl font-black tracking-tight leading-[1.1] mb-6">
+          Advanced Wound Care
+          <span class="bg-gradient-to-r from-brand-teal to-emerald-600 bg-clip-text text-transparent">Solutions</span>
+        </h1>
+        <p class="text-xl text-gray-600 leading-relaxed mb-8">
+          FDA-cleared dressings engineered for optimal healing. From collagen matrices to antimicrobial hydrogels—each with proven clinical outcomes and full reimbursement support.
+        </p>
+
+        <!-- Filter Buttons -->
+        <div class="flex flex-wrap justify-center gap-3 mb-8">
+          <button onclick="filterProducts('all')" class="filter-btn active px-6 py-3 rounded-xl font-bold transition-all duration-200 bg-brand-teal text-white shadow-lg shadow-brand-teal/30">
+            All Products
+          </button>
+          <button onclick="filterProducts('collagen')" class="filter-btn px-6 py-3 rounded-xl font-bold transition-all duration-200 bg-white border-2 border-gray-200 text-gray-700 hover:border-brand-teal/50">
+            Collagen
+          </button>
+          <button onclick="filterProducts('alginate')" class="filter-btn px-6 py-3 rounded-xl font-bold transition-all duration-200 bg-white border-2 border-gray-200 text-gray-700 hover:border-brand-teal/50">
+            Alginate
+          </button>
+          <button onclick="filterProducts('foam')" class="filter-btn px-6 py-3 rounded-xl font-bold transition-all duration-200 bg-white border-2 border-gray-200 text-gray-700 hover:border-brand-teal/50">
+            Foam & Absorbent
+          </button>
+          <button onclick="filterProducts('hydrogel')" class="filter-btn px-6 py-3 rounded-xl font-bold transition-all duration-200 bg-white border-2 border-gray-200 text-gray-700 hover:border-brand-teal/50">
+            Hydrogels
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Products Grid -->
+  <section class="py-16 bg-white">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+      <div id="productsGrid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <!-- Products will be rendered here by JavaScript -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Product Detail Modal -->
+  <div id="productModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20">
+      <div class="fixed inset-0 bg-gray-900/75 transition-opacity" onclick="closeModal()"></div>
+
+      <div class="relative bg-white rounded-3xl max-w-6xl w-full shadow-2xl overflow-hidden">
+        <!-- Close Button -->
+        <button onclick="closeModal()" class="absolute top-6 right-6 z-10 p-2 rounded-full bg-white/90 hover:bg-white shadow-lg transition">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+
+        <div class="grid lg:grid-cols-2 gap-0">
+          <!-- Left: Image -->
+          <div class="bg-gradient-to-br from-slate-100 to-slate-50 p-12 flex items-center justify-center">
+            <img id="modalImage" src="" alt="" class="max-w-full h-auto">
+          </div>
+
+          <!-- Right: Details -->
+          <div class="p-8 lg:p-12 overflow-y-auto max-h-[80vh]">
+            <div id="modalBadge" class="inline-block px-3 py-1 rounded-full text-xs font-bold mb-4"></div>
+            <h2 id="modalTitle" class="text-4xl font-black text-gray-900 mb-3"></h2>
+            <div id="modalHCPCS" class="text-lg font-bold text-brand-teal mb-6"></div>
+            <p id="modalDescription" class="text-gray-600 text-lg leading-relaxed mb-8"></p>
+
+            <!-- Tabs -->
+            <div class="border-b border-gray-200 mb-6">
+              <div class="flex gap-6">
+                <button onclick="switchTab('benefits')" class="tab-btn active pb-3 px-1 border-b-2 border-brand-teal text-brand-teal font-bold text-sm">
+                  Benefits & Features
+                </button>
+                <button onclick="switchTab('indications')" class="tab-btn pb-3 px-1 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-bold text-sm">
+                  Indications
+                </button>
+                <button onclick="switchTab('specs')" class="tab-btn pb-3 px-1 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-bold text-sm">
+                  Specifications
+                </button>
+              </div>
+            </div>
+
+            <!-- Tab Content -->
+            <div id="benefitsTab" class="tab-content active">
+              <h3 class="font-bold text-gray-900 mb-4">Key Benefits</h3>
+              <ul id="modalBenefits" class="space-y-3"></ul>
+            </div>
+
+            <div id="indicationsTab" class="tab-content">
+              <h3 class="font-bold text-gray-900 mb-4">Clinical Indications</h3>
+              <ul id="modalIndications" class="space-y-3"></ul>
+
+              <div class="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                <h4 class="font-bold text-amber-900 mb-2">Contraindications</h4>
+                <p id="modalContraindications" class="text-sm text-amber-800"></p>
+              </div>
+            </div>
+
+            <div id="specsTab" class="tab-content">
+              <h3 class="font-bold text-gray-900 mb-4">Product Specifications</h3>
+              <div id="modalSpecs" class="space-y-4"></div>
+            </div>
+
+            <!-- CTA -->
+            <div class="mt-8 pt-8 border-t border-gray-200">
+              <a href="/register" class="block w-full px-8 py-4 bg-gradient-to-r from-brand-teal to-emerald-500 text-white font-bold rounded-xl text-center hover:shadow-xl hover:shadow-brand-teal/40 transition-all duration-300">
+                Order This Product
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA Section -->
+  <section class="py-24 bg-gradient-to-br from-brand-navy via-slate-900 to-brand-navy relative overflow-hidden">
+    <div class="absolute inset-0 opacity-10">
+      <div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(71,198,190,0.3),transparent_50%)]"></div>
+    </div>
+    <div class="relative max-w-5xl mx-auto px-6 lg:px-8 text-center">
+      <h2 class="text-4xl lg:text-5xl font-black text-white mb-6">
+        Ready to Order?
+      </h2>
+      <p class="text-xl text-slate-300 mb-12">
+        Get started with our streamlined ordering process. Setup takes just 5 minutes.
+      </p>
+      <a href="/register" class="inline-flex items-center gap-2 px-8 py-4 bg-white text-brand-navy font-bold rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300">
+        Create Provider Account
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+        </svg>
+      </a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-gray-200 py-16">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+      <div class="grid md:grid-cols-4 gap-12 mb-12">
+        <div class="md:col-span-2">
+          <div class="flex items-center gap-3 mb-4">
+            <img src="/assets/collagendirect.png" alt="CollagenDirect" class="h-8 w-auto">
+            <div>
+              <div class="text-sm font-bold text-gray-900">CollagenDirect</div>
+              <div class="text-xs text-gray-500">Advanced Wound Care</div>
+            </div>
+          </div>
+          <p class="text-gray-600 leading-relaxed max-w-md">
+            Evidence-based wound care therapies with direct access, streamlined ordering, complete compliance.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-bold text-gray-900 mb-4">Quick Links</h3>
+          <ul class="space-y-3">
+            <li><a href="/" class="text-gray-600 hover:text-brand-teal transition">Home</a></li>
+            <li><a href="/products/" class="text-gray-600 hover:text-brand-teal transition">Products</a></li>
+            <li><a href="/#outcomes" class="text-gray-600 hover:text-brand-teal transition">Clinical Data</a></li>
+            <li><a href="/login" class="text-gray-600 hover:text-brand-teal transition">Sign In</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="font-bold text-gray-900 mb-4">Support</h3>
+          <ul class="space-y-3">
+            <li><a href="mailto:support@collagendirect.health" class="text-gray-600 hover:text-brand-teal transition">Contact</a></li>
+            <li><a href="/register" class="text-gray-600 hover:text-brand-teal transition">Register</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="pt-8 border-t border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
+        <p class="text-sm text-gray-500">© 2025 CollagenDirect. All rights reserved.</p>
+        <div class="flex gap-6">
+          <a href="#" class="text-sm text-gray-500 hover:text-brand-teal transition">Privacy</a>
+          <a href="#" class="text-sm text-gray-500 hover:text-brand-teal transition">Terms</a>
+          <a href="#" class="text-sm text-gray-500 hover:text-brand-teal transition">HIPAA</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Product Data
+    const products = [
+      {
+        id: 'collaheal-2x2',
+        name: 'CollaHeal™ Matrix 2x2',
+        category: 'collagen',
+        hcpcs: 'A6021',
+        image: '/assets/collagen-matrix-2x2 (A6021).png',
+        badge: 'Most Popular',
+        badgeColor: 'emerald',
+        shortDesc: '100% bovine collagen dressing for partial to full-thickness wounds.',
+        longDesc: 'CollaHeal™ Collagen Matrix is a sterile, single-use dressing composed entirely of 100% bovine Type I collagen. Designed to support wound healing through favorable tissue affinity and excellent biocompatibility. The porous matrix structure promotes granulation tissue formation and epithelialization.',
+        benefits: [
+          'Non-pyrogenic and super conformant',
+          'Entirely absorbable with no chemical additives',
+          'Porous scaffold for cell proliferation and migration',
+          'Safe cross-linking technology increases strength',
+          'Can absorb 38x its own weight',
+          'Maintains moist wound environment'
+        ],
+        indications: [
+          'Partial and full-thickness wounds',
+          'Pressure ulcers (Stage I-IV)',
+          'Venous and arterial leg ulcers',
+          'Diabetic ulcers',
+          'Partial thickness burns',
+          'Donor sites and surgical wounds',
+          'Abrasions and traumatic wounds'
+        ],
+        contraindications: 'Not for use on patients sensitive to bovine collagen, third-degree burns, or wounds showing active signs of infection.',
+        specs: [
+          { label: 'Size', value: '2" x 2" (5cm x 5cm)' },
+          { label: 'Material', value: '100% Bovine Type I Collagen' },
+          { label: 'Absorption', value: 'Up to 38x its weight' },
+          { label: 'Sterilization', value: 'Gamma irradiation' },
+          { label: 'Shelf Life', value: '3 years' }
+        ]
+      },
+      {
+        id: 'collaheal-4x4',
+        name: 'CollaHeal™ Matrix 4x4',
+        category: 'collagen',
+        hcpcs: 'A6210',
+        image: '/assets/collagen-matrix-4x4(A6210).png',
+        badge: '',
+        badgeColor: '',
+        shortDesc: 'Larger coverage for moderate to heavy exuding wounds.',
+        longDesc: 'CollaHeal™ Collagen Matrix 4x4 provides extended coverage for larger wound beds. The same superior biocompatibility and absorption as the 2x2, with enhanced surface area for extensive wounds requiring comprehensive collagen scaffolding.',
+        benefits: [
+          'Larger coverage area for extensive wounds',
+          'Superior biocompatibility',
+          'Promotes rapid granulation',
+          'Enhanced absorption capacity',
+          'Excellent wet strength',
+          'Easy application and removal'
+        ],
+        indications: [
+          'Large partial and full-thickness wounds',
+          'Extensive pressure ulcers',
+          'Large venous/arterial ulcers',
+          'Diabetic foot ulcers',
+          'Large surgical wounds',
+          'Dehisced surgical incisions'
+        ],
+        contraindications: 'Not for use on patients sensitive to bovine collagen or third-degree burns.',
+        specs: [
+          { label: 'Size', value: '4" x 4" (10cm x 10cm)' },
+          { label: 'Material', value: '100% Bovine Type I Collagen' },
+          { label: 'Coverage Area', value: '16 square inches' },
+          { label: 'Absorption', value: 'High capacity' },
+          { label: 'Application', value: 'Dry or moistened' }
+        ]
+      },
+      {
+        id: 'collaheal-powder',
+        name: 'CollaHeal™ Powder 1g',
+        category: 'collagen',
+        hcpcs: 'A6010',
+        image: '/assets/collagen-powder-1g(A6010).png',
+        badge: '',
+        badgeColor: '',
+        shortDesc: 'Micron-sized particles conform to irregular wounds.',
+        longDesc: 'CollaHeal™ Collagen Powder consists of micron-sized collagen particles with an uneven porosity structure. The optimal particle size provides greater specific surface area, enhancing absorption capacity. Ideal for irregular, tunneling, and cavity wounds where traditional dressings cannot conform.',
+        benefits: [
+          'Conforms to irregular wound topography',
+          'Micron-sized particles for maximum surface area',
+          'Absorbs 15-25x its weight',
+          'Original triple helix structure intact',
+          'Can be combined with various dressings',
+          'Excellent for cavity and tunneling wounds'
+        ],
+        indications: [
+          'Irregular and cavity wounds',
+          'Tunneling wounds',
+          'Undermined wounds',
+          'Pressure ulcers (all stages)',
+          'Venous stasis ulcers',
+          'Diabetic ulcers',
+          'Surgical wounds'
+        ],
+        contraindications: 'Not for use on patients sensitive to bovine collagen or third-degree burns.',
+        specs: [
+          { label: 'Size', value: '1 gram per vial' },
+          { label: 'Particle Size', value: 'Micron-sized' },
+          { label: 'Material', value: '100% Bovine Type I Collagen' },
+          { label: 'Absorption', value: '15-25x its weight' },
+          { label: 'Application', value: 'Can be hydrated with saline' }
+        ]
+      },
+      {
+        id: 'algiheal-2x2',
+        name: 'AlgiHeal™ Alginate 2x2',
+        category: 'alginate',
+        hcpcs: 'A6196',
+        image: '/assets/algiheal2x2 (A6196).jpg',
+        badge: '',
+        badgeColor: '',
+        shortDesc: 'Natural seaweed-derived dressing for moderate to heavy exudate.',
+        longDesc: 'AlgiHeal™ Alginate Dressing is composed of calcium alginate derived from natural seaweed fibers. When in contact with wound exudate, it forms a hydrophilic gel that maintains a physiologically moist environment. Highly absorbent with excellent hemostatic properties.',
+        benefits: [
+          'Highly absorbent (10-20x its weight)',
+          'Maintains moist healing environment',
+          'Excellent hemostatic properties',
+          'Easy application and removal',
+          'Excellent wet strength',
+          'Natural biodegradable material'
+        ],
+        indications: [
+          'Moderate to heavy exuding wounds',
+          'Pressure sores',
+          'Diabetic ulcers',
+          'Venous/arterial leg ulcers',
+          'Donor sites',
+          'Post-surgical wounds',
+          'Surface trauma with local hemostasis'
+        ],
+        contraindications: 'Not for use on dry wounds or infected wounds without concurrent anti-infection therapy.',
+        specs: [
+          { label: 'Size', value: '2" x 2"' },
+          { label: 'Material', value: 'Calcium Alginate' },
+          { label: 'Absorption', value: '10-20x its weight' },
+          { label: 'Form', value: 'Sheet dressing' },
+          { label: 'Wear Time', value: 'Up to 7 days' }
+        ]
+      },
+      {
+        id: 'hydrapad',
+        name: 'HydraPad™ Super Absorbent',
+        category: 'foam',
+        hcpcs: 'A6254',
+        image: '/assets/hydrapad(A6254).jpg',
+        badge: '',
+        badgeColor: '',
+        shortDesc: 'High-capacity dressing with OptiSil technology.',
+        longDesc: 'HydraPad™ Super Absorbent Dressing features OptiSil silicone technology for pain-free removal. Multi-layered construction with exceptional absorption capacity of 180g/100cm². Waterproof backing prevents strike-through while maintaining vapor permeability.',
+        benefits: [
+          'Outstanding fluid control (180g/100cm²)',
+          'OptiSil technology for gentle removal',
+          'Minimizes maceration and leakage',
+          'Non-strike-through backing',
+          'Can be used under compression',
+          'Cost-effective with extended wear time'
+        ],
+        indications: [
+          'Moderate to heavily exuding wounds',
+          'Leg ulcers',
+          'Pressure ulcers',
+          'Diabetic foot ulcers',
+          'Dehisced surgical wounds'
+        ],
+        contraindications: 'Not for use on dry or low-exuding wounds, third-degree burns, or in wound cavities.',
+        specs: [
+          { label: 'Absorption Capacity', value: '180g/100cm²' },
+          { label: 'Technology', value: 'OptiSil Silicone' },
+          { label: 'Backing', value: 'Waterproof, breathable' },
+          { label: 'Sizes Available', value: '2"x2", 4.13"x4.13", 8"x8"' },
+          { label: 'Wear Time', value: 'Up to 7 days' }
+        ]
+      },
+      {
+        id: 'curafoam',
+        name: 'CuraFoam™ Silicone Foam',
+        category: 'foam',
+        hcpcs: 'A6209',
+        image: '/assets/collagen-product.jpg',
+        badge: '',
+        badgeColor: '',
+        shortDesc: 'Multi-layer silicone foam for excellent fluid management.',
+        longDesc: 'CuraFoam™ Bordered Foam Dressing combines gentle silicone contact layer with super absorbent foam core. Provides excellent exudate management while protecting fragile skin. Waterproof film backing with high MVTR for optimal moisture balance.',
+        benefits: [
+          'Gentle silicone contact layer',
+          'Excellent wound exudate absorption',
+          'Pain-free removal and repositioning',
+          'Maintains integrity throughout use',
+          'Waterproof and bacteria barrier',
+          'Can be used on dry wounds with gels'
+        ],
+        indications: [
+          'Pressure ulcers',
+          'Leg and foot ulcers',
+          'Traumatic wounds',
+          'Surgical wounds',
+          'Donor sites',
+          'Skin tears',
+          'First and second degree burns'
+        ],
+        contraindications: 'Not for patients with known sensitivity to dressing contents.',
+        specs: [
+          { label: 'Core Material', value: 'Absorbent PU Foam' },
+          { label: 'Contact Layer', value: 'OptiSil Silicone' },
+          { label: 'Backing', value: 'High MVTR film' },
+          { label: 'Sizes', value: '2"x2", 4.13"x4.13", 6"x6"' },
+          { label: 'Border', value: 'Gentle adhesive border' }
+        ]
+      },
+      {
+        id: 'hydrocare-gel',
+        name: 'HydraCare™ Amorphous Hydrogel',
+        category: 'hydrogel',
+        hcpcs: 'A6248',
+        image: '/assets/hydrogel(A6248).png',
+        badge: 'Coming Soon',
+        badgeColor: 'blue',
+        shortDesc: 'Crystal-clear gel for autolytic debridement.',
+        longDesc: 'HydraCare™ Amorphous Hydrogel is a colorless, transparent gel that facilitates wound healing by maintaining optimal moisture balance. Donates moisture to dry wounds and absorbs excess exudate. Promotes autolytic debridement while protecting granulation tissue.',
+        benefits: [
+          'Crystal-clear for easy wound assessment',
+          'Maintains hydration balance',
+          'Encourages autolytic debridement',
+          'Cooling and soothing effect',
+          'Easy application for any wound position',
+          'Non-cytotoxic and safe'
+        ],
+        indications: [
+          'Venous leg ulcers',
+          'Pressure sores',
+          'Diabetic foot ulcers',
+          'Cavity and sinus wounds',
+          'First and second degree burns',
+          'All healing stages except third-degree burns'
+        ],
+        contraindications: 'Not for external use on third-degree burns. May enlarge during debridement (normal process).',
+        specs: [
+          { label: 'Size', value: '0.9 oz (25g) tube' },
+          { label: 'Composition', value: 'Hydrophilic polymers + water' },
+          { label: 'pH', value: 'Mildly acidic' },
+          { label: 'Transparency', value: 'Crystal clear' },
+          { label: 'Wear Time', value: 'Up to 7 days' }
+        ]
+      },
+      {
+        id: 'hydrocare-ag',
+        name: 'HydraCare AG™ Silver Gel',
+        category: 'hydrogel',
+        hcpcs: 'A6249',
+        image: '/assets/silverwoundgel(A6249).jpg',
+        badge: 'Antimicrobial',
+        badgeColor: 'purple',
+        shortDesc: 'Silver-infused hydrogel with 7-day antimicrobial protection.',
+        longDesc: 'HydraCare AG™ Silver Wound Gel provides broad-spectrum antimicrobial protection lasting up to 7 days. Contains 90% water for optimal moist wound environment. Slow-release silver maintains antimicrobial effectiveness against MRSA, VRE, E. coli, and other common pathogens with 99.99% antibacterial rate.',
+        benefits: [
+          'Broad-spectrum antimicrobial (99.99%)',
+          'Sustained 7-day silver release',
+          '90% water content',
+          'Maintains moist healing environment',
+          'Non-cytotoxic at therapeutic levels',
+          'Crystal-clear for wound monitoring'
+        ],
+        indications: [
+          'First and second degree burns',
+          'Stasis ulcers',
+          'Pressure ulcers',
+          'Diabetic ulcers',
+          'Lacerations and abrasions',
+          'Surgical incision sites',
+          'Device insertion wounds',
+          'Graft and donor sites'
+        ],
+        contraindications: 'Not for individuals sensitive to silver or allergic to gel components.',
+        specs: [
+          { label: 'Size', value: '0.9 oz tube' },
+          { label: 'Active Ingredient', value: 'Silver compounds' },
+          { label: 'Antimicrobial Rate', value: '99.99%' },
+          { label: 'Protection Duration', value: 'Up to 7 days' },
+          { label: 'Water Content', value: '90%' }
+        ]
+      }
+    ];
+
+    let currentFilter = 'all';
+
+    // Render Products
+    function renderProducts(filter = 'all') {
+      const grid = document.getElementById('productsGrid');
+      const filteredProducts = filter === 'all'
+        ? products
+        : products.filter(p => p.category === filter);
+
+      grid.innerHTML = filteredProducts.map(product => `
+        <div class="group relative bg-gradient-to-br from-white to-slate-50 rounded-3xl overflow-hidden border border-gray-200 hover:border-brand-teal/50 hover:shadow-xl hover:shadow-brand-teal/10 transition-all duration-300 cursor-pointer" onclick="openModal('${product.id}')">
+          <div class="aspect-square bg-gradient-to-br from-slate-100 to-slate-50 p-8 flex items-center justify-center">
+            <img src="${product.image}" alt="${product.name}" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300">
+          </div>
+          <div class="p-6">
+            ${product.badge ? `
+              <div class="inline-block px-3 py-1 bg-${product.badgeColor}-50 text-${product.badgeColor}-700 rounded-full text-xs font-bold mb-3">
+                ${product.badge}
+              </div>
+            ` : ''}
+            <h3 class="text-xl font-black text-gray-900 mb-2">${product.name}</h3>
+            <p class="text-sm text-brand-teal font-bold mb-2">HCPCS: ${product.hcpcs}</p>
+            <p class="text-gray-600 mb-4 leading-relaxed text-sm">
+              ${product.shortDesc}
+            </p>
+            <button class="w-full px-4 py-3 bg-brand-teal text-white font-bold rounded-xl hover:bg-brand-teal/90 transition text-sm">
+              View Details
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Filter Products
+    function filterProducts(category) {
+      currentFilter = category;
+      renderProducts(category);
+
+      // Update button states
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active', 'bg-brand-teal', 'text-white', 'shadow-lg', 'shadow-brand-teal/30');
+        btn.classList.add('bg-white', 'border-2', 'border-gray-200', 'text-gray-700');
+      });
+      event.target.classList.add('active', 'bg-brand-teal', 'text-white', 'shadow-lg', 'shadow-brand-teal/30');
+      event.target.classList.remove('bg-white', 'border-2', 'border-gray-200', 'text-gray-700');
+    }
+
+    // Open Modal
+    function openModal(productId) {
+      const product = products.find(p => p.id === productId);
+      if (!product) return;
+
+      document.getElementById('modalImage').src = product.image;
+      document.getElementById('modalImage').alt = product.name;
+      document.getElementById('modalTitle').textContent = product.name;
+      document.getElementById('modalHCPCS').textContent = `HCPCS Code: ${product.hcpcs}`;
+      document.getElementById('modalDescription').textContent = product.longDesc;
+
+      if (product.badge) {
+        document.getElementById('modalBadge').textContent = product.badge;
+        document.getElementById('modalBadge').className = `inline-block px-3 py-1 bg-${product.badgeColor}-50 text-${product.badgeColor}-700 rounded-full text-xs font-bold mb-4`;
+      } else {
+        document.getElementById('modalBadge').style.display = 'none';
+      }
+
+      document.getElementById('modalBenefits').innerHTML = product.benefits.map(b => `
+        <li class="flex items-start gap-3">
+          <svg class="w-5 h-5 text-brand-teal flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+          </svg>
+          <span class="text-gray-700">${b}</span>
+        </li>
+      `).join('');
+
+      document.getElementById('modalIndications').innerHTML = product.indications.map(i => `
+        <li class="flex items-start gap-3">
+          <svg class="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+          </svg>
+          <span class="text-gray-700">${i}</span>
+        </li>
+      `).join('');
+
+      document.getElementById('modalContraindications').textContent = product.contraindications;
+
+      document.getElementById('modalSpecs').innerHTML = product.specs.map(s => `
+        <div class="flex justify-between items-center py-3 border-b border-gray-200 last:border-0">
+          <span class="font-semibold text-gray-700">${s.label}</span>
+          <span class="text-gray-600">${s.value}</span>
+        </div>
+      `).join('');
+
+      document.getElementById('productModal').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    // Close Modal
+    function closeModal() {
+      document.getElementById('productModal').classList.add('hidden');
+      document.body.style.overflow = 'auto';
+    }
+
+    // Switch Tabs
+    function switchTab(tabName) {
+      // Hide all tabs
+      document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active', 'border-brand-teal', 'text-brand-teal');
+        btn.classList.add('border-transparent', 'text-gray-600');
+      });
+
+      // Show selected tab
+      document.getElementById(tabName + 'Tab').classList.add('active');
+      event.target.classList.add('active', 'border-brand-teal', 'text-brand-teal');
+      event.target.classList.remove('border-transparent', 'text-gray-600');
+    }
+
+    // Mobile Menu Toggle
+    function toggleMobileMenu() {
+      const menu = document.getElementById('mobileMenu');
+      menu.classList.toggle('hidden');
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      renderProducts();
+    });
+  </script>
+</body>
+</html>
