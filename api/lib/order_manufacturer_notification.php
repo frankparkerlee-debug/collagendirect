@@ -22,7 +22,7 @@ if (!function_exists('notify_manufacturer_of_order')) {
         return false;
       }
 
-      // Get order details
+      // Get order details with document paths
       $orderStmt = $pdo->prepare("
         SELECT o.*,
                p.first_name, p.last_name, p.email AS patient_email, p.phone, p.dob,
@@ -41,6 +41,41 @@ if (!function_exists('notify_manufacturer_of_order')) {
         error_log("[order-notification] Order not found: $orderId");
         return false;
       }
+
+      // Prepare file attachments
+      $attachments = [];
+      $docRoot = realpath(__DIR__ . '/../..');
+
+      // Helper to add attachment
+      $addAttachment = function($filePath, $filename, $mimeType) use (&$attachments, $docRoot) {
+        if (!$filePath) return;
+
+        // Convert web path to filesystem path
+        $absPath = $docRoot . $filePath;
+
+        if (!file_exists($absPath) || !is_file($absPath)) {
+          error_log("[order-notification] File not found: $absPath");
+          return;
+        }
+
+        $content = @file_get_contents($absPath);
+        if ($content === false) {
+          error_log("[order-notification] Could not read file: $absPath");
+          return;
+        }
+
+        $attachments[] = [
+          'content' => base64_encode($content),
+          'filename' => $filename,
+          'type' => $mimeType ?: 'application/octet-stream',
+          'disposition' => 'attachment'
+        ];
+      };
+
+      // Add documents
+      $addAttachment($order['rx_note_path'], 'prescription_note.pdf', $order['rx_note_mime']);
+      $addAttachment($order['ins_card_path'], 'insurance_card.pdf', $order['ins_card_mime']);
+      $addAttachment($order['id_card_path'], 'id_card.pdf', $order['id_card_mime']);
 
       // Build patient name and search tokens for documents
       $patientName = trim(($order['first_name'] ?? '') . ' ' . ($order['last_name'] ?? ''));
@@ -102,6 +137,13 @@ if (!function_exists('notify_manufacturer_of_order')) {
 
       $emailBody .= "DOCUMENTS\n";
       $emailBody .= "---------\n";
+      if (count($attachments) > 0) {
+        $emailBody .= "Attached documents:\n";
+        foreach ($attachments as $att) {
+          $emailBody .= "  - " . $att['filename'] . "\n";
+        }
+        $emailBody .= "\n";
+      }
       $emailBody .= "View Order PDF: $orderPdfUrl\n";
       $emailBody .= "Access all documents in the admin portal: $baseUrl/admin/orders.php?id=$orderId\n\n";
 
@@ -132,6 +174,11 @@ if (!function_exists('notify_manufacturer_of_order')) {
           'value' => $emailBody
         ]]
       ];
+
+      // Add attachments if any
+      if (count($attachments) > 0) {
+        $data['attachments'] = $attachments;
+      }
 
       $result = sg_curl_send($apiKey, $data);
 
