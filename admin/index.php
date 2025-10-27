@@ -140,7 +140,7 @@ try {
 } catch(Throwable $e){}
 try {
   if (has_column($pdo,'orders','shipped_at') && has_column($pdo,'orders','delivered_at')) {
-    $delayedShipments = qCount($pdo,"SELECT COUNT(*) c FROM orders WHERE status='in_transit' AND shipped_at IS NOT NULL AND delivered_at IS NULL AND shipped_at < DATE_SUB(NOW(), INTERVAL 7 DAY)");
+    $delayedShipments = qCount($pdo,"SELECT COUNT(*) c FROM orders WHERE status='in_transit' AND shipped_at IS NOT NULL AND delivered_at IS NULL AND shipped_at < (NOW() - INTERVAL '7 days')");
   }
 } catch(Throwable $e){}
 

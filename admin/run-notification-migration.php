@@ -68,8 +68,8 @@ try {
           OLD.status,
           NEW.status,
           NEW.reviewed_by,
-          NEW.tracking_code,
-          NEW.carrier
+          NEW.rx_note_name,  -- tracking stored in rx_note_name
+          NEW.rx_note_mime   -- carrier stored in rx_note_mime
         );
       END IF;
       RETURN NEW;
