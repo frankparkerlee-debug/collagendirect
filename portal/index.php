@@ -961,21 +961,20 @@ if ($action) {
           subject VARCHAR(500) NOT NULL,
           body TEXT NOT NULL,
           patient_id VARCHAR(64),
-          parent_id INTEGER,
+          parent_message_id INTEGER,
           thread_id INTEGER,
           is_read BOOLEAN DEFAULT FALSE,
           read_at TIMESTAMP,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (parent_id) REFERENCES messages(id) ON DELETE CASCADE,
-          FOREIGN KEY (thread_id) REFERENCES messages(id) ON DELETE CASCADE
+          FOREIGN KEY (parent_message_id) REFERENCES messages(id) ON DELETE CASCADE
         )
       ");
 
       // Add threading columns if they don't exist (for existing tables)
-      $pdo->exec("ALTER TABLE messages ADD COLUMN IF NOT EXISTS parent_id INTEGER");
+      $pdo->exec("ALTER TABLE messages ADD COLUMN IF NOT EXISTS parent_message_id INTEGER");
       $pdo->exec("ALTER TABLE messages ADD COLUMN IF NOT EXISTS thread_id INTEGER");
 
-      // Check if this is a reply (has parent_id)
+      // Check if this is a reply (has parent_message_id)
       $parentId = !empty($_POST['parent_id']) ? (int)$_POST['parent_id'] : null;
       $threadId = null;
 
@@ -1001,7 +1000,7 @@ if ($action) {
           sender_type, sender_id, sender_name,
           recipient_type, recipient_id,
           subject, body, patient_id,
-          parent_id, thread_id,
+          parent_message_id, thread_id,
           created_at
         ) VALUES (
           'provider', ?, ?,

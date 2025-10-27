@@ -88,21 +88,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $subject = trim($_POST['subject'] ?? '');
     $body = trim($_POST['body'] ?? '');
     $patientId = trim($_POST['patient_id'] ?? '') ?: null;
+    $originalMessageId = trim($_POST['original_message_id'] ?? '') ?: null;
 
     if (!$subject || !$body) {
       $error = 'Subject and message body are required';
     } else {
-      // Insert message
+      // Determine threading info for replies
+      $parentMessageId = null;
+      $threadId = null;
+
+      if ($action === 'reply' && $originalMessageId) {
+        // Get the original message's thread info
+        $stmt = $pdo->prepare("SELECT id, thread_id FROM messages WHERE id = ?");
+        $stmt->execute([$originalMessageId]);
+        $originalMsg = $stmt->fetch();
+
+        if ($originalMsg) {
+          $parentMessageId = $originalMsg['id'];
+          // If original message already has a thread_id, use it. Otherwise, use its ID as the thread root.
+          $threadId = $originalMsg['thread_id'] ?: $originalMsg['id'];
+        }
+      }
+
+      // Insert message with threading
       $stmt = $pdo->prepare("
         INSERT INTO messages (
           sender_type, sender_id, sender_name,
           recipient_type, recipient_id,
           subject, body, patient_id,
+          parent_message_id, thread_id,
           created_at
         ) VALUES (
           'admin', ?, ?,
           'provider', ?,
           ?, ?, ?,
+          ?, ?,
           NOW()
         )
       ");
@@ -112,7 +132,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $recipientId,
         $subject,
         $body,
-        $patientId
+        $patientId,
+        $parentMessageId,
+        $threadId
       ]);
 
       header('Location: /admin/messages.php?success=1');
