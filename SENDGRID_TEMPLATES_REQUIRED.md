@@ -4,26 +4,38 @@
 
 CollagenDirect requires **7 SendGrid Dynamic Templates** to be configured. Each template ID must be added to your Render environment variables.
 
+## Quick Audience Summary
+
+| Template | Audience | Purpose |
+|----------|----------|---------|
+| `SG_TMPL_PASSWORD_RESET` | All users | Password reset link |
+| `SG_TMPL_ACCOUNT_CONFIRMATION` | **Physicians/Practices** | Self-registration confirmation |
+| `SG_TMPL_PHYSACCOUNT_CONFIRMATION` | **Physicians/Practices** | Admin-created account welcome |
+| `SG_TMPL_ORDER_RECEIVED` | **Patients** | Order submission confirmation |
+| `SG_TMPL_ORDER_APPROVED` | **Physicians** | Their patient's order was approved |
+| `SG_TMPL_ORDER_SHIPPED` | **Patients** | Order shipped with tracking |
+| `SG_TMPL_ORDER_DELIVERED` | **Manufacturer** | New order notification |
+
 ## Required Environment Variables
 
 Add these to your Render dashboard (Dashboard → Environment):
 
 ### 1. Authentication Templates
 
-| Variable Name | Purpose | When Sent |
-|--------------|---------|-----------|
-| `SG_TMPL_PASSWORD_RESET` | Password reset email | When user clicks "Forgot Password" |
-| `SG_TMPL_ACCOUNT_CONFIRMATION` | Patient account confirmation | When new patient account is created |
-| `SG_TMPL_PHYSACCOUNT_CONFIRMATION` | Physician account confirmation | When new physician account is created |
+| Variable Name | Purpose | Audience | When Sent |
+|--------------|---------|----------|-----------|
+| `SG_TMPL_PASSWORD_RESET` | Password reset email | All users (patients, physicians, admins) | When user clicks "Forgot Password" |
+| `SG_TMPL_ACCOUNT_CONFIRMATION` | Account confirmation for physicians/practices | **Physicians & Practice Managers** | When they register their account |
+| `SG_TMPL_PHYSACCOUNT_CONFIRMATION` | Physician account welcome | **Physicians & Practice Managers** | When admin creates their account |
 
-### 2. Order Status Templates
+### 2. Order Notifications
 
-| Variable Name | Purpose | When Sent |
-|--------------|---------|-----------|
-| `SG_TMPL_ORDER_RECEIVED` | Order received notification | When patient submits new order |
-| `SG_TMPL_ORDER_APPROVED` | Order approved notification | When admin approves order |
-| `SG_TMPL_ORDER_SHIPPED` | Order shipped notification | When admin adds tracking info |
-| `SG_TMPL_ORDER_DELIVERED` | Order delivered notification | When shipment is delivered |
+| Variable Name | Purpose | Audience | When Sent |
+|--------------|---------|----------|-----------|
+| `SG_TMPL_ORDER_RECEIVED` | Order received confirmation | **Patients** | When patient submits new order |
+| `SG_TMPL_ORDER_APPROVED` | Order approved notification | **Physicians** | When admin approves their patient's order |
+| `SG_TMPL_ORDER_SHIPPED` | Order shipped notification | **Patients** | When admin adds tracking info |
+| `SG_TMPL_ORDER_DELIVERED` | New order notification to manufacturer | **Manufacturer** | When new order is submitted |
 
 ## How to Set Up
 
@@ -74,7 +86,8 @@ SG_TMPL_ORDER_DELIVERED=d-xxxxxxxxxxxxxxxxxxxxxxxx
 
 Each template receives dynamic data. Here's what variables are available:
 
-### Password Reset Template
+### 1. Password Reset Template (SG_TMPL_PASSWORD_RESET)
+**Audience:** All users
 ```json
 {
   "first_name": "John",
@@ -84,31 +97,105 @@ Each template receives dynamic data. Here's what variables are available:
 }
 ```
 
-### Account Confirmation Templates
+### 2. Account Confirmation for Physicians (SG_TMPL_ACCOUNT_CONFIRMATION)
+**Audience:** Physicians & Practice Managers (self-registration)
 ```json
 {
-  "first_name": "John",
+  "first_name": "Dr. John",
   "last_name": "Doe",
-  "email": "john@example.com",
+  "email": "john@practice.com",
+  "practice_name": "Doe Medical Center",
   "login_url": "https://collagendirect.health/portal/login",
   "support_email": "support@collagendirect.health",
   "year": "2025"
 }
 ```
 
-### Order Status Templates
+### 3. Physician Account Welcome (SG_TMPL_PHYSACCOUNT_CONFIRMATION)
+**Audience:** Physicians & Practice Managers (admin-created accounts)
 ```json
 {
-  "first_name": "John",
+  "first_name": "Dr. John",
   "last_name": "Doe",
+  "email": "john@practice.com",
+  "practice_name": "Doe Medical Center",
+  "temporary_password": "temp123xyz",
+  "login_url": "https://collagendirect.health/portal/login",
+  "support_email": "support@collagendirect.health",
+  "year": "2025"
+}
+```
+
+### 4. Order Received - Patient (SG_TMPL_ORDER_RECEIVED)
+**Audience:** Patients
+```json
+{
+  "first_name": "Jane",
+  "last_name": "Smith",
   "order_id": "123",
   "order_date": "2025-10-27",
-  "status": "Approved",
+  "product_name": "CollagenDirect Injection 5ml",
+  "physician_name": "Dr. John Doe",
+  "practice_name": "Doe Medical Center",
+  "portal_url": "https://collagendirect.health/portal",
+  "support_email": "support@collagendirect.health",
+  "year": "2025"
+}
+```
+
+### 5. Order Approved - Physician (SG_TMPL_ORDER_APPROVED)
+**Audience:** Physicians (notifying them their patient's order was approved)
+```json
+{
+  "physician_first_name": "John",
+  "physician_last_name": "Doe",
+  "patient_first_name": "Jane",
+  "patient_last_name": "Smith",
+  "order_id": "123",
+  "order_date": "2025-10-27",
+  "product_name": "CollagenDirect Injection 5ml",
+  "approved_date": "2025-10-28",
+  "portal_url": "https://collagendirect.health/portal",
+  "support_email": "support@collagendirect.health",
+  "year": "2025"
+}
+```
+
+### 6. Order Shipped - Patient (SG_TMPL_ORDER_SHIPPED)
+**Audience:** Patients
+```json
+{
+  "first_name": "Jane",
+  "last_name": "Smith",
+  "order_id": "123",
+  "product_name": "CollagenDirect Injection 5ml",
   "tracking_number": "1Z999AA10123456784",
   "carrier": "UPS",
   "tracking_url": "https://www.ups.com/track?tracknum=1Z999AA10123456784",
+  "shipped_date": "2025-10-28",
   "portal_url": "https://collagendirect.health/portal",
   "support_email": "support@collagendirect.health",
+  "year": "2025"
+}
+```
+
+### 7. New Order to Manufacturer (SG_TMPL_ORDER_DELIVERED)
+**Audience:** Manufacturer
+```json
+{
+  "order_id": "123",
+  "order_date": "2025-10-27",
+  "patient_name": "Jane Smith",
+  "patient_dob": "1980-05-15",
+  "patient_phone": "(555) 123-4567",
+  "physician_name": "Dr. John Doe",
+  "practice_name": "Doe Medical Center",
+  "practice_phone": "(555) 987-6543",
+  "product_name": "CollagenDirect Injection 5ml",
+  "quantity": "1",
+  "shipping_address": "123 Main St, City, ST 12345",
+  "insurance_info": "Blue Cross - Policy #12345",
+  "admin_portal_url": "https://collagendirect.health/admin/orders.php?id=123",
   "year": "2025"
 }
 ```
