@@ -2,7 +2,7 @@
 // Migration script to add message threading columns
 // Run this once to add parent_message_id and thread_id to existing messages table
 
-require __DIR__ . '/../portal/db.php';
+require __DIR__ . '/db.php';
 
 echo "Adding message threading columns...\n";
 
