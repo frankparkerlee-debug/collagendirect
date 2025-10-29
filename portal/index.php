@@ -69,7 +69,14 @@ $DIRS = [
   'notes'     => $UPLOAD_ROOT . '/notes',
   'aob'       => $UPLOAD_ROOT . '/aob', // NEW for AOB files
 ];
-foreach ($DIRS as $p) { if (!is_dir($p)) @mkdir($p, 0755, true); }
+// Create directories with better error handling
+foreach ($DIRS as $name => $p) {
+  if (!is_dir($p)) {
+    if (!@mkdir($p, 0755, true)) {
+      error_log("[portal/index.php] Failed to create directory: $p (for $name). Error: " . print_r(error_get_last(), true));
+    }
+  }
+}
 
 /* ------------ Helpers ------------ */
 function jerr(string $m, int $c=400){ http_response_code($c); header('Content-Type: application/json'); echo json_encode(['ok'=>false,'error'=>$m]); exit; }
