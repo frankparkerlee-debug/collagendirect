@@ -242,11 +242,16 @@ if ($dateTo !== '') {
 $whereClause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
 
 $sql = "
-  SELECT o.*, p.first_name, p.last_name, p.id AS pid, p.dob,
+  SELECT o.*, p.first_name, p.last_name, p.id AS pid, p.dob, p.phone,
          p.insurance_provider, p.insurance_member_id, p.insurance_group_id, p.insurance_payer_phone,
          $carrierSelect,
-         $trackingSelect
-  FROM orders o LEFT JOIN patients p ON p.id=o.patient_id
+         $trackingSelect,
+         dc.confirmed_at AS delivery_confirmed_at,
+         dc.sms_sent_at AS delivery_sms_sent_at,
+         dc.sms_status AS delivery_sms_status
+  FROM orders o
+  LEFT JOIN patients p ON p.id=o.patient_id
+  LEFT JOIN delivery_confirmations dc ON dc.order_id=o.id
   $whereClause
   ORDER BY o.created_at DESC LIMIT 1000
 ";
@@ -342,6 +347,7 @@ if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"
         <th class="py-2">Product / Frequency</th>
         <th class="py-2">Qty</th>
         <th class="py-2">Status</th>
+        <th class="py-2">Delivery Conf.</th>
         <th class="py-2">Actions</th>
       </tr>
     </thead>
@@ -365,6 +371,21 @@ if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"
             <?php $s=$r['status']??''; echo $s==='approved'?'bg-green-100 text-green-700':($s==='submitted'||$s==='pending'?'bg-yellow-100 text-yellow-800':($s==='rejected'?'bg-rose-100 text-rose-700':($s==='in_transit'?'bg-amber-100 text-amber-800':($s==='delivered'?'bg-teal-100 text-teal-700':'bg-gray-100 text-gray-700')))); ?>">
             <?=e(ucwords(str_replace('_',' ',$s ?: 'unknown')))?>
           </span>
+        </td>
+        <td class="py-3">
+          <?php
+          // Display delivery confirmation status
+          if (!empty($r['delivery_confirmed_at'])) {
+            echo '<span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700" title="Confirmed: '.e(date('m/d/Y g:i A', strtotime($r['delivery_confirmed_at']))).'">✓ Confirmed</span>';
+          } elseif (!empty($r['delivery_sms_sent_at'])) {
+            $statusText = $r['delivery_sms_status'] ?? 'sent';
+            echo '<span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800" title="SMS sent: '.e(date('m/d/Y g:i A', strtotime($r['delivery_sms_sent_at']))).' (Status: '.e($statusText).')">⏳ Pending</span>';
+          } elseif ($s === 'delivered' && !empty($r['phone'])) {
+            echo '<span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600" title="SMS will be sent 2-3 days after delivery">—</span>';
+          } else {
+            echo '<span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-400">N/A</span>';
+          }
+          ?>
         </td>
         <td class="py-3">
           <!-- Approve / Reject -->
