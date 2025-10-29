@@ -80,6 +80,51 @@ function render_view_link($paths, $empty='—') {
   return '<a class="text-brand underline" target="_blank" href="'.e($url).'">View</a>'.$bubble;
 }
 
+/* ================= POST Actions ================= */
+$msg = '';
+$msgType = 'success';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+  $action = $_POST['action'];
+
+  if ($action === 'update_patient_status') {
+    $patientId = $_POST['patient_id'] ?? '';
+    $newStatus = $_POST['status'] ?? '';
+    $comment = trim($_POST['comment'] ?? '');
+
+    // Only superadmin and manufacturer can update patient status
+    if ($adminRole === 'superadmin' || $adminRole === 'manufacturer') {
+      $validStatuses = ['pending', 'approved', 'not_covered', 'need_info', 'active', 'inactive'];
+
+      if (in_array($newStatus, $validStatuses) && $patientId) {
+        $stmt = $pdo->prepare("
+          UPDATE patients
+          SET state = ?,
+              status_comment = ?,
+              status_updated_at = NOW(),
+              status_updated_by = ?,
+              updated_at = NOW()
+          WHERE id = ?
+        ");
+
+        if ($stmt->execute([$newStatus, $comment, $adminId, $patientId])) {
+          $msg = "Patient status updated successfully";
+          $msgType = 'success';
+        } else {
+          $msg = "Failed to update patient status";
+          $msgType = 'error';
+        }
+      } else {
+        $msg = "Invalid status or patient ID";
+        $msgType = 'error';
+      }
+    } else {
+      $msg = "Unauthorized: Only superadmin and manufacturer can update patient status";
+      $msgType = 'error';
+    }
+  }
+}
+
 /* ================= Filters ================= */
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $status = isset($_GET['status']) ? $_GET['status'] : 'all';
@@ -179,6 +224,12 @@ try {
 include __DIR__.'/_header.php';
 ?>
 <div>
+  <?php if ($msg): ?>
+    <div class="mb-4 p-4 rounded <?=$msgType==='success'?'bg-green-50 text-green-800 border border-green-200':'bg-red-50 text-red-800 border border-red-200'?>">
+      <?=e($msg)?>
+    </div>
+  <?php endif; ?>
+
   <div class="flex items-center justify-between mb-4">
     <h2 class="text-lg font-semibold">Patients</h2>
     <form class="flex items-center gap-2" method="get">
@@ -301,9 +352,16 @@ include __DIR__.'/_header.php';
                 <div id="view-mode-<?=e($pid)?>" class="view-mode">
                   <div class="flex justify-between items-center mb-4">
                     <h4 class="font-semibold">Patient Details</h4>
-                    <button onclick="enableEditMode('<?=e($pid)?>')" class="px-3 py-1 bg-brand text-white rounded text-xs hover:bg-brand-dark">
-                      Edit Patient
-                    </button>
+                    <div class="flex gap-2">
+                      <?php if ($adminRole === 'superadmin' || $adminRole === 'manufacturer'): ?>
+                        <button onclick="openStatusDialog('<?=e($pid)?>', '<?=e($status)?>')" class="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700">
+                          Update Status
+                        </button>
+                      <?php endif; ?>
+                      <button onclick="enableEditMode('<?=e($pid)?>')" class="px-3 py-1 bg-brand text-white rounded text-xs hover:bg-brand-dark">
+                        Edit Patient
+                      </button>
+                    </div>
                   </div>
                   <div class="grid grid-cols-2 gap-4 text-sm">
                     <div>
@@ -508,6 +566,59 @@ async function savePatient(event, patientId) {
     alert('Error saving patient: ' + error.message);
   }
 }
+
+// Status update dialog functions
+let currentStatusPatientId = null;
+
+function openStatusDialog(patientId, currentStatus) {
+  currentStatusPatientId = patientId;
+  document.getElementById('status-patient-id').value = patientId;
+  document.getElementById('status-select').value = currentStatus || 'pending';
+  document.getElementById('status-comment').value = '';
+  document.getElementById('status-dialog').showModal();
+}
+
+function closeStatusDialog() {
+  document.getElementById('status-dialog').close();
+}
 </script>
+
+<!-- Status Update Dialog -->
+<dialog id="status-dialog" class="rounded-lg shadow-lg p-0" style="max-width: 500px; width: 90%;">
+  <form method="post" class="p-6">
+    <input type="hidden" name="action" value="update_patient_status">
+    <input type="hidden" name="patient_id" id="status-patient-id">
+
+    <h3 class="text-lg font-semibold mb-4">Update Patient Status</h3>
+
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium mb-1">Status</label>
+        <select name="status" id="status-select" class="w-full px-3 py-2 border rounded" required>
+          <option value="pending">Pending Review</option>
+          <option value="approved">Approved</option>
+          <option value="not_covered">Not Covered</option>
+          <option value="need_info">Need More Info</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Comment (visible to provider)</label>
+        <textarea name="comment" id="status-comment" rows="4" class="w-full px-3 py-2 border rounded" placeholder="Enter explanation or instructions..."></textarea>
+      </div>
+    </div>
+
+    <div class="flex gap-2 mt-6">
+      <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+        Update Status
+      </button>
+      <button type="button" onclick="closeStatusDialog()" class="px-4 py-2 bg-slate-200 text-slate-700 rounded hover:bg-slate-300">
+        Cancel
+      </button>
+    </div>
+  </form>
+</dialog>
 
 <?php include __DIR__.'/_footer.php'; ?>
