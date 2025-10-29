@@ -260,7 +260,6 @@ include __DIR__.'/_header.php';
         <thead class="border-b">
           <tr class="text-left">
             <th class="py-2">Patient</th>
-            <th class="py-2">Contact</th>
             <th class="py-2">DOB</th>
             <th class="py-2">Physician</th>
             <th class="py-2">Orders</th>
@@ -268,6 +267,7 @@ include __DIR__.'/_header.php';
             <th class="py-2">Notes</th>
             <th class="py-2">ID</th>
             <th class="py-2">Insurance Card</th>
+            <th class="py-2">Update Status</th>
             <th class="py-2">Actions</th>
           </tr>
         </thead>
@@ -311,10 +311,6 @@ include __DIR__.'/_header.php';
                 <div class="font-medium"><?=e($fullname ?: '—')?></div>
                 <div class="text-[11px] text-slate-500">ID: <?=e($pid)?></div>
               </td>
-              <td class="py-2">
-                <div class="text-xs"><?=e($row['email'] ?? '—')?></div>
-                <div class="text-xs text-slate-500"><?=e($row['phone'] ?? '—')?></div>
-              </td>
               <td class="py-2 text-xs"><?=e($row['dob'] ?? '—')?></td>
               <td class="py-2">
                 <div class="text-xs"><?=e($physName ?: '—')?></div>
@@ -337,6 +333,15 @@ include __DIR__.'/_header.php';
               <td class="py-2"><?=render_view_link($idLinks)?></td>
               <td class="py-2"><?=render_view_link($insLinks)?></td>
               <td class="py-2">
+                <?php if ($adminRole === 'superadmin' || $adminRole === 'manufacturer'): ?>
+                  <button onclick="openStatusDialog('<?=e($pid)?>', '<?=e($status)?>')" class="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700">
+                    Update
+                  </button>
+                <?php else: ?>
+                  <span class="text-slate-400 text-xs">—</span>
+                <?php endif; ?>
+              </td>
+              <td class="py-2">
                 <button
                   onclick="togglePatientDetails('<?=e($pid)?>')"
                   class="text-brand underline text-xs hover:text-brand-dark cursor-pointer"
@@ -353,11 +358,6 @@ include __DIR__.'/_header.php';
                   <div class="flex justify-between items-center mb-4">
                     <h4 class="font-semibold">Patient Details</h4>
                     <div class="flex gap-2">
-                      <?php if ($adminRole === 'superadmin' || $adminRole === 'manufacturer'): ?>
-                        <button onclick="openStatusDialog('<?=e($pid)?>', '<?=e($status)?>')" class="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700">
-                          Update Status
-                        </button>
-                      <?php endif; ?>
                       <button onclick="enableEditMode('<?=e($pid)?>')" class="px-3 py-1 bg-brand text-white rounded text-xs hover:bg-brand-dark">
                         Edit Patient
                       </button>

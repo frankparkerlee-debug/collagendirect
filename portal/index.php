@@ -6495,6 +6495,40 @@ function renderPatientDetailPage(p, orders, isEditing) {
         </div>
       </div>
 
+      <!-- Authorization Status Section -->
+      ${p.state ? `
+        <div class="mb-4 pb-4 border-t pt-4">
+          <h4 class="font-semibold text-sm mb-3">Authorization Status</h4>
+          <div class="space-y-3 text-sm">
+            <div>
+              <div class="text-slate-500 text-xs mb-1">Current Status</div>
+              <div class="flex items-center gap-2">
+                ${p.state === 'approved' ? '<span class="inline-block px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">✓ Approved</span>' : ''}
+                ${p.state === 'pending' ? '<span class="inline-block px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs font-medium">⏳ Pending Review</span>' : ''}
+                ${p.state === 'not_covered' ? '<span class="inline-block px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">✗ Not Covered</span>' : ''}
+                ${p.state === 'need_info' ? '<span class="inline-block px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-medium">! More Info Needed</span>' : ''}
+                ${p.state === 'active' ? '<span class="inline-block px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">Active</span>' : ''}
+                ${p.state === 'inactive' ? '<span class="inline-block px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs font-medium">Inactive</span>' : ''}
+              </div>
+              ${p.status_updated_at ? `<div class="text-slate-500 text-xs mt-1">Updated: ${fmt(p.status_updated_at)}</div>` : ''}
+            </div>
+            ${p.status_comment ? `
+              <div>
+                <div class="text-slate-500 text-xs mb-1">Manufacturer Notes</div>
+                <div class="bg-slate-50 border-l-4 ${
+                  p.state === 'approved' ? 'border-green-500' :
+                  p.state === 'not_covered' ? 'border-red-500' :
+                  p.state === 'need_info' ? 'border-orange-500' :
+                  'border-blue-500'
+                } p-3 rounded text-sm">
+                  ${esc(p.status_comment)}
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      ` : ''}
+
       ${isEditing ? `
         <!-- Required Documents Section -->
         <div class="mb-6 pb-6 border-t pt-6">
