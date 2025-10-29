@@ -171,11 +171,15 @@
       </div>
 
       <div class="bg-gradient-to-r from-cyan-50 to-teal-50 border-l-4 border-brand-teal p-6 rounded-xl shadow-md">
-        <h4 class="font-bold text-brand-navy mb-2 flex items-center gap-2">
+        <h4 class="font-bold text-brand-navy mb-3 flex items-center gap-2">
           <span>💡</span>
           First Time Login?
         </h4>
-        <p class="text-brand-slate">If you don't have login credentials yet, contact CollagenDirect support to create your account. You'll receive a welcome email with your temporary password.</p>
+        <p class="text-brand-slate mb-4">If you don't have login credentials yet, register your practice to get started. You'll receive a welcome email with your login credentials.</p>
+        <a href="/register" class="inline-flex items-center gap-2 bg-gradient-to-r from-brand-teal to-emerald-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl hover:shadow-brand-teal/30 transition-all">
+          <span>Register Your Practice</span>
+          <span>→</span>
+        </a>
       </div>
     </section>
 
@@ -185,7 +189,7 @@
 
       <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
         <div class="mb-6">
-          <img src="/uploads/portal-screenshots/dashboard.png"
+          <img src="/uploads/portal-screenshots/?file=dashboard.png"
                alt="Portal Dashboard showing revenue analytics, patient count, and recent activity"
                class="w-full rounded-lg shadow-md border">
         </div>
@@ -221,18 +225,18 @@
           <div>
             <h3 class="text-xl font-bold mb-4">Quick Actions</h3>
             <div class="space-y-3">
-              <button class="w-full bg-brand-teal text-white py-3 px-4 rounded-lg font-semibold hover:bg-teal-600 transition text-left flex items-center justify-between">
+              <a href="/portal/?page=order-add" class="block w-full bg-brand-teal text-white py-3 px-4 rounded-lg font-semibold hover:bg-teal-600 transition text-left flex items-center justify-between">
                 <span>New Order</span>
                 <span>→</span>
-              </button>
-              <button class="w-full bg-white border-2 border-gray-300 py-3 px-4 rounded-lg font-semibold hover:border-brand-teal transition text-left flex items-center justify-between">
+              </a>
+              <a href="/portal/?page=patient-add" class="block w-full bg-white border-2 border-gray-300 py-3 px-4 rounded-lg font-semibold hover:border-brand-teal hover:text-brand-teal transition text-left flex items-center justify-between">
                 <span>Add Patient</span>
                 <span>→</span>
-              </button>
-              <button class="w-full bg-white border-2 border-gray-300 py-3 px-4 rounded-lg font-semibold hover:border-brand-teal transition text-left flex items-center justify-between">
+              </a>
+              <a href="/portal/?page=patients" class="block w-full bg-white border-2 border-gray-300 py-3 px-4 rounded-lg font-semibold hover:border-brand-teal hover:text-brand-teal transition text-left flex items-center justify-between">
                 <span>View All Patients</span>
                 <span>→</span>
-              </button>
+              </a>
             </div>
           </div>
         </div>
@@ -247,7 +251,7 @@
       <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
         <h3 class="text-2xl font-bold mb-4">Patient List Overview</h3>
         <div class="mb-6">
-          <img src="/uploads/portal-screenshots/patients-list.png"
+          <img src="/uploads/portal-screenshots/?file=patients-list.png"
                alt="Patient list showing all patients with search and filter options"
                class="w-full rounded-lg shadow-md border">
         </div>
@@ -259,7 +263,7 @@
 
         <!-- Patient Add Form Screenshot -->
         <div class="mb-6">
-          <img src="/uploads/portal-screenshots/patient-add.png"
+          <img src="/uploads/portal-screenshots/?file=patient-add.png"
                alt="Add new patient form with demographics, insurance, and document upload fields"
                class="w-full rounded-lg shadow-md border">
         </div>
@@ -337,7 +341,7 @@
 
         <!-- Patient Detail Screenshot -->
         <div class="mb-6">
-          <img src="/uploads/portal-screenshots/patient-detail.png"
+          <img src="/uploads/portal-screenshots/?file=patient-detail.png"
                alt="Patient detail page showing demographics, order history, and action buttons"
                class="w-full rounded-lg shadow-md border">
         </div>
@@ -377,7 +381,7 @@
 
       <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
         <div class="mb-6">
-          <img src="/uploads/portal-screenshots/order-create.png"
+          <img src="/uploads/portal-screenshots/?file=order-create.png"
                alt="Order creation form showing product selection, wound documentation, and ICD-10 fields"
                class="w-full rounded-lg shadow-md border">
         </div>
@@ -447,7 +451,7 @@
 
         <!-- Orders List Screenshot -->
         <div class="mb-4 bg-white rounded-lg p-3">
-          <img src="/uploads/portal-screenshots/orders-list.png"
+          <img src="/uploads/portal-screenshots/?file=orders-list.png"
                alt="Orders list showing different order statuses and tracking information"
                class="w-full rounded-lg shadow-md border">
         </div>
@@ -500,7 +504,7 @@
               <span class="text-2xl">⭐</span>
               <p class="text-sm font-bold text-brand-teal">See it in action:</p>
             </div>
-            <img src="/uploads/portal-screenshots/icd10-autocomplete.png"
+            <img src="/uploads/portal-screenshots/?file=icd10-autocomplete.png"
                  alt="ICD-10 autocomplete feature showing search results appearing as you type"
                  class="w-full rounded-lg shadow-lg border-2 border-brand-teal/30">
           </div>
