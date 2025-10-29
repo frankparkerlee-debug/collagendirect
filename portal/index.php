@@ -1108,22 +1108,31 @@ if ($action) {
     $expiring = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // 4. Patient status changes (approved, not_covered, need_info by manufacturer)
-    $stmt = $pdo->prepare("
-      SELECT p.id, p.first_name, p.last_name, p.status_updated_at as created_at,
-             p.state, p.status_comment, 'patient_status_change' as notif_type
-      FROM patients p
-      WHERE {$userFilter}p.status_updated_at IS NOT NULL
-        AND p.status_updated_at >= NOW() - INTERVAL '7 days'
-        AND p.state IN ('approved', 'not_covered', 'need_info')
-        AND NOT EXISTS (
-          SELECT 1 FROM user_notification_dismissals d
-          WHERE d.user_id = ? AND d.notif_type = 'patient_status_change' AND d.reference_id = p.id
-        )
-      ORDER BY p.status_updated_at DESC
-      LIMIT 10
-    ");
-    $stmt->execute(array_merge($params, [$userId]));
-    $statusChanges = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    // Only query if the columns exist (after migration)
+    $statusChanges = [];
+    try {
+      $colCheck = $pdo->query("SELECT column_name FROM information_schema.columns WHERE table_name = 'patients' AND column_name = 'status_updated_at'")->fetchColumn();
+      if ($colCheck) {
+        $stmt = $pdo->prepare("
+          SELECT p.id, p.first_name, p.last_name, p.status_updated_at as created_at,
+                 p.state, p.status_comment, 'patient_status_change' as notif_type
+          FROM patients p
+          WHERE {$userFilter}p.status_updated_at IS NOT NULL
+            AND p.status_updated_at >= NOW() - INTERVAL '7 days'
+            AND p.state IN ('approved', 'not_covered', 'need_info')
+            AND NOT EXISTS (
+              SELECT 1 FROM user_notification_dismissals d
+              WHERE d.user_id = ? AND d.notif_type = 'patient_status_change' AND d.reference_id = p.id
+            )
+          ORDER BY p.status_updated_at DESC
+          LIMIT 10
+        ");
+        $stmt->execute(array_merge($params, [$userId]));
+        $statusChanges = $stmt->fetchAll(PDO::FETCH_ASSOC);
+      }
+    } catch (Throwable $e) {
+      error_log("[notifications] Patient status columns not yet migrated: " . $e->getMessage());
+    }
 
     // Merge all notifications
     $notifications = array_merge($approved, $rejected, $expiring, $statusChanges);
@@ -4156,11 +4165,14 @@ function getInitials(first, last){
 })();
 
 /* Metrics (dashboard) */
+// Define these functions globally for dashboard so they can be called from both blocks
+let loadMetrics, loadChart;
+
 if (<?php echo json_encode($page==='dashboard'); ?>) {
   let patientChart = null;
 
   // Load metrics with filters
-  async function loadMetrics(productId = '', dateRange = '3') {
+  loadMetrics = async function(productId = '', dateRange = '3') {
     try {
       let url = 'action=metrics';
       if (productId) url += '&product_id=' + encodeURIComponent(productId);
@@ -4174,10 +4186,10 @@ if (<?php echo json_encode($page==='dashboard'); ?>) {
     } catch(e) {
       console.error('Failed to load metrics:', e);
     }
-  }
+  };
 
   // Load chart with filters
-  async function loadChart(productId = '', dateRange = '3') {
+  loadChart = async function(productId = '', dateRange = '3') {
     try {
       let url = 'action=chart_data';
       if (productId) url += '&product_id=' + encodeURIComponent(productId);
