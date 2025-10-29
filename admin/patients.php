@@ -214,7 +214,7 @@ try {
     SELECT
       p.id, p.user_id, p.first_name, p.last_name, p.email, p.phone, p.dob,
       p.state, p.created_at,
-      p.aob_path AS note_path, p.ins_card_path, p.id_card_path,
+      p.notes_path, p.ins_card_path, p.id_card_path,
       p.insurance_provider, p.insurance_member_id, p.insurance_group_id, p.insurance_payer_phone,
       u.first_name AS phys_first, u.last_name AS phys_last, u.practice_name,
       COUNT(DISTINCT o.id) AS order_count,
@@ -224,7 +224,7 @@ try {
     LEFT JOIN orders o ON o.patient_id = p.id AND o.status NOT IN ('rejected','cancelled')
     WHERE $where
     GROUP BY p.id, p.user_id, p.first_name, p.last_name, p.email, p.phone, p.dob,
-             p.state, p.created_at, p.aob_path, p.ins_card_path, p.id_card_path,
+             p.state, p.created_at, p.notes_path, p.ins_card_path, p.id_card_path,
              p.insurance_provider, p.insurance_member_id, p.insurance_group_id, p.insurance_payer_phone,
              u.first_name, u.last_name, u.practice_name
     $having
@@ -385,7 +385,7 @@ include __DIR__.'/_header.php';
               $pid = (string)($row['id'] ?? '');
               $fullname = trim(($row['first_name'] ?? '').' '.($row['last_name'] ?? ''));
               // Use document paths from database instead of filesystem scan
-              $noteLinks = !empty($row['note_path']) ? [$row['note_path']] : [];
+              $noteLinks = !empty($row['notes_path']) ? [$row['notes_path']] : [];
               $idLinks   = !empty($row['id_card_path']) ? [$row['id_card_path']] : [];
               $insLinks  = !empty($row['ins_card_path']) ? [$row['ins_card_path']] : [];
 
