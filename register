@@ -903,21 +903,157 @@
     </div>
   </div>
 
+  <!-- MSAA Modal -->
+  <div id="msaaModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>MD DME Product and Services Agreement</h2>
+        <button type="button" class="modal-close" data-close="msaa">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="text-align:center;margin-bottom:1.5rem"><strong>COLLAGENDIRECT / MD DME PRODUCT AND SERVICES AGREEMENT</strong><br>Version 2025-10-29</p>
+
+        <p>This Product and Services Agreement ("Agreement") is entered into by and between (1) MD DME, LLC ("MD DME"), a Texas limited liability company, and (2) the physician practice, clinic, or provider organization whose authorized representative is accepting this Agreement ("Client").</p>
+
+        <p><strong>Effective Date.</strong> This Agreement becomes effective on the date the Client (or its authorized representative) registers or is provisioned within the CollagenDirect Provider Portal and affirmatively accepts this Agreement.</p>
+
+        <h3>1. Relationship Between MD DME, Client, and CollagenDirect</h3>
+        <p>CollagenDirect provides a secure ordering portal and workflow tools. CollagenDirect does not manufacture, dispense, fulfill, ship, bill, or collect payment for wound care products or Durable Medical Equipment ("Products"), and is not the supplier of record.</p>
+
+        <p>MD DME is a licensed Durable Medical Equipment supplier. MD DME is solely responsible for fulfillment, shipment, documentation, and (when applicable) billing and collection for Products.</p>
+
+        <p>Client acknowledges that:</p>
+        <ul>
+          <li>Any PHI transmitted through the portal is handled under the HIPAA Business Associate Agreement between Client and CollagenDirect.</li>
+          <li>All reimbursement, payer billing, invoicing, collections, and credit terms for Products are strictly between Client and MD DME.</li>
+          <li>CollagenDirect has no financial responsibility to Client or to any payer, and CollagenDirect does not assume or guarantee any reimbursement.</li>
+        </ul>
+
+        <h3>2. Product and Services Models</h3>
+        <p><strong>a. Option A – Physician-Billed Orders.</strong><br>
+        MD DME supplies Products listed in Exhibit A. MD DME (as logistics/fulfillment partner) may pick, pack, ship, and deliver Products directly to Client's patients on Client's behalf and provide proof of delivery. Client bills payors through Client's own DME entity and insurance contracts.</p>
+
+        <p>Client remains solely responsible for: medical necessity; correct coding; claim submission; and all payer interactions, adjustments, recoupments, or repayments. MD DME is not responsible for the accuracy or sufficiency of codes or medical necessity determinations under Option A.</p>
+
+        <p><strong>b. Option B – MD DME-Billed Orders.</strong><br>
+        Client may direct MD DME to fulfill and ship Products directly to the patient and to bill payors under MD DME's own supplier credentials. In this model, Client must provide MD DME with medical records and a valid Standard Written Order establishing medical necessity.</p>
+
+        <h3>3. Client Responsibilities</h3>
+        <ul>
+          <li>Client is solely responsible for ensuring clinical appropriateness and medical necessity of all ordered Products.</li>
+          <li>Client is solely responsible for accuracy and completeness of coding and claim data when billing under its own contracts.</li>
+          <li>Client will maintain all source documents, medical records, and audit trails, and will provide MD DME any supporting information needed to fulfill and ship Products.</li>
+          <li>Client will maintain a complete and accurate log of all wound care / DME Products provided to its patients.</li>
+        </ul>
+
+        <h3>4. MD DME Responsibilities</h3>
+        <p>MD DME will:</p>
+        <ul>
+          <li>Provide Product specifications, literature, and training support;</li>
+          <li>Receive and review orders for completeness;</li>
+          <li>Pick, pack, and ship Products in a compliant manner;</li>
+          <li>Ship in a timely fashion (normally within 24 hours, excluding weekends);</li>
+          <li>Ship via a method with tracking;</li>
+          <li>Provide tracking details, proof of delivery, and (where applicable) patient invoice copies.</li>
+        </ul>
+
+        <p>After MD DME supplies proof of delivery, MD DME is not responsible for Client's ongoing record-keeping, audit defense, or payor documentation obligations, including obligations under 42 C.F.R. § 424.57(c)(12).</p>
+
+        <h3>5. Financial Terms / Responsibility</h3>
+        <p>For Option A (physician-billed orders), Client shall pay MD DME's invoices in full on the following cycle:</p>
+        <ul>
+          <li>Shipments from the 1st–15th → payment due the 15th of the following month.</li>
+          <li>Shipments from the 16th–end of month → payment due the 1st of the following month.</li>
+        </ul>
+
+        <p style="margin-left:2rem">
+          <strong>a.</strong> Late invoices accrue service charges at 2% APR.<br>
+          <strong>b.</strong> MD DME may suspend fulfillment for invoices more than 30 days past due, and may resume only after full payment is received.<br>
+          <strong>c.</strong> Client (and any personal guarantor, if applicable) is jointly and severally liable for all unpaid amounts, including reasonable collection costs and attorney's fees. CollagenDirect is not liable for any such amounts.
+        </p>
+
+        <h3>6. Compliance</h3>
+        <p>Each Party will comply with all applicable federal and state laws and billing rules, including Medicare/Medicaid requirements regarding claims, coding, fraud, waste, and abuse.</p>
+
+        <h3>7. Term and Renewal</h3>
+        <p>The initial term is one (1) year from the Effective Date, automatically renewing for additional one (1) year terms unless either Party provides 30 days' written notice of non-renewal.</p>
+
+        <h3>8. Non-Exclusivity</h3>
+        <p>Client is not obligated to purchase exclusively from MD DME.</p>
+
+        <h3>9. Termination</h3>
+        <p>Either Party may terminate immediately if:</p>
+        <ul>
+          <li>A required professional or supplier license is suspended, revoked, or restricted;</li>
+          <li>A Party files for bankruptcy or seeks creditor protection;</li>
+          <li>A Party reasonably believes that continuing the relationship would violate applicable state or federal law, regulation, or guidance; or</li>
+          <li>Upon 30 days' written notice.</li>
+        </ul>
+
+        <p>Upon termination, MD DME may complete orders already in process and must be paid for those orders consistent with Section 5.</p>
+
+        <h3>10. Confidentiality</h3>
+        <p>Business information exchanged under this Agreement is confidential. Neither Party will disclose the terms of this Agreement to third parties except as required by law, payer audit, accreditation, lender/underwriter review, or legal counsel.</p>
+
+        <h3>11. HIPAA</h3>
+        <p>To the extent MD DME acts as a Business Associate, HIPAA obligations are governed by the applicable Business Associate Agreement, which is incorporated by reference.</p>
+
+        <h3>12. Limitation of Liability / Indemnification</h3>
+        <p>Except for gross negligence or willful misconduct, MD DME's total liability to Client shall not exceed the total amounts actually paid by Client to MD DME during the then-current term.</p>
+
+        <p>Neither MD DME nor CollagenDirect will be liable for any indirect, special, incidental, consequential, punitive, or lost-profit damages.</p>
+
+        <p>Client agrees to indemnify and hold harmless MD DME and CollagenDirect (and their owners, officers, directors, and employees) from claims, penalties, costs, or liabilities arising out of (a) Client's clinical decisions or medical necessity determinations, (b) Client's billing and coding activities, or (c) Client's breach of this Agreement.</p>
+
+        <h3>13. Governing Law</h3>
+        <p>Texas law governs this Agreement.</p>
+
+        <h3>14. Force Majeure</h3>
+        <p>Neither Party is liable for delays or failures caused by events beyond reasonable control, including natural disasters, infrastructure outages, or acts of terrorism.</p>
+
+        <h3>15. Assignment</h3>
+        <p>Neither Party may assign this Agreement without written consent, except to a successor acquiring substantially all relevant assets or operations.</p>
+
+        <h3>16. Entire Agreement / Amendment</h3>
+        <p>This Agreement is the complete and exclusive statement of the Parties' understanding regarding product fulfillment, billing responsibility, and payment terms. It may be amended only in a writing (including an electronic update notice accepted within the Portal) agreed to by both Parties.</p>
+
+        <h3>17. Electronic Execution.</h3>
+        <p>By submitting registration through the CollagenDirect Provider Portal and checking the acceptance box, the signer certifies they are an authorized representative of the Client and agree on behalf of the Client to be bound by this Agreement.</p>
+
+        <p>CollagenDirect will capture and store: (i) the signer's name, (ii) practice name, (iii) the date/time of acceptance, (iv) the IP address and browser metadata at acceptance, and (v) the version of this Agreement. That captured record is deemed the Parties' binding electronic signature.</p>
+
+        <p style="text-align:center;margin-top:2rem"><strong>END OF AGREEMENT</strong></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn" data-close="msaa">Close</button>
+      </div>
+    </div>
+  </div>
+
   <script>
   (function () {
-    // BAA Modal handlers
+    // Modal handlers (BAA and MSAA)
     document.addEventListener('click', (e) => {
-      const openBtn = e.target.closest('[data-open="baa"]');
-      const closeBtn = e.target.closest('[data-close="baa"]');
-      const modal = document.getElementById('baaModal');
-
+      // Handle opening modals
+      const openBtn = e.target.closest('[data-open]');
       if (openBtn) {
         e.preventDefault();
-        modal.classList.add('show');
+        const modalId = openBtn.getAttribute('data-open');
+        const modal = document.getElementById(modalId + 'Modal');
+        if (modal) modal.classList.add('show');
       }
 
-      if (closeBtn || (e.target === modal)) {
-        modal.classList.remove('show');
+      // Handle closing modals
+      const closeBtn = e.target.closest('[data-close]');
+      if (closeBtn) {
+        const modalId = closeBtn.getAttribute('data-close');
+        const modal = document.getElementById(modalId + 'Modal');
+        if (modal) modal.classList.remove('show');
+      }
+
+      // Handle clicking overlay background
+      if (e.target.classList.contains('modal-overlay')) {
+        e.target.classList.remove('show');
       }
     });
 
