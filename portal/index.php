@@ -819,7 +819,7 @@ if ($action) {
                 ?::jsonb,
                 ?)");
       $ins->execute([
-        $oid,$pid,$patientOwnerId,$prod['name'],$prod['id'],$prod['price_admin'],'submitted',$shipments_remaining,$delivery_mode,$payment_type,
+        $oid,$pid,$patientOwnerId,$prod['name'],$prod['id'],$prod['price_admin'],'pending',$shipments_remaining,$delivery_mode,$payment_type,
         $wound_location,$wound_laterality,$wound_notes,
         (string)$ship_name,(string)$ship_phone,(string)$ship_addr,(string)$ship_city,(string)$ship_state,(string)$ship_zip,
         $sign_name,$sign_title,$expires_at,
@@ -856,7 +856,7 @@ if ($action) {
           ->execute([$sign_name,$sign_title,$userId]);
 
       $pdo->commit();
-      jok(['order_id'=>$oid,'status'=>'submitted']);
+      jok(['order_id'=>$oid,'status'=>'pending']);
     } catch (Throwable $e) {
       if ($pdo->inTransaction()) $pdo->rollBack();
       jerr('Order create failed: '.$e->getMessage(), 500);
@@ -884,7 +884,7 @@ if ($action) {
        wound_location,wound_laterality,wound_notes,shipping_name,shipping_phone,shipping_address,shipping_city,shipping_state,shipping_zip,
        sign_name,sign_title,signed_at,created_at,updated_at)
       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),NOW())")
-      ->execute([$new,$o['patient_id'],$userId,$o['product'],$o['product_id'],$o['product_price'],'submitted',$o['shipments_remaining'],$o['delivery_mode'],$o['payment_type'],
+      ->execute([$new,$o['patient_id'],$userId,$o['product'],$o['product_id'],$o['product_price'],'pending',$o['shipments_remaining'],$o['delivery_mode'],$o['payment_type'],
         $o['wound_location'],$o['wound_laterality'],$o['wound_notes'],$o['shipping_name'],$o['shipping_phone'],$o['shipping_address'],$o['shipping_city'],$o['shipping_state'],$o['shipping_zip'],
         $o['sign_name'],$o['sign_title'],date('Y-m-d H:i:s')]);
 
@@ -893,7 +893,7 @@ if ($action) {
     $pdo->prepare("UPDATE orders SET rx_note_name=?,rx_note_mime=?,rx_note_path=?,updated_at=NOW() WHERE id=? AND user_id=?")
         ->execute(['clinical-note.txt','text/plain','/uploads/notes/'.$safe,$new,$userId]);
 
-    jok(['order_id'=>$new,'status'=>'submitted']);
+    jok(['order_id'=>$new,'status'=>'pending']);
   }
 
   // Orders listing aligned to schema
