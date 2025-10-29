@@ -134,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     // Add new assignments
     $assigned = 0;
     foreach ($physicians as $physId) {
-      $pdo->prepare("INSERT INTO admin_physicians(admin_id, physician_user_id, created_at) VALUES(?,?,NOW())")
+      $pdo->prepare("INSERT INTO admin_physicians(admin_id, physician_user_id) VALUES(?,?)")
           ->execute([$empId, $physId]);
       $assigned++;
     }
