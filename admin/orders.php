@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $tracking = trim((string)($_POST['tracking']??'')); $carrier = $_POST['carrier'] ?: detect_carrier($tracking);
     $pdo->prepare("UPDATE orders SET
       shipping_name=:n, shipping_phone=:ph, shipping_address=:a, shipping_city=:c, shipping_state=:s, shipping_zip=:z,
-      rx_note_mime=:carrier, rx_note_name=:tracking, status='in_transit',
+      carrier=:carrier, tracking_number=:tracking, status='in_transit',
       shipped_at=COALESCE(shipped_at, NOW()), updated_at=NOW()
     WHERE id=:id")->execute([
       'n'=>$_POST['shipping_name']??null,'ph'=>$_POST['shipping_phone']??null,'a'=>$_POST['shipping_address']??null,
@@ -146,12 +146,12 @@ if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"
                 <input class="border rounded px-2 py-1" name="shipping_city"   placeholder="City"   value="<?=e($r['shipping_city'] ?? '')?>"/>
                 <input class="border rounded px-2 py-1" name="shipping_state"  placeholder="State"  value="<?=e($r['shipping_state'] ?? '')?>"/>
                 <input class="border rounded px-2 py-1" name="shipping_zip"    placeholder="Zip"    value="<?=e($r['shipping_zip'] ?? '')?>"/>
-                <input class="border rounded px-2 py-1 col-span-2" name="tracking" placeholder="Tracking Number" value="<?=e($r['rx_note_name'] ?? '')?>"/>
+                <input class="border rounded px-2 py-1 col-span-2" name="tracking" placeholder="Tracking Number" value="<?=e($r['tracking_number'] ?? '')?>"/>
                 <select class="border rounded px-2 py-1" name="carrier">
                   <option value="">Auto-detect</option>
-                  <option value="ups"   <?=($r['rx_note_mime']==='ups'?'selected':'')?>>UPS</option>
-                  <option value="fedex" <?=($r['rx_note_mime']==='fedex'?'selected':'')?>>FedEx</option>
-                  <option value="usps"  <?=($r['rx_note_mime']==='usps'?'selected':'')?>>USPS</option>
+                  <option value="ups"   <?=($r['carrier']==='ups'?'selected':'')?>>UPS</option>
+                  <option value="fedex" <?=($r['carrier']==='fedex'?'selected':'')?>>FedEx</option>
+                  <option value="usps"  <?=($r['carrier']==='usps'?'selected':'')?>>USPS</option>
                 </select>
               </div>
               <div class="text-[11px] text-slate-500 mt-1">Carrier auto-detects; USPS will fetch live status if USPS_USERID is set.</div>

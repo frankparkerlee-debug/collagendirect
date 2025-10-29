@@ -11,15 +11,17 @@
 
 ---
 
-## IN PROGRESS 🔄
+## COMPLETED ✅
 
-### 2. Attachment Links Not Working (Issue #13)
+### 2. Attachment Links Not Working (Issue #13) - FIXED
 **Issue:** Links returning 'not found' in admin/patients.php and admin/orders.php
-**Investigation Needed:**
-- Check how links are generated in both files
-- Verify file paths match upload directory structure
-- Ensure CSRF tokens are passed correctly
-**File:** `/admin/file.dl.php` (download handler looks correct)
+**Root Cause:** Files saved to `/public/uploads/*` but code expected `/uploads/*`
+**Fix:**
+- Changed api/portal/patients.php to use `/uploads/{notes,insurance,ids}`
+- Updated Dockerfile to create all necessary directories
+- Fixed column mapping (note_path → aob_path)
+**Status:** ✅ Deployed
+**Commit:** dbffe80
 
 ---
 
