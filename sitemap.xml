@@ -66,19 +66,33 @@
     <priority>0.7</priority>
   </url>
 
-  <!-- Legal Pages -->
+  <!-- Legal & Policy Pages -->
+  <url>
+    <loc>https://collagendirect.health/privacy-policy.html</loc>
+    <lastmod>2025-10-29</lastmod>
+    <changefreq>quarterly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://collagendirect.health/electronic-communications.html</loc>
+    <lastmod>2025-10-29</lastmod>
+    <changefreq>quarterly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://collagendirect.health/terms-conditions.html</loc>
+    <lastmod>2025-10-29</lastmod>
+    <changefreq>quarterly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
   <url>
     <loc>https://collagendirect.health/legal/baa.html</loc>
     <lastmod>2025-10-29</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
-  </url>
-
-  <url>
-    <loc>https://collagendirect.health/privacy.html</loc>
-    <lastmod>2025-10-29</lastmod>
-    <changefreq>quarterly</changefreq>
-    <priority>0.6</priority>
   </url>
 
 </urlset>
