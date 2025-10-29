@@ -26,20 +26,28 @@ if (strpos($rel, '/public/uploads/') === 0) {
 }
 
 /* ---- Resolve safely under uploads directory ---- */
-$docRoot = realpath(__DIR__ . '/..');                     // DOCUMENT_ROOT (e.g., /var/www/html)
-$abs = realpath($docRoot . $relLocal);                    // target file abs path
+// Check persistent disk first, then fall back to local uploads
+if (is_dir('/var/data/uploads')) {
+  // Persistent disk on Render
+  $abs = '/var/data' . $relLocal;  // /var/data/uploads/ids/file.jpg
+  $uploadsRoot = '/var/data/uploads';
+  error_log("[file.dl] Using persistent disk: abs={$abs}");
+} else {
+  // Local development
+  $docRoot = realpath(__DIR__ . '/..');
+  $abs = realpath($docRoot . $relLocal);
+  $uploadsRoot = realpath($docRoot . '/uploads');
+  error_log("[file.dl] Using local uploads: docRoot={$docRoot}, abs={$abs}, relLocal={$relLocal}");
+}
 
-error_log("[file.dl] DEBUG: docRoot={$docRoot}, abs={$abs}, relLocal={$relLocal}");
-
-if (!$docRoot || !$abs) {
-  error_log("[file.dl] path resolve failed: rel={$rel} local={$relLocal}, docRoot={$docRoot}, abs={$abs}");
+if (!$abs || !is_file($abs)) {
+  error_log("[file.dl] file not found: abs={$abs}, is_file=" . (is_file($abs) ? 'true' : 'false'));
   http_response_code(404); echo "not_found"; exit;
 }
 
-/* Must stay inside /uploads and be a regular file */
-$uploadsRoot = realpath($docRoot . '/uploads');
-if (!$uploadsRoot || strncmp($abs, $uploadsRoot, strlen($uploadsRoot)) !== 0 || !is_file($abs)) {
-  error_log("[file.dl] outside uploads or not a file: $abs, uploadsRoot={$uploadsRoot}, is_file=" . (is_file($abs) ? 'true' : 'false'));
+/* Must stay inside /uploads */
+if (!$uploadsRoot || strncmp($abs, $uploadsRoot, strlen($uploadsRoot)) !== 0) {
+  error_log("[file.dl] outside uploads: $abs, uploadsRoot={$uploadsRoot}");
   http_response_code(404); echo "not_found"; exit;
 }
 
