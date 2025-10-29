@@ -222,7 +222,7 @@ try {
       ".($hasShipRem?"o.shipments_remaining,":"")."
       o.product_price, o.created_at, o.rx_note_name AS tracking, o.rx_note_mime AS carrier,
       o.insurer_name, o.member_id, o.group_id, o.payer_phone,
-      o.rx_note_path, p.ins_card_path, p.id_card_path,
+      o.rx_note_path, p.ins_card_path, p.id_card_path, p.notes_path,
       p.first_name, p.last_name, p.dob
       ".($hasProducts?", pr.name AS prod_name, pr.size AS prod_size, pr.sku, pr.$hcpcsCol AS cpt_code, pr.price_admin":"")."
     FROM orders o
@@ -393,7 +393,7 @@ include __DIR__.'/_header.php';
           $oid      = (string)($row['id'] ?? '');
           $fullname = trim(($row['first_name'] ?? '').' '.($row['last_name'] ?? ''));
           // Use document paths from database instead of filesystem scan
-          $noteLinks = !empty($row['rx_note_path']) ? [$row['rx_note_path']] : [];
+          $noteLinks = !empty($row['notes_path']) ? [$row['notes_path']] : [];
           $idLinks   = !empty($row['id_card_path']) ? [$row['id_card_path']] : [];
           $insLinks  = !empty($row['ins_card_path']) ? [$row['ins_card_path']] : [];
 
