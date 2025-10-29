@@ -29,6 +29,19 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
   verify_csrf();
   $action = $_POST['action'] ?? ''; $id = $_POST['id'] ?? '';
   if ($id && $action==='approve') {
+    // Check if patient is approved before allowing order approval
+    $patientCheck = $pdo->prepare("SELECT p.state, p.first_name, p.last_name
+                                    FROM orders o
+                                    JOIN patients p ON p.id = o.patient_id
+                                    WHERE o.id = ?");
+    $patientCheck->execute([$id]);
+    $patient = $patientCheck->fetch();
+
+    if ($patient && $patient['state'] !== 'approved') {
+      $_SESSION['error_msg'] = 'Cannot approve order: Patient "' . $patient['first_name'] . ' ' . $patient['last_name'] . '" must be approved first. Current patient status: ' . ucfirst($patient['state']);
+      header('Location: /admin/orders.php'); exit;
+    }
+
     $pdo->prepare("UPDATE orders SET status='approved', updated_at=NOW() WHERE id=?")->execute([$id]);
   } elseif ($id && $action==='reject') {
     $pdo->prepare("UPDATE orders SET status='rejected', updated_at=NOW() WHERE id=?")->execute([$id]);
@@ -161,6 +174,13 @@ $header = __DIR__.'/_header.php'; $footer = __DIR__.'/_footer.php'; $hasLayout=i
 if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"><script src="https://cdn.tailwindcss.com"></script><div class="p-6">';
 ?>
 <div class="flex items-center justify-between mb-4"><div class="text-xl font-semibold">Manage Orders</div></div>
+
+<?php if (isset($_SESSION['error_msg'])): ?>
+  <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
+    <?=e($_SESSION['error_msg'])?>
+  </div>
+  <?php unset($_SESSION['error_msg']); ?>
+<?php endif; ?>
 
 <!-- Filter Form -->
 <div class="bg-white border rounded-lg p-4 mb-4 shadow-sm">

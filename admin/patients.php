@@ -108,7 +108,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         ");
 
         if ($stmt->execute([$newStatus, $comment, $adminId, $patientId])) {
-          $msg = "Patient status updated successfully";
+          // If patient is rejected (not_covered), auto-reject all their pending/approved orders
+          if ($newStatus === 'not_covered') {
+            $rejectOrders = $pdo->prepare("
+              UPDATE orders
+              SET status = 'rejected',
+                  updated_at = NOW()
+              WHERE patient_id = ?
+                AND status IN ('pending', 'approved')
+            ");
+            $rejectOrders->execute([$patientId]);
+            $rejectedCount = $rejectOrders->rowCount();
+
+            if ($rejectedCount > 0) {
+              $msg = "Patient status updated to 'Not Covered'. {$rejectedCount} order(s) automatically rejected.";
+            } else {
+              $msg = "Patient status updated successfully";
+            }
+          } else {
+            $msg = "Patient status updated successfully";
+          }
           $msgType = 'success';
         } else {
           $msg = "Failed to update patient status";

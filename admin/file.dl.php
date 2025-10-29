@@ -56,7 +56,8 @@ header('Content-Type: ' . $mime);
 header('Content-Length: ' . $size);
 header('X-Content-Type-Options: nosniff');
 header('Content-Disposition: ' . $disposition . '; filename="' . rawurlencode($filename) . '"');
-header('Cache-Control: private, max-age=0, no-store, no-cache, must-revalidate');
+// Allow caching for 1 hour to prevent re-downloading and improve performance
+header('Cache-Control: private, max-age=3600');
 
 $fp = @fopen($abs, 'rb');
 if ($fp) { fpassthru($fp); fclose($fp); exit; }
