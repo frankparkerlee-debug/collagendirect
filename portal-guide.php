@@ -136,8 +136,10 @@
       <h2 class="text-4xl font-bold mb-8">Dashboard Overview</h2>
 
       <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
-        <div class="screenshot-placeholder rounded-lg mb-6">
-          Dashboard Screenshot - Revenue Analytics, Recent Patients, Order Statistics
+        <div class="mb-6">
+          <img src="/uploads/portal-screenshots/dashboard.png"
+               alt="Portal Dashboard showing revenue analytics, patient count, and recent activity"
+               class="w-full rounded-lg shadow-md border">
         </div>
 
         <div class="grid md:grid-cols-2 gap-8">
@@ -193,8 +195,26 @@
     <section id="patients" class="section mb-20">
       <h2 class="text-4xl font-bold mb-8">Patient Management</h2>
 
+      <!-- Patient List Screenshot -->
+      <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+        <h3 class="text-2xl font-bold mb-4">Patient List Overview</h3>
+        <div class="mb-6">
+          <img src="/uploads/portal-screenshots/patients-list.png"
+               alt="Patient list showing all patients with search and filter options"
+               class="w-full rounded-lg shadow-md border">
+        </div>
+        <p class="text-gray-600">View all your patients, search by name, and quickly access patient details and order history.</p>
+      </div>
+
       <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
         <h3 class="text-2xl font-bold mb-6">Adding a New Patient</h3>
+
+        <!-- Patient Add Form Screenshot -->
+        <div class="mb-6">
+          <img src="/uploads/portal-screenshots/patient-add.png"
+               alt="Add new patient form with demographics, insurance, and document upload fields"
+               class="w-full rounded-lg shadow-md border">
+        </div>
 
         <div class="space-y-6">
           <div class="flex gap-6">
@@ -265,7 +285,15 @@
       </div>
 
       <div class="bg-white rounded-xl shadow-lg p-8">
-        <h3 class="text-2xl font-bold mb-6">Editing Patient Information</h3>
+        <h3 class="text-2xl font-bold mb-6">Viewing & Editing Patient Information</h3>
+
+        <!-- Patient Detail Screenshot -->
+        <div class="mb-6">
+          <img src="/uploads/portal-screenshots/patient-detail.png"
+               alt="Patient detail page showing demographics, order history, and action buttons"
+               class="w-full rounded-lg shadow-md border">
+        </div>
+
         <div class="grid md:grid-cols-2 gap-6">
           <div>
             <p class="text-gray-600 mb-4">Navigate to the patient detail page and click "Edit Patient" to update:</p>
@@ -300,8 +328,10 @@
       <h2 class="text-4xl font-bold mb-8">Creating Orders</h2>
 
       <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
-        <div class="screenshot-placeholder rounded-lg mb-6">
-          Order Creation Form Screenshot - Product Selection, Wound Documentation
+        <div class="mb-6">
+          <img src="/uploads/portal-screenshots/order-create.png"
+               alt="Order creation form showing product selection, wound documentation, and ICD-10 fields"
+               class="w-full rounded-lg shadow-md border">
         </div>
 
         <h3 class="text-2xl font-bold mb-6">Order Workflow</h3>
@@ -366,6 +396,13 @@
       <div class="bg-green-50 border-l-4 border-green-500 p-6 rounded-lg">
         <h4 class="font-bold text-green-900 mb-2">✅ After Submission</h4>
         <p class="text-green-800 mb-4">Your order is sent to CollagenDirect for review. You'll receive notifications at each stage:</p>
+
+        <!-- Orders List Screenshot -->
+        <div class="mb-4 bg-white rounded-lg p-3">
+          <img src="/uploads/portal-screenshots/orders-list.png"
+               alt="Orders list showing different order statuses and tracking information"
+               class="w-full rounded-lg shadow-md border">
+        </div>
         <div class="space-y-2 text-sm">
           <div class="flex items-center gap-3">
             <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-semibold">Submitted</span>
@@ -398,6 +435,14 @@
             <h3 class="text-2xl font-bold mb-2 text-purple-900">Real-Time ICD-10 Code Lookup</h3>
             <p class="text-purple-700">Powered by the NIH National Library of Medicine database - always up to date!</p>
           </div>
+        </div>
+
+        <!-- Actual ICD-10 Autocomplete Screenshot -->
+        <div class="mt-6 bg-white rounded-lg p-4 shadow-lg">
+          <p class="text-sm font-semibold text-purple-900 mb-3">⭐ See it in action:</p>
+          <img src="/uploads/portal-screenshots/icd10-autocomplete.png"
+               alt="ICD-10 autocomplete feature showing search results appearing as you type"
+               class="w-full rounded-lg shadow-md border border-purple-200">
         </div>
       </div>
 
