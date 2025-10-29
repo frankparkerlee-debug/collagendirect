@@ -2588,29 +2588,29 @@ if ($page==='logout'){
 <?php if ($page==='dashboard'): ?>
   <!-- Stat Cards -->
   <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-    <div class="card p-5">
+    <a href="?page=patients" class="card p-5 no-underline cursor-pointer transition-all hover:shadow-lg" style="text-decoration: none;">
       <div class="text-sm text-muted mb-2" style="color: var(--ink-light); font-weight: 500;">Total Patients</div>
       <div id="m-patients" class="text-3xl font-bold mb-2" style="color: var(--ink);">-</div>
       <div class="text-sm" style="color: var(--muted);">Registered patients in system</div>
-    </div>
+    </a>
 
-    <div class="card p-5">
+    <a href="?page=orders&status=active" class="card p-5 no-underline cursor-pointer transition-all hover:shadow-lg" style="text-decoration: none;">
       <div class="text-sm text-muted mb-2" style="color: var(--ink-light); font-weight: 500;">Active Orders</div>
       <div id="m-active" class="text-3xl font-bold mb-2" style="color: var(--ink);">-</div>
       <div class="text-sm" style="color: var(--muted);">Approved & shipped orders</div>
-    </div>
+    </a>
 
-    <div class="card p-5">
+    <a href="?page=orders&status=pending" class="card p-5 no-underline cursor-pointer transition-all hover:shadow-lg" style="text-decoration: none;">
       <div class="text-sm text-muted mb-2" style="color: var(--ink-light); font-weight: 500;">Pending Orders</div>
       <div id="m-pending" class="text-3xl font-bold mb-2" style="color: var(--ink);">-</div>
       <div class="text-sm" style="color: var(--muted);">Awaiting approval</div>
-    </div>
+    </a>
 
-    <div class="card p-5">
+    <a href="?page=orders" class="card p-5 no-underline cursor-pointer transition-all hover:shadow-lg" style="text-decoration: none;">
       <div class="text-sm text-muted mb-2" style="color: var(--ink-light); font-weight: 500;">Total Orders</div>
       <div id="m-total" class="text-3xl font-bold mb-2" style="color: var(--ink);">-</div>
       <div class="text-sm" style="color: var(--muted);">All orders (all statuses)</div>
-    </div>
+    </a>
   </section>
 
   <!-- Overview Chart Section -->
@@ -4893,6 +4893,14 @@ if (<?php echo json_encode($page==='patients'); ?>){
 /* ORDERS page */
 if (<?php echo json_encode($page==='orders'); ?>){
   const tb=$('#orders-tb');
+
+  // Read status from URL parameter and set dropdown
+  const urlParams = new URLSearchParams(window.location.search);
+  const statusParam = urlParams.get('status');
+  if (statusParam && $('#of')) {
+    $('#of').value = statusParam;
+  }
+
   async function loadOrders(){
     const q=$('#oq').value.trim(); const s=$('#of').value;
     const res=await api('action=orders&q='+encodeURIComponent(q)+'&status='+encodeURIComponent(s)); const rows=res.rows||[];
