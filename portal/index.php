@@ -4449,7 +4449,7 @@ async function populateNotifications() {
 
     // Render notifications
     notificationsList.innerHTML = notifications.map(notif => {
-      const { notif_type, first_name, last_name, created_at, expires_at, status } = notif;
+      const { notif_type, first_name, last_name, created_at, expires_at, status, id, order_id } = notif;
       const fullName = `${first_name || ''} ${last_name || ''}`.trim();
       const initials = getInitials(first_name || 'U', last_name || 'N');
       const timeAgo = formatTimeAgo(created_at || expires_at);
@@ -4469,8 +4469,11 @@ async function populateNotifications() {
         bgColor = '#F59E0B'; // warning orange
       }
 
+      // Build the link URL based on notification type
+      const linkUrl = id ? `?page=patient-detail&id=${id}` : '#';
+
       return `
-        <div class="dropdown-item" style="display: block; padding: 1rem 1.25rem; background: #f0fdfa;">
+        <a href="${linkUrl}" class="dropdown-item" style="display: block; padding: 1rem 1.25rem; background: #f0fdfa; text-decoration: none; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#e0f2f1'" onmouseout="this.style.background='#f0fdfa'">
           <div style="display: flex; gap: 0.75rem;">
             <div style="width: 40px; height: 40px; border-radius: 50%; background: ${bgColor}; color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.875rem; flex-shrink: 0;">
               ${initials}
@@ -4484,7 +4487,7 @@ async function populateNotifications() {
               <div style="font-size: 0.75rem; color: var(--muted);">${timeAgo}</div>
             </div>
           </div>
-        </div>
+        </a>
       `;
     }).join('');
   } catch (error) {
