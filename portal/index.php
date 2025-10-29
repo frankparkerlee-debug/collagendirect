@@ -317,11 +317,20 @@ if ($action) {
   if ($action==='patient.get'){
     $pid=(string)($_GET['id']??''); if($pid==='') jerr('Missing patient id');
 
+    // Check if notes columns exist
+    $hasNotesCols = false;
+    try {
+      $colCheck = $pdo->query("SELECT column_name FROM information_schema.columns WHERE table_name='patients' AND column_name='notes_path'")->fetchColumn();
+      $hasNotesCols = !empty($colCheck);
+    } catch(Throwable $e) {}
+
+    $notesFields = $hasNotesCols ? 'notes_path,notes_mime,' : '';
+
     // Superadmins can see all patients, others only their own
     if ($userRole === 'superadmin') {
       $s=$pdo->prepare("SELECT id,user_id,first_name,last_name,dob,mrn,phone,email,address,city,address_state,zip,sex,
                                insurance_provider,insurance_member_id,insurance_group_id,insurance_payer_phone,
-                               id_card_path,id_card_mime,ins_card_path,ins_card_mime,notes_path,notes_mime,
+                               id_card_path,id_card_mime,ins_card_path,ins_card_mime,$notesFields
                                aob_path,aob_signed_at,
                                status_comment,status_updated_at,status_updated_by,
                                provider_response,provider_response_at,provider_response_by,
@@ -332,7 +341,7 @@ if ($action) {
     } else {
       $s=$pdo->prepare("SELECT id,user_id,first_name,last_name,dob,mrn,phone,email,address,city,address_state,zip,sex,
                                insurance_provider,insurance_member_id,insurance_group_id,insurance_payer_phone,
-                               id_card_path,id_card_mime,ins_card_path,ins_card_mime,notes_path,notes_mime,
+                               id_card_path,id_card_mime,ins_card_path,ins_card_mime,$notesFields
                                aob_path,aob_signed_at,
                                status_comment,status_updated_at,status_updated_by,
                                provider_response,provider_response_at,provider_response_by,
@@ -343,6 +352,12 @@ if ($action) {
     }
     $p=$s->fetch(PDO::FETCH_ASSOC);
     if(!$p) jerr('Patient not found',404);
+
+    // Add default values for notes if columns don't exist
+    if (!$hasNotesCols) {
+      $p['notes_path'] = null;
+      $p['notes_mime'] = null;
+    }
 
     // Superadmins can see all orders, others only their own
     if ($userRole === 'superadmin') {
