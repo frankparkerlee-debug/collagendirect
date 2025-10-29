@@ -321,7 +321,7 @@ if ($action) {
     if ($userRole === 'superadmin') {
       $s=$pdo->prepare("SELECT id,user_id,first_name,last_name,dob,mrn,phone,email,address,city,address_state,zip,sex,
                                insurance_provider,insurance_member_id,insurance_group_id,insurance_payer_phone,
-                               id_card_path,id_card_mime,ins_card_path,ins_card_mime,
+                               id_card_path,id_card_mime,ins_card_path,ins_card_mime,notes_path,notes_mime,
                                aob_path,aob_signed_at,
                                status_comment,status_updated_at,status_updated_by,
                                provider_response,provider_response_at,provider_response_by,
@@ -332,7 +332,7 @@ if ($action) {
     } else {
       $s=$pdo->prepare("SELECT id,user_id,first_name,last_name,dob,mrn,phone,email,address,city,address_state,zip,sex,
                                insurance_provider,insurance_member_id,insurance_group_id,insurance_payer_phone,
-                               id_card_path,id_card_mime,ins_card_path,ins_card_mime,
+                               id_card_path,id_card_mime,ins_card_path,ins_card_mime,notes_path,notes_mime,
                                aob_path,aob_signed_at,
                                status_comment,status_updated_at,status_updated_by,
                                provider_response,provider_response_at,provider_response_by,
@@ -608,6 +608,21 @@ if ($action) {
         $stmt->execute([$rel,$mime,$pid,$patientOwnerId]);
         if ($stmt->rowCount() === 0) {
           error_log("[patient.upload] Failed to update insurance card path. pid=$pid, patientOwnerId=$patientOwnerId, rel=$rel");
+          jerr('Failed to update patient record - patient not found or access denied');
+        }
+      } elseif ($type==='notes'){
+        // Delete old file if exists
+        $oldPath = $pdo->prepare("SELECT notes_path FROM patients WHERE id=? AND user_id=?");
+        $oldPath->execute([$pid, $patientOwnerId]);
+        $old = $oldPath->fetchColumn();
+        if ($old && file_exists(__DIR__ . '/../' . ltrim($old, '/'))) {
+          @unlink(__DIR__ . '/../' . ltrim($old, '/'));
+        }
+
+        $stmt = $pdo->prepare("UPDATE patients SET notes_path=?, notes_mime=?, updated_at=NOW() WHERE id=? AND user_id=?");
+        $stmt->execute([$rel,$mime,$pid,$patientOwnerId]);
+        if ($stmt->rowCount() === 0) {
+          error_log("[patient.upload] Failed to update clinical notes path. pid=$pid, patientOwnerId=$patientOwnerId, rel=$rel");
           jerr('Failed to update patient record - patient not found or access denied');
         }
       }

@@ -156,7 +156,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 <div class="mb-4">
   <a class="px-3 py-2 border rounded-t <?=($tab==='physicians'?'bg-white border-b-0':'')?>" href="/admin/users.php?tab=physicians">Providers</a>
   <a class="px-3 py-2 border rounded-t <?=($tab==='employees'?'bg-white border-b-0':'')?>" href="/admin/users.php?tab=employees">Employees</a>
+  <?php if ($adminRole !== 'sales'): ?>
   <a class="px-3 py-2 border rounded-t <?=($tab==='manufacturer'?'bg-white border-b-0':'')?>" href="/admin/users.php?tab=manufacturer">Manufacturer</a>
+  <?php endif; ?>
 </div>
 
 <div class="bg-white border rounded-b rounded-r p-4">
