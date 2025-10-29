@@ -48,6 +48,43 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     }
 
     $pdo->prepare("UPDATE orders SET status='approved', updated_at=NOW() WHERE id=?")->execute([$id]);
+
+    // Send order approved email to physician
+    try {
+      require_once __DIR__ . '/../api/lib/email_notifications.php';
+
+      // Get order details for email
+      $orderData = $pdo->prepare("
+        SELECT o.id, o.product, o.quantity, o.frequency, o.duration_days, o.created_at,
+               p.first_name AS patient_first, p.last_name AS patient_last,
+               u.first_name AS phys_first, u.last_name AS phys_last, u.email AS phys_email,
+               pr.name AS product_name, pr.size AS product_size
+        FROM orders o
+        LEFT JOIN patients p ON p.id = o.patient_id
+        LEFT JOIN users u ON u.id = o.user_id
+        LEFT JOIN products pr ON pr.id = o.product_id
+        WHERE o.id = ?
+      ");
+      $orderData->execute([$id]);
+      $order = $orderData->fetch(PDO::FETCH_ASSOC);
+
+      if ($order && !empty($order['phys_email'])) {
+        send_order_approved_email([
+          'physician_email' => $order['phys_email'],
+          'physician_name' => trim(($order['phys_first'] ?? '') . ' ' . ($order['phys_last'] ?? '')),
+          'patient_name' => trim(($order['patient_first'] ?? '') . ' ' . ($order['patient_last'] ?? '')),
+          'order_id' => $order['id'],
+          'approved_datetime' => date('m/d/Y g:i A T'),
+          'product_name' => trim(($order['product_name'] ?? $order['product'] ?? '') . ' ' . ($order['product_size'] ?? '')),
+          'quantity' => $order['quantity'] ?? '1',
+          'frequency' => $order['frequency'] ?? '',
+          'duration_days' => $order['duration_days'] ?? ''
+        ]);
+      }
+    } catch (Throwable $emailErr) {
+      error_log('[orders.php] Order approved email failed: ' . $emailErr->getMessage());
+    }
+
   } elseif ($id && $action==='reject') {
     $pdo->prepare("UPDATE orders SET status='rejected', updated_at=NOW() WHERE id=?")->execute([$id]);
   } elseif ($id && $action==='ship') {
@@ -68,6 +105,40 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             ->execute([$trk['status'],$trk['eta'],$trk['status'],$trk['delivered_at'],$id]);
       }
     }
+
+    // Send order shipped email to patient
+    try {
+      require_once __DIR__ . '/../api/lib/email_notifications.php';
+
+      // Get order and patient details for email
+      $shipData = $pdo->prepare("
+        SELECT o.id, o.product, o.quantity, o.tracking_number, o.carrier,
+               p.first_name AS patient_first, p.last_name AS patient_last, p.email AS patient_email,
+               pr.name AS product_name, pr.size AS product_size
+        FROM orders o
+        LEFT JOIN patients p ON p.id = o.patient_id
+        LEFT JOIN products pr ON pr.id = o.product_id
+        WHERE o.id = ?
+      ");
+      $shipData->execute([$id]);
+      $ship = $shipData->fetch(PDO::FETCH_ASSOC);
+
+      if ($ship && !empty($ship['patient_email']) && !empty($ship['tracking_number'])) {
+        send_order_shipped_email([
+          'patient_email' => $ship['patient_email'],
+          'patient_name' => trim(($ship['patient_first'] ?? '') . ' ' . ($ship['patient_last'] ?? '')),
+          'order_id' => $ship['id'],
+          'shipped_date' => date('m/d/Y'),
+          'carrier' => $ship['carrier'] ?? $carrier,
+          'tracking_number' => $ship['tracking_number'],
+          'product_name' => trim(($ship['product_name'] ?? $ship['product'] ?? '') . ' ' . ($ship['product_size'] ?? '')),
+          'quantity' => $ship['quantity'] ?? '1'
+        ]);
+      }
+    } catch (Throwable $emailErr) {
+      error_log('[orders.php] Order shipped email failed: ' . $emailErr->getMessage());
+    }
+
   } elseif ($id && $action==='edit_order') {
     $qtySql = ""; $params = [
       'pid'=>($_POST['product_id'] ?: null),
