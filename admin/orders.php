@@ -453,7 +453,7 @@ if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"
         <th class="py-2">Product / Frequency</th>
         <th class="py-2">Qty</th>
         <th class="py-2">Status</th>
-        <th class="py-2">Delivery Conf.</th>
+        <th class="py-2">Delivered</th>
         <th class="py-2">Actions</th>
       </tr>
     </thead>
@@ -480,16 +480,23 @@ if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"
         </td>
         <td class="py-3">
           <?php
-          // Display delivery confirmation status
+          // Display delivery confirmation status with color-coded bubbles
           if (!empty($r['delivery_confirmed_at'])) {
-            echo '<span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700" title="Confirmed: '.e(date('m/d/Y g:i A', strtotime($r['delivery_confirmed_at']))).'">✓ Confirmed</span>';
+            // GREEN: Patient confirmed delivery
+            echo '<span class="inline-block w-3 h-3 rounded-full bg-green-500" title="Confirmed: '.e(date('m/d/Y g:i A', strtotime($r['delivery_confirmed_at']))).'"></span>';
           } elseif (!empty($r['delivery_sms_sent_at'])) {
-            $statusText = $r['delivery_sms_status'] ?? 'sent';
-            echo '<span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800" title="SMS sent: '.e(date('m/d/Y g:i A', strtotime($r['delivery_sms_sent_at']))).' (Status: '.e($statusText).')">⏳ Pending</span>';
-          } elseif ($s === 'delivered' && !empty($r['phone'])) {
-            echo '<span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600" title="SMS will be sent 2-3 days after delivery">—</span>';
+            // Check how many days since SMS was sent
+            $daysSinceSMS = (time() - strtotime($r['delivery_sms_sent_at'])) / 86400;
+            if ($daysSinceSMS > 7) {
+              // RED: More than 7 days without confirmation
+              echo '<span class="inline-block w-3 h-3 rounded-full bg-red-500" title="SMS sent '.e(date('m/d/Y g:i A', strtotime($r['delivery_sms_sent_at']))).' - No confirmation after '.round($daysSinceSMS).' days"></span>';
+            } else {
+              // YELLOW: Waiting, within 7 days
+              echo '<span class="inline-block w-3 h-3 rounded-full bg-yellow-500" title="SMS sent '.e(date('m/d/Y g:i A', strtotime($r['delivery_sms_sent_at']))).' - Waiting for confirmation ('.round($daysSinceSMS).' days ago)"></span>';
+            }
           } else {
-            echo '<span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-400">N/A</span>';
+            // GRAY: SMS not sent yet
+            echo '<span class="inline-block w-3 h-3 rounded-full bg-gray-400" title="Delivery SMS not sent"></span>';
           }
           ?>
         </td>
