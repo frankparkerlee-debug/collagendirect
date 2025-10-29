@@ -582,28 +582,34 @@ if ($action) {
 
       if ($type==='id'){
         // Delete old file if exists
-        $oldPath = $pdo->prepare("SELECT id_card_path FROM patients WHERE id=?");
-        $oldPath->execute([$pid]);
+        $oldPath = $pdo->prepare("SELECT id_card_path FROM patients WHERE id=? AND user_id=?");
+        $oldPath->execute([$pid, $patientOwnerId]);
         $old = $oldPath->fetchColumn();
         if ($old && file_exists(__DIR__ . '/../' . ltrim($old, '/'))) {
           @unlink(__DIR__ . '/../' . ltrim($old, '/'));
         }
 
-        $stmt = $pdo->prepare("UPDATE patients SET id_card_path=?, id_card_mime=?, updated_at=NOW() WHERE id=?");
-        $stmt->execute([$rel,$mime,$pid]);
-        if ($stmt->rowCount() === 0) jerr('Failed to update patient record - patient not found');
+        $stmt = $pdo->prepare("UPDATE patients SET id_card_path=?, id_card_mime=?, updated_at=NOW() WHERE id=? AND user_id=?");
+        $stmt->execute([$rel,$mime,$pid,$patientOwnerId]);
+        if ($stmt->rowCount() === 0) {
+          error_log("[patient.upload] Failed to update ID card path. pid=$pid, patientOwnerId=$patientOwnerId, rel=$rel");
+          jerr('Failed to update patient record - patient not found or access denied');
+        }
       } elseif ($type==='ins'){
         // Delete old file if exists
-        $oldPath = $pdo->prepare("SELECT ins_card_path FROM patients WHERE id=?");
-        $oldPath->execute([$pid]);
+        $oldPath = $pdo->prepare("SELECT ins_card_path FROM patients WHERE id=? AND user_id=?");
+        $oldPath->execute([$pid, $patientOwnerId]);
         $old = $oldPath->fetchColumn();
         if ($old && file_exists(__DIR__ . '/../' . ltrim($old, '/'))) {
           @unlink(__DIR__ . '/../' . ltrim($old, '/'));
         }
 
-        $stmt = $pdo->prepare("UPDATE patients SET ins_card_path=?, ins_card_mime=?, updated_at=NOW() WHERE id=?");
-        $stmt->execute([$rel,$mime,$pid]);
-        if ($stmt->rowCount() === 0) jerr('Failed to update patient record - patient not found');
+        $stmt = $pdo->prepare("UPDATE patients SET ins_card_path=?, ins_card_mime=?, updated_at=NOW() WHERE id=? AND user_id=?");
+        $stmt->execute([$rel,$mime,$pid,$patientOwnerId]);
+        if ($stmt->rowCount() === 0) {
+          error_log("[patient.upload] Failed to update insurance card path. pid=$pid, patientOwnerId=$patientOwnerId, rel=$rel");
+          jerr('Failed to update patient record - patient not found or access denied');
+        }
       }
       jok(['path'=>$rel,'name'=>$f['name'],'mime'=>$mime,'uploaded'=>true]);
     }
@@ -4040,7 +4046,7 @@ if ($page==='logout'){
         <div class="md:col-span-2">
           <label class="text-sm block mb-2">Insurance Requirements</label>
           <div class="text-xs text-slate-600">
-            Patient ID & Insurance Card must be on file with the patient. An AOB is also required.
+            Patient ID & Insurance Card must be on file with the patient. An AOB is also required (only needs to be signed once per patient).
           </div>
           <div class="mt-2">
             <button type="button" id="btn-aob" class="btn">Generate & Sign AOB</button>
@@ -5968,6 +5974,7 @@ async function updatePatientDocStatus(patientId) {
     const statusDiv = $('#patient-doc-status');
     const hasId = p.id_card_path && p.id_card_path.trim() !== '';
     const hasIns = p.ins_card_path && p.ins_card_path.trim() !== '';
+    const hasAOB = p.aob_path && p.aob_path.trim() !== '';
 
     // Update status text
     $('#doc-status-id-text').textContent = hasId ? 'Uploaded ✓' : 'Not uploaded';
@@ -6026,6 +6033,18 @@ async function updatePatientDocStatus(patientId) {
       };
     } else {
       $('#doc-upload-section').classList.add('hidden');
+    }
+
+    // Update AOB hint in order dialog
+    const aobHint = $('#aob-hint');
+    const aobBtn = $('#btn-aob');
+    if (hasAOB) {
+      aobHint.textContent = 'AOB on file ✓';
+      aobHint.style.color = 'green';
+      aobBtn.textContent = 'Re-generate AOB';
+    } else {
+      aobHint.textContent = '';
+      aobBtn.textContent = 'Generate & Sign AOB';
     }
 
     statusDiv.classList.remove('hidden');
@@ -6726,6 +6745,11 @@ function renderPatientDetailPage(p, orders, isEditing) {
             <label class="text-xs">Insurance Card ${p.ins_card_path ? '<span class="text-green-600">✓</span>' : '<span class="text-red-600">*</span>'}</label>
             ${p.ins_card_path ? `<div class="text-xs text-slate-600 mb-1"><a href="?action=file.download&path=${encodeURIComponent(esc(p.ins_card_path))}" target="_blank" class="underline">View current file</a></div>` : '<div class="text-xs text-slate-400 mb-1">Not uploaded</div>'}
             ${isEditing ? `<input type="file" class="w-full text-sm" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic" onchange="uploadPatientFile('${esc(p.id)}', 'ins', this.files[0])">` : ''}
+          </div>
+          <div>
+            <label class="text-xs">Clinical Notes ${p.notes_path ? '<span class="text-green-600">✓</span>' : ''}</label>
+            ${p.notes_path ? `<div class="text-xs text-slate-600 mb-1"><a href="?action=file.download&path=${encodeURIComponent(esc(p.notes_path))}" target="_blank" class="underline">View current file</a></div>` : '<div class="text-xs text-slate-400 mb-1">Not uploaded</div>'}
+            ${isEditing ? `<input type="file" class="w-full text-sm" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.txt" onchange="uploadPatientFile('${esc(p.id)}', 'notes', this.files[0])">` : ''}
           </div>
           <div>
             <label class="text-xs">AOB ${p.aob_path ? '<span class="text-green-600">✓</span>' : '<span class="text-red-600">*</span>'}</label>
