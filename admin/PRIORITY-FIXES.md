@@ -36,15 +36,25 @@
 
 ---
 
+### 4. Patient List Filters Not Working (Issue #3) - FIXED
+**Issue:** Filter button not applying filters
+**Root Cause:** Button had no click event listener
+**Fix:** Added event listener to #btn-dashboard-filter
+**Status:** ✅ Deployed
+**Commit:** 687d00e
+
+### 5. Patient List Checkboxes Not Working (Issue #4) - FIXED
+**Issue:** Checkboxes were non-functional
+**Root Cause:** No IDs, classes, or event handlers
+**Fix:**
+- Added select-all functionality with indeterminate state
+- Individual checkboxes now selectable with proper state management
+**Status:** ✅ Deployed
+**Commit:** 9a43864
+
+---
+
 ## HIGH PRIORITY 🔴
-
-### 4. Patient List Filters Not Working (Issue #3)
-**Location:** https://collagendirect.health/portal/
-**Investigation:** Check JavaScript filter implementation in portal/index.php
-
-### 5. Patient List Checkboxes Not Working (Issue #4)
-**Location:** https://collagendirect.health/portal/
-**Investigation:** Check checkbox event handlers
 
 ---
 

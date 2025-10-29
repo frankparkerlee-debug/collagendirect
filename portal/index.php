@@ -4554,7 +4554,7 @@ if (<?php echo json_encode($page==='dashboard'); ?>){
               <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--brand); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.75rem; flex-shrink: 0;">
                 ${initials}
               </div>
-              <span style="font-weight: 500; color: var(--ink);">${esc(p.first_name||'')} ${esc(p.last_name||'')}</span>
+              <a href="?page=patient-detail&id=${p.id}" style="font-weight: 500; color: var(--ink); text-decoration: none; cursor: pointer;" onmouseover="this.style.color='var(--brand)'" onmouseout="this.style.color='var(--ink)'">${esc(p.first_name||'')} ${esc(p.last_name||'')}</a>
             </div>
           </td>
           <td class="py-3 px-2" style="color: var(--ink-light);">${esc(p.mrn || '-')}</td>
