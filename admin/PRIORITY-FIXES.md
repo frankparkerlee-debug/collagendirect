@@ -52,6 +52,30 @@
 **Status:** ✅ Deployed
 **Commit:** 9a43864
 
+### 6. Patient Names Clickable (Issue #5) - FIXED
+**Issue:** Patient names were static text
+**Fix:** Changed to clickable links navigating to patient detail page
+**Status:** ✅ Deployed
+**Commit:** 42cfff3
+
+### 7. Top Bar Notifications Clickable (Issue #6) - FIXED
+**Issue:** Notifications were non-clickable divs
+**Fix:** Changed to clickable links with hover effects
+**Status:** ✅ Deployed
+**Commit:** aa086f0
+
+### 8. Change "Bandage Count" to "Product Count" (Issue #9) - FIXED
+**Issue:** Terminology was product-specific instead of generic
+**Fix:** Updated all headers, comments, and variables globally
+**Status:** ✅ Deployed
+**Commit:** 6cf9560
+
+### 9. Notes Input Improvements (Issue #14) - FIXED
+**Issue:** UI unclear that notes could be pasted OR attached
+**Fix:** Added clarifying labels and help text
+**Status:** ✅ Deployed
+**Commit:** 38fe34f
+
 ---
 
 ## HIGH PRIORITY 🔴
@@ -60,19 +84,7 @@
 
 ## MEDIUM PRIORITY 🟡
 
-### 6. Patient Names Not Clickable (Issue #5)
-**Simple Fix:** Add onclick/href to patient name cells
-**Estimated Time:** 15 minutes
-
-### 7. Change "Bandage Count" to "Product Count" (Issue #9)
-**Type:** Global search and replace
-**Files to Check:** All portal and admin pages
-**Estimated Time:** 30 minutes
-
-### 8. Top Bar Notifications Not Clickable (Issue #6)
-**Investigation:** Check notification rendering code
-
-### 9. File Attachments on Patient-Add Page (Issue #8)
+### 10. File Attachments on Patient-Add Page (Issue #8)
 **Location:** portal/index.php?page=patient-add
 **Current:** Likely text fields only
 **Needed:** File upload inputs for Notes, Insurance, ID
@@ -81,7 +93,7 @@
 
 ## WORKFLOW ENHANCEMENTS 🎯
 
-### 10. Pre-Authorization Workflow (Issue #1) - NEW FEATURE
+### 11. Pre-Authorization Workflow (Issue #1) - NEW FEATURE
 **Scope:** Large feature requiring design
 **Components Needed:**
 - Patient status field (Approved, Not Covered, Need Info)
@@ -89,7 +101,7 @@
 - Notification system for status changes
 - Clear communication flow
 
-### 11. Status-Driven Filters (Issue #10) - NEW FEATURE
+### 12. Status-Driven Filters (Issue #10) - NEW FEATURE
 **For Orders:**
 - Approved
 - Rejected (with comments)
