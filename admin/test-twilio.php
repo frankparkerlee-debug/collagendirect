@@ -67,7 +67,7 @@ $testNumbers = [
 ];
 
 foreach ($testNumbers as $input => $expected) {
-    $normalized = normalize_phone_number($input);
+    $normalized = normalize_phone_number((string)$input);
     if ($normalized === $expected) {
         echo "✓ '{$input}' → '{$normalized}'\n";
     } else {
