@@ -5,7 +5,8 @@ require_admin();
 require_once __DIR__ . '/../api/lib/provider_welcome.php'; // Email notifications
 
 $admin = current_admin();
-$isOwner = in_array(($admin['role'] ?? ''), ['owner','superadmin','admin','practice_admin','manufacturer']); // Manufacturer has same rights as superadmin
+$isOwner = in_array(($admin['role'] ?? ''), ['owner','superadmin','admin','practice_admin']); // Manufacturers excluded from user management
+$isManufacturer = ($admin['role'] ?? '') === 'manufacturer';
 $tab = $_GET['tab'] ?? 'physicians';
 $msg='';
 
@@ -36,6 +37,13 @@ $manufacturers = $pdo->query("SELECT id, name, email, role, created_at FROM admi
 if ($_SERVER['REQUEST_METHOD']==='POST') {
   verify_csrf();
   $act = $_POST['action'] ?? '';
+
+  // Block manufacturers from all user management operations
+  if ($isManufacturer) {
+    $msg = 'Manufacturers do not have permission to manage users';
+    header('Location: /admin/users.php?tab='.$tab.'&error='.urlencode($msg));
+    exit;
+  }
 
   if ($act==='create_employee' && $isOwner) {
     $name = trim($_POST['name']);
@@ -173,6 +181,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             <td class="py-3"><?=e($u['status'] ?? '')?></td>
             <td class="py-3"><?=e($u['created_at'] ?? '')?></td>
             <td class="py-3 space-x-2">
+              <?php if (!$isManufacturer): ?>
               <form method="post" class="inline"><?=csrf_field()?>
                 <input type="hidden" name="action" value="reset_phys_pw">
                 <input type="hidden" name="phys_id" value="<?=e($u['id'])?>">
@@ -191,12 +200,16 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 <button class="text-slate-600 text-xs">Assign to me</button>
               </form>
               <?php endif; ?>
+              <?php else: ?>
+              <span class="text-slate-400 text-xs">View only</span>
+              <?php endif; ?>
             </td>
           </tr>
           <?php endforeach; ?>
         </tbody>
       </table>
     </div>
+    <?php if (!$isManufacturer): ?>
     <div>
       <div class="font-semibold mb-2">Add Provider</div>
       <form method="post" class="bg-slate-50 border rounded p-3 text-sm" id="provider-form">
@@ -261,6 +274,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
       }
       </script>
     </div>
+    <?php endif; ?>
   </div>
 <?php elseif ($tab==='employees'): ?>
   <div class="grid grid-cols-2 gap-6">
@@ -284,7 +298,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             <td class="py-3"><?=e($e['role'])?></td>
             <td class="py-3"><?=e($e['created_at'])?></td>
             <td class="py-3 space-x-2">
-              <?php if ($isOwner): ?>
+              <?php if ($isOwner && !$isManufacturer): ?>
               <form method="post" class="inline"><?=csrf_field()?>
                 <input type="hidden" name="action" value="reset_emp_pw"><input type="hidden" name="emp_id" value="<?=$e['id']?>">
                 <input type="password" name="newpw" class="border rounded px-2 py-0.5 text-xs" placeholder="New pw" required>
@@ -295,6 +309,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 <input type="hidden" name="action" value="delete_emp"><input type="hidden" name="emp_id" value="<?=$e['id']?>">
                 <button class="text-rose-600 text-xs">Delete</button>
               </form>
+              <?php elseif ($isManufacturer): ?>
+              <span class="text-slate-400 text-xs">View only</span>
               <?php endif; ?>
             </td>
           </tr>
@@ -302,6 +318,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         </tbody>
       </table>
     </div>
+    <?php if (!$isManufacturer): ?>
     <div>
       <div class="font-semibold mb-2">Add Employee</div>
       <form method="post" class="bg-slate-50 border rounded p-3">
@@ -321,6 +338,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         <button class="mt-2 bg-brand text-white rounded px-3 py-1">Create</button>
       </form>
     </div>
+    <?php endif; ?>
   </div>
 <?php else: ?>
   <!-- Manufacturer Tab -->
@@ -345,7 +363,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             <td class="py-3"><?=e($m['role'])?></td>
             <td class="py-3"><?=e($m['created_at'])?></td>
             <td class="py-3 space-x-2">
-              <?php if ($isOwner): ?>
+              <?php if ($isOwner && !$isManufacturer): ?>
               <form method="post" class="inline"><?=csrf_field()?>
                 <input type="hidden" name="action" value="reset_emp_pw"><input type="hidden" name="emp_id" value="<?=$m['id']?>">
                 <input type="password" name="newpw" class="border rounded px-2 py-0.5 text-xs" placeholder="New pw" required>
@@ -355,6 +373,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 <input type="hidden" name="action" value="delete_emp"><input type="hidden" name="emp_id" value="<?=$m['id']?>">
                 <button class="text-rose-600 text-xs">Delete</button>
               </form>
+              <?php elseif ($isManufacturer): ?>
+              <span class="text-slate-400 text-xs">View only</span>
               <?php endif; ?>
             </td>
           </tr>
@@ -362,6 +382,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         </tbody>
       </table>
     </div>
+    <?php if (!$isManufacturer): ?>
     <div>
       <div class="font-semibold mb-2">Add Manufacturer Representative</div>
       <form method="post" class="bg-slate-50 border rounded p-3">
@@ -376,6 +397,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         <button class="mt-2 bg-brand text-white rounded px-3 py-1">Create</button>
       </form>
     </div>
+    <?php endif; ?>
   </div>
 <?php endif; ?>
 </div>
