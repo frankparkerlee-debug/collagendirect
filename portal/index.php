@@ -228,8 +228,8 @@ if ($action) {
           JOIN (SELECT patient_id,MAX(created_at) m FROM orders GROUP BY patient_id) last
             ON last.patient_id=o1.patient_id AND last.m=o1.created_at
         ) lo ON lo.patient_id=p.id";
-      $sql = "SELECT DISTINCT p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.state,p.zip,p.mrn,
-                   p.updated_at,p.created_at,p.status_comment,
+      $sql = "SELECT DISTINCT p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.address_state as state,p.zip,p.mrn,
+                   p.updated_at,p.created_at,p.status_comment,p.state as auth_status,
                    lo.status last_status,lo.shipments_remaining last_remaining
             FROM patients p
             LEFT JOIN orders o ON o.patient_id = p.id
@@ -265,8 +265,8 @@ if ($action) {
             ON last.patient_id=o1.patient_id AND last.m=o1.created_at
           WHERE o1.user_id IN ($placeholders)
         ) lo ON lo.patient_id=p.id";
-      $sql = "SELECT DISTINCT p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.state,p.zip,p.mrn,
-                   p.updated_at,p.created_at,p.status_comment,
+      $sql = "SELECT DISTINCT p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.address_state as state,p.zip,p.mrn,
+                   p.updated_at,p.created_at,p.status_comment,p.state as auth_status,
                    lo.status last_status,lo.shipments_remaining last_remaining
             FROM patients p
             LEFT JOIN orders o ON o.patient_id = p.id
@@ -282,8 +282,8 @@ if ($action) {
             ON last.patient_id=o1.patient_id AND last.m=o1.created_at
           WHERE o1.user_id=?
         ) lo ON lo.patient_id=p.id";
-      $sql = "SELECT DISTINCT p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.state,p.zip,p.mrn,
-                   p.updated_at,p.created_at,p.status_comment,
+      $sql = "SELECT DISTINCT p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.address_state as state,p.zip,p.mrn,
+                   p.updated_at,p.created_at,p.status_comment,p.state as auth_status,
                    lo.status last_status,lo.shipments_remaining last_remaining
             FROM patients p
             LEFT JOIN orders o ON o.patient_id = p.id
@@ -319,22 +319,24 @@ if ($action) {
 
     // Superadmins can see all patients, others only their own
     if ($userRole === 'superadmin') {
-      $s=$pdo->prepare("SELECT id,user_id,first_name,last_name,dob,mrn,phone,email,address,city,state,zip,sex,
+      $s=$pdo->prepare("SELECT id,user_id,first_name,last_name,dob,mrn,phone,email,address,city,address_state as state,zip,sex,
                                insurance_provider,insurance_member_id,insurance_group_id,insurance_payer_phone,
                                id_card_path,id_card_mime,ins_card_path,ins_card_mime,
                                aob_path,aob_signed_at,
                                status_comment,status_updated_at,status_updated_by,
                                provider_response,provider_response_at,provider_response_by,
+                               state as auth_state,
                                created_at,updated_at
                         FROM patients WHERE id=?");
       $s->execute([$pid]);
     } else {
-      $s=$pdo->prepare("SELECT id,user_id,first_name,last_name,dob,mrn,phone,email,address,city,state,zip,sex,
+      $s=$pdo->prepare("SELECT id,user_id,first_name,last_name,dob,mrn,phone,email,address,city,address_state as state,zip,sex,
                                insurance_provider,insurance_member_id,insurance_group_id,insurance_payer_phone,
                                id_card_path,id_card_mime,ins_card_path,ins_card_mime,
                                aob_path,aob_signed_at,
                                status_comment,status_updated_at,status_updated_by,
                                provider_response,provider_response_at,provider_response_by,
+                               state as auth_state,
                                created_at,updated_at
                         FROM patients WHERE id=? AND user_id=?");
       $s->execute([$pid,$userId]);
@@ -454,13 +456,13 @@ if ($action) {
       if($mrn===''){ $mrn = 'CD-'.date('Ymd').'-'.strtoupper(substr(bin2hex(random_bytes(2)),0,4)); }
       $pid=bin2hex(random_bytes(16));
       $st=$pdo->prepare("INSERT INTO patients
-        (id,user_id,first_name,last_name,dob,mrn,city,state,phone,cell_phone,email,address,zip,
-         insurance_provider,insurance_member_id,insurance_group_id,insurance_payer_phone,created_at,updated_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),NOW())");
+        (id,user_id,first_name,last_name,dob,mrn,city,address_state,phone,cell_phone,email,address,zip,
+         insurance_provider,insurance_member_id,insurance_group_id,insurance_payer_phone,state,created_at,updated_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending',NOW(),NOW())");
       $st->execute([$pid,$userId,$first,$last,$dob,$mrn,$city,$state,$phone,$cell_phone,$email,$address,$zip,
                     $ins_provider,$ins_member_id,$ins_group_id,$ins_payer_phone]);
     } else {
-      $st=$pdo->prepare("UPDATE patients SET first_name=?,last_name=?,dob=?,mrn=?,city=?,state=?,phone=?,cell_phone=?,email=?,address=?,zip=?,
+      $st=$pdo->prepare("UPDATE patients SET first_name=?,last_name=?,dob=?,mrn=?,city=?,address_state=?,phone=?,cell_phone=?,email=?,address=?,zip=?,
                          insurance_provider=?,insurance_member_id=?,insurance_group_id=?,insurance_payer_phone=?,updated_at=NOW()
                          WHERE id=? AND user_id=?");
       $st->execute([$first,$last,$dob,$mrn,$city,$state,$phone,$cell_phone,$email,$address,$zip,

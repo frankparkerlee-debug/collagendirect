@@ -86,7 +86,7 @@ function draw(){
   const tb=$('#tb'); tb.innerHTML='';
   if(!rows.length){ tb.innerHTML=`<tr><td colspan="8" class="py-6 text-center text-slate-500">No patients</td></tr>`; return; }
   for(const p of rows){
-    const authStatus = p.state || 'pending';
+    const authStatus = p.auth_status || 'pending';
     const hasComment = p.status_comment && p.status_comment.trim() !== '';
     const authPill = authStatus === 'approved'
       ? '<span class="pill pill--active">Approved</span>'
