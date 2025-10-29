@@ -581,13 +581,29 @@ if ($action) {
       $patientOwnerId = $prow['user_id'];
 
       if ($type==='id'){
-        $stmt = $pdo->prepare("UPDATE patients SET id_card_path=?, id_card_mime=?, updated_at=NOW() WHERE id=? AND user_id=?");
-        $stmt->execute([$rel,$mime,$pid,$patientOwnerId]);
-        if ($stmt->rowCount() === 0) jerr('Failed to update patient record - patient not found or no changes made');
+        // Delete old file if exists
+        $oldPath = $pdo->prepare("SELECT id_card_path FROM patients WHERE id=?");
+        $oldPath->execute([$pid]);
+        $old = $oldPath->fetchColumn();
+        if ($old && file_exists(__DIR__ . '/../' . ltrim($old, '/'))) {
+          @unlink(__DIR__ . '/../' . ltrim($old, '/'));
+        }
+
+        $stmt = $pdo->prepare("UPDATE patients SET id_card_path=?, id_card_mime=?, updated_at=NOW() WHERE id=?");
+        $stmt->execute([$rel,$mime,$pid]);
+        if ($stmt->rowCount() === 0) jerr('Failed to update patient record - patient not found');
       } elseif ($type==='ins'){
-        $stmt = $pdo->prepare("UPDATE patients SET ins_card_path=?, ins_card_mime=?, updated_at=NOW() WHERE id=? AND user_id=?");
-        $stmt->execute([$rel,$mime,$pid,$patientOwnerId]);
-        if ($stmt->rowCount() === 0) jerr('Failed to update patient record - patient not found or no changes made');
+        // Delete old file if exists
+        $oldPath = $pdo->prepare("SELECT ins_card_path FROM patients WHERE id=?");
+        $oldPath->execute([$pid]);
+        $old = $oldPath->fetchColumn();
+        if ($old && file_exists(__DIR__ . '/../' . ltrim($old, '/'))) {
+          @unlink(__DIR__ . '/../' . ltrim($old, '/'));
+        }
+
+        $stmt = $pdo->prepare("UPDATE patients SET ins_card_path=?, ins_card_mime=?, updated_at=NOW() WHERE id=?");
+        $stmt->execute([$rel,$mime,$pid]);
+        if ($stmt->rowCount() === 0) jerr('Failed to update patient record - patient not found');
       }
       jok(['path'=>$rel,'name'=>$f['name'],'mime'=>$mime,'uploaded'=>true]);
     }
