@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $pdo->prepare("UPDATE orders SET
       shipping_name=:n, shipping_phone=:ph, shipping_address=:a, shipping_city=:c, shipping_state=:s, shipping_zip=:z,
       rx_note_mime=:carrier, rx_note_name=:tracking, status='in_transit',
-      shipped_at=IF(shipped_at IS NULL, NOW(), shipped_at), updated_at=NOW()
+      shipped_at=COALESCE(shipped_at, NOW()), updated_at=NOW()
     WHERE id=:id")->execute([
       'n'=>$_POST['shipping_name']??null,'ph'=>$_POST['shipping_phone']??null,'a'=>$_POST['shipping_address']??null,
       'c'=>$_POST['shipping_city']??null,'s'=>$_POST['shipping_state']??null,'z'=>$_POST['shipping_zip']??null,
@@ -46,8 +46,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     if ($tracking) {
       $trk = fetch_tracking_status($tracking,$carrier);
       if (!empty($trk['status'])) {
-        $pdo->prepare("UPDATE orders SET carrier_status=?, carrier_eta=?, status=?, delivered_at=IF(? IS NOT NULL, ?, delivered_at), updated_at=NOW() WHERE id=?")
-            ->execute([$trk['status'],$trk['eta'],$trk['status'],$trk['delivered_at'],$trk['delivered_at'],$id]);
+        $pdo->prepare("UPDATE orders SET carrier_status=?, carrier_eta=?, status=?, delivered_at=COALESCE(?, delivered_at), updated_at=NOW() WHERE id=?")
+            ->execute([$trk['status'],$trk['eta'],$trk['status'],$trk['delivered_at'],$id]);
       }
     }
   } elseif ($id && $action==='edit_order') {
@@ -61,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     ];
     // only update quantity if column exists
     try {
-      $hasQty = (int)$pdo->query("SELECT COUNT(*) c FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='orders' AND COLUMN_NAME='quantity'")->fetch()['c'] > 0;
+      $hasQty = (int)$pdo->query("SELECT COUNT(*) c FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='orders' AND COLUMN_NAME='quantity'")->fetch()['c'] > 0;
       if ($hasQty && $_POST['quantity'] !== '') { $qtySql = ", quantity=:qty"; $params['qty'] = (int)$_POST['quantity']; }
     } catch(Throwable $e){}
     $pdo->prepare("UPDATE orders SET product_id=:pid, product=:pname, frequency=:freq, product_price=:price, delivery_mode=:dmode $qtySql, updated_at=NOW() WHERE id=:id")->execute($params);
