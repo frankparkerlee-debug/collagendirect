@@ -3745,9 +3745,11 @@ if ($page==='logout'){
               <p class="text-xs text-slate-500 mt-1">Front/back of insurance card</p>
             </div>
             <div>
-              <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-2">Clinical Notes / AOB</label>
-              <input type="file" id="new-clinical-notes" class="w-full text-sm" accept="image/*,.pdf">
-              <p class="text-xs text-slate-500 mt-1">Assignment of Benefits or clinical documentation</p>
+              <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-2">Assignment of Benefits (AOB)</label>
+              <button type="button" id="new-aob-sign" class="w-full px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+                Sign AOB Electronically
+              </button>
+              <p class="text-xs text-slate-500 mt-1">Click to generate and sign Assignment of Benefits</p>
             </div>
           </div>
         </div>
@@ -6953,7 +6955,7 @@ if (document.getElementById('add-patient-form')) {
       // Step 2: Upload files if present
       const idCard = $('#new-id-card');
       const insuranceCard = $('#new-insurance-card');
-      const clinicalNotes = $('#new-clinical-notes');
+      
 
       if (idCard && idCard.files && idCard.files[0]) {
         submitBtn.textContent = 'Uploading ID card...';
@@ -6981,18 +6983,7 @@ if (document.getElementById('add-patient-form')) {
         }
       }
 
-      if (clinicalNotes && clinicalNotes.files && clinicalNotes.files[0]) {
-        submitBtn.textContent = 'Uploading clinical notes...';
-        const notesForm = new FormData();
-        notesForm.append('patient_id', patientId);
-        notesForm.append('type', 'rx'); // Clinical notes go to 'notes' folder via 'rx' type
-        notesForm.append('file', clinicalNotes.files[0]);
-        const notesResp = await fetch('?action=patient.upload', {method: 'POST', body: notesForm});
-        const notesResult = await notesResp.json();
-        if (!notesResult.ok) {
-          throw new Error('Clinical notes upload failed: ' + (notesResult.error || 'Unknown error'));
-        }
-      }
+      // AOB signing is handled separately via button click, not during form submission
 
       // Step 3: Redirect to patient detail page
       submitBtn.textContent = 'Success! Redirecting...';
