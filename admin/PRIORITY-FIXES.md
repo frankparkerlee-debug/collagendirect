@@ -23,13 +23,20 @@
 **Status:** ✅ Deployed
 **Commit:** dbffe80
 
+### 3. Ship Field Populated with Attachment Filenames (Issue #16) - FIXED
+**Issue:** Tracking number field showing attachment filenames
+**Root Cause:** Tracking stored in rx_note_name/rx_note_mime (meant for files)
+**Fix:**
+- Created migration to add tracking_number and carrier columns
+- Auto-migrates existing tracking data from old columns
+- Updated admin/orders.php to use new columns
+**Status:** ✅ Code deployed, migration ready
+**Migration:** Run `./run-tracking-migration.sh` on production
+**Commit:** 042da40
+
 ---
 
 ## HIGH PRIORITY 🔴
-
-### 3. Ship Field Populated with Attachment Filenames (Issue #16)
-**Impact:** Confusing UX, wrong data in tracking field
-**Investigation:** Check orders.php form fields and database column mapping
 
 ### 4. Patient List Filters Not Working (Issue #3)
 **Location:** https://collagendirect.health/portal/

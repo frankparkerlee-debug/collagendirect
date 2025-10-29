@@ -4622,6 +4622,12 @@ if (<?php echo json_encode($page==='dashboard'); ?>){
     dateFilter.addEventListener('change', applyFilters);
   }
 
+  // Filter button click handler
+  const filterBtn = $('#btn-dashboard-filter');
+  if (filterBtn) {
+    filterBtn.addEventListener('click', applyFilters);
+  }
+
   // Dashboard export to CSV
   const exportBtn = $('#btn-dashboard-export');
   if (exportBtn) {
