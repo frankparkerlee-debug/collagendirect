@@ -3620,6 +3620,27 @@ if ($page==='logout'){
           </div>
         </div>
 
+        <div class="pt-4 border-t">
+          <h3 class="font-semibold mb-3">Documents (Optional)</h3>
+          <div class="space-y-3">
+            <div>
+              <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-2">Patient ID Card</label>
+              <input type="file" id="new-id-card" class="w-full text-sm" accept="image/*,.pdf">
+              <p class="text-xs text-slate-500 mt-1">Front/back of driver's license or state ID</p>
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-2">Insurance Card</label>
+              <input type="file" id="new-insurance-card" class="w-full text-sm" accept="image/*,.pdf">
+              <p class="text-xs text-slate-500 mt-1">Front/back of insurance card</p>
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-2">Clinical Notes / AOB</label>
+              <input type="file" id="new-clinical-notes" class="w-full text-sm" accept="image/*,.pdf">
+              <p class="text-xs text-slate-500 mt-1">Assignment of Benefits or clinical documentation</p>
+            </div>
+          </div>
+        </div>
+
         <div id="add-patient-error" class="text-sm text-red-600 hidden"></div>
 
         <div class="flex gap-2 pt-4">
@@ -3635,7 +3656,7 @@ if ($page==='logout'){
         <h3 class="font-semibold text-lg mb-3">Required Information</h3>
         <p class="text-sm text-slate-600 mb-4">
           Please fill out at least the required fields marked with an asterisk (*).
-          You can add additional information like insurance details and documents after creating the patient.
+          You can optionally upload documents during patient creation, or add them later.
         </p>
         <div class="space-y-2 text-sm">
           <div class="flex items-start gap-2">
@@ -3648,7 +3669,7 @@ if ($page==='logout'){
             <svg class="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
-            <span>Documents can be uploaded after patient creation</span>
+            <span>Documents can be uploaded now or later</span>
           </div>
           <div class="flex items-start gap-2">
             <svg class="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -6667,36 +6688,92 @@ if (document.getElementById('add-patient-form')) {
     const errorDiv = $('#add-patient-error');
     errorDiv.classList.add('hidden');
 
-    const body = fd({
-      first_name: $('#new-first-name').value.trim(),
-      last_name: $('#new-last-name').value.trim(),
-      dob: $('#new-dob').value,
-      sex: $('#new-sex').value,
-      phone: $('#new-phone').value,
-      email: $('#new-email').value,
-      address: $('#new-address').value,
-      city: $('#new-city').value,
-      state: $('#new-state').value,
-      zip: $('#new-zip').value,
-      insurance_provider: $('#new-insurance-provider').value,
-      insurance_member_id: $('#new-insurance-member-id').value,
-      insurance_group_id: $('#new-insurance-group-id').value,
-      insurance_payer_phone: $('#new-insurance-phone').value
-    });
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Creating patient...';
 
     try {
+      // Step 1: Create patient
+      const body = fd({
+        first_name: $('#new-first-name').value.trim(),
+        last_name: $('#new-last-name').value.trim(),
+        dob: $('#new-dob').value,
+        sex: $('#new-sex').value,
+        phone: $('#new-phone').value,
+        email: $('#new-email').value,
+        address: $('#new-address').value,
+        city: $('#new-city').value,
+        state: $('#new-state').value,
+        zip: $('#new-zip').value,
+        insurance_provider: $('#new-insurance-provider').value,
+        insurance_member_id: $('#new-insurance-member-id').value,
+        insurance_group_id: $('#new-insurance-group-id').value,
+        insurance_payer_phone: $('#new-insurance-phone').value
+      });
+
       const r = await fetch('?action=patient.save', {method: 'POST', body});
       const j = await r.json();
-      if (j.ok) {
-        // Redirect to the new patient's detail page
-        window.location.href = '?page=patient-detail&id=' + encodeURIComponent(j.id);
-      } else {
-        errorDiv.textContent = j.error || 'Failed to create patient';
-        errorDiv.classList.remove('hidden');
+
+      if (!j.ok) {
+        throw new Error(j.error || 'Failed to create patient');
       }
+
+      const patientId = j.id;
+
+      // Step 2: Upload files if present
+      const idCard = $('#new-id-card');
+      const insuranceCard = $('#new-insurance-card');
+      const clinicalNotes = $('#new-clinical-notes');
+
+      if (idCard && idCard.files && idCard.files[0]) {
+        submitBtn.textContent = 'Uploading ID card...';
+        const idForm = new FormData();
+        idForm.append('patient_id', patientId);
+        idForm.append('type', 'id');
+        idForm.append('file', idCard.files[0]);
+        const idResp = await fetch('?action=patient.upload', {method: 'POST', body: idForm});
+        const idResult = await idResp.json();
+        if (!idResult.ok) {
+          throw new Error('ID card upload failed: ' + (idResult.error || 'Unknown error'));
+        }
+      }
+
+      if (insuranceCard && insuranceCard.files && insuranceCard.files[0]) {
+        submitBtn.textContent = 'Uploading insurance card...';
+        const insForm = new FormData();
+        insForm.append('patient_id', patientId);
+        insForm.append('type', 'ins');
+        insForm.append('file', insuranceCard.files[0]);
+        const insResp = await fetch('?action=patient.upload', {method: 'POST', body: insForm});
+        const insResult = await insResp.json();
+        if (!insResult.ok) {
+          throw new Error('Insurance card upload failed: ' + (insResult.error || 'Unknown error'));
+        }
+      }
+
+      if (clinicalNotes && clinicalNotes.files && clinicalNotes.files[0]) {
+        submitBtn.textContent = 'Uploading clinical notes...';
+        const notesForm = new FormData();
+        notesForm.append('patient_id', patientId);
+        notesForm.append('type', 'rx'); // Clinical notes go to 'notes' folder via 'rx' type
+        notesForm.append('file', clinicalNotes.files[0]);
+        const notesResp = await fetch('?action=patient.upload', {method: 'POST', body: notesForm});
+        const notesResult = await notesResp.json();
+        if (!notesResult.ok) {
+          throw new Error('Clinical notes upload failed: ' + (notesResult.error || 'Unknown error'));
+        }
+      }
+
+      // Step 3: Redirect to patient detail page
+      submitBtn.textContent = 'Success! Redirecting...';
+      window.location.href = '?page=patient-detail&id=' + encodeURIComponent(patientId);
+
     } catch (e) {
       errorDiv.textContent = 'Error: ' + e.message;
       errorDiv.classList.remove('hidden');
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalText;
     }
   });
 }
