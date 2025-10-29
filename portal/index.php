@@ -6920,6 +6920,8 @@ if (document.getElementById('add-patient-form')) {
     submitBtn.disabled = true;
     submitBtn.textContent = 'Creating patient...';
 
+    let patientId = null; // Declare outside try block for cleanup in catch
+
     try {
       // Step 1: Create patient
       const body = fd({
@@ -6946,7 +6948,7 @@ if (document.getElementById('add-patient-form')) {
         throw new Error(j.error || 'Failed to create patient');
       }
 
-      const patientId = j.id;
+      patientId = j.id; // Assign to outer scope variable
 
       // Step 2: Upload files if present
       const idCard = $('#new-id-card');
@@ -6997,7 +6999,20 @@ if (document.getElementById('add-patient-form')) {
       window.location.href = '?page=patient-detail&id=' + encodeURIComponent(patientId);
 
     } catch (e) {
-      errorDiv.textContent = 'Error: ' + e.message;
+      // If patient was created but upload failed, delete the patient to prevent duplicates
+      if (patientId) {
+        submitBtn.textContent = 'Cleaning up...';
+        try {
+          await fetch('?action=patient.delete', {
+            method: 'POST',
+            body: fd({id: patientId})
+          });
+        } catch (deleteErr) {
+          console.error('Failed to delete patient after upload error:', deleteErr);
+        }
+      }
+
+      errorDiv.textContent = 'Error: ' + e.message + ' (Patient not created)';
       errorDiv.classList.remove('hidden');
       submitBtn.disabled = false;
       submitBtn.textContent = originalText;
