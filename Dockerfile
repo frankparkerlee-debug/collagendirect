@@ -1,6 +1,6 @@
 FROM php:8.3-apache
 
-# Install dependencies
+# Install dependencies including cron
 RUN apt-get update && apt-get install -y \
     libzip-dev \
     libpq-dev \
@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     unzip \
     git \
     curl \
+    cron \
     && docker-php-ext-install pdo pdo_pgsql pgsql zip \
     && a2enmod rewrite \
     && apt-get clean && rm -rf /var/lib/apt/lists/*

@@ -1,0 +1,8 @@
+# CollagenDirect Cron Jobs
+# Runs inside Docker container
+
+# Send delivery confirmation SMS daily at 10 AM UTC
+0 10 * * * cd /var/www/html && /usr/local/bin/php api/cron/send-delivery-confirmations.php >> /var/log/cron.log 2>&1
+
+# Empty line required at end of crontab file
+
