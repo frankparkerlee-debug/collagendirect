@@ -110,12 +110,12 @@ function twilio_send_sms(string $toPhone, string $message): array {
 /**
  * Normalize phone number to E.164 format (+1234567890)
  *
- * @param string $phone Raw phone number
+ * @param string|int $phone Raw phone number
  * @return string|null Normalized phone or null if invalid
  */
-function normalize_phone_number(string $phone): ?string {
-  // Remove all non-digit characters
-  $digits = preg_replace('/\D/', '', $phone);
+function normalize_phone_number(string|int $phone): ?string {
+  // Convert to string and remove all non-digit characters
+  $digits = preg_replace('/\D/', '', (string)$phone);
 
   if (!$digits) {
     return null;
