@@ -1256,7 +1256,51 @@ if ($action) {
     ");
     $stmt->execute(array_merge([$userId], $params));
 
+    // Also dismiss patient_status_change notifications
+    $stmt = $pdo->prepare("
+      INSERT INTO user_notification_dismissals (user_id, notif_type, reference_id)
+      SELECT ?, 'patient_status_change', p.id
+      FROM patients p
+      WHERE {$userFilter}p.status_updated_at IS NOT NULL
+        AND p.status_updated_at >= NOW() - INTERVAL '7 days'
+        AND p.state IN ('approved', 'not_covered', 'need_info')
+      ON CONFLICT (user_id, notif_type, reference_id) DO NOTHING
+    ");
+    $stmt->execute(array_merge([$userId], $params));
+
     jok(['message' => 'All notifications marked as read']);
+  }
+
+  if ($action==='dismiss_notification'){
+    // Dismiss a single notification
+    $notifType = (string)($_POST['notif_type'] ?? '');
+    $referenceId = (string)($_POST['reference_id'] ?? '');
+
+    if ($notifType === '' || $referenceId === '') {
+      jerr('Missing notification type or reference ID');
+    }
+
+    // Ensure table exists
+    $pdo->exec("
+      CREATE TABLE IF NOT EXISTS user_notification_dismissals (
+        id SERIAL PRIMARY KEY,
+        user_id VARCHAR(64) NOT NULL,
+        notif_type VARCHAR(50) NOT NULL,
+        reference_id VARCHAR(64),
+        dismissed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, notif_type, reference_id)
+      )
+    ");
+
+    // Insert dismissal
+    $stmt = $pdo->prepare("
+      INSERT INTO user_notification_dismissals (user_id, notif_type, reference_id)
+      VALUES (?, ?, ?)
+      ON CONFLICT (user_id, notif_type, reference_id) DO NOTHING
+    ");
+    $stmt->execute([$userId, $notifType, $referenceId]);
+
+    jok(['message' => 'Notification dismissed']);
   }
 
   // Practice Management (practice admins only)
@@ -4596,9 +4640,10 @@ async function populateNotifications() {
 
       // Build the link URL based on notification type
       const linkUrl = id ? `?page=patient-detail&id=${id}` : '#';
+      const referenceId = id || order_id || '';
 
       return `
-        <a href="${linkUrl}" class="dropdown-item" style="display: block; padding: 1rem 1.25rem; background: #f0fdfa; text-decoration: none; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#e0f2f1'" onmouseout="this.style.background='#f0fdfa'">
+        <a href="${linkUrl}" class="dropdown-item" data-notif-type="${esc(notif_type)}" data-reference-id="${esc(referenceId)}" style="display: block; padding: 1rem 1.25rem; background: #f0fdfa; text-decoration: none; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#e0f2f1'" onmouseout="this.style.background='#f0fdfa'" onclick="handleNotificationClick(event, '${esc(notif_type)}', '${esc(referenceId)}')">
           <div style="display: flex; gap: 0.75rem;">
             <div style="width: 40px; height: 40px; border-radius: 50%; background: ${bgColor}; color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.875rem; flex-shrink: 0;">
               ${initials}
@@ -4641,6 +4686,45 @@ function formatTimeAgo(dateString) {
   if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays < 7) return `${diffDays}d ago`;
   return date.toLocaleDateString();
+}
+
+// Handle notification click - dismiss and navigate
+async function handleNotificationClick(event, notifType, referenceId) {
+  event.preventDefault();
+
+  const link = event.currentTarget;
+  const href = link.getAttribute('href');
+
+  // Dismiss the notification
+  try {
+    await fetch('?action=dismiss_notification', {
+      method: 'POST',
+      body: fd({notif_type: notifType, reference_id: referenceId})
+    });
+
+    // Update the notification count immediately
+    const notificationBadge = document.getElementById('notification-count');
+    if (notificationBadge) {
+      const currentCount = parseInt(notificationBadge.textContent) || 0;
+      const newCount = Math.max(0, currentCount - 1);
+      if (newCount > 0) {
+        notificationBadge.textContent = newCount;
+      } else {
+        notificationBadge.style.display = 'none';
+      }
+    }
+
+    // Navigate to the link
+    if (href && href !== '#') {
+      window.location.href = href;
+    }
+  } catch (error) {
+    console.error('Failed to dismiss notification:', error);
+    // Navigate anyway even if dismiss fails
+    if (href && href !== '#') {
+      window.location.href = href;
+    }
+  }
 }
 
 /* DASHBOARD table (view-only) */
