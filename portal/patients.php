@@ -59,8 +59,8 @@ $launchOrder = isset($_GET['new_order']);
       <table class="w-full text-sm">
         <thead class="border-b">
           <tr class="text-left">
-            <th class="py-2">Name</th><th class="py-2">DOB</th><th class="py-2">Phone</th><th class="py-2">Email</th>
-            <th class="py-2">City/State</th><th class="py-2">Status</th><th class="py-2">Product Count</th><th class="py-2">Action</th>
+            <th class="py-2">Name</th><th class="py-2">DOB</th><th class="py-2">Phone</th>
+            <th class="py-2">City/State</th><th class="py-2">Status</th><th class="py-2">Auth Status</th><th class="py-2">Product Count</th><th class="py-2">Action</th>
           </tr>
         </thead>
         <tbody id="tb"></tbody>
@@ -86,14 +86,29 @@ function draw(){
   const tb=$('#tb'); tb.innerHTML='';
   if(!rows.length){ tb.innerHTML=`<tr><td colspan="8" class="py-6 text-center text-slate-500">No patients</td></tr>`; return; }
   for(const p of rows){
+    const authStatus = p.state || 'pending';
+    const hasComment = p.status_comment && p.status_comment.trim() !== '';
+    const authPill = authStatus === 'approved'
+      ? '<span class="pill pill--active">Approved</span>'
+      : authStatus === 'not_covered'
+        ? '<span class="pill pill--stopped">Not Covered</span>'
+        : authStatus === 'need_info'
+          ? '<span class="pill pill--pending">Need Info</span>'
+          : '<span class="pill pill--pending">Pending</span>';
+
     tb.insertAdjacentHTML('beforeend',`
       <tr class="border-b hover:bg-slate-50">
         <td class="py-2">${p.first_name||''} ${p.last_name||''}</td>
         <td class="py-2">${p.dob||''}</td>
         <td class="py-2">${p.phone||''}</td>
-        <td class="py-2">${p.email||''}</td>
         <td class="py-2">${p.city||''}${p.state?', '+p.state:''}</td>
         <td class="py-2">${pill(p.last_status)}</td>
+        <td class="py-2">
+          ${hasComment
+            ? `<button type="button" class="text-left" data-show-comment="${p.id}" title="Click to view comment">${authPill} <span class="text-xs">💬</span></button>`
+            : authPill
+          }
+        </td>
         <td class="py-2">${p.last_remaining ?? '—'}</td>
         <td class="py-2">
           <button type="button" class="btn" data-open="${p.id}">View / Edit</button>
@@ -104,7 +119,13 @@ function draw(){
 /* Delegation: one listener on tbody */
 document.addEventListener('click',(e)=>{
   const t=e.target.closest('[data-open]'); if(t){ e.preventDefault(); window.location.href='/public/portal/patients.php?open='+encodeURIComponent(t.dataset.open); }
+  const c=e.target.closest('[data-show-comment]'); if(c){ e.preventDefault(); showComment(c.dataset.showComment); }
 });
+function showComment(patientId){
+  const p = rows.find(r=>r.id===patientId);
+  if(!p || !p.status_comment) return;
+  alert(`Authorization Comment:\n\n${p.status_comment}`);
+}
 $('#q').addEventListener('input',e=>load(e.target.value.trim()));
 load('<?php echo htmlspecialchars($_GET['q'] ?? '', ENT_QUOTES); ?>');
 

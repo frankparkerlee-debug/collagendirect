@@ -229,7 +229,7 @@ if ($action) {
             ON last.patient_id=o1.patient_id AND last.m=o1.created_at
         ) lo ON lo.patient_id=p.id";
       $sql = "SELECT DISTINCT p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.state,p.zip,p.mrn,
-                   p.updated_at,p.created_at,
+                   p.updated_at,p.created_at,p.status_comment,
                    lo.status last_status,lo.shipments_remaining last_remaining
             FROM patients p
             INNER JOIN orders o ON o.patient_id = p.id
@@ -266,7 +266,7 @@ if ($action) {
           WHERE o1.user_id IN ($placeholders)
         ) lo ON lo.patient_id=p.id";
       $sql = "SELECT DISTINCT p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.state,p.zip,p.mrn,
-                   p.updated_at,p.created_at,
+                   p.updated_at,p.created_at,p.status_comment,
                    lo.status last_status,lo.shipments_remaining last_remaining
             FROM patients p
             INNER JOIN orders o ON o.patient_id = p.id
@@ -283,7 +283,7 @@ if ($action) {
           WHERE o1.user_id=?
         ) lo ON lo.patient_id=p.id";
       $sql = "SELECT DISTINCT p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.state,p.zip,p.mrn,
-                   p.updated_at,p.created_at,
+                   p.updated_at,p.created_at,p.status_comment,
                    lo.status last_status,lo.shipments_remaining last_remaining
             FROM patients p
             INNER JOIN orders o ON o.patient_id = p.id
@@ -369,17 +369,27 @@ if ($action) {
 
   if ($action==='file.download'){
     $path=(string)($_GET['path']??'');
-    if($path==='') jerr('Missing file path');
+    if($path==='') {
+      http_response_code(400);
+      echo 'bad_path';
+      exit;
+    }
 
     // Security: only allow files from /uploads/ directory
-    if(!str_starts_with($path, '/uploads/')) jerr('Invalid file path', 403);
+    if(!str_starts_with($path, '/uploads/')) {
+      http_response_code(403);
+      echo 'forbidden';
+      exit;
+    }
 
     // Extract patient_id or order_id from the path to verify access
     // Path format: /uploads/{type}/{filename} where filename contains patient/order ID
     $fullPath = __DIR__ . '/../' . ltrim($path, '/');
 
     if (!file_exists($fullPath)) {
-      jerr('File not found', 404);
+      http_response_code(404);
+      echo 'not_found';
+      exit;
     }
 
     // Check if user has access to this file
@@ -387,7 +397,11 @@ if ($action) {
     if (str_contains($path, '/uploads/ids/') || str_contains($path, '/uploads/insurance/') || str_contains($path, '/uploads/aob/')) {
       // Extract patient ID from filename (format: name-YYYYMMDD-HHMMSS-{patient_id_prefix}.ext)
       preg_match('/-([a-f0-9]{6})\.[^.]+$/', $path, $matches);
-      if (!$matches) jerr('Invalid file path format', 400);
+      if (!$matches) {
+        http_response_code(400);
+        echo 'bad_path';
+        exit;
+      }
 
       $patientIdPrefix = $matches[1];
 
@@ -401,7 +415,9 @@ if ($action) {
       }
 
       if (!$stmt->fetch()) {
-        jerr('Access denied', 403);
+        http_response_code(403);
+        echo 'forbidden';
+        exit;
       }
     }
 
@@ -6529,29 +6545,29 @@ function renderPatientDetailPage(p, orders, isEditing) {
         </div>
       ` : ''}
 
-      ${isEditing ? `
-        <!-- Required Documents Section -->
-        <div class="mb-6 pb-6 border-t pt-6">
-          <h5 class="font-semibold text-sm mb-3">Required Documents</h5>
-          <div class="space-y-3">
-            <div>
-              <label class="text-xs">ID Card ${p.id_card_path ? '<span class="text-green-600">✓</span>' : '<span class="text-red-600">*</span>'}</label>
-              ${p.id_card_path ? `<div class="text-xs text-slate-600 mb-1"><a href="?action=file.download&path=${encodeURIComponent(esc(p.id_card_path))}" target="_blank" class="underline">View current file</a></div>` : ''}
-              <input type="file" class="w-full text-sm" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic" onchange="uploadPatientFile('${esc(p.id)}', 'id', this.files[0])">
-            </div>
-            <div>
-              <label class="text-xs">Insurance Card ${p.ins_card_path ? '<span class="text-green-600">✓</span>' : '<span class="text-red-600">*</span>'}</label>
-              ${p.ins_card_path ? `<div class="text-xs text-slate-600 mb-1"><a href="?action=file.download&path=${encodeURIComponent(esc(p.ins_card_path))}" target="_blank" class="underline">View current file</a></div>` : ''}
-              <input type="file" class="w-full text-sm" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic" onchange="uploadPatientFile('${esc(p.id)}', 'ins', this.files[0])">
-            </div>
-            <div>
-              <label class="text-xs">AOB ${p.aob_path ? '<span class="text-green-600">✓</span>' : '<span class="text-red-600">*</span>'}</label>
-              ${p.aob_path ? `<div class="text-xs text-slate-600 mb-1">Signed: ${fmt(p.aob_signed_at)}</div>` : ''}
-              <button type="button" class="btn text-sm mt-1" onclick="generateAOB('${esc(p.id)}')">${p.aob_path ? 'Re-generate' : 'Generate & Sign'} AOB</button>
-            </div>
+      <!-- Required Documents Section -->
+      <div class="mb-6 pb-6 border-t pt-6">
+        <h5 class="font-semibold text-sm mb-3">Required Documents</h5>
+        <div class="space-y-3">
+          <div>
+            <label class="text-xs">ID Card ${p.id_card_path ? '<span class="text-green-600">✓</span>' : '<span class="text-red-600">*</span>'}</label>
+            ${p.id_card_path ? `<div class="text-xs text-slate-600 mb-1"><a href="?action=file.download&path=${encodeURIComponent(esc(p.id_card_path))}" target="_blank" class="underline">View current file</a></div>` : '<div class="text-xs text-slate-400 mb-1">Not uploaded</div>'}
+            ${isEditing ? `<input type="file" class="w-full text-sm" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic" onchange="uploadPatientFile('${esc(p.id)}', 'id', this.files[0])">` : ''}
+          </div>
+          <div>
+            <label class="text-xs">Insurance Card ${p.ins_card_path ? '<span class="text-green-600">✓</span>' : '<span class="text-red-600">*</span>'}</label>
+            ${p.ins_card_path ? `<div class="text-xs text-slate-600 mb-1"><a href="?action=file.download&path=${encodeURIComponent(esc(p.ins_card_path))}" target="_blank" class="underline">View current file</a></div>` : '<div class="text-xs text-slate-400 mb-1">Not uploaded</div>'}
+            ${isEditing ? `<input type="file" class="w-full text-sm" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic" onchange="uploadPatientFile('${esc(p.id)}', 'ins', this.files[0])">` : ''}
+          </div>
+          <div>
+            <label class="text-xs">AOB ${p.aob_path ? '<span class="text-green-600">✓</span>' : '<span class="text-red-600">*</span>'}</label>
+            ${p.aob_path ? `<div class="text-xs text-slate-600 mb-1">Signed: ${fmt(p.aob_signed_at)}</div>` : '<div class="text-xs text-slate-400 mb-1">Not signed</div>'}
+            ${isEditing ? `<button type="button" class="btn text-sm mt-1" onclick="generateAOB('${esc(p.id)}')">${p.aob_path ? 'Re-generate' : 'Generate & Sign'} AOB</button>` : ''}
           </div>
         </div>
+      </div>
 
+      ${isEditing ? `
         <!-- Save/Cancel Actions -->
         <div class="flex gap-2">
           <button class="btn flex-1 text-white" type="button" onclick="savePatientFromDetail('${esc(p.id)}')" style="background: var(--brand);">Save Changes</button>
