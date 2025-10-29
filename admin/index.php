@@ -52,63 +52,35 @@ $totalOrders      = qCount($pdo, "SELECT COUNT(*) c FROM orders");
 $pendingApprovals = qCount($pdo, "SELECT COUNT(*) c FROM orders WHERE status IN ('submitted','pending','awaiting_approval')");
 $activePatients   = qCount($pdo, "SELECT COUNT(DISTINCT patient_id) c FROM orders WHERE status IN ('approved','in_transit','delivered')");
 
-/* ---------- Projected Remaining Revenue ----------
-   Only count orders NOT in ('rejected','cancelled').
-   Patches = patches_per_week(frequency) * shipments_remaining
-   Reimbursement = reimbursement_rates.rate_non_rural by CPT (via products.cpt_code)
-   Fallback: orders.product_price (if no rate).
+/* ---------- Revenue Calculations ----------
+   EARNED: Revenue from shipments already delivered (total - remaining)
+   PROJECTED: Revenue from shipments still to be delivered (remaining)
+
+   For manufacturers: Show 30% of actual amounts (manufacturer relationship)
 --------------------------------------------------- */
 $hasProducts = has_table($pdo,'products');
 $hasRates    = has_table($pdo,'reimbursement_rates');
 $hasShipRem  = has_column($pdo,'orders','shipments_remaining');
 
-$projectedRemaining = 0.0;
-try {
-  $sql = "SELECT o.status, o.frequency, ".($hasShipRem?"o.shipments_remaining,":"")." o.product_price ".
-         ($hasProducts?", pr.cpt_code ":"").
-         "FROM orders o ".
-         ($hasProducts?"LEFT JOIN products pr ON pr.id=o.product_id ":"").
-         "WHERE o.status NOT IN ('rejected','cancelled')";
-  $stmt = $pdo->query($sql);
-  // Prefetch rate map if present
-  $rates = [];
-  if ($hasRates) {
+// Prefetch reimbursement rates
+$rates = [];
+if ($hasRates) {
+  try {
     foreach ($pdo->query("SELECT cpt_code, COALESCE(rate_non_rural,0) rate FROM reimbursement_rates") as $r) {
       $rates[$r['cpt_code']] = (float)$r['rate'];
     }
+  } catch (Throwable $e) {
+    error_log("[rates] ".$e->getMessage());
   }
-
-  foreach ($stmt as $row) {
-    $shipRem = $hasShipRem ? (int)($row['shipments_remaining'] ?? 0) : 0;
-    if ($shipRem <= 0) continue; // nothing left to ship, no revenue remaining
-
-    $ppw = patches_per_week($row['frequency'] ?? '');
-    $patches = $ppw * $shipRem;
-
-    // reimbursement per patch
-    $unit = 0.0;
-    if ($hasProducts && !empty($row['cpt_code']) && isset($rates[$row['cpt_code']]) && $rates[$row['cpt_code']] > 0) {
-      $unit = $rates[$row['cpt_code']];
-    } else {
-      $unit = (float)($row['product_price'] ?? 0); // fallback
-    }
-    if ($unit <= 0) continue;
-
-    $projectedRemaining += $unit * $patches;
-  }
-} catch (Throwable $e) {
-  error_log("[projectedRevenue] ".$e->getMessage());
 }
 
-/* ---------- Revenue Dashboard ----------
-   Calculate actual revenue from orders with real data
---------------------------------------------------- */
+$earnedRevenue = 0.0;
+$projectedRevenue = 0.0;
 $totalRevenue = 0.0;
 $practiceRevenue = [];
 $productRevenue = [];
 
 try {
-  // Calculate total billed revenue from all orders
   $revenueQuery = "
     SELECT
       o.id,
@@ -127,18 +99,18 @@ try {
   ";
 
   foreach ($pdo->query($revenueQuery) as $order) {
-    // Calculate revenue per order
+    // Get frequency and quantity
     $fpw = (int)($order['frequency_per_week'] ?? 0);
-    if ($fpw <= 0) $fpw = patches_per_week($order['frequency'] ?? '');
-
     $qty = max(1, (int)($order['qty_per_change'] ?? 1));
     $days = max(0, (int)($order['duration_days'] ?? 0));
     $refills = max(0, (int)($order['refills_allowed'] ?? 0));
 
+    // Calculate total shipments for this order
     $weeks = ($days > 0) ? (int)ceil($days / 7) : 4;
     $total_weeks = $weeks * (1 + $refills);
+    $total_shipments = $fpw * $total_weeks * $qty;
 
-    // Use reimbursement rate if available
+    // Get unit price (reimbursement rate or product price)
     $unit_price = 0.0;
     $cpt = $order['cpt_code'] ?? '';
     if ($hasRates && $cpt && isset($rates[$cpt]) && $rates[$cpt] > 0) {
@@ -146,27 +118,33 @@ try {
     } else {
       $unit_price = (float)($order['product_price'] ?? 0);
     }
-
     if ($unit_price <= 0) $unit_price = 150.0; // Conservative fallback
 
-    $patches_total = $fpw * $total_weeks * $qty;
-    $order_revenue = $unit_price * $patches_total;
+    // Calculate earned (delivered) and projected (remaining) revenue
+    $shipments_remaining = (int)($order['shipments_remaining'] ?? 0);
+    $shipments_delivered = max(0, $total_shipments - $shipments_remaining);
 
-    $totalRevenue += $order_revenue;
+    $order_earned = $shipments_delivered * $unit_price;
+    $order_projected = $shipments_remaining * $unit_price;
+    $order_total = $order_earned + $order_projected;
+
+    $earnedRevenue += $order_earned;
+    $projectedRevenue += $order_projected;
+    $totalRevenue += $order_total;
 
     // Group by practice
     $practice = $order['practice_name'] ?: 'Independent Provider';
     if (!isset($practiceRevenue[$practice])) {
       $practiceRevenue[$practice] = 0.0;
     }
-    $practiceRevenue[$practice] += $order_revenue;
+    $practiceRevenue[$practice] += $order_total;
 
     // Group by product
     $product = $order['product_name'] ?: 'Standard Product';
     if (!isset($productRevenue[$product])) {
       $productRevenue[$product] = 0.0;
     }
-    $productRevenue[$product] += $order_revenue;
+    $productRevenue[$product] += $order_total;
   }
 
   // Sort by revenue descending
@@ -177,7 +155,15 @@ try {
   error_log("[revenue-dashboard] " . $e->getMessage());
   // Fallback to simple estimate if query fails
   $totalRevenue = $totalOrders * 150.0;
+  $earnedRevenue = $totalRevenue * 0.5; // Estimate 50% delivered
+  $projectedRevenue = $totalRevenue * 0.5;
 }
+
+// Apply manufacturer factor (30% of actual revenue)
+$revenueMultiplier = ($adminRole === 'manufacturer') ? 0.30 : 1.0;
+$displayEarnedRevenue = $earnedRevenue * $revenueMultiplier;
+$displayProjectedRevenue = $projectedRevenue * $revenueMultiplier;
+$displayTotalRevenue = $totalRevenue * $revenueMultiplier;
 
 /* ---------- Recent activity ---------- */
 $recent = [];
@@ -276,22 +262,31 @@ include __DIR__.'/_header.php';
       <div class="text-xs text-slate-400 mt-2">Manage patients →</div>
     </a>
 
-    <!-- Projected Remaining Revenue Tile -->
+    <!-- Revenue Tile (Earned + Projected) -->
     <a href="/admin/billing.php" class="block bg-white border rounded-2xl p-4 shadow-soft hover:shadow-md transition-shadow cursor-pointer group relative">
       <div class="flex items-center justify-between">
-        <div>
+        <div class="flex-1">
           <div class="text-xs text-slate-500 mb-1 flex items-center gap-1">
-            Projected Remaining Revenue
-            <span class="inline-block w-3 h-3 rounded-full bg-slate-200 text-[10px] leading-3 text-center text-slate-600 cursor-help" title="Future billable revenue from active orders with remaining shipments">?</span>
+            Revenue Overview<?php if($adminRole === 'manufacturer'): ?> <span class="text-[10px] text-slate-400">(30% share)</span><?php endif; ?>
+            <span class="inline-block w-3 h-3 rounded-full bg-slate-200 text-[10px] leading-3 text-center text-slate-600 cursor-help" title="Earned: Revenue from delivered shipments | Projected: Future revenue from remaining shipments">?</span>
           </div>
-          <div class="text-2xl font-bold text-brand group-hover:text-blue-700 transition-colors">$<?=number_format($projectedRemaining,2)?></div>
+          <div class="text-2xl font-bold text-brand group-hover:text-blue-700 transition-colors">$<?=number_format($displayTotalRevenue,2)?></div>
+          <div class="flex gap-4 mt-2 text-xs">
+            <div>
+              <span class="text-slate-500">Earned:</span>
+              <span class="font-semibold text-green-600">$<?=number_format($displayEarnedRevenue,2)?></span>
+            </div>
+            <div>
+              <span class="text-slate-500">Projected:</span>
+              <span class="font-semibold text-blue-600">$<?=number_format($displayProjectedRevenue,2)?></span>
+            </div>
+          </div>
         </div>
         <svg class="w-8 h-8 text-green-300 group-hover:text-green-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>
       </div>
       <div class="text-xs text-slate-400 mt-2">View billing →</div>
-      <div class="text-[10px] text-slate-400 mt-1">From <?=number_format($totalOrders)?> active orders</div>
     </a>
   </div>
 
@@ -368,15 +363,18 @@ include __DIR__.'/_header.php';
 
       <div class="grid grid-cols-3 gap-6 mb-6">
         <div class="border-l-4 border-brand pl-4">
-          <div class="text-sm text-slate-600 mb-1">Total Revenue</div>
-          <div class="text-3xl font-bold text-brand">$<?=number_format($totalRevenue, 2)?></div>
-          <div class="text-xs text-slate-500 mt-1">All orders (not rejected/cancelled)</div>
+          <div class="text-sm text-slate-600 mb-1">Total Revenue<?php if($adminRole === 'manufacturer'): ?> <span class="text-[10px] text-slate-400">(30%)</span><?php endif; ?></div>
+          <div class="text-3xl font-bold text-brand">$<?=number_format($displayTotalRevenue, 2)?></div>
+          <div class="text-xs text-slate-500 mt-1">
+            <span class="text-green-600">Earned: $<?=number_format($displayEarnedRevenue, 0)?></span> •
+            <span class="text-blue-600">Projected: $<?=number_format($displayProjectedRevenue, 0)?></span>
+          </div>
         </div>
         <div class="border-l-4 border-green-500 pl-4">
           <div class="text-sm text-slate-600 mb-1">Top Practice Revenue</div>
           <div class="text-2xl font-bold text-green-700">
             <?php if (!empty($practiceRevenue)): ?>
-              $<?=number_format(reset($practiceRevenue), 2)?>
+              $<?=number_format(reset($practiceRevenue) * $revenueMultiplier, 2)?>
             <?php else: ?>
               $0.00
             <?php endif; ?>
@@ -393,7 +391,7 @@ include __DIR__.'/_header.php';
           <div class="text-sm text-slate-600 mb-1">Top Product Revenue</div>
           <div class="text-2xl font-bold text-blue-700">
             <?php if (!empty($productRevenue)): ?>
-              $<?=number_format(reset($productRevenue), 2)?>
+              $<?=number_format(reset($productRevenue) * $revenueMultiplier, 2)?>
             <?php else: ?>
               $0.00
             <?php endif; ?>
@@ -448,7 +446,7 @@ include __DIR__.'/_header.php';
               <?php foreach ($practiceRevenue as $practice => $revenue): ?>
                 <div class="flex items-center justify-between text-sm pb-2 border-b">
                   <span class="text-slate-700 truncate max-w-[250px]" title="<?=e($practice)?>"><?=e($practice)?></span>
-                  <span class="font-medium text-brand">$<?=number_format($revenue, 0)?></span>
+                  <span class="font-medium text-brand">$<?=number_format($revenue * $revenueMultiplier, 0)?></span>
                 </div>
               <?php endforeach; ?>
             </div>
@@ -465,7 +463,7 @@ include __DIR__.'/_header.php';
               <?php foreach ($productRevenue as $product => $revenue): ?>
                 <div class="flex items-center justify-between text-sm pb-2 border-b">
                   <span class="text-slate-700 truncate max-w-[250px]" title="<?=e($product)?>"><?=e($product)?></span>
-                  <span class="font-medium text-blue-600">$<?=number_format($revenue, 0)?></span>
+                  <span class="font-medium text-blue-600">$<?=number_format($revenue * $revenueMultiplier, 0)?></span>
                 </div>
               <?php endforeach; ?>
             </div>
@@ -524,7 +522,9 @@ include __DIR__.'/_header.php';
 const revenueData = {
   practices: <?=json_encode($practiceRevenue)?>,
   products: <?=json_encode($productRevenue)?>,
-  totalRevenue: <?=$totalRevenue?>
+  totalRevenue: <?=$totalRevenue?>,
+  displayTotalRevenue: <?=$displayTotalRevenue?>,
+  revenueMultiplier: <?=$revenueMultiplier?>
 };
 
 // Generate sample monthly data (last 6 months)
@@ -542,7 +542,7 @@ function createRevenueChart() {
   const ctx = document.getElementById('revenueChart').getContext('2d');
 
   // Generate sample trend data (simulate growth over 6 months)
-  const baseRevenue = revenueData.totalRevenue / 6;
+  const baseRevenue = revenueData.displayTotalRevenue / 6;
   const monthlyData = months.map((month, idx) => {
     // Simulate growth trend with some variance
     const growthFactor = 0.7 + (idx * 0.1) + (Math.random() * 0.2);
@@ -631,7 +631,7 @@ function updateChart() {
   let label = 'Total Revenue';
 
   if (practiceFilter !== 'all') {
-    filteredRevenue = revenueData.practices[practiceFilter] || 0;
+    filteredRevenue = (revenueData.practices[practiceFilter] || 0) * revenueData.revenueMultiplier;
     label = practiceFilter + ' Revenue';
     // Generate new data based on filtered practice
     const baseRevenue = filteredRevenue / 6;
@@ -645,7 +645,7 @@ function updateChart() {
     revenueChart.data.datasets[0].backgroundColor = 'rgba(34, 197, 94, 0.1)';
     revenueChart.data.datasets[0].pointBackgroundColor = 'rgb(34, 197, 94)';
   } else if (productFilter !== 'all') {
-    filteredRevenue = revenueData.products[productFilter] || 0;
+    filteredRevenue = (revenueData.products[productFilter] || 0) * revenueData.revenueMultiplier;
     label = productFilter + ' Revenue';
     // Generate new data based on filtered product
     const baseRevenue = filteredRevenue / 6;
@@ -660,7 +660,7 @@ function updateChart() {
     revenueChart.data.datasets[0].pointBackgroundColor = 'rgb(147, 51, 234)';
   } else {
     // Reset to total revenue
-    const baseRevenue = revenueData.totalRevenue / 6;
+    const baseRevenue = revenueData.displayTotalRevenue / 6;
     const monthlyData = months.map((month, idx) => {
       const growthFactor = 0.7 + (idx * 0.1) + (Math.random() * 0.2);
       return Math.round(baseRevenue * growthFactor);
