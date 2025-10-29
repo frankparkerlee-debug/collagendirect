@@ -50,4 +50,20 @@
     <priority>0.5</priority>
   </url>
 
+  <!-- Resources Hub -->
+  <url>
+    <loc>https://collagendirect.health/resources/</loc>
+    <lastmod>2025-10-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Blog Posts / Guides -->
+  <url>
+    <loc>https://collagendirect.health/resources/collagen-therapy-guide/</loc>
+    <lastmod>2025-10-29</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
 </urlset>
