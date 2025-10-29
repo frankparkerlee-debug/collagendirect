@@ -155,35 +155,17 @@ $resetUrl = 'https://collagendirect.health/portal/reset/?selector='
           . urlencode($selector) . '&token=' . urlencode($tokenB64);
 
 // ---------- Send via SendGrid template ----------
-$templateId = env('SG_TMPL_PASSWORD_RESET','');
-$sentOk = false;
+require_once __DIR__ . '/../lib/email_notifications.php';
 
+$sentOk = false;
 try {
-  if ($templateId) {
-    $sentOk = sg_send(
-      ['email' => $email, 'name' => $user['first_name'] ?? $email],
-      null, null,
-      [
-        'template_id' => $templateId,
-        'dynamic_data'=> [
-          'first_name'    => $user['first_name'] ?? 'there',
-          'reset_url'     => $resetUrl, // IMPORTANT: used in template href="{{{reset_url}}}"
-          'support_email' => 'support@collagendirect.health',
-          'year'          => date('Y'),
-        ],
-        'categories' => ['auth','password']
-      ]
-    );
-  } else {
-    // Fallback inline (only if template not configured)
-    $subject = 'Reset your CollagenDirect password';
-    $html    = '<p>Hi '.htmlspecialchars($user['first_name'] ?? 'there').',</p>'
-             . '<p>Reset your password here: <a href="'.htmlspecialchars($resetUrl).'">Reset Password</a></p>'
-             . '<p>This link expires in '.$ttlMinutes.' minutes.</p>';
-    $sentOk = sg_send($email, $subject, $html, ['categories'=>['auth','password']]);
-  }
+  $sentOk = send_password_reset_email(
+    $email,
+    $user['first_name'] ?? 'there',
+    $resetUrl
+  );
 } catch (Throwable $e) {
-  error_log('SendGrid send failed: '.$e->getMessage());
+  error_log('Password reset email send failed: '.$e->getMessage());
   // still return generic
 }
 

@@ -2,7 +2,7 @@
 declare(strict_types=1);
 require __DIR__ . '/auth.php';
 require_admin();
-require_once __DIR__ . '/../api/lib/provider_welcome.php'; // Email notifications
+require_once __DIR__ . '/../api/lib/email_notifications.php'; // Email notifications
 
 $admin = current_admin();
 $adminRole = $admin['role'] ?? '';
@@ -56,10 +56,16 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $pdo->prepare("INSERT INTO admin_users(name,email,role,password_hash) VALUES(?,?,?,?)")
         ->execute([$name, $email, $role, password_hash($password, PASSWORD_DEFAULT)]);
 
-    // Send welcome email
-    send_provider_welcome_email($email, $name, $role, $password);
+    // Send welcome email using SendGrid template
+    $emailSent = send_physician_account_created_email($email, $name, $password);
 
-    $msg = ($role === 'manufacturer' ? 'Manufacturer' : 'Employee') . ' created and welcome email sent';
+    $msg = ($role === 'manufacturer' ? 'Manufacturer' : 'Employee') . ' created';
+    if ($emailSent) {
+      $msg .= ' - Welcome email sent';
+    } else {
+      $msg .= ' - Warning: Email failed to send';
+      error_log("[users.php] Failed to send welcome email to $email");
+    }
     $tab = ($role === 'manufacturer') ? 'manufacturer' : 'employees';
   }
   if ($act==='reset_emp_pw' && $isAdmin) {
@@ -107,9 +113,15 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
       $pdo->prepare("INSERT IGNORE INTO admin_physicians(admin_id, physician_user_id) VALUES(?,?)")->execute([$admin['id'], $userId]);
     }
 
-    // Send welcome email via SendGrid
-    send_provider_welcome_email($email, "$firstName $lastName", $providerType === 'practice' ? 'Practice Owner' : 'Physician', $password);
-    $msg .= ' - Welcome email sent';
+    // Send welcome email via SendGrid template
+    $emailSent = send_physician_account_created_email($email, "$firstName $lastName", $password);
+
+    if ($emailSent) {
+      $msg .= ' - Welcome email sent';
+    } else {
+      $msg .= ' - Warning: Email failed to send';
+      error_log("[users.php] Failed to send welcome email to $email");
+    }
   }
   if ($act==='reset_phys_pw') {
     $pdo->prepare("UPDATE users SET password_hash=?, updated_at=NOW() WHERE id=?")->execute([password_hash($_POST['newpw'], PASSWORD_DEFAULT), $_POST['phys_id']]);

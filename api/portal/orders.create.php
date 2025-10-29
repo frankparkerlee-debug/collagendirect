@@ -249,12 +249,74 @@ try {
     // error_log('[orders.create upload] '.$upErr->getMessage());
   }
 
-  // Notify manufacturer of new order
+  // Send email notifications
   try {
-    require_once __DIR__ . '/../lib/order_manufacturer_notification.php';
-    notify_manufacturer_of_order($pdo, $order_id);
+    require_once __DIR__ . '/../lib/email_notifications.php';
+
+    // Get physician and practice info for emails
+    $physicianStmt = $pdo->prepare("
+      SELECT first_name, last_name, email, practice_name, npi
+      FROM users
+      WHERE id = ?
+    ");
+    $physicianStmt->execute([$uid]);
+    $physician = $physicianStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+    // Get patient info
+    $patientStmt = $pdo->prepare("
+      SELECT first_name, last_name, email, dob, address, city, state, zip, insurance_provider
+      FROM patients
+      WHERE id = ? AND user_id = ?
+    ");
+    $patientStmt->execute([$patient_id, $uid]);
+    $patient = $patientStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+    // Get product info
+    $productStmt = $pdo->prepare("
+      SELECT name, size FROM products WHERE id = ?
+    ");
+    $productStmt->execute([$product_id]);
+    $product = $productStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+    $physicianName = trim(($physician['first_name'] ?? '') . ' ' . ($physician['last_name'] ?? ''));
+    $patientName = trim(($patient['first_name'] ?? '') . ' ' . ($patient['last_name'] ?? ''));
+    $patientAddress = trim(($patient['address'] ?? '') . ', ' . ($patient['city'] ?? '') . ' ' . ($patient['state'] ?? '') . ' ' . ($patient['zip'] ?? ''));
+    $productName = trim(($product['name'] ?? '') . ' ' . ($product['size'] ?? ''));
+
+    // 1. Send order received email to patient
+    if (!empty($patient['email'])) {
+      send_order_received_email([
+        'patient_email' => $patient['email'],
+        'patient_name' => $patientName,
+        'order_id' => $order_id,
+        'order_date' => date('m/d/Y'),
+        'physician_name' => $physicianName,
+        'practice_name' => $physician['practice_name'] ?? '',
+        'product_name' => $productName,
+        'quantity' => '1'
+      ]);
+    }
+
+    // 2. Send new order notification to manufacturer
+    send_manufacturer_order_email([
+      'manufacturer_email' => 'orders@collagendirect.health', // Configure as needed
+      'order_id' => $order_id,
+      'order_date' => date('m/d/Y'),
+      'patient_name' => $patientName,
+      'patient_dob' => $patient['dob'] ?? '',
+      'patient_address' => $patientAddress,
+      'insurance_provider' => $patient['insurance_provider'] ?? '',
+      'physician_name' => $physicianName,
+      'physician_npi' => $physician['npi'] ?? '',
+      'practice_name' => $physician['practice_name'] ?? '',
+      'product_name' => $productName,
+      'quantity' => '1',
+      'frequency' => $frequency ?? '',
+      'duration_days' => ''
+    ]);
+
   } catch (Throwable $notifyErr) {
-    error_log('[orders.create notification] ' . $notifyErr->getMessage());
+    error_log('[orders.create email notification] ' . $notifyErr->getMessage());
   }
 
   // Done.
