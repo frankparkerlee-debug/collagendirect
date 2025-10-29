@@ -232,7 +232,7 @@ if ($action) {
                    p.updated_at,p.created_at,p.status_comment,
                    lo.status last_status,lo.shipments_remaining last_remaining
             FROM patients p
-            INNER JOIN orders o ON o.patient_id = p.id
+            LEFT JOIN orders o ON o.patient_id = p.id
             $join
             WHERE 1=1";
     }
@@ -269,7 +269,7 @@ if ($action) {
                    p.updated_at,p.created_at,p.status_comment,
                    lo.status last_status,lo.shipments_remaining last_remaining
             FROM patients p
-            INNER JOIN orders o ON o.patient_id = p.id
+            LEFT JOIN orders o ON o.patient_id = p.id
             $join
             WHERE p.user_id IN ($placeholders)";
     } else {
@@ -286,7 +286,7 @@ if ($action) {
                    p.updated_at,p.created_at,p.status_comment,
                    lo.status last_status,lo.shipments_remaining last_remaining
             FROM patients p
-            INNER JOIN orders o ON o.patient_id = p.id
+            LEFT JOIN orders o ON o.patient_id = p.id
             $join
             WHERE p.user_id=?";
     }
@@ -297,16 +297,16 @@ if ($action) {
       array_push($args,$like,$like,$like,$like,$like);
     }
 
-    // Filter by product
+    // Filter by product (only if filtering, otherwise show all patients)
     if ($productId !== '') {
       $sql .= " AND o.product_id = ?";
       $args[] = $productId;
     }
 
-    // Filter by date range (PostgreSQL syntax)
+    // Filter by date range (only if filtering, otherwise show all patients)
     if ($dateRange !== 'all') {
       $months = (int)$dateRange;
-      $sql .= " AND o.created_at >= (NOW() - INTERVAL '" . $months . " months')";
+      $sql .= " AND (o.created_at >= (NOW() - INTERVAL '" . $months . " months') OR o.created_at IS NULL)";
     }
 
     $sql.=" ORDER BY p.updated_at DESC,p.created_at DESC LIMIT $limit OFFSET $offset";

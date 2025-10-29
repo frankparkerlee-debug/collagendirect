@@ -193,7 +193,7 @@ try {
 } catch(Throwable $e){ error_log("[recent] ".$e->getMessage()); }
 
 /* ---------- Reminders (safe) ---------- */
-$expiringOrders = 0; $delayedShipments = 0;
+$expiringOrders = 0; $delayedShipments = 0; $pendingPreauth = 0;
 try {
   if (has_column($pdo,'orders','expires_at')) {
     $expiringOrders = qCount($pdo,"SELECT COUNT(*) c FROM orders WHERE expires_at IS NOT NULL AND expires_at < (NOW() + INTERVAL '7 days') AND status IN ('approved','in_transit')");
@@ -202,6 +202,12 @@ try {
 try {
   if (has_column($pdo,'orders','shipped_at') && has_column($pdo,'orders','delivered_at')) {
     $delayedShipments = qCount($pdo,"SELECT COUNT(*) c FROM orders WHERE status='in_transit' AND shipped_at IS NOT NULL AND delivered_at IS NULL AND shipped_at < (NOW() - INTERVAL '7 days')");
+  }
+} catch(Throwable $e){}
+try {
+  // Count patients needing pre-authorization status (pending or need_info)
+  if (has_column($pdo,'patients','state')) {
+    $pendingPreauth = qCount($pdo,"SELECT COUNT(*) c FROM patients WHERE state IN ('pending', 'need_info')");
   }
 } catch(Throwable $e){}
 
@@ -343,6 +349,13 @@ include __DIR__.'/_header.php';
             <span class="text-sm font-medium text-blue-900">Delayed Shipments (&gt;7 days)</span>
             <span class="text-xl font-bold text-blue-600"><?=$delayedShipments?></span>
           </div>
+        </a>
+        <a href="/admin/patients.php?status=pending" class="block p-3 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-medium text-purple-900">Pending Pre-Authorization</span>
+            <span class="text-xl font-bold text-purple-600"><?=$pendingPreauth?></span>
+          </div>
+          <div class="text-xs text-purple-700 mt-1">Patients needing status review</div>
         </a>
       </div>
     </aside>
