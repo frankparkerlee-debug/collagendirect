@@ -6934,7 +6934,7 @@ function renderPatientDetailPage(p, orders, isEditing) {
                     <div class="font-medium text-sm mb-1">${esc(o.product||'Wound Care Product')}</div>
                     <div class="text-xs text-slate-600">${fmt(o.created_at)} • ${esc(o.frequency||'Weekly')}</div>
                   </div>
-                  <button class="btn btn-sm" onclick="alert('View order details')">View Details</button>
+                  <button class="btn btn-sm" onclick='viewOrderDetails(${JSON.stringify(o)})'>View Details</button>
                 </div>
               `;
             }).join('')}
