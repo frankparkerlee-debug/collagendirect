@@ -163,8 +163,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
 <div class="bg-white border rounded-b rounded-r p-4">
 <?php if ($tab==='physicians'): ?>
-  <div class="grid grid-cols-3 gap-6">
-    <div class="col-span-2">
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-2 overflow-x-auto">
       <table class="w-full text-sm">
         <thead class="border-b">
           <tr class="text-left">
@@ -281,10 +281,10 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     <?php endif; ?>
   </div>
 <?php elseif ($tab==='employees'): ?>
-  <div class="grid grid-cols-2 gap-6">
-    <div>
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="overflow-x-auto">
       <div class="font-semibold mb-2">Employees</div>
-      <table class="w-full text-sm">
+      <table class="w-full text-sm min-w-[600px]">
         <thead class="border-b">
           <tr class="text-left">
             <th class="py-2">Name</th>
@@ -346,10 +346,10 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
   </div>
 <?php else: ?>
   <!-- Manufacturer Tab -->
-  <div class="grid grid-cols-2 gap-6">
-    <div>
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="overflow-x-auto">
       <div class="font-semibold mb-2">Manufacturer Representatives</div>
-      <table class="w-full text-sm">
+      <table class="w-full text-sm min-w-[600px]">
         <thead class="border-b">
           <tr class="text-left">
             <th class="py-2">Name</th>

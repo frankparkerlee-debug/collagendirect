@@ -48,9 +48,18 @@ function patches_per_week(?string $f): int {
 }
 
 /* ---------- KPIs ---------- */
-$totalOrders      = qCount($pdo, "SELECT COUNT(*) c FROM orders");
-$pendingApprovals = qCount($pdo, "SELECT COUNT(*) c FROM orders WHERE status IN ('submitted','pending','awaiting_approval')");
-$activePatients   = qCount($pdo, "SELECT COUNT(DISTINCT patient_id) c FROM orders WHERE status IN ('approved','in_transit','delivered')");
+// Filter KPIs by role - sales/ops/employees only see assigned physicians
+if ($adminRole === 'superadmin' || $adminRole === 'manufacturer' || $adminRole === 'admin') {
+  // Admin roles see all data
+  $totalOrders      = qCount($pdo, "SELECT COUNT(*) c FROM orders");
+  $pendingApprovals = qCount($pdo, "SELECT COUNT(*) c FROM orders WHERE status IN ('submitted','pending','awaiting_approval')");
+  $activePatients   = qCount($pdo, "SELECT COUNT(DISTINCT patient_id) c FROM orders WHERE status IN ('approved','in_transit','delivered')");
+} else {
+  // Sales/ops/employees only see their assigned physicians
+  $totalOrders      = qCount($pdo, "SELECT COUNT(*) c FROM orders o WHERE EXISTS (SELECT 1 FROM admin_physicians ap WHERE ap.admin_id = ? AND ap.physician_user_id = o.user_id)", [$adminId]);
+  $pendingApprovals = qCount($pdo, "SELECT COUNT(*) c FROM orders o WHERE o.status IN ('submitted','pending','awaiting_approval') AND EXISTS (SELECT 1 FROM admin_physicians ap WHERE ap.admin_id = ? AND ap.physician_user_id = o.user_id)", [$adminId]);
+  $activePatients   = qCount($pdo, "SELECT COUNT(DISTINCT patient_id) c FROM orders o WHERE o.status IN ('approved','in_transit','delivered') AND EXISTS (SELECT 1 FROM admin_physicians ap WHERE ap.admin_id = ? AND ap.physician_user_id = o.user_id)", [$adminId]);
+}
 
 /* ---------- Revenue Calculations ----------
    EARNED: Revenue from shipments already delivered (total - remaining)
@@ -181,34 +190,73 @@ $displayTotalRevenue = $totalRevenue * $revenueMultiplier;
 /* ---------- Recent activity ---------- */
 $recent = [];
 try {
-  $recent = $pdo->query("
-    SELECT o.id, o.status, o.product, COALESCE(o.updated_at, o.created_at) AS ts,
-           p.first_name, p.last_name
-    FROM orders o
-    LEFT JOIN patients p ON p.id = o.patient_id
-    ORDER BY ts DESC
-    LIMIT 8
-  ")->fetchAll();
+  // Filter recent activity by role
+  if ($adminRole === 'superadmin' || $adminRole === 'manufacturer' || $adminRole === 'admin') {
+    // Admin roles see all recent activity
+    $recent = $pdo->query("
+      SELECT o.id, o.status, o.product, COALESCE(o.updated_at, o.created_at) AS ts,
+             p.first_name, p.last_name
+      FROM orders o
+      LEFT JOIN patients p ON p.id = o.patient_id
+      ORDER BY ts DESC
+      LIMIT 8
+    ")->fetchAll();
+  } else {
+    // Sales/ops/employees only see activity from assigned physicians
+    $stmt = $pdo->prepare("
+      SELECT o.id, o.status, o.product, COALESCE(o.updated_at, o.created_at) AS ts,
+             p.first_name, p.last_name
+      FROM orders o
+      LEFT JOIN patients p ON p.id = o.patient_id
+      WHERE EXISTS (SELECT 1 FROM admin_physicians ap WHERE ap.admin_id = ? AND ap.physician_user_id = o.user_id)
+      ORDER BY ts DESC
+      LIMIT 8
+    ");
+    $stmt->execute([$adminId]);
+    $recent = $stmt->fetchAll();
+  }
 } catch(Throwable $e){ error_log("[recent] ".$e->getMessage()); }
 
 /* ---------- Reminders (safe) ---------- */
 $expiringOrders = 0; $delayedShipments = 0; $pendingPreauth = 0;
-try {
-  if (has_column($pdo,'orders','expires_at')) {
-    $expiringOrders = qCount($pdo,"SELECT COUNT(*) c FROM orders WHERE expires_at IS NOT NULL AND expires_at < (NOW() + INTERVAL '7 days') AND status IN ('approved','in_transit')");
-  }
-} catch(Throwable $e){}
-try {
-  if (has_column($pdo,'orders','shipped_at') && has_column($pdo,'orders','delivered_at')) {
-    $delayedShipments = qCount($pdo,"SELECT COUNT(*) c FROM orders WHERE status='in_transit' AND shipped_at IS NOT NULL AND delivered_at IS NULL AND shipped_at < (NOW() - INTERVAL '7 days')");
-  }
-} catch(Throwable $e){}
-try {
-  // Count patients needing pre-authorization status (pending or need_info)
-  if (has_column($pdo,'patients','state')) {
-    $pendingPreauth = qCount($pdo,"SELECT COUNT(*) c FROM patients WHERE state IN ('pending', 'need_info')");
-  }
-} catch(Throwable $e){}
+
+if ($adminRole === 'superadmin' || $adminRole === 'manufacturer' || $adminRole === 'admin') {
+  // Admin roles see all reminders
+  try {
+    if (has_column($pdo,'orders','expires_at')) {
+      $expiringOrders = qCount($pdo,"SELECT COUNT(*) c FROM orders WHERE expires_at IS NOT NULL AND expires_at < (NOW() + INTERVAL '7 days') AND status IN ('approved','in_transit')");
+    }
+  } catch(Throwable $e){}
+  try {
+    if (has_column($pdo,'orders','shipped_at') && has_column($pdo,'orders','delivered_at')) {
+      $delayedShipments = qCount($pdo,"SELECT COUNT(*) c FROM orders WHERE status='in_transit' AND shipped_at IS NOT NULL AND delivered_at IS NULL AND shipped_at < (NOW() - INTERVAL '7 days')");
+    }
+  } catch(Throwable $e){}
+  try {
+    // Count patients needing pre-authorization status (pending or need_info)
+    if (has_column($pdo,'patients','state')) {
+      $pendingPreauth = qCount($pdo,"SELECT COUNT(*) c FROM patients WHERE state IN ('pending', 'need_info')");
+    }
+  } catch(Throwable $e){}
+} else {
+  // Sales/ops/employees see reminders only for assigned physicians
+  try {
+    if (has_column($pdo,'orders','expires_at')) {
+      $expiringOrders = qCount($pdo,"SELECT COUNT(*) c FROM orders o WHERE o.expires_at IS NOT NULL AND o.expires_at < (NOW() + INTERVAL '7 days') AND o.status IN ('approved','in_transit') AND EXISTS (SELECT 1 FROM admin_physicians ap WHERE ap.admin_id = ? AND ap.physician_user_id = o.user_id)", [$adminId]);
+    }
+  } catch(Throwable $e){}
+  try {
+    if (has_column($pdo,'orders','shipped_at') && has_column($pdo,'orders','delivered_at')) {
+      $delayedShipments = qCount($pdo,"SELECT COUNT(*) c FROM orders o WHERE o.status='in_transit' AND o.shipped_at IS NOT NULL AND o.delivered_at IS NULL AND o.shipped_at < (NOW() - INTERVAL '7 days') AND EXISTS (SELECT 1 FROM admin_physicians ap WHERE ap.admin_id = ? AND ap.physician_user_id = o.user_id)", [$adminId]);
+    }
+  } catch(Throwable $e){}
+  try {
+    // Count patients needing pre-authorization status (pending or need_info) - filtered by assigned physicians
+    if (has_column($pdo,'patients','state')) {
+      $pendingPreauth = qCount($pdo,"SELECT COUNT(*) c FROM patients p WHERE p.state IN ('pending', 'need_info') AND EXISTS (SELECT 1 FROM admin_physicians ap WHERE ap.admin_id = ? AND ap.physician_user_id = p.user_id)", [$adminId]);
+    }
+  } catch(Throwable $e){}
+}
 
 /* ---------- Notifications for manufacturer ---------- */
 $notifications = [];
@@ -305,7 +353,7 @@ include __DIR__.'/_header.php';
 
   <!-- Recent Activity and Reminders - Mobile Responsive -->
   <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-    <section class="lg:col-span-7 bg-white border rounded-2xl p-4">
+    <section class="lg:col-span-5 bg-white border rounded-2xl p-4">
       <h3 class="font-semibold mb-3">Recent Activity</h3>
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
@@ -337,7 +385,7 @@ include __DIR__.'/_header.php';
       </div>
     </section>
 
-    <aside class="lg:col-span-5 bg-white border rounded-2xl p-4">
+    <aside class="lg:col-span-7 bg-white border rounded-2xl p-4">
       <h3 class="font-semibold mb-3">Reminders</h3>
       <div class="space-y-3">
         <a href="/admin/orders.php?status=pending" class="block p-3 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors">
