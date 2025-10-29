@@ -357,6 +357,106 @@
       .auth-card{padding:1.5rem}
       .auth-card h2{font-size:1.5rem}
     }
+
+    /* Modal/Dialog styles */
+    .modal-overlay{
+      display:none;
+      position:fixed;
+      top:0;
+      left:0;
+      right:0;
+      bottom:0;
+      background:rgba(0,0,0,0.5);
+      z-index:1000;
+      align-items:center;
+      justify-content:center;
+      padding:1rem;
+    }
+    .modal-overlay.show{
+      display:flex;
+    }
+    .modal-content{
+      background:#fff;
+      border-radius:16px;
+      max-width:900px;
+      width:100%;
+      max-height:90vh;
+      display:flex;
+      flex-direction:column;
+      box-shadow:0 20px 25px -5px rgba(0,0,0,.1), 0 10px 10px -5px rgba(0,0,0,.04);
+    }
+    .modal-header{
+      padding:1.5rem 2rem;
+      border-bottom:1px solid var(--line);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .modal-header h2{
+      font-size:1.25rem;
+      font-weight:700;
+      color:#111;
+      margin:0;
+    }
+    .modal-close{
+      background:transparent;
+      border:none;
+      font-size:1.5rem;
+      color:var(--muted);
+      cursor:pointer;
+      padding:0.25rem;
+      line-height:1;
+      width:32px;
+      height:32px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:8px;
+    }
+    .modal-close:hover{
+      background:#f3f4f6;
+      color:#111;
+    }
+    .modal-body{
+      padding:2rem;
+      overflow-y:auto;
+      flex:1;
+      font-size:0.9rem;
+      line-height:1.6;
+    }
+    .modal-body h3{
+      font-size:1rem;
+      font-weight:600;
+      color:#111;
+      margin-top:1.5rem;
+      margin-bottom:0.75rem;
+    }
+    .modal-body h3:first-child{
+      margin-top:0;
+    }
+    .modal-body p{
+      color:#374151;
+      margin-bottom:0.75rem;
+    }
+    .modal-body ul, .modal-body ol{
+      margin-left:1.5rem;
+      margin-bottom:0.75rem;
+      color:#374151;
+    }
+    .modal-body li{
+      margin-bottom:0.25rem;
+    }
+    .modal-body strong{
+      font-weight:600;
+      color:#111;
+    }
+    .modal-footer{
+      padding:1.5rem 2rem;
+      border-top:1px solid var(--line);
+      display:flex;
+      justify-content:flex-end;
+      gap:1rem;
+    }
   </style>
 </head>
 <body>
@@ -633,8 +733,194 @@
     © <span id="year"></span> CollagenDirect. All rights reserved.
   </footer>
 
+  <!-- BAA Modal -->
+  <div id="baaModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Business Associate Agreement (BAA)</h2>
+        <button type="button" class="modal-close" data-close="baa" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body" id="baaContent">
+        <p><strong>COLLAGEN DIRECT BUSINESS ASSOCIATE AGREEMENT</strong></p>
+
+        <p>This Business Associate Agreement ("Agreement") is entered into by and between:</p>
+        <p>The "Covered Entity," defined below, and</p>
+        <p>CollagenDirect ("Business Associate"),</p>
+
+        <p>and is effective as of the date the Covered Entity (or its authorized representative) creates or is provisioned with an account on the CollagenDirect Provider Portal and affirmatively accepts this Agreement (the "Effective Date").</p>
+
+        <p>By creating or activating an account in the CollagenDirect Provider Portal, the individual submitting registration represents and warrants that they (a) are authorized to bind the Covered Entity (e.g. physician practice, clinic, facility) to this Agreement, and (b) are entering this Agreement on behalf of that Covered Entity. The Parties enter this Agreement to comply with the Health Insurance Portability and Accountability Act of 1996 ("HIPAA"), the Health Information Technology for Economic and Clinical Health Act ("HITECH"), and the Privacy, Security, Breach Notification, and Enforcement Rules at 45 C.F.R. Parts 160 and 164 (collectively, the "HIPAA Rules").</p>
+
+        <h3>1. DEFINITIONS</h3>
+        <p><strong>a.</strong> "Administrative Safeguards" means administrative actions, policies, and procedures to manage the selection, development, implementation, and maintenance of security measures to protect Electronic Protected Health Information ("ePHI") and to manage the conduct of the Business Associate's workforce in relation to the protection of that information, as described in 45 C.F.R. § 164.308.</p>
+
+        <p><strong>b.</strong> "Breach" has the meaning given in 45 C.F.R. § 164.402 and means the acquisition, access, use, or disclosure of Protected Health Information in a manner not permitted by the HIPAA Rules which compromises the security or privacy of the Protected Health Information.</p>
+
+        <p><strong>c.</strong> "Business Associate" has the meaning in 45 C.F.R. § 160.103. For purposes of this Agreement, "Business Associate" means CollagenDirect.</p>
+
+        <p><strong>d.</strong> "Covered Entity" has the meaning in 45 C.F.R. § 160.103. For purposes of this Agreement, "Covered Entity" means the healthcare provider organization, physician, clinic, practice, or facility whose authorized representative registers for or uses the CollagenDirect Provider Portal to transmit or receive PHI.</p>
+
+        <p><strong>e.</strong> "Designated Record Set" has the meaning in 45 C.F.R. § 164.501, and includes medical records, billing records, or other records used to make decisions about an Individual.</p>
+
+        <p><strong>f.</strong> "HIPAA Rules" means the Privacy Rule, Security Rule, Breach Notification Rule, and Enforcement Rule at 45 C.F.R. Parts 160 and 164, as amended.</p>
+
+        <p><strong>g.</strong> "Individual" has the meaning in 45 C.F.R. § 160.103 and includes a Personal Representative consistent with 45 C.F.R. § 164.502(g).</p>
+
+        <p><strong>h.</strong> "Physical Safeguards" means the physical measures, policies, and procedures to protect Business Associate's electronic information systems and related buildings and equipment, from natural and environmental hazards and unauthorized intrusion, as described in 45 C.F.R. § 164.310.</p>
+
+        <p><strong>i.</strong> "Privacy Rule" means the Standards for Privacy of Individually Identifiable Health Information at 45 C.F.R. Part 160 and Subparts A and E of Part 164.</p>
+
+        <p><strong>j.</strong> "Protected Health Information" or "PHI" has the meaning in 45 C.F.R. § 160.103, and includes any individually identifiable health information, in any form or medium, that is created, received, maintained, or transmitted by Business Associate on behalf of Covered Entity.</p>
+
+        <p><strong>k.</strong> "Required by Law" has the meaning in 45 C.F.R. § 164.103.</p>
+
+        <p><strong>l.</strong> "Secretary" means the Secretary of the U.S. Department of Health and Human Services ("HHS") or their designee.</p>
+
+        <p><strong>m.</strong> "Security Incident" has the meaning in 45 C.F.R. § 164.304 and includes any attempted or successful unauthorized access, use, disclosure, modification, or destruction of ePHI, or interference with system operations.</p>
+
+        <p><strong>n.</strong> "Security Rule" means the Security Standards for the Protection of Electronic Protected Health Information at 45 C.F.R. Part 160 and Subparts A and C of Part 164.</p>
+
+        <p><strong>o.</strong> "Technical Safeguards" means the technology and related policies and procedures that protect ePHI and control access to it, as described in 45 C.F.R. § 164.312.</p>
+
+        <p><strong>p.</strong> "Unsecured Protected Health Information" means PHI that is not rendered unusable, unreadable, or indecipherable to unauthorized persons through the use of a technology or methodology specified by the Secretary under 45 C.F.R. § 164.402.</p>
+
+        <p><strong>q.</strong> "Portal" means the CollagenDirect Provider Portal and related services, systems, databases, and workflows provided by Business Associate to Covered Entity for ordering wound care products, tracking status, and transmitting PHI for treatment, payment, and healthcare operations.</p>
+
+        <h3>2. OBLIGATIONS AND ACTIVITIES OF BUSINESS ASSOCIATE</h3>
+        <p><strong>a.</strong> Business Associate will not use or disclose PHI other than as permitted by this Agreement or as Required by Law.</p>
+
+        <p><strong>b.</strong> Business Associate will implement reasonable and appropriate safeguards, and comply with the Security Rule with respect to ePHI, to prevent uses or disclosures of PHI not authorized by this Agreement.</p>
+
+        <p><strong>c.</strong> Business Associate will mitigate, to the extent practicable and in good faith cooperation with Covered Entity, any harmful effect of a known use or disclosure of PHI by Business Associate in violation of this Agreement.</p>
+
+        <p><strong>d.</strong> Business Associate will report to Covered Entity, without unreasonable delay and in no event later than ten (10) business days after discovery, any use or disclosure of PHI not provided for in this Agreement, including any Breach of Unsecured PHI as required by 45 C.F.R. § 164.410, and any Security Incident of which it becomes aware. The Parties acknowledge that Covered Entity is hereby deemed notified of routine and unsuccessful attempts to access systems that do not result in unauthorized access, use, or disclosure of PHI.</p>
+
+        <p><strong>e.</strong> Business Associate will ensure that any subcontractor or agent that creates, receives, maintains, or transmits PHI on behalf of Business Associate agrees in writing to the same restrictions, conditions, and obligations that apply to Business Associate with respect to such PHI.</p>
+
+        <p><strong>f.</strong> Business Associate will make available its internal practices, books, and records relating to the use and disclosure of PHI received from, or created or received by Business Associate on behalf of, Covered Entity to the Secretary as required under the HIPAA Rules.</p>
+
+        <p><strong>g.</strong> Business Associate will document disclosures of PHI and related information as necessary for Covered Entity to respond to an Individual's request for an accounting of disclosures under 45 C.F.R. § 164.528, and will provide that information to Covered Entity upon request.</p>
+
+        <p><strong>h.</strong> Business Associate will make PHI in a Designated Record Set available to Covered Entity as necessary to satisfy Covered Entity's obligations under 45 C.F.R. § 164.524 (access of individuals to PHI).</p>
+
+        <p><strong>i.</strong> Business Associate will make amendments to PHI in a Designated Record Set as directed or agreed to by Covered Entity under 45 C.F.R. § 164.526.</p>
+
+        <p><strong>j.</strong> Business Associate may provide data aggregation services relating to the Covered Entity's healthcare operations, as that term is defined in 45 C.F.R. § 164.501.</p>
+
+        <p><strong>k.</strong> To the extent Business Associate carries out one or more Covered Entity obligations under the HIPAA Rules, Business Associate will comply with the requirements of the HIPAA Rules that apply to Covered Entity in the performance of such obligations.</p>
+
+        <h3>3. HIPAA SECURITY RULE REQUIREMENTS</h3>
+        <p>Business Associate will:</p>
+        <p><strong>a.</strong> Implement, maintain, and document Administrative, Physical, and Technical Safeguards that reasonably and appropriately protect the confidentiality, integrity, and availability of ePHI, including ensuring confidentiality, integrity, availability; protecting against threats; protecting against unauthorized uses/disclosures; and ensuring workforce compliance.</p>
+
+        <p><strong>b.</strong> Ensure that any subcontractor or agent to whom it provides ePHI agrees to implement reasonable and appropriate safeguards consistent with this Section.</p>
+
+        <p><strong>c.</strong> Cooperate in good faith with Covered Entity to mitigate potential or actual harm arising from any Breach or Security Incident caused by Business Associate or its subcontractors.</p>
+
+        <p><strong>d.</strong> Make its policies, procedures, and required documentation relating to these safeguards available to Covered Entity and to the Secretary for purposes of determining Business Associate's compliance with the Security Rule.</p>
+
+        <h3>4. HITECH REQUIREMENTS</h3>
+        <p><strong>a.</strong> Business Associate will not directly or indirectly sell PHI or use or disclose PHI for marketing or fundraising in violation of the HIPAA Rules.</p>
+
+        <p><strong>b.</strong> Business Associate will track disclosures of PHI to the extent required for Covered Entity to meet its accounting obligations under the HIPAA Rules and HITECH.</p>
+
+        <p><strong>c.</strong> Business Associate will limit its uses, disclosures, and requests of PHI to the "minimum necessary," consistent with 45 C.F.R. § 164.502(b) and applicable HHS guidance.</p>
+
+        <p><strong>d.</strong> If Business Associate has knowledge of a pattern of activity or practice that constitutes a material breach of this Agreement, and termination of the underlying services is not feasible, Business Associate will report such breach to Covered Entity and, if required, to the Secretary.</p>
+
+        <p><strong>e.</strong> To the extent Business Associate is deemed an agent of Covered Entity under HITECH, Business Associate acknowledges it may be directly subject to civil and criminal penalties under 42 U.S.C. § 1320d–5 and § 1320d–6, as amended.</p>
+
+        <p><strong>f.</strong> Nothing in this Agreement creates an agency relationship between the Parties for any other purpose.</p>
+
+        <h3>5. PERMITTED USES AND DISCLOSURES BY BUSINESS ASSOCIATE</h3>
+        <p>Except as otherwise limited in this Agreement, Business Associate may use and disclose PHI:</p>
+        <ul>
+          <li>To perform services for Covered Entity and operate the Portal (including order intake, fulfillment communication, and status tracking);</li>
+          <li>For Business Associate's proper management and administration, or to carry out its legal responsibilities, provided that any disclosure is Required by Law or made to a recipient who has provided written assurances of confidential handling and notification of any improper use or disclosure; and</li>
+          <li>For data aggregation and related analytics on behalf of Covered Entity's healthcare operations, as permitted by 45 C.F.R. § 164.504(e)(2)(i)(B).</li>
+        </ul>
+        <p>Business Associate will not use or disclose PHI in a manner that would violate the HIPAA Rules if done by Covered Entity.</p>
+
+        <h3>6. OBLIGATIONS OF COVERED ENTITY</h3>
+        <p>Covered Entity will:</p>
+        <p><strong>a.</strong> Provide Business Associate with its Notice of Privacy Practices under 45 C.F.R. § 164.520 and any updates that materially affect Business Associate's permitted uses or disclosures of PHI.</p>
+
+        <p><strong>b.</strong> Inform Business Associate of any changes in, or revocation of, permission by an Individual to use or disclose PHI, if such changes affect Business Associate's permitted uses or disclosures.</p>
+
+        <p><strong>c.</strong> Notify Business Associate of any restriction on the use or disclosure of PHI that Covered Entity has agreed to under 45 C.F.R. § 164.522, if such restriction affects Business Associate's permitted uses or disclosures.</p>
+
+        <p><strong>d.</strong> Obtain any consents, authorizations, or other permissions required by HIPAA, HITECH, the HIPAA Rules, or applicable state law before disclosing PHI to Business Associate.</p>
+
+        <h3>7. TERM AND TERMINATION</h3>
+        <p><strong>a. Term.</strong> This Agreement begins on the Effective Date and remains in effect until all PHI provided by Covered Entity to Business Associate, or created or received by Business Associate on behalf of Covered Entity, is returned to Covered Entity or destroyed, or is otherwise protected as described in Section 7(c).</p>
+
+        <p><strong>b. Termination for Cause.</strong> If Covered Entity becomes aware of a material breach of this Agreement by Business Associate, Covered Entity may provide written notice and an opportunity to cure. If Business Associate does not cure within the cure period specified by Covered Entity (not less than thirty (30) days), Covered Entity may terminate this Agreement.</p>
+
+        <p><strong>c. Effect of Termination.</strong> Upon termination, Business Associate will return or destroy all PHI it maintains in any form on behalf of Covered Entity, including PHI held by subcontractors. If return or destruction is infeasible, Business Associate will notify Covered Entity and continue to protect the PHI in accordance with this Agreement.</p>
+
+        <h3>8. MISCELLANEOUS</h3>
+        <p><strong>a. Regulatory References.</strong> A reference in this Agreement to a section of the HIPAA Rules means the section as in effect, amended, and required for compliance.</p>
+
+        <p><strong>b. Amendment.</strong> The Parties agree to take such action as is necessary to amend this Agreement from time to time to comply with HIPAA, the HIPAA Rules, HITECH, and other applicable law. CollagenDirect may update this Agreement prospectively. Covered Entity's continued use of the Portal after notice of a material update constitutes acceptance of the updated Agreement.</p>
+
+        <p><strong>c. Survival.</strong> The obligations of Business Associate with respect to PHI that cannot feasibly be returned or destroyed under Section 7(c) shall survive termination of this Agreement for so long as Business Associate retains such PHI.</p>
+
+        <p><strong>d. Interpretation.</strong> Any ambiguity in this Agreement shall be resolved to permit compliance with HIPAA, HITECH, and the HIPAA Rules.</p>
+
+        <p><strong>e. Precedence.</strong> If any provision in another written or electronic service agreement between the Parties conflicts with this Agreement, this Agreement controls with respect to PHI, HIPAA, HITECH, and related privacy/security matters.</p>
+
+        <p><strong>f. Ownership of PHI.</strong> All PHI that Business Associate, or any subcontractor or agent of Business Associate, creates, receives, maintains, or transmits on behalf of Covered Entity remains the property of Covered Entity.</p>
+
+        <p><strong>g. Notice.</strong> Formal legal notices under this Agreement must be in writing and will be deemed delivered when actually received via hand delivery or overnight courier with confirmation, or three (3) business days after being sent via certified U.S. mail. Operational notices may be provided electronically.</p>
+
+        <p><strong>h. Severability.</strong> If any provision of this Agreement is held invalid or unenforceable, that provision shall be severed and the remaining provisions shall remain in full force if consistent with the Parties' intent and applicable law.</p>
+
+        <p><strong>i. Assignment.</strong> Neither Party may assign this Agreement without the other Party's prior written consent, except a Party may assign this Agreement without consent to a successor in interest to substantially all of its relevant business or assets.</p>
+
+        <p><strong>j. Successors and Assigns.</strong> This Agreement is binding upon and inures to the benefit of the Parties and their permitted successors and assigns.</p>
+
+        <p><strong>k. Waiver.</strong> A waiver of any breach is not a waiver of any other breach.</p>
+
+        <p><strong>l. Governing Law / Venue.</strong> This Agreement is governed by the laws of the State of Texas, without regard to conflicts of laws rules. The Parties agree to the exclusive jurisdiction and venue of state or federal courts located in Bexar County, Texas.</p>
+
+        <p><strong>m. HIPAA Compliance.</strong> Each Party will comply with HIPAA, HITECH, and the HIPAA Rules, as amended.</p>
+
+        <p><strong>n. Use of Covered Entity Name/Logo.</strong> Business Associate will not publicly use Covered Entity's name, trade name, service mark, or logo without prior written consent, except as required for fulfillment, regulatory, audit, payer communications, or other Required by Law use.</p>
+
+        <h3>Electronic Execution</h3>
+        <p>Covered Entity agrees that:</p>
+        <ul>
+          <li>Clicking "I Agree" (or similar) during Provider Portal registration, and submitting PHI or patient orders through the Portal, constitutes that organization's binding electronic signature to this Agreement under applicable electronic signature laws;</li>
+          <li>CollagenDirect will capture and store (a) the name and title of the registering individual, (b) the Covered Entity/practice name provided at registration, (c) the date/time of acceptance, (d) the IP address and browser metadata at acceptance, and (e) the then-current version identifier of this Agreement; and</li>
+          <li>That captured record is sufficient to demonstrate execution of this Agreement between Covered Entity and Business Associate as of the Effective Date.</li>
+        </ul>
+
+        <p style="text-align:center;margin-top:2rem;"><strong>END OF AGREEMENT</strong></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn" data-close="baa">Close</button>
+      </div>
+    </div>
+  </div>
+
   <script>
   (function () {
+    // BAA Modal handlers
+    document.addEventListener('click', (e) => {
+      const openBtn = e.target.closest('[data-open="baa"]');
+      const closeBtn = e.target.closest('[data-close="baa"]');
+      const modal = document.getElementById('baaModal');
+
+      if (openBtn) {
+        e.preventDefault();
+        modal.classList.add('show');
+      }
+
+      if (closeBtn || (e.target === modal)) {
+        modal.classList.remove('show');
+      }
+    });
+
     // Populate state selects
     const states = ["AL","AK","AZ","AR","CA","CO","CT","DC","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","MA","MD","ME","MI","MN","MO","MS","MT","NC","ND","NE","NH","NJ","NM","NV","NY","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VA","VT","WA","WI","WV","WY"];
     for (const id of ["state","licenseState","dmeState"]) {
