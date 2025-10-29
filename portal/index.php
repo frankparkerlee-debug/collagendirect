@@ -54,7 +54,15 @@ $userRole = $user['role'] ?? 'physician';
 $isPracticeAdmin = in_array($userRole, ['practice_admin', 'superadmin']);
 
 /* ------------ Upload roots (keep structure) ------------ */
-$UPLOAD_ROOT = realpath(__DIR__ . '/../uploads') ?: (__DIR__ . '/../uploads');
+// Use persistent disk on Render, fallback to local uploads for development
+if (is_dir('/var/data/uploads')) {
+  // Render persistent disk
+  $UPLOAD_ROOT = '/var/data/uploads';
+} else {
+  // Local development
+  $UPLOAD_ROOT = realpath(__DIR__ . '/../uploads') ?: (__DIR__ . '/../uploads');
+}
+
 $DIRS = [
   'ids'       => $UPLOAD_ROOT . '/ids',
   'insurance' => $UPLOAD_ROOT . '/insurance',
@@ -67,6 +75,17 @@ foreach ($DIRS as $p) { if (!is_dir($p)) @mkdir($p, 0755, true); }
 function jerr(string $m, int $c=400){ http_response_code($c); header('Content-Type: application/json'); echo json_encode(['ok'=>false,'error'=>$m]); exit; }
 function jok($d=[]){ header('Content-Type: application/json'); echo json_encode(['ok'=>true]+$d); exit; }
 function slug(string $n){ $s=preg_replace('~[^\pL\d]+~u','-',$n); $s=trim($s,'-'); $s=@iconv('UTF-8','ASCII//TRANSLIT',$s)?:$s; $s=strtolower($s); $s=preg_replace('~[^-\w]+~','',$s); return $s?:'file'; }
+// Get full filesystem path for a relative upload path (e.g., /uploads/ids/file.jpg)
+function getFullPath(string $relativePath): string {
+  if (is_dir('/var/data/uploads')) {
+    return '/var/data' . $relativePath;  // Persistent disk on Render
+  } else {
+    global $__DIR__;
+    $baseDir = $__DIR__ ?? __DIR__;
+    return $baseDir . '/../' . ltrim($relativePath, '/');  // Local development
+  }
+}
+$__DIR__ = __DIR__;  // Store for use in helper function
 function validPhone(?string $p){ return $p===null||$p===''||preg_match('/^\d{10}$/',$p); }
 function validEmail(?string $e){ return $e===null||$e===''||filter_var($e,FILTER_VALIDATE_EMAIL); }
 function usStates(): array {
@@ -405,7 +424,7 @@ if ($action) {
 
     // Extract patient_id or order_id from the path to verify access
     // Path format: /uploads/{type}/{filename} where filename contains patient/order ID
-    $fullPath = __DIR__ . '/../' . ltrim($path, '/');
+    $fullPath = getFullPath($path);
 
     if (!file_exists($fullPath)) {
       error_log("[file.download] File not found: fullPath=$fullPath, path=$path, __DIR__=" . __DIR__);
@@ -600,8 +619,11 @@ if ($action) {
         $oldPath = $pdo->prepare("SELECT id_card_path FROM patients WHERE id=? AND user_id=?");
         $oldPath->execute([$pid, $patientOwnerId]);
         $old = $oldPath->fetchColumn();
-        if ($old && file_exists(__DIR__ . '/../' . ltrim($old, '/'))) {
-          @unlink(__DIR__ . '/../' . ltrim($old, '/'));
+        if ($old) {
+          $oldFullPath = getFullPath($old);
+          if (file_exists($oldFullPath)) {
+            @unlink($oldFullPath);
+          }
         }
 
         $stmt = $pdo->prepare("UPDATE patients SET id_card_path=?, id_card_mime=?, updated_at=NOW() WHERE id=? AND user_id=?");
@@ -615,8 +637,11 @@ if ($action) {
         $oldPath = $pdo->prepare("SELECT ins_card_path FROM patients WHERE id=? AND user_id=?");
         $oldPath->execute([$pid, $patientOwnerId]);
         $old = $oldPath->fetchColumn();
-        if ($old && file_exists(__DIR__ . '/../' . ltrim($old, '/'))) {
-          @unlink(__DIR__ . '/../' . ltrim($old, '/'));
+        if ($old) {
+          $oldFullPath = getFullPath($old);
+          if (file_exists($oldFullPath)) {
+            @unlink($oldFullPath);
+          }
         }
 
         $stmt = $pdo->prepare("UPDATE patients SET ins_card_path=?, ins_card_mime=?, updated_at=NOW() WHERE id=? AND user_id=?");
@@ -630,9 +655,12 @@ if ($action) {
         $oldPath = $pdo->prepare("SELECT notes_path FROM patients WHERE id=? AND user_id=?");
         $oldPath->execute([$pid, $patientOwnerId]);
         $old = $oldPath->fetchColumn();
-        if ($old && file_exists(__DIR__ . '/../' . ltrim($old, '/'))) {
-          error_log("[patient.upload] Deleting old notes file: $old");
-          @unlink(__DIR__ . '/../' . ltrim($old, '/'));
+        if ($old) {
+          $oldFullPath = getFullPath($old);
+          if (file_exists($oldFullPath)) {
+            error_log("[patient.upload] Deleting old notes file: $old");
+            @unlink($oldFullPath);
+          }
         }
 
         error_log("[patient.upload] Updating notes_path. pid=$pid, patientOwnerId=$patientOwnerId, rel=$rel, mime=$mime");
