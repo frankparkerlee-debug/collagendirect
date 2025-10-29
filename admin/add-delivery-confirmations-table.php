@@ -39,14 +39,23 @@ try {
         reminder_sent_at TIMESTAMP NULL,
         notes TEXT NULL,
         created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-        INDEX idx_order_id (order_id),
-        INDEX idx_token (confirmation_token),
-        INDEX idx_confirmation_status (confirmed_at, sms_sent_at)
+        updated_at TIMESTAMP NOT NULL DEFAULT NOW()
       )
     ");
 
-    echo "✓ Table 'delivery_confirmations' created successfully\n\n";
+    echo "✓ Table 'delivery_confirmations' created successfully\n";
+
+    // Create indexes separately (PostgreSQL syntax)
+    echo "Creating indexes...\n";
+
+    $pdo->exec("CREATE INDEX idx_delivery_conf_order_id ON delivery_confirmations(order_id)");
+    echo "  ✓ Index on order_id created\n";
+
+    $pdo->exec("CREATE INDEX idx_delivery_conf_token ON delivery_confirmations(confirmation_token)");
+    echo "  ✓ Index on confirmation_token created\n";
+
+    $pdo->exec("CREATE INDEX idx_delivery_conf_status ON delivery_confirmations(confirmed_at, sms_sent_at)");
+    echo "  ✓ Index on confirmation status created\n\n";
   }
 
   // Show table structure
