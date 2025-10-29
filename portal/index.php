@@ -546,9 +546,19 @@ if ($action) {
     }
 
     if($type!=='aob' && (empty($_FILES['file']) || $_FILES['file']['error']!==UPLOAD_ERR_OK)) {
-      $errorDetails = empty($_FILES['file']) ? 'FILES array is empty' : 'Upload error code: ' . $_FILES['file']['error'];
-      error_log("[patient.upload] Upload failed for patient $pid, type $type: $errorDetails");
-      jerr('No file uploaded - ' . $errorDetails);
+      $errorCode = $_FILES['file']['error'] ?? 'unknown';
+      $errorMessages = [
+        UPLOAD_ERR_INI_SIZE => 'File is too large (exceeds server limit). Please use a smaller file or compress the image.',
+        UPLOAD_ERR_FORM_SIZE => 'File is too large (exceeds form limit)',
+        UPLOAD_ERR_PARTIAL => 'File upload was interrupted. Please try again.',
+        UPLOAD_ERR_NO_FILE => 'No file was selected',
+        UPLOAD_ERR_NO_TMP_DIR => 'Server configuration error (no temp directory)',
+        UPLOAD_ERR_CANT_WRITE => 'Server configuration error (cannot write file)',
+        UPLOAD_ERR_EXTENSION => 'File upload blocked by server extension'
+      ];
+      $errorMsg = $errorMessages[$errorCode] ?? 'Upload error code: ' . $errorCode;
+      error_log("[patient.upload] Upload failed for patient $pid, type $type: $errorMsg (code: $errorCode)");
+      jerr($errorMsg);
     }
 
     if ($type!=='aob'){
