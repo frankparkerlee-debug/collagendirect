@@ -393,6 +393,8 @@ if ($action) {
     $fullPath = __DIR__ . '/../' . ltrim($path, '/');
 
     if (!file_exists($fullPath)) {
+      error_log("[file.download] File not found: fullPath=$fullPath, path=$path, __DIR__=" . __DIR__);
+      error_log("[file.download] file_exists check failed. is_readable: " . (is_readable(dirname($fullPath)) ? 'yes' : 'no'));
       http_response_code(404);
       echo 'not_found';
       exit;
@@ -506,10 +508,10 @@ if ($action) {
     jok(['message' => 'Response saved successfully']);
   }
 
-  /* PATIENT uploads — patient-level ID/INS, plus generated AOB; order-level RX only */
+  /* PATIENT uploads — patient-level ID/INS/NOTES, plus generated AOB; order-level RX only */
   if ($action==='patient.upload'){
-    $pid=(string)($_POST['patient_id']??''); $type=(string)($_POST['type']??''); // id|ins|rx|aob
-    if($pid==='' || !in_array($type,['id','ins','rx','aob'],true)) jerr('Invalid upload');
+    $pid=(string)($_POST['patient_id']??''); $type=(string)($_POST['type']??''); // id|ins|notes|aob
+    if($pid==='' || !in_array($type,['id','ins','notes','aob'],true)) jerr('Invalid upload');
 
     // Superadmins can upload for any patient, others only their own
     if ($userRole === 'superadmin') {
@@ -3745,11 +3747,9 @@ if ($page==='logout'){
               <p class="text-xs text-slate-500 mt-1">Front/back of insurance card</p>
             </div>
             <div>
-              <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-2">Assignment of Benefits (AOB)</label>
-              <button type="button" id="new-aob-sign" class="w-full px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
-                Sign AOB Electronically
-              </button>
-              <p class="text-xs text-slate-500 mt-1">Click to generate and sign Assignment of Benefits</p>
+              <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-2">Clinical Notes (Optional)</label>
+              <input type="file" id="new-clinical-notes" class="w-full text-sm" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.txt">
+              <p class="text-xs text-slate-500 mt-1">Upload clinical documentation or physician notes for pre-authorization</p>
             </div>
           </div>
         </div>
@@ -6955,7 +6955,7 @@ if (document.getElementById('add-patient-form')) {
       // Step 2: Upload files if present
       const idCard = $('#new-id-card');
       const insuranceCard = $('#new-insurance-card');
-      
+      const clinicalNotes = $('#new-clinical-notes');
 
       if (idCard && idCard.files && idCard.files[0]) {
         submitBtn.textContent = 'Uploading ID card...';
@@ -6980,6 +6980,19 @@ if (document.getElementById('add-patient-form')) {
         const insResult = await insResp.json();
         if (!insResult.ok) {
           throw new Error('Insurance card upload failed: ' + (insResult.error || 'Unknown error'));
+        }
+      }
+
+      if (clinicalNotes && clinicalNotes.files && clinicalNotes.files[0]) {
+        submitBtn.textContent = 'Uploading clinical notes...';
+        const notesForm = new FormData();
+        notesForm.append('patient_id', patientId);
+        notesForm.append('type', 'notes');
+        notesForm.append('file', clinicalNotes.files[0]);
+        const notesResp = await fetch('?action=patient.upload', {method: 'POST', body: notesForm});
+        const notesResult = await notesResp.json();
+        if (!notesResult.ok) {
+          throw new Error('Clinical notes upload failed: ' + (notesResult.error || 'Unknown error'));
         }
       }
 
