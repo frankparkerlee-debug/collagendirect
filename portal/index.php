@@ -323,6 +323,8 @@ if ($action) {
                                insurance_provider,insurance_member_id,insurance_group_id,insurance_payer_phone,
                                id_card_path,id_card_mime,ins_card_path,ins_card_mime,
                                aob_path,aob_signed_at,
+                               status_comment,status_updated_at,status_updated_by,
+                               provider_response,provider_response_at,provider_response_by,
                                created_at,updated_at
                         FROM patients WHERE id=?");
       $s->execute([$pid]);
@@ -331,6 +333,8 @@ if ($action) {
                                insurance_provider,insurance_member_id,insurance_group_id,insurance_payer_phone,
                                id_card_path,id_card_mime,ins_card_path,ins_card_mime,
                                aob_path,aob_signed_at,
+                               status_comment,status_updated_at,status_updated_by,
+                               provider_response,provider_response_at,provider_response_by,
                                created_at,updated_at
                         FROM patients WHERE id=? AND user_id=?");
       $s->execute([$pid,$userId]);
@@ -463,6 +467,41 @@ if ($action) {
                     $ins_provider,$ins_member_id,$ins_group_id,$ins_payer_phone,$pid,$userId]);
     }
     jok(['id'=>$pid,'mrn'=>$mrn]);
+  }
+
+  if ($action==='patient.save_provider_response'){
+    $patientId = (string)($_POST['patient_id'] ?? '');
+    $response = trim((string)($_POST['provider_response'] ?? ''));
+
+    if ($patientId === '') jerr('Missing patient ID');
+    if ($response === '') jerr('Response cannot be empty');
+
+    // Verify user has access to this patient
+    if ($userRole === 'superadmin') {
+      $stmt = $pdo->prepare("SELECT id FROM patients WHERE id=?");
+      $stmt->execute([$patientId]);
+    } else {
+      $stmt = $pdo->prepare("SELECT id FROM patients WHERE id=? AND user_id=?");
+      $stmt->execute([$patientId, $userId]);
+    }
+
+    if (!$stmt->fetch()) {
+      jerr('Patient not found or access denied', 403);
+    }
+
+    // Save provider response
+    $stmt = $pdo->prepare("
+      UPDATE patients
+      SET provider_response = ?,
+          provider_response_at = NOW(),
+          provider_response_by = ?,
+          updated_at = NOW()
+      WHERE id = ?
+    ");
+
+    $stmt->execute([$response, $userId, $patientId]);
+
+    jok(['message' => 'Response saved successfully']);
   }
 
   /* PATIENT uploads — patient-level ID/INS, plus generated AOB; order-level RX only */
@@ -6541,6 +6580,21 @@ function renderPatientDetailPage(p, orders, isEditing) {
                 </div>
               </div>
             ` : ''}
+            ${p.status_comment && p.state === 'need_info' ? `
+              <div>
+                <div class="text-slate-500 text-xs mb-1">Your Response</div>
+                ${p.provider_response ? `
+                  <div class="bg-blue-50 border-l-4 border-blue-500 p-3 rounded text-sm mb-2">
+                    ${esc(p.provider_response)}
+                    <div class="text-xs text-slate-500 mt-1">Sent: ${fmt(p.provider_response_at)}</div>
+                  </div>
+                ` : ''}
+                <textarea id="provider-response-${esc(p.id)}" class="w-full border rounded px-3 py-2 text-sm" rows="3" placeholder="Respond to manufacturer with the requested information...">${esc(p.provider_response||'')}</textarea>
+                <button type="button" class="mt-2 px-4 py-2 bg-teal-600 text-white rounded text-sm hover:bg-teal-700" onclick="saveProviderResponse('${esc(p.id)}')">
+                  ${p.provider_response ? 'Update Response' : 'Send Response'}
+                </button>
+              </div>
+            ` : ''}
           </div>
         </div>
       ` : ''}
@@ -6726,6 +6780,33 @@ async function deletePatient(patientId) {
     }
   } catch (e) {
     alert('Error deleting patient: ' + e.message);
+  }
+}
+
+async function saveProviderResponse(patientId) {
+  const textarea = document.getElementById('provider-response-' + patientId);
+  if (!textarea) return;
+
+  const response = textarea.value.trim();
+  if (!response) {
+    alert('Please enter a response before sending');
+    return;
+  }
+
+  try {
+    const r = await fetch('?action=patient.save_provider_response', {
+      method: 'POST',
+      body: fd({patient_id: patientId, provider_response: response})
+    });
+    const j = await r.json();
+    if (j.ok) {
+      alert('Response sent successfully! The manufacturer will be notified.');
+      window.location.reload();
+    } else {
+      alert('Failed to save response: ' + (j.error || 'Unknown error'));
+    }
+  } catch (e) {
+    alert('Error saving response: ' + e.message);
   }
 }
 
