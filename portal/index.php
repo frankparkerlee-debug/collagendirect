@@ -401,8 +401,8 @@ if ($action) {
     }
 
     // Check if user has access to this file
-    // For patient documents (ID, Insurance, AOB), check patient access
-    if (str_contains($path, '/uploads/ids/') || str_contains($path, '/uploads/insurance/') || str_contains($path, '/uploads/aob/')) {
+    // For patient documents (ID, Insurance, AOB, Notes), check patient access
+    if (str_contains($path, '/uploads/ids/') || str_contains($path, '/uploads/insurance/') || str_contains($path, '/uploads/aob/') || str_contains($path, '/uploads/notes/')) {
       // Extract patient ID from filename (format: name-YYYYMMDD-HHMMSS-{patient_id_prefix}.ext)
       preg_match('/-([a-f0-9]{6})\.[^.]+$/', $path, $matches);
       if (!$matches) {
@@ -616,13 +616,27 @@ if ($action) {
         $oldPath->execute([$pid, $patientOwnerId]);
         $old = $oldPath->fetchColumn();
         if ($old && file_exists(__DIR__ . '/../' . ltrim($old, '/'))) {
+          error_log("[patient.upload] Deleting old notes file: $old");
           @unlink(__DIR__ . '/../' . ltrim($old, '/'));
         }
 
+        error_log("[patient.upload] Updating notes_path. pid=$pid, patientOwnerId=$patientOwnerId, rel=$rel, mime=$mime");
         $stmt = $pdo->prepare("UPDATE patients SET notes_path=?, notes_mime=?, updated_at=NOW() WHERE id=? AND user_id=?");
         $stmt->execute([$rel,$mime,$pid,$patientOwnerId]);
-        if ($stmt->rowCount() === 0) {
+        $rowCount = $stmt->rowCount();
+        error_log("[patient.upload] Notes UPDATE affected $rowCount rows");
+
+        if ($rowCount === 0) {
           error_log("[patient.upload] Failed to update clinical notes path. pid=$pid, patientOwnerId=$patientOwnerId, rel=$rel");
+          // Check if patient exists
+          $checkStmt = $pdo->prepare("SELECT id, user_id FROM patients WHERE id=?");
+          $checkStmt->execute([$pid]);
+          $patientData = $checkStmt->fetch(PDO::FETCH_ASSOC);
+          if ($patientData) {
+            error_log("[patient.upload] Patient exists: id={$patientData['id']}, user_id={$patientData['user_id']}, expected_user_id=$patientOwnerId");
+          } else {
+            error_log("[patient.upload] Patient not found in database: pid=$pid");
+          }
           jerr('Failed to update patient record - patient not found or access denied');
         }
       }
