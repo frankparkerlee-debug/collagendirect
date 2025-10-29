@@ -3,8 +3,8 @@
 /**
  * Automated SMS Delivery Confirmation Sender
  *
- * Runs daily to send delivery confirmation SMS to patients
- * for orders that were marked as delivered 2-3 days ago
+ * Runs daily to catch any delivered orders that didn't get SMS sent immediately.
+ * This is a backup/safety net - SMS should be sent immediately when marked delivered.
  *
  * Usage: php api/cron/send-delivery-confirmations.php
  * Cron: 0 10 * * * (Daily at 10 AM UTC)
@@ -16,17 +16,19 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../admin/db.php';
 require_once __DIR__ . '/../lib/twilio_sms.php';
 
-echo "=== Delivery Confirmation SMS Sender ===\n";
+echo "=== Delivery Confirmation SMS Sender (Backup) ===\n";
 echo "Timestamp: " . date('Y-m-d H:i:s') . "\n\n";
 
 try {
-  // Find orders that were delivered 2-3 days ago and haven't been sent confirmations yet
+  // Find orders that are delivered but haven't been sent confirmations yet
+  // This catches any orders that were missed by the immediate send
   $stmt = $pdo->prepare("
     SELECT
       o.id AS order_id,
       o.status,
       o.tracking_number,
       o.updated_at,
+      o.delivered_at,
       p.id AS patient_id,
       p.first_name,
       p.last_name,
@@ -35,20 +37,19 @@ try {
     FROM orders o
     INNER JOIN patients p ON p.id = o.patient_id
     WHERE o.status = 'delivered'
-      AND o.updated_at BETWEEN NOW() - INTERVAL '3 days' AND NOW() - INTERVAL '2 days'
       AND p.phone IS NOT NULL
       AND p.phone != ''
       AND NOT EXISTS (
         SELECT 1 FROM delivery_confirmations dc
         WHERE dc.order_id = o.id
       )
-    ORDER BY o.updated_at DESC
+    ORDER BY o.delivered_at DESC NULLS LAST, o.updated_at DESC
   ");
 
   $stmt->execute();
   $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-  echo "Found " . count($orders) . " orders requiring delivery confirmation SMS\n\n";
+  echo "Found " . count($orders) . " delivered orders without SMS confirmations\n\n";
 
   if (empty($orders)) {
     echo "No orders to process. Exiting.\n";

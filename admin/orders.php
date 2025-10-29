@@ -87,6 +87,105 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
   } elseif ($id && $action==='reject') {
     $pdo->prepare("UPDATE orders SET status='rejected', updated_at=NOW() WHERE id=?")->execute([$id]);
+  } elseif ($id && $action==='mark_delivered') {
+    // Mark order as delivered and send SMS confirmation immediately
+    $pdo->prepare("UPDATE orders SET status='delivered', delivered_at=NOW(), updated_at=NOW() WHERE id=?")->execute([$id]);
+
+    // Send delivery confirmation SMS immediately
+    try {
+      require_once __DIR__ . '/../api/lib/twilio_sms.php';
+
+      // Get order and patient details
+      $orderData = $pdo->prepare("
+        SELECT o.id, o.product,
+               p.first_name, p.last_name, p.phone, p.email
+        FROM orders o
+        LEFT JOIN patients p ON p.id = o.patient_id
+        WHERE o.id = ?
+      ");
+      $orderData->execute([$id]);
+      $order = $orderData->fetch(PDO::FETCH_ASSOC);
+
+      if ($order && !empty($order['phone'])) {
+        $patientName = trim(($order['first_name'] ?? '') . ' ' . ($order['last_name'] ?? ''));
+
+        // Check if confirmation already exists
+        $existingConfirmation = $pdo->prepare("SELECT id FROM delivery_confirmations WHERE order_id = ?");
+        $existingConfirmation->execute([$id]);
+
+        if (!$existingConfirmation->fetch()) {
+          // Generate unique confirmation token
+          $token = bin2hex(random_bytes(32));
+
+          // Insert confirmation record
+          $insertStmt = $pdo->prepare("
+            INSERT INTO delivery_confirmations (
+              order_id,
+              patient_phone,
+              patient_email,
+              confirmation_token,
+              created_at,
+              updated_at
+            ) VALUES (?, ?, ?, ?, NOW(), NOW())
+            RETURNING id
+          ");
+
+          $insertStmt->execute([
+            $id,
+            $order['phone'],
+            $order['email'] ?? null,
+            $token
+          ]);
+
+          $confirmationId = $insertStmt->fetchColumn();
+
+          // Send SMS
+          $smsResult = send_delivery_confirmation_sms(
+            $order['phone'],
+            $patientName,
+            $id,
+            $token
+          );
+
+          if ($smsResult['success']) {
+            // Update with SMS details
+            $updateStmt = $pdo->prepare("
+              UPDATE delivery_confirmations
+              SET sms_sent_at = NOW(),
+                  sms_sid = ?,
+                  sms_status = ?,
+                  updated_at = NOW()
+              WHERE id = ?
+            ");
+
+            $updateStmt->execute([
+              $smsResult['sid'],
+              $smsResult['status'],
+              $confirmationId
+            ]);
+
+            error_log("[orders.php] Delivery confirmation SMS sent for order {$id} (SID: {$smsResult['sid']})");
+          } else {
+            // Update with error
+            $updateStmt = $pdo->prepare("
+              UPDATE delivery_confirmations
+              SET notes = ?,
+                  updated_at = NOW()
+              WHERE id = ?
+            ");
+
+            $updateStmt->execute([
+              "SMS send failed: " . ($smsResult['error'] ?? 'Unknown error'),
+              $confirmationId
+            ]);
+
+            error_log("[orders.php] Delivery confirmation SMS failed for order {$id}: " . ($smsResult['error'] ?? 'Unknown error'));
+          }
+        }
+      }
+    } catch (Throwable $smsErr) {
+      error_log('[orders.php] Delivery confirmation SMS error: ' . $smsErr->getMessage());
+    }
   } elseif ($id && $action==='ship') {
     $tracking = trim((string)($_POST['tracking']??'')); $carrier = $_POST['carrier'] ?: detect_carrier($tracking);
     $pdo->prepare("UPDATE orders SET
@@ -391,6 +490,11 @@ if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"
           <!-- Approve / Reject -->
           <form method="post" class="inline"><?=csrf_field()?><input type="hidden" name="id" value="<?=e($r['id'])?>"><input type="hidden" name="action" value="approve"><button class="text-brand hover:underline">Approve</button></form>
           <form method="post" class="inline ml-2"><?=csrf_field()?><input type="hidden" name="id" value="<?=e($r['id'])?>"><input type="hidden" name="action" value="reject"><button class="text-rose-600 hover:underline">Reject</button></form>
+
+          <!-- Mark Delivered (sends SMS immediately) -->
+          <?php if ($s === 'in_transit' || $s === 'approved'): ?>
+            <form method="post" class="inline ml-2" onsubmit="return confirm('Mark as delivered and send SMS confirmation to patient?');"><?=csrf_field()?><input type="hidden" name="id" value="<?=e($r['id'])?>"><input type="hidden" name="action" value="mark_delivered"><button class="text-green-600 hover:underline font-semibold">✓ Mark Delivered</button></form>
+          <?php endif; ?>
 
           <!-- Ship -->
           <details class="inline-block ml-3">
