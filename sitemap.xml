@@ -66,4 +66,12 @@
     <priority>0.7</priority>
   </url>
 
+  <!-- Legal Pages -->
+  <url>
+    <loc>https://collagendirect.health/legal/baa.html</loc>
+    <lastmod>2025-10-29</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+
 </urlset>
