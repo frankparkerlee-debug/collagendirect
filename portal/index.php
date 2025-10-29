@@ -1774,6 +1774,7 @@ if ($page==='logout'){
 <title>CollagenDirect — <?php echo ucfirst($page); ?></title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="/assets/icd10-autocomplete.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   /* Design Tokens - Healthcare UI */
@@ -6280,11 +6281,11 @@ function addWound() {
       </div>
       <div>
         <label class="text-sm">Primary ICD-10 <span class="text-red-600">*</span></label>
-        <input class="wound-icd10-primary w-full" placeholder="e.g., L97.412">
+        <input class="wound-icd10-primary icd10-autocomplete w-full" placeholder="Type to search ICD-10 codes..." autocomplete="off">
       </div>
       <div>
         <label class="text-sm">Secondary ICD-10</label>
-        <input class="wound-icd10-secondary w-full">
+        <input class="wound-icd10-secondary icd10-autocomplete w-full" placeholder="Type to search ICD-10 codes..." autocomplete="off">
       </div>
       <div class="md:col-span-2">
         <label class="text-sm">Wound Notes</label>
@@ -6295,6 +6296,11 @@ function addWound() {
 
   container.appendChild(woundEl);
   console.log('Wound #' + (idx + 1) + ' added to container. Total wounds:', container.children.length);
+
+  // Initialize ICD-10 autocomplete for newly added wound inputs
+  if (typeof initICD10Autocomplete === 'function') {
+    initICD10Autocomplete();
+  }
 
   // Remove handler
   const removeBtn = woundEl.querySelector('.wound-remove');
