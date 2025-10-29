@@ -1,0 +1,21 @@
+# CollagenDirect robots.txt
+# Allow all search engines to index our site
+
+User-agent: *
+Allow: /
+
+# Disallow sensitive areas
+Disallow: /admin/
+Disallow: /portal/
+Disallow: /api/
+
+# Allow public pages
+Allow: /products/
+Allow: /for-healthcare-professionals/
+Allow: /clinical-evidence/
+
+# Sitemap location
+Sitemap: https://collagendirect.health/sitemap.xml
+
+# Crawl delay (optional, helps prevent server overload)
+Crawl-delay: 1
