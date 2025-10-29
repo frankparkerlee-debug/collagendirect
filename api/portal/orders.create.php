@@ -19,6 +19,14 @@ function safe(?string $s): ?string {
 }
 /** Normalize a filesystem directory from a web-root relative path */
 function dir_from_docroot(string $subdir): string {
+  // Check for persistent disk first (Render)
+  if (is_dir('/var/data/uploads')) {
+    // Use persistent disk - subdir format: /uploads/notes -> /var/data/uploads/notes
+    $subdir = '/' . ltrim($subdir, '/'); // ensure single leading slash
+    return '/var/data' . $subdir;
+  }
+
+  // Fallback to local document root (development)
   $root = rtrim($_SERVER['DOCUMENT_ROOT'] ?? '', '/');
   if ($root === '') { // Fallback: apache/nginx misconfig
     $root = dirname(__DIR__, 2); // /public
