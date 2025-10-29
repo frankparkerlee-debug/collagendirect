@@ -2656,7 +2656,7 @@ if ($page==='logout'){
         <thead style="border-bottom: 1px solid var(--border);">
           <tr class="text-left">
             <th class="py-3 px-2" style="width: 40px;">
-              <input type="checkbox" style="width: 16px; height: 16px; cursor: pointer;">
+              <input type="checkbox" id="select-all-patients" style="width: 16px; height: 16px; cursor: pointer;">
             </th>
             <th class="py-3 px-2" style="color: var(--ink-light); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Patient name</th>
             <th class="py-3 px-2" style="color: var(--ink-light); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Patient ID</th>
@@ -4547,7 +4547,7 @@ if (<?php echo json_encode($page==='dashboard'); ?>){
       tb.insertAdjacentHTML('beforeend',`
         <tr style="border-bottom: 1px solid var(--border); transition: background 0.15s;">
           <td class="py-3 px-2">
-            <input type="checkbox" style="width: 16px; height: 16px; cursor: pointer;">
+            <input type="checkbox" class="patient-checkbox" data-patient-id="${p.id}" style="width: 16px; height: 16px; cursor: pointer;">
           </td>
           <td class="py-3 px-2">
             <div style="display: flex; align-items: center; gap: 0.75rem;">
@@ -4627,6 +4627,29 @@ if (<?php echo json_encode($page==='dashboard'); ?>){
   if (filterBtn) {
     filterBtn.addEventListener('click', applyFilters);
   }
+
+  // Checkbox selection handling
+  const selectAllCheckbox = $('#select-all-patients');
+  if (selectAllCheckbox) {
+    selectAllCheckbox.addEventListener('change', function() {
+      const checkboxes = document.querySelectorAll('.patient-checkbox');
+      checkboxes.forEach(cb => {
+        cb.checked = this.checked;
+      });
+    });
+  }
+
+  // Update select-all checkbox when individual checkboxes change
+  document.addEventListener('change', function(e) {
+    if (e.target.classList.contains('patient-checkbox')) {
+      const allCheckboxes = document.querySelectorAll('.patient-checkbox');
+      const checkedCount = document.querySelectorAll('.patient-checkbox:checked').length;
+      if (selectAllCheckbox) {
+        selectAllCheckbox.checked = allCheckboxes.length > 0 && checkedCount === allCheckboxes.length;
+        selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < allCheckboxes.length;
+      }
+    }
+  });
 
   // Dashboard export to CSV
   const exportBtn = $('#btn-dashboard-export');
