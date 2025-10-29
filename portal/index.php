@@ -6734,6 +6734,14 @@ function renderPatientDetailPage(p, orders, isEditing) {
           }
         </div>
 
+        <div>
+          <div class="text-slate-500 text-xs mb-1">Phone</div>
+          ${isEditing
+            ? `<input type="tel" class="w-full text-sm" id="edit-phone" value="${esc(p.phone||'')}" placeholder="(555) 123-4567">`
+            : `<div class="font-medium">+1 ${esc(p.phone||'')}</div>`
+          }
+        </div>
+
         ${isEditing ? `
           <input type="hidden" id="edit-first-name" value="${esc(p.first_name||'')}">
           <input type="hidden" id="edit-last-name" value="${esc(p.last_name||'')}">
@@ -6741,7 +6749,6 @@ function renderPatientDetailPage(p, orders, isEditing) {
           <input type="hidden" id="edit-city" value="${esc(p.city||'')}">
           <input type="hidden" id="edit-state" value="${esc(p.state||'')}">
           <input type="hidden" id="edit-zip" value="${esc(p.zip||'')}">
-          <input type="hidden" id="edit-phone" value="${esc(p.phone||'')}">
           <input type="hidden" id="edit-cell-phone" value="${esc(p.cell_phone||'')}">
           <input type="hidden" id="edit-insurance-provider" value="${esc(p.insurance_provider||'')}">
           <input type="hidden" id="edit-insurance-member-id" value="${esc(p.insurance_member_id||'')}">
