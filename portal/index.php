@@ -723,13 +723,13 @@ if ($action) {
       $secondary_dressing = trim((string)($_POST['secondary_dressing']??''));
       if($freq_per_week<=0){ $pdo->rollBack(); jerr('Frequency per week is required.'); }
 
-      // Calculate bandage count: (Frequency/7 days) × Duration × Quantity per change × (1 + Refills)
-      // This gives total number of bandages needed for the entire treatment including refills
+      // Calculate product count: (Frequency/7 days) × Duration × Quantity per change × (1 + Refills)
+      // This gives total number of products needed for the entire treatment including refills
       $changes_per_day = $freq_per_week / 7.0;
       $total_changes = $changes_per_day * $duration_days;
-      $bandages_per_fill = $total_changes * $qty_per_change;
-      $total_bandages = $bandages_per_fill * (1 + $refills_allowed);
-      $shipments_remaining = (int)ceil($total_bandages);
+      $products_per_fill = $total_changes * $qty_per_change;
+      $total_products = $products_per_fill * (1 + $refills_allowed);
+      $shipments_remaining = (int)ceil($total_products);
 
       // Use patient's actual owner user_id, not current logged-in user (for superadmin compatibility)
       $patientOwnerId = $p['user_id'] ?? $userId;
@@ -2690,7 +2690,7 @@ if ($page==='logout'){
         <thead class="border-b">
           <tr class="text-left">
             <th class="py-2">Name</th><th class="py-2">DOB</th><th class="py-2">Phone</th><th class="py-2">Email</th>
-            <th class="py-2">City/State</th><th class="py-2">Status</th><th class="py-2">Bandage Count</th><th class="py-2">Action</th>
+            <th class="py-2">City/State</th><th class="py-2">Status</th><th class="py-2">Product Count</th><th class="py-2">Action</th>
           </tr>
         </thead>
         <tbody id="tb"></tbody>
@@ -2719,7 +2719,7 @@ if ($page==='logout'){
       <table class="w-full text-sm">
         <thead class="border-b">
           <tr class="text-left">
-            <th class="py-2">Created</th><th class="py-2">Patient</th><th class="py-2">Product</th><th class="py-2">Status</th><th class="py-2">Bandage Count</th><th class="py-2">Deliver To</th><th class="py-2">Expires</th><th class="py-2">Action</th>
+            <th class="py-2">Created</th><th class="py-2">Patient</th><th class="py-2">Product</th><th class="py-2">Status</th><th class="py-2">Product Count</th><th class="py-2">Deliver To</th><th class="py-2">Expires</th><th class="py-2">Action</th>
           </tr>
         </thead>
         <tbody id="orders-tb"></tbody>
@@ -5446,7 +5446,7 @@ async function toggleAccordion(rowEl, patientId, page){
                 <table class="w-full text-sm">
                   <thead class="border-b"><tr class="text-left">
                     <th class="py-2">Created</th><th class="py-2">Product</th><th class="py-2">Status</th>
-                    <th class="py-2">Bandage Cnt</th><th class="py-2">Deliver To</th><th class="py-2">Expires</th><th class="py-2">Notes</th><th class="py-2">Actions</th>
+                    <th class="py-2">Product Cnt</th><th class="py-2">Deliver To</th><th class="py-2">Expires</th><th class="py-2">Notes</th><th class="py-2">Actions</th>
                   </tr></thead>
                   <tbody>
                     ${orders.map(o=>{

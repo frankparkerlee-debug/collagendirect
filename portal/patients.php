@@ -60,7 +60,7 @@ $launchOrder = isset($_GET['new_order']);
         <thead class="border-b">
           <tr class="text-left">
             <th class="py-2">Name</th><th class="py-2">DOB</th><th class="py-2">Phone</th><th class="py-2">Email</th>
-            <th class="py-2">City/State</th><th class="py-2">Status</th><th class="py-2">Bandage Count</th><th class="py-2">Action</th>
+            <th class="py-2">City/State</th><th class="py-2">Status</th><th class="py-2">Product Count</th><th class="py-2">Action</th>
           </tr>
         </thead>
         <tbody id="tb"></tbody>
