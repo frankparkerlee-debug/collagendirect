@@ -20,7 +20,8 @@ COPY . /var/www/html/
 
 # Create uploads directory with proper permissions
 RUN mkdir -p /var/www/html/uploads/ids \
-    /var/www/html/uploads/ins \
+    /var/www/html/uploads/insurance \
+    /var/www/html/uploads/notes \
     /var/www/html/uploads/aob \
     /var/www/html/uploads/rx \
     && chown -R www-data:www-data /var/www/html/uploads \

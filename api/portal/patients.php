@@ -106,9 +106,9 @@ try {
     $params  = [];
 
     $uploads = [
-      'note'     => ['/public/uploads/notes',     'note_path','note_mime'],
-      'ins_card' => ['/public/uploads/insurance', 'ins_card_path','ins_card_mime'],
-      'id_card'  => ['/public/uploads/ids',       'id_card_path','id_card_mime'],
+      'note'     => ['/uploads/notes',     'aob_path','aob_mime'],
+      'ins_card' => ['/uploads/insurance', 'ins_card_path','ins_card_mime'],
+      'id_card'  => ['/uploads/ids',       'id_card_path','id_card_mime'],
     ];
 
     foreach ($uploads as $key => [$dir,$pathCol,$mimeCol]) {
