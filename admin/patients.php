@@ -129,6 +129,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $status = isset($_GET['status']) ? $_GET['status'] : 'all';
 $phys = isset($_GET['phys']) ? $_GET['phys'] : '';
+$insProvider = isset($_GET['ins_provider']) ? trim($_GET['ins_provider']) : '';
+$hasOrders = isset($_GET['has_orders']) ? $_GET['has_orders'] : '';
+$dateFrom = isset($_GET['date_from']) ? trim($_GET['date_from']) : '';
+$dateTo = isset($_GET['date_to']) ? trim($_GET['date_to']) : '';
 
 /* ================= Data ================= */
 try {
@@ -146,21 +150,45 @@ try {
 
   // Search filter
   if ($search !== '') {
-    $where .= " AND (p.first_name ILIKE :search OR p.last_name ILIKE :search OR p.email ILIKE :search OR p.phone ILIKE :search)";
+    $where .= " AND (p.first_name ILIKE :search OR p.last_name ILIKE :search OR p.email ILIKE :search OR p.phone ILIKE :search OR p.id ILIKE :search)";
     $params['search'] = '%' . $search . '%';
   }
 
   // Status filter (patients table uses 'state' not 'status')
-  if ($status === 'active') {
-    $where .= " AND p.state = 'active'";
-  } elseif ($status === 'pending') {
-    $where .= " AND p.state = 'pending'";
+  if ($status !== 'all' && $status !== '') {
+    $where .= " AND p.state = :status";
+    $params['status'] = $status;
   }
 
   // Physician filter
   if ($phys !== '') {
     $where .= " AND p.user_id = :phys";
     $params['phys'] = $phys;
+  }
+
+  // Insurance provider filter
+  if ($insProvider !== '') {
+    $where .= " AND p.insurance_provider ILIKE :ins_provider";
+    $params['ins_provider'] = '%' . $insProvider . '%';
+  }
+
+  // Date range filters
+  if ($dateFrom !== '') {
+    $where .= " AND p.created_at >= :date_from";
+    $params['date_from'] = $dateFrom . ' 00:00:00';
+  }
+
+  if ($dateTo !== '') {
+    $where .= " AND p.created_at <= :date_to";
+    $params['date_to'] = $dateTo . ' 23:59:59';
+  }
+
+  // Build HAVING clause for order filter
+  $having = '';
+  if ($hasOrders === 'yes') {
+    $having = 'HAVING COUNT(DISTINCT o.id) > 0';
+  } elseif ($hasOrders === 'no') {
+    $having = 'HAVING COUNT(DISTINCT o.id) = 0';
   }
 
   $sql = "
@@ -180,6 +208,7 @@ try {
              p.state, p.created_at, p.aob_path, p.ins_card_path, p.id_card_path,
              p.insurance_provider, p.insurance_member_id, p.insurance_group_id, p.insurance_payer_phone,
              u.first_name, u.last_name, u.practice_name
+    $having
     ORDER BY p.created_at DESC
   ";
   error_log("[patients-debug] Admin Role: " . ($adminRole ?: 'NONE'));
@@ -230,27 +259,75 @@ include __DIR__.'/_header.php';
     </div>
   <?php endif; ?>
 
-  <div class="flex items-center justify-between mb-4">
-    <h2 class="text-lg font-semibold">Patients</h2>
-    <form class="flex items-center gap-2" method="get">
-      <input type="text" name="search" placeholder="Search name, email, phone" value="<?=e($search)?>" style="width: 220px;">
-      <select name="status">
-        <option value="all" <?=$status==='all'?'selected':''?>>All Status</option>
-        <option value="active" <?=$status==='active'?'selected':''?>>Active</option>
-        <option value="pending" <?=$status==='pending'?'selected':''?>>Pending</option>
-      </select>
-      <select name="phys">
-        <option value="">All Physicians</option>
-        <?php foreach ($physicians as $p): ?>
-          <option value="<?=e($p['id'])?>" <?=$phys==(string)$p['id']?'selected':''?>>
-            <?=e($p['first_name'] . ' ' . $p['last_name'])?><?=$p['practice_name']?' ('.e($p['practice_name']).')':''?>
-          </option>
-        <?php endforeach; ?>
-      </select>
-      <button class="btn btn-primary" type="submit">Filter</button>
-      <?php if ($search || $status !== 'all' || $phys): ?>
-        <a href="/admin/patients.php" class="btn">Clear</a>
-      <?php endif; ?>
+  <h2 class="text-lg font-semibold mb-4">Patients</h2>
+
+  <!-- Enhanced Filter Form -->
+  <div class="bg-white border rounded-lg p-4 mb-4 shadow-sm">
+    <form method="get" action="" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div>
+        <label class="text-xs text-slate-500 mb-1 block">Search</label>
+        <input type="text" name="search" value="<?=e($search)?>" placeholder="Name, email, phone, ID" class="w-full border rounded px-3 py-1.5 text-sm">
+      </div>
+
+      <div>
+        <label class="text-xs text-slate-500 mb-1 block">Status</label>
+        <select name="status" class="w-full border rounded px-3 py-1.5 text-sm">
+          <option value="all" <?=$status==='all'?'selected':''?>>All Statuses</option>
+          <option value="pending" <?=$status==='pending'?'selected':''?>>Pending</option>
+          <option value="approved" <?=$status==='approved'?'selected':''?>>Approved</option>
+          <option value="not_covered" <?=$status==='not_covered'?'selected':''?>>Not Covered</option>
+          <option value="need_info" <?=$status==='need_info'?'selected':''?>>Need Info</option>
+          <option value="active" <?=$status==='active'?'selected':''?>>Active</option>
+          <option value="inactive" <?=$status==='inactive'?'selected':''?>>Inactive</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="text-xs text-slate-500 mb-1 block">Physician</label>
+        <select name="phys" class="w-full border rounded px-3 py-1.5 text-sm">
+          <option value="">All Physicians</option>
+          <?php foreach ($physicians as $p): ?>
+            <option value="<?=e($p['id'])?>" <?=$phys==(string)$p['id']?'selected':''?>>
+              <?=e($p['first_name'] . ' ' . $p['last_name'])?><?=$p['practice_name']?' ('.e($p['practice_name']).')':''?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+
+      <div>
+        <label class="text-xs text-slate-500 mb-1 block">Insurance Provider</label>
+        <input type="text" name="ins_provider" value="<?=e($insProvider)?>" placeholder="Provider name" class="w-full border rounded px-3 py-1.5 text-sm">
+      </div>
+
+      <div>
+        <label class="text-xs text-slate-500 mb-1 block">Has Orders</label>
+        <select name="has_orders" class="w-full border rounded px-3 py-1.5 text-sm">
+          <option value="">All</option>
+          <option value="yes" <?=$hasOrders==='yes'?'selected':''?>>Has Orders</option>
+          <option value="no" <?=$hasOrders==='no'?'selected':''?>>No Orders</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="text-xs text-slate-500 mb-1 block">Date From</label>
+        <input type="date" name="date_from" value="<?=e($dateFrom)?>" class="w-full border rounded px-3 py-1.5 text-sm">
+      </div>
+
+      <div>
+        <label class="text-xs text-slate-500 mb-1 block">Date To</label>
+        <input type="date" name="date_to" value="<?=e($dateTo)?>" class="w-full border rounded px-3 py-1.5 text-sm">
+      </div>
+
+      <div class="flex items-end gap-2 md:col-span-3 lg:col-span-5">
+        <button type="submit" class="px-4 py-1.5 bg-brand text-white rounded text-sm hover:bg-brand/90 transition-colors">
+          Apply Filters
+        </button>
+        <?php if ($search || $status !== 'all' || $phys || $insProvider || $hasOrders || $dateFrom || $dateTo): ?>
+          <a href="/admin/patients.php" class="px-4 py-1.5 bg-slate-100 text-slate-700 rounded text-sm hover:bg-slate-200 transition-colors">
+            Clear
+          </a>
+        <?php endif; ?>
+      </div>
     </form>
   </div>
 

@@ -84,6 +84,14 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
   header('Location: /admin/orders.php'); exit;
 }
 
+/* Filter parameters */
+$search = trim((string)($_GET['search'] ?? ''));
+$statusFilter = trim((string)($_GET['status'] ?? ''));
+$carrierFilter = trim((string)($_GET['carrier'] ?? ''));
+$productFilter = trim((string)($_GET['product_id'] ?? ''));
+$dateFrom = trim((string)($_GET['date_from'] ?? ''));
+$dateTo = trim((string)($_GET['date_to'] ?? ''));
+
 /* List all orders */
 // Check if carrier and tracking_number columns exist (they're added by migration)
 $hasCarrierCol = false;
@@ -98,19 +106,128 @@ try {
 $carrierSelect = $hasCarrierCol ? "COALESCE(o.carrier, '') AS carrier" : "'' AS carrier";
 $trackingSelect = $hasTrackingCol ? "COALESCE(o.tracking_number, '') AS tracking_number" : "'' AS tracking_number";
 
-$rows = $pdo->query("
+// Build WHERE clause
+$where = [];
+$params = [];
+
+if ($search !== '') {
+  $where[] = "(LOWER(p.first_name || ' ' || p.last_name) LIKE LOWER(:search) OR o.id LIKE :search_id)";
+  $params['search'] = '%' . $search . '%';
+  $params['search_id'] = '%' . $search . '%';
+}
+
+if ($statusFilter !== '') {
+  $where[] = "o.status = :status";
+  $params['status'] = $statusFilter;
+}
+
+if ($carrierFilter !== '' && $hasCarrierCol) {
+  $where[] = "o.carrier = :carrier";
+  $params['carrier'] = $carrierFilter;
+}
+
+if ($productFilter !== '') {
+  $where[] = "o.product_id = :product_id";
+  $params['product_id'] = $productFilter;
+}
+
+if ($dateFrom !== '') {
+  $where[] = "o.created_at >= :date_from";
+  $params['date_from'] = $dateFrom . ' 00:00:00';
+}
+
+if ($dateTo !== '') {
+  $where[] = "o.created_at <= :date_to";
+  $params['date_to'] = $dateTo . ' 23:59:59';
+}
+
+$whereClause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
+
+$sql = "
   SELECT o.*, p.first_name, p.last_name, p.id AS pid, p.dob,
          p.insurance_provider, p.insurance_member_id, p.insurance_group_id, p.insurance_payer_phone,
          $carrierSelect,
          $trackingSelect
   FROM orders o LEFT JOIN patients p ON p.id=o.patient_id
+  $whereClause
   ORDER BY o.created_at DESC LIMIT 1000
-")->fetchAll();
+";
+
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
+$rows = $stmt->fetchAll();
 
 $header = __DIR__.'/_header.php'; $footer = __DIR__.'/_footer.php'; $hasLayout=is_file($header)&&is_file($footer);
 if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"><script src="https://cdn.tailwindcss.com"></script><div class="p-6">';
 ?>
 <div class="flex items-center justify-between mb-4"><div class="text-xl font-semibold">Manage Orders</div></div>
+
+<!-- Filter Form -->
+<div class="bg-white border rounded-lg p-4 mb-4 shadow-sm">
+  <form method="get" action="" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
+    <div>
+      <label class="text-xs text-slate-500 mb-1 block">Search</label>
+      <input type="text" name="search" value="<?=e($search)?>" placeholder="Patient name or Order ID" class="w-full border rounded px-3 py-1.5 text-sm">
+    </div>
+
+    <div>
+      <label class="text-xs text-slate-500 mb-1 block">Status</label>
+      <select name="status" class="w-full border rounded px-3 py-1.5 text-sm">
+        <option value="">All Statuses</option>
+        <option value="pending" <?=$statusFilter==='pending'?'selected':''?>>Pending</option>
+        <option value="submitted" <?=$statusFilter==='submitted'?'selected':''?>>Submitted</option>
+        <option value="approved" <?=$statusFilter==='approved'?'selected':''?>>Approved</option>
+        <option value="rejected" <?=$statusFilter==='rejected'?'selected':''?>>Rejected</option>
+        <option value="in_transit" <?=$statusFilter==='in_transit'?'selected':''?>>In Transit</option>
+        <option value="delivered" <?=$statusFilter==='delivered'?'selected':''?>>Delivered</option>
+      </select>
+    </div>
+
+    <?php if ($hasCarrierCol): ?>
+    <div>
+      <label class="text-xs text-slate-500 mb-1 block">Carrier</label>
+      <select name="carrier" class="w-full border rounded px-3 py-1.5 text-sm">
+        <option value="">All Carriers</option>
+        <option value="ups" <?=$carrierFilter==='ups'?'selected':''?>>UPS</option>
+        <option value="fedex" <?=$carrierFilter==='fedex'?'selected':''?>>FedEx</option>
+        <option value="usps" <?=$carrierFilter==='usps'?'selected':''?>>USPS</option>
+      </select>
+    </div>
+    <?php endif; ?>
+
+    <div>
+      <label class="text-xs text-slate-500 mb-1 block">Product</label>
+      <select name="product_id" class="w-full border rounded px-3 py-1.5 text-sm">
+        <option value="">All Products</option>
+        <?php foreach ($products as $p): ?>
+          <option value="<?=$p['id']?>" <?=$productFilter===$p['id']?'selected':''?>>
+            <?=e($p['name'].($p['size']?' ('.$p['size'].')':''))?>
+          </option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+
+    <div>
+      <label class="text-xs text-slate-500 mb-1 block">Date From</label>
+      <input type="date" name="date_from" value="<?=e($dateFrom)?>" class="w-full border rounded px-3 py-1.5 text-sm">
+    </div>
+
+    <div>
+      <label class="text-xs text-slate-500 mb-1 block">Date To</label>
+      <input type="date" name="date_to" value="<?=e($dateTo)?>" class="w-full border rounded px-3 py-1.5 text-sm">
+    </div>
+
+    <div class="flex items-end gap-2 <?=!$hasCarrierCol?'md:col-span-3 lg:col-span-2':''?>">
+      <button type="submit" class="px-4 py-1.5 bg-brand text-white rounded text-sm hover:bg-brand/90 transition-colors">
+        Apply Filters
+      </button>
+      <a href="/admin/orders.php" class="px-4 py-1.5 bg-slate-100 text-slate-700 rounded text-sm hover:bg-slate-200 transition-colors">
+        Clear
+      </a>
+    </div>
+  </form>
+</div>
+
 <div class="bg-white border rounded-2xl overflow-hidden shadow-soft">
   <table class="w-full text-sm">
     <thead class="border-b">

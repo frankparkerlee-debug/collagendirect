@@ -110,12 +110,37 @@ function render_view_link($paths, $empty='—') {
 
 /* ================= Filters ================= */
 // Default to last 6 months instead of just current month
-$from = isset($_GET['from']) ? $_GET['from'] : date('Y-m-d', strtotime('-6 months'));
-$to   = isset($_GET['to'])   ? $_GET['to']   : date('Y-m-d');
-$phys = isset($_GET['phys']) ? $_GET['phys'] : '';
+$from = isset($_GET['from']) ? trim($_GET['from']) : date('Y-m-d', strtotime('-6 months'));
+$to   = isset($_GET['to'])   ? trim($_GET['to'])   : date('Y-m-d');
+$phys = isset($_GET['phys']) ? trim($_GET['phys']) : '';
+$search = isset($_GET['search']) ? trim($_GET['search']) : '';
+$productFilter = isset($_GET['product_id']) ? trim($_GET['product_id']) : '';
+$cptFilter = isset($_GET['cpt_code']) ? trim($_GET['cpt_code']) : '';
+$statusFilter = isset($_GET['status']) ? trim($_GET['status']) : '';
+
 $where  = "o.created_at BETWEEN :from AND (:to::date + INTERVAL '1 day') AND o.status NOT IN ('rejected','cancelled')";
 $params = ['from'=>$from, 'to'=>$to];
-if ($phys!==''){ $where.=" AND o.user_id=:phys"; $params['phys']=$phys; }
+
+if ($phys !== '') {
+  $where .= " AND o.user_id = :phys";
+  $params['phys'] = $phys;
+}
+
+if ($search !== '') {
+  $where .= " AND (p.first_name ILIKE :search OR p.last_name ILIKE :search OR o.id ILIKE :search_id)";
+  $params['search'] = '%' . $search . '%';
+  $params['search_id'] = '%' . $search . '%';
+}
+
+if ($productFilter !== '') {
+  $where .= " AND o.product_id = :product_id";
+  $params['product_id'] = $productFilter;
+}
+
+if ($statusFilter !== '') {
+  $where .= " AND o.status = :status";
+  $params['status'] = $statusFilter;
+}
 
 // Role-based access control
 if ($adminRole === 'superadmin' || $adminRole === 'manufacturer') {
@@ -129,6 +154,37 @@ if ($adminRole === 'superadmin' || $adminRole === 'manufacturer') {
 $hasProducts = has_table($pdo,'products');
 $hasRates    = has_table($pdo,'reimbursement_rates');
 $hasShipRem  = has_column($pdo,'orders','shipments_remaining');
+
+// Get products list for filter dropdown
+$products = [];
+if ($hasProducts) {
+  try {
+    $products = $pdo->query("SELECT id, name, size FROM products WHERE active=TRUE ORDER BY name, size")->fetchAll();
+  } catch (Throwable $e) {
+    error_log("[products] " . $e->getMessage());
+  }
+}
+
+// Get physician list for filter dropdown
+$physicians = [];
+try {
+  if ($adminRole === 'superadmin' || $adminRole === 'manufacturer') {
+    $stmt = $pdo->query("SELECT id, first_name, last_name, practice_name FROM users WHERE role IN ('physician', 'practice_admin') ORDER BY first_name, last_name");
+    $physicians = $stmt->fetchAll();
+  } else {
+    $stmt = $pdo->prepare("
+      SELECT u.id, u.first_name, u.last_name, u.practice_name
+      FROM users u
+      INNER JOIN admin_physicians ap ON ap.physician_user_id = u.id
+      WHERE ap.admin_id = ?
+      ORDER BY u.first_name, u.last_name
+    ");
+    $stmt->execute([$adminId]);
+    $physicians = $stmt->fetchAll();
+  }
+} catch (Throwable $e) {
+  error_log("[physicians-list] " . $e->getMessage());
+}
 
 /* ================= Data ================= */
 try {
@@ -151,6 +207,12 @@ try {
   if ($hasProducts) {
     $prodCols = $pdo->query("SELECT column_name FROM information_schema.columns WHERE table_name = 'products'")->fetchAll(PDO::FETCH_COLUMN);
     $hcpcsCol = in_array('hcpcs_code', $prodCols) ? 'hcpcs_code' : 'cpt_code';
+  }
+
+  // Add CPT code filter if products table exists
+  if ($cptFilter !== '' && $hasProducts) {
+    $where .= " AND pr.$hcpcsCol ILIKE :cpt_code";
+    $params['cpt_code'] = '%' . $cptFilter . '%';
   }
 
   $sql = "
@@ -224,13 +286,78 @@ function projected_rev($row, $rates, $hasProducts, $hasShipRem) {
 include __DIR__.'/_header.php';
 ?>
 <div>
-  <div class="flex items-center justify-between mb-4">
-    <h2 class="text-lg font-semibold">Billing</h2>
-    <form class="flex items-center gap-2" method="get">
-      <input type="date" name="from" value="<?=e($from)?>">
-      <input type="date" name="to" value="<?=e($to)?>">
-      <input type="text" name="phys" placeholder="Physician User ID (optional)" value="<?=e($phys)?>" style="width: 200px;">
-      <button class="btn btn-primary" type="submit">Filter</button>
+  <h2 class="text-lg font-semibold mb-4">Billing</h2>
+
+  <!-- Enhanced Filter Form -->
+  <div class="bg-white border rounded-lg p-4 mb-4 shadow-sm">
+    <form method="get" action="" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div>
+        <label class="text-xs text-slate-500 mb-1 block">Search</label>
+        <input type="text" name="search" value="<?=e($search)?>" placeholder="Patient name or Order ID" class="w-full border rounded px-3 py-1.5 text-sm">
+      </div>
+
+      <div>
+        <label class="text-xs text-slate-500 mb-1 block">Date From</label>
+        <input type="date" name="from" value="<?=e($from)?>" class="w-full border rounded px-3 py-1.5 text-sm">
+      </div>
+
+      <div>
+        <label class="text-xs text-slate-500 mb-1 block">Date To</label>
+        <input type="date" name="to" value="<?=e($to)?>" class="w-full border rounded px-3 py-1.5 text-sm">
+      </div>
+
+      <div>
+        <label class="text-xs text-slate-500 mb-1 block">Physician</label>
+        <select name="phys" class="w-full border rounded px-3 py-1.5 text-sm">
+          <option value="">All Physicians</option>
+          <?php foreach ($physicians as $p): ?>
+            <option value="<?=e($p['id'])?>" <?=$phys===(string)$p['id']?'selected':''?>>
+              <?=e($p['first_name'] . ' ' . $p['last_name'])?><?=$p['practice_name']?' ('.e($p['practice_name']).')':''?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+
+      <?php if ($hasProducts): ?>
+      <div>
+        <label class="text-xs text-slate-500 mb-1 block">Product</label>
+        <select name="product_id" class="w-full border rounded px-3 py-1.5 text-sm">
+          <option value="">All Products</option>
+          <?php foreach ($products as $pr): ?>
+            <option value="<?=$pr['id']?>" <?=$productFilter===$pr['id']?'selected':''?>>
+              <?=e($pr['name'].($pr['size']?' ('.$pr['size'].')':''))?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+
+      <div>
+        <label class="text-xs text-slate-500 mb-1 block">CPT/HCPCS Code</label>
+        <input type="text" name="cpt_code" value="<?=e($cptFilter)?>" placeholder="Code" class="w-full border rounded px-3 py-1.5 text-sm">
+      </div>
+      <?php endif; ?>
+
+      <div>
+        <label class="text-xs text-slate-500 mb-1 block">Status</label>
+        <select name="status" class="w-full border rounded px-3 py-1.5 text-sm">
+          <option value="">Active Orders</option>
+          <option value="pending" <?=$statusFilter==='pending'?'selected':''?>>Pending</option>
+          <option value="approved" <?=$statusFilter==='approved'?'selected':''?>>Approved</option>
+          <option value="in_transit" <?=$statusFilter==='in_transit'?'selected':''?>>In Transit</option>
+          <option value="delivered" <?=$statusFilter==='delivered'?'selected':''?>>Delivered</option>
+        </select>
+      </div>
+
+      <div class="flex items-end gap-2 <?=$hasProducts?'':'md:col-span-3 lg:col-span-2'?>">
+        <button type="submit" class="px-4 py-1.5 bg-brand text-white rounded text-sm hover:bg-brand/90 transition-colors">
+          Apply Filters
+        </button>
+        <?php if ($search || $phys || $productFilter || $cptFilter || $statusFilter || $from !== date('Y-m-d', strtotime('-6 months')) || $to !== date('Y-m-d')): ?>
+          <a href="/admin/billing.php" class="px-4 py-1.5 bg-slate-100 text-slate-700 rounded text-sm hover:bg-slate-200 transition-colors">
+            Clear
+          </a>
+        <?php endif; ?>
+      </div>
     </form>
   </div>
 

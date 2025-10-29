@@ -42,18 +42,139 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   header('Location: /admin/shipments.php'); exit;
 }
 
-$rows = $pdo->query("
+/* ================= Filters ================= */
+$search = isset($_GET['search']) ? trim($_GET['search']) : '';
+$statusFilter = isset($_GET['status']) ? trim($_GET['status']) : '';
+$carrierFilter = isset($_GET['carrier']) ? trim($_GET['carrier']) : '';
+$stateFilter = isset($_GET['state']) ? trim($_GET['state']) : '';
+$hasTracking = isset($_GET['has_tracking']) ? $_GET['has_tracking'] : '';
+$dateFrom = isset($_GET['date_from']) ? trim($_GET['date_from']) : '';
+$dateTo = isset($_GET['date_to']) ? trim($_GET['date_to']) : '';
+
+$where = [];
+$params = [];
+
+if ($search !== '') {
+  $where[] = "(o.shipping_name ILIKE :search OR o.id ILIKE :search_id OR o.rx_note_name ILIKE :search_track)";
+  $params['search'] = '%' . $search . '%';
+  $params['search_id'] = '%' . $search . '%';
+  $params['search_track'] = '%' . $search . '%';
+}
+
+if ($statusFilter !== '') {
+  $where[] = "o.status = :status";
+  $params['status'] = $statusFilter;
+}
+
+if ($carrierFilter !== '') {
+  $where[] = "o.rx_note_mime = :carrier";
+  $params['carrier'] = $carrierFilter;
+}
+
+if ($stateFilter !== '') {
+  $where[] = "o.shipping_state = :state";
+  $params['state'] = $stateFilter;
+}
+
+if ($hasTracking === 'yes') {
+  $where[] = "o.rx_note_name IS NOT NULL AND o.rx_note_name != ''";
+} elseif ($hasTracking === 'no') {
+  $where[] = "(o.rx_note_name IS NULL OR o.rx_note_name = '')";
+}
+
+if ($dateFrom !== '') {
+  $where[] = "o.created_at >= :date_from";
+  $params['date_from'] = $dateFrom . ' 00:00:00';
+}
+
+if ($dateTo !== '') {
+  $where[] = "o.created_at <= :date_to";
+  $params['date_to'] = $dateTo . ' 23:59:59';
+}
+
+$whereClause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
+
+$sql = "
   SELECT o.id, o.product, o.shipping_name, o.shipping_city, o.shipping_state,
          o.rx_note_name, o.rx_note_mime, o.status, o.created_at
   FROM orders o
+  $whereClause
   ORDER BY o.created_at DESC
   LIMIT 500
-")->fetchAll();
+";
+
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
+$rows = $stmt->fetchAll();
 
 include __DIR__ . '/_header.php';
 ?>
-<div class="flex items-center justify-between mb-4">
-  <div class="text-xl font-semibold">Manage Shipments</div>
+<div class="text-xl font-semibold mb-4">Manage Shipments</div>
+
+<!-- Filter Form -->
+<div class="bg-white border rounded-lg p-4 mb-4 shadow-sm">
+  <form method="get" action="" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
+    <div>
+      <label class="text-xs text-slate-500 mb-1 block">Search</label>
+      <input type="text" name="search" value="<?=e($search)?>" placeholder="Name, Order ID, Tracking" class="w-full border rounded px-3 py-1.5 text-sm">
+    </div>
+
+    <div>
+      <label class="text-xs text-slate-500 mb-1 block">Status</label>
+      <select name="status" class="w-full border rounded px-3 py-1.5 text-sm">
+        <option value="">All Statuses</option>
+        <option value="pending" <?=$statusFilter==='pending'?'selected':''?>>Pending</option>
+        <option value="approved" <?=$statusFilter==='approved'?'selected':''?>>Approved</option>
+        <option value="in_transit" <?=$statusFilter==='in_transit'?'selected':''?>>In Transit</option>
+        <option value="delivered" <?=$statusFilter==='delivered'?'selected':''?>>Delivered</option>
+      </select>
+    </div>
+
+    <div>
+      <label class="text-xs text-slate-500 mb-1 block">Carrier</label>
+      <select name="carrier" class="w-full border rounded px-3 py-1.5 text-sm">
+        <option value="">All Carriers</option>
+        <option value="ups" <?=$carrierFilter==='ups'?'selected':''?>>UPS</option>
+        <option value="fedex" <?=$carrierFilter==='fedex'?'selected':''?>>FedEx</option>
+        <option value="usps" <?=$carrierFilter==='usps'?'selected':''?>>USPS</option>
+      </select>
+    </div>
+
+    <div>
+      <label class="text-xs text-slate-500 mb-1 block">State</label>
+      <input type="text" name="state" value="<?=e($stateFilter)?>" placeholder="State (e.g., CA)" maxlength="2" class="w-full border rounded px-3 py-1.5 text-sm">
+    </div>
+
+    <div>
+      <label class="text-xs text-slate-500 mb-1 block">Has Tracking</label>
+      <select name="has_tracking" class="w-full border rounded px-3 py-1.5 text-sm">
+        <option value="">All</option>
+        <option value="yes" <?=$hasTracking==='yes'?'selected':''?>>Has Tracking</option>
+        <option value="no" <?=$hasTracking==='no'?'selected':''?>>Needs Tracking</option>
+      </select>
+    </div>
+
+    <div>
+      <label class="text-xs text-slate-500 mb-1 block">Date From</label>
+      <input type="date" name="date_from" value="<?=e($dateFrom)?>" class="w-full border rounded px-3 py-1.5 text-sm">
+    </div>
+
+    <div>
+      <label class="text-xs text-slate-500 mb-1 block">Date To</label>
+      <input type="date" name="date_to" value="<?=e($dateTo)?>" class="w-full border rounded px-3 py-1.5 text-sm">
+    </div>
+
+    <div class="flex items-end gap-2 md:col-span-3 lg:col-span-5">
+      <button type="submit" class="px-4 py-1.5 bg-brand text-white rounded text-sm hover:bg-brand/90 transition-colors">
+        Apply Filters
+      </button>
+      <?php if ($search || $statusFilter || $carrierFilter || $stateFilter || $hasTracking || $dateFrom || $dateTo): ?>
+        <a href="/admin/shipments.php" class="px-4 py-1.5 bg-slate-100 text-slate-700 rounded text-sm hover:bg-slate-200 transition-colors">
+          Clear
+        </a>
+      <?php endif; ?>
+    </div>
+  </form>
 </div>
 
 <div class="bg-white border rounded-2xl overflow-x-auto">
