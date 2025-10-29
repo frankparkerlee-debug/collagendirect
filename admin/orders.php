@@ -85,11 +85,24 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 }
 
 /* List all orders */
+// Check if carrier and tracking_number columns exist (they're added by migration)
+$hasCarrierCol = false;
+$hasTrackingCol = false;
+try {
+  $colCheck = $pdo->query("SELECT column_name FROM information_schema.columns WHERE table_name='orders' AND column_name IN ('carrier','tracking_number')")->fetchAll(PDO::FETCH_COLUMN);
+  $hasCarrierCol = in_array('carrier', $colCheck);
+  $hasTrackingCol = in_array('tracking_number', $colCheck);
+} catch(Throwable $e){}
+
+// Build query with conditional column selection
+$carrierSelect = $hasCarrierCol ? "COALESCE(o.carrier, '') AS carrier" : "'' AS carrier";
+$trackingSelect = $hasTrackingCol ? "COALESCE(o.tracking_number, '') AS tracking_number" : "'' AS tracking_number";
+
 $rows = $pdo->query("
   SELECT o.*, p.first_name, p.last_name, p.id AS pid, p.dob,
          p.insurance_provider, p.insurance_member_id, p.insurance_group_id, p.insurance_payer_phone,
-         COALESCE(o.carrier, '') AS carrier,
-         COALESCE(o.tracking_number, '') AS tracking_number
+         $carrierSelect,
+         $trackingSelect
   FROM orders o LEFT JOIN patients p ON p.id=o.patient_id
   ORDER BY o.created_at DESC LIMIT 1000
 ")->fetchAll();
