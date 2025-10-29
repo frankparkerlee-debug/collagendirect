@@ -3816,8 +3816,9 @@ if ($page==='logout'){
         </div>
 
         <div class="md:col-span-2">
-          <label class="text-sm">Clinical Notes (paste)</label>
-          <textarea id="ord-notes" class="w-full" rows="3" placeholder="Paste chart note"></textarea>
+          <label class="text-sm">Clinical Notes (paste text)</label>
+          <textarea id="ord-notes" class="w-full" rows="3" placeholder="Paste chart note here"></textarea>
+          <div class="text-xs text-slate-500 mt-1">Paste notes above OR attach a file below</div>
         </div>
       </div>
 
@@ -3855,8 +3856,9 @@ if ($page==='logout'){
       <!-- Uploads tied to ORDER -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 border-t pt-4">
         <div class="md:col-span-1">
-          <label class="text-sm">Visit Notes (PDF/txt)</label>
+          <label class="text-sm">Visit Notes (attach file)</label>
           <input type="file" id="file-rx" accept=".pdf,.txt,image/*" class="w-full">
+          <div class="text-xs text-slate-500 mt-1">OR paste text above</div>
         </div>
         <div class="md:col-span-2">
           <label class="text-sm block mb-2">Insurance Requirements</label>
