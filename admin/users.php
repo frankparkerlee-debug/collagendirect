@@ -30,7 +30,7 @@ else $physStmt->execute();
 $phys = $physStmt->fetchAll();
 
 /* Employees list - only CollagenDirect staff */
-$emps = $pdo->query("SELECT id, name, email, role, created_at FROM admin_users WHERE role IN ('employee', 'admin') ORDER BY created_at DESC LIMIT 200")->fetchAll();
+$emps = $pdo->query("SELECT id, name, email, role, created_at FROM admin_users WHERE role IN ('employee', 'admin', 'sales', 'ops') ORDER BY created_at DESC LIMIT 200")->fetchAll();
 
 /* Manufacturer list - separate from employees */
 $manufacturers = $pdo->query("SELECT id, name, email, role, created_at FROM admin_users WHERE role = 'manufacturer' ORDER BY created_at DESC LIMIT 200")->fetchAll();

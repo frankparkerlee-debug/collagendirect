@@ -5,6 +5,11 @@ $bootstrap = __DIR__.'/_bootstrap.php'; if (is_file($bootstrap)) require_once $b
 require_once __DIR__.'/db.php';
 $auth = __DIR__.'/auth.php'; if (is_file($auth)) { require_once $auth; if (function_exists('require_admin')) require_admin(); }
 
+// Get current admin user and role
+$admin = current_admin();
+$adminRole = $admin['role'] ?? '';
+$adminId = $admin['id'] ?? '';
+
 /* Optional shipping helpers */
 $shipLib = __DIR__.'/lib/shipping.php';
 if (is_file($shipLib)) require_once $shipLib;
@@ -122,6 +127,15 @@ $trackingSelect = $hasTrackingCol ? "COALESCE(o.tracking_number, '') AS tracking
 // Build WHERE clause
 $where = [];
 $params = [];
+
+// Role-based access control
+if ($adminRole === 'superadmin' || $adminRole === 'manufacturer' || $adminRole === 'admin') {
+  // Superadmin, admin, and manufacturer see all orders - no additional filter
+} else {
+  // Sales, ops, and employees only see orders from assigned physicians
+  $where[] = "EXISTS (SELECT 1 FROM admin_physicians ap WHERE ap.admin_id = :admin_id AND ap.physician_user_id = o.user_id)";
+  $params['admin_id'] = $adminId;
+}
 
 if ($search !== '') {
   $where[] = "(LOWER(p.first_name || ' ' || p.last_name) LIKE LOWER(:search) OR o.id LIKE :search_id)";

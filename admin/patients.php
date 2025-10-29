@@ -159,10 +159,10 @@ try {
   $params = [];
 
   // Role-based access control
-  if ($adminRole === 'superadmin' || $adminRole === 'manufacturer') {
-    // Superadmin and manufacturer see all patients - no additional filter
+  if ($adminRole === 'superadmin' || $adminRole === 'manufacturer' || $adminRole === 'admin') {
+    // Superadmin, admin, and manufacturer see all patients - no additional filter
   } else {
-    // Employees only see patients from assigned physicians
+    // Sales, ops, and employees only see patients from assigned physicians
     $where .= " AND EXISTS (SELECT 1 FROM admin_physicians ap WHERE ap.admin_id = :admin_id AND ap.physician_user_id = p.user_id)";
     $params['admin_id'] = $adminId;
   }
