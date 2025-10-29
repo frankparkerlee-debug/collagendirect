@@ -1107,8 +1107,26 @@ if ($action) {
     $stmt->execute(array_merge($params, [$userId]));
     $expiring = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    // 4. Patient status changes (approved, not_covered, need_info by manufacturer)
+    $stmt = $pdo->prepare("
+      SELECT p.id, p.first_name, p.last_name, p.status_updated_at as created_at,
+             p.state, p.status_comment, 'patient_status_change' as notif_type
+      FROM patients p
+      WHERE {$userFilter}p.status_updated_at IS NOT NULL
+        AND p.status_updated_at >= NOW() - INTERVAL '7 days'
+        AND p.state IN ('approved', 'not_covered', 'need_info')
+        AND NOT EXISTS (
+          SELECT 1 FROM user_notification_dismissals d
+          WHERE d.user_id = ? AND d.notif_type = 'patient_status_change' AND d.reference_id = p.id
+        )
+      ORDER BY p.status_updated_at DESC
+      LIMIT 10
+    ");
+    $stmt->execute(array_merge($params, [$userId]));
+    $statusChanges = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
     // Merge all notifications
-    $notifications = array_merge($approved, $rejected, $expiring);
+    $notifications = array_merge($approved, $rejected, $expiring, $statusChanges);
 
     // Sort by most recent
     usort($notifications, function($a, $b) {
@@ -4451,13 +4469,14 @@ async function populateNotifications() {
 
     // Render notifications
     notificationsList.innerHTML = notifications.map(notif => {
-      const { notif_type, first_name, last_name, created_at, expires_at, status, id, order_id } = notif;
+      const { notif_type, first_name, last_name, created_at, expires_at, status, id, order_id, state, status_comment } = notif;
       const fullName = `${first_name || ''} ${last_name || ''}`.trim();
       const initials = getInitials(first_name || 'U', last_name || 'N');
       const timeAgo = formatTimeAgo(created_at || expires_at);
 
       let action = '';
       let bgColor = 'var(--brand)';
+      let comment = '';
 
       if (notif_type === 'patient_approved') {
         action = 'Patient approved by manufacturer';
@@ -4469,6 +4488,22 @@ async function populateNotifications() {
         const daysLeft = Math.ceil((new Date(expires_at) - new Date()) / (1000 * 60 * 60 * 24));
         action = `Order expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`;
         bgColor = '#F59E0B'; // warning orange
+      } else if (notif_type === 'patient_status_change') {
+        // New: patient status changes with comments
+        if (state === 'approved') {
+          action = 'Patient APPROVED for coverage';
+          bgColor = '#10B981'; // success green
+        } else if (state === 'not_covered') {
+          action = 'Patient NOT COVERED by insurance';
+          bgColor = '#EF4444'; // error red
+        } else if (state === 'need_info') {
+          action = 'More information NEEDED';
+          bgColor = '#F59E0B'; // warning orange
+        }
+        // Include the manufacturer's comment
+        if (status_comment) {
+          comment = `<div style="font-size: 0.8125rem; color: var(--ink); margin-top: 0.375rem; padding: 0.5rem; background: white; border-left: 3px solid ${bgColor}; border-radius: 4px;">"${esc(status_comment)}"</div>`;
+        }
       }
 
       // Build the link URL based on notification type
@@ -4486,7 +4521,8 @@ async function populateNotifications() {
                 <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--brand); flex-shrink: 0; margin-top: 0.375rem;"></div>
               </div>
               <div style="font-size: 0.875rem; color: var(--muted); margin-bottom: 0.25rem;">${action}</div>
-              <div style="font-size: 0.75rem; color: var(--muted);">${timeAgo}</div>
+              ${comment}
+              <div style="font-size: 0.75rem; color: var(--muted); margin-top: ${comment ? '0.5rem' : '0'};">${timeAgo}</div>
             </div>
           </div>
         </a>
