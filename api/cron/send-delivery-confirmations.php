@@ -33,9 +33,13 @@ try {
       p.first_name,
       p.last_name,
       p.phone,
-      p.email
+      p.email,
+      u.first_name AS phys_first,
+      u.last_name AS phys_last,
+      u.practice_name
     FROM orders o
     INNER JOIN patients p ON p.id = o.patient_id
+    LEFT JOIN users u ON u.id = o.user_id
     WHERE o.status = 'delivered'
       AND p.phone IS NOT NULL
       AND p.phone != ''
@@ -64,6 +68,10 @@ try {
     $patientName = trim($order['first_name'] . ' ' . $order['last_name']);
     $patientPhone = $order['phone'];
     $patientEmail = $order['email'] ?? null;
+    $physicianName = trim(($order['phys_last'] ?? '') . ($order['phys_first'] ? ', ' . $order['phys_first'] : ''));
+    if (empty($physicianName) && !empty($order['practice_name'])) {
+      $physicianName = $order['practice_name'];
+    }
 
     echo "Processing order #{$orderId} for {$patientName} ({$patientPhone})...\n";
 
@@ -98,7 +106,8 @@ try {
         $patientPhone,
         $patientName,
         $orderId,
-        $token
+        $token,
+        $physicianName
       );
 
       if ($smsResult['success']) {

@@ -144,17 +144,24 @@ function normalize_phone_number(string $phone): ?string {
  * @param string $patientName Patient name
  * @param string $orderId Order ID
  * @param string $confirmationToken Unique confirmation token
+ * @param string $physicianName Physician/practice name (optional)
  * @return array Result from twilio_send_sms()
  */
 function send_delivery_confirmation_sms(
   string $patientPhone,
   string $patientName,
   string $orderId,
-  string $confirmationToken
+  string $confirmationToken,
+  string $physicianName = ''
 ): array {
   $confirmUrl = "https://collagendirect.health/confirm-delivery?token=" . urlencode($confirmationToken);
 
-  $message = "Hi {$patientName}, CollagenDirect here. Please confirm delivery of your order #{$orderId}: {$confirmUrl}";
+  // Reference physician if available, otherwise use generic message
+  if (!empty($physicianName)) {
+    $message = "Hi {$patientName}, your wound care supplies from Dr. {$physicianName} were delivered. Please confirm receipt: {$confirmUrl}";
+  } else {
+    $message = "Hi {$patientName}, your wound care supplies were delivered. Please confirm receipt: {$confirmUrl}";
+  }
 
   return twilio_send_sms($patientPhone, $message);
 }

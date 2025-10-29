@@ -95,12 +95,14 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     try {
       require_once __DIR__ . '/../api/lib/twilio_sms.php';
 
-      // Get order and patient details
+      // Get order and patient details including physician name
       $orderData = $pdo->prepare("
         SELECT o.id, o.product,
-               p.first_name, p.last_name, p.phone, p.email
+               p.first_name, p.last_name, p.phone, p.email,
+               u.first_name AS phys_first, u.last_name AS phys_last, u.practice_name
         FROM orders o
         LEFT JOIN patients p ON p.id = o.patient_id
+        LEFT JOIN users u ON u.id = o.user_id
         WHERE o.id = ?
       ");
       $orderData->execute([$id]);
@@ -108,6 +110,10 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
       if ($order && !empty($order['phone'])) {
         $patientName = trim(($order['first_name'] ?? '') . ' ' . ($order['last_name'] ?? ''));
+        $physicianName = trim(($order['phys_last'] ?? '') . ($order['phys_first'] ? ', ' . $order['phys_first'] : ''));
+        if (empty($physicianName) && !empty($order['practice_name'])) {
+          $physicianName = $order['practice_name'];
+        }
 
         // Check if confirmation already exists
         $existingConfirmation = $pdo->prepare("SELECT id FROM delivery_confirmations WHERE order_id = ?");
@@ -144,7 +150,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             $order['phone'],
             $patientName,
             $id,
-            $token
+            $token,
+            $physicianName
           );
 
           if ($smsResult['success']) {
