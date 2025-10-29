@@ -5,8 +5,10 @@ require_admin();
 require_once __DIR__ . '/../api/lib/provider_welcome.php'; // Email notifications
 
 $admin = current_admin();
-$isOwner = in_array(($admin['role'] ?? ''), ['owner','superadmin','admin','practice_admin']); // Manufacturers excluded from user management
-$isManufacturer = ($admin['role'] ?? '') === 'manufacturer';
+$adminRole = $admin['role'] ?? '';
+$isOwner = in_array($adminRole, ['owner','superadmin','admin','practice_admin']); // Full user management access
+$isAdmin = in_array($adminRole, ['owner','superadmin','admin']); // Can edit employees and manufacturers
+$isManufacturer = $adminRole === 'manufacturer';
 $tab = $_GET['tab'] ?? 'physicians';
 $msg='';
 
@@ -45,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     exit;
   }
 
-  if ($act==='create_employee' && $isOwner) {
+  if ($act==='create_employee' && $isAdmin) {
     $name = trim($_POST['name']);
     $email = trim($_POST['email']);
     $role = trim($_POST['role']);
@@ -60,11 +62,11 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $msg = ($role === 'manufacturer' ? 'Manufacturer' : 'Employee') . ' created and welcome email sent';
     $tab = ($role === 'manufacturer') ? 'manufacturer' : 'employees';
   }
-  if ($act==='reset_emp_pw' && $isOwner) {
+  if ($act==='reset_emp_pw' && $isAdmin) {
     $pdo->prepare("UPDATE admin_users SET password_hash=? WHERE id=?")->execute([password_hash($_POST['newpw'], PASSWORD_DEFAULT), (int)$_POST['emp_id']]);
     $msg='Employee password updated'; $tab='employees';
   }
-  if ($act==='delete_emp' && $isOwner) {
+  if ($act==='delete_emp' && $isAdmin) {
     if ((int)$_POST['emp_id'] !== (int)$admin['id']) {
       $pdo->prepare("DELETE FROM admin_users WHERE id=?")->execute([(int)$_POST['emp_id']]);
       $msg='Employee deleted';
@@ -298,7 +300,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             <td class="py-3"><?=e($e['role'])?></td>
             <td class="py-3"><?=e($e['created_at'])?></td>
             <td class="py-3 space-x-2">
-              <?php if ($isOwner && !$isManufacturer): ?>
+              <?php if ($isAdmin): ?>
               <form method="post" class="inline"><?=csrf_field()?>
                 <input type="hidden" name="action" value="reset_emp_pw"><input type="hidden" name="emp_id" value="<?=$e['id']?>">
                 <input type="password" name="newpw" class="border rounded px-2 py-0.5 text-xs" placeholder="New pw" required>
@@ -309,7 +311,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 <input type="hidden" name="action" value="delete_emp"><input type="hidden" name="emp_id" value="<?=$e['id']?>">
                 <button class="text-rose-600 text-xs">Delete</button>
               </form>
-              <?php elseif ($isManufacturer): ?>
+              <?php else: ?>
               <span class="text-slate-400 text-xs">View only</span>
               <?php endif; ?>
             </td>
@@ -318,7 +320,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         </tbody>
       </table>
     </div>
-    <?php if (!$isManufacturer): ?>
+    <?php if ($isAdmin): ?>
     <div>
       <div class="font-semibold mb-2">Add Employee</div>
       <form method="post" class="bg-slate-50 border rounded p-3">
@@ -363,7 +365,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             <td class="py-3"><?=e($m['role'])?></td>
             <td class="py-3"><?=e($m['created_at'])?></td>
             <td class="py-3 space-x-2">
-              <?php if ($isOwner && !$isManufacturer): ?>
+              <?php if ($isAdmin): ?>
               <form method="post" class="inline"><?=csrf_field()?>
                 <input type="hidden" name="action" value="reset_emp_pw"><input type="hidden" name="emp_id" value="<?=$m['id']?>">
                 <input type="password" name="newpw" class="border rounded px-2 py-0.5 text-xs" placeholder="New pw" required>
@@ -373,7 +375,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 <input type="hidden" name="action" value="delete_emp"><input type="hidden" name="emp_id" value="<?=$m['id']?>">
                 <button class="text-rose-600 text-xs">Delete</button>
               </form>
-              <?php elseif ($isManufacturer): ?>
+              <?php else: ?>
               <span class="text-slate-400 text-xs">View only</span>
               <?php endif; ?>
             </td>
@@ -382,7 +384,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         </tbody>
       </table>
     </div>
-    <?php if (!$isManufacturer): ?>
+    <?php if ($isAdmin): ?>
     <div>
       <div class="font-semibold mb-2">Add Manufacturer Representative</div>
       <form method="post" class="bg-slate-50 border rounded p-3">
