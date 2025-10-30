@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Form I-9: Employment Eligibility Verification | CollagenDirect</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @media print {
+      .no-print { display: none !important; }
+      body { background: white; }
+      .form-container { box-shadow: none; border: 2px solid #000; max-width: 100%; }
+      input, select { border: 1px solid #000 !important; }
+    }
+  </style>
+</head>
+<body class="bg-gray-100 p-8">
+
+  <div class="max-w-5xl mx-auto">
+    <!-- Header (no print) -->
+    <div class="no-print mb-6 flex items-center justify-between">
+      <a href="../new-hire-welcome.php" class="text-brand-teal hover:underline flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+        </svg>
+        Back to Onboarding
+      </a>
+      <button onclick="window.print()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Print / Save PDF</button>
+    </div>
+
+    <!-- Form Container -->
+    <div class="bg-white p-10 rounded-lg shadow-2xl form-container">
+
+      <!-- Official Header -->
+      <div class="border-4 border-black p-4 mb-6">
+        <h1 class="text-2xl font-black text-center mb-2">Employment Eligibility Verification</h1>
+        <h2 class="text-xl font-bold text-center mb-2">Department of Homeland Security</h2>
+        <h3 class="text-lg font-bold text-center mb-2">U.S. Citizenship and Immigration Services</h3>
+        <p class="text-center text-sm font-bold">Form I-9</p>
+        <p class="text-center text-xs">OMB No. 1615-0047 | Expires 07/31/2026</p>
+      </div>
+
+      <!-- Instructions Box -->
+      <div class="bg-blue-50 border-2 border-blue-600 p-4 mb-6">
+        <p class="text-sm font-bold text-blue-900 mb-2">⚠️ START HERE: Read instructions carefully before completing this form.</p>
+        <p class="text-xs text-blue-800">
+          The instructions must be available, either in paper or electronically, during completion of this form. Employers are liable for errors in the completion of this form.
+        </p>
+      </div>
+
+      <div class="bg-yellow-50 border-l-4 border-yellow-600 p-4 mb-6">
+        <p class="text-sm font-bold mb-2">ANTI-DISCRIMINATION NOTICE</p>
+        <p class="text-xs">
+          It is illegal to discriminate against work-authorized individuals. Employers CANNOT specify which document(s) an employee may present to establish employment authorization and identity. The refusal to hire an individual because the documentation presented has a future expiration date may also constitute illegal discrimination.
+        </p>
+      </div>
+
+      <!-- SECTION 1: Employee Information and Attestation -->
+      <div class="mb-8 border-4 border-gray-800 p-6">
+        <h2 class="text-xl font-black mb-4 bg-gray-800 text-white p-2">SECTION 1. Employee Information and Attestation (Employees must complete and sign Section 1 of Form I-9 no later than the first day of employment, but not before accepting a job offer.)</h2>
+
+        <div class="space-y-4">
+          <!-- Name -->
+          <div class="grid grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-bold mb-1">Last Name (Family Name)</label>
+              <input type="text" class="w-full p-2 border-2 border-gray-400 rounded">
+            </div>
+            <div>
+              <label class="block text-xs font-bold mb-1">First Name (Given Name)</label>
+              <input type="text" class="w-full p-2 border-2 border-gray-400 rounded">
+            </div>
+            <div>
+              <label class="block text-xs font-bold mb-1">Middle Initial</label>
+              <input type="text" class="w-full p-2 border-2 border-gray-400 rounded" maxlength="1">
+            </div>
+          </div>
+
+          <!-- Other Last Names Used -->
+          <div>
+            <label class="block text-xs font-bold mb-1">Other Last Names Used (if any)</label>
+            <input type="text" class="w-full p-2 border-2 border-gray-400 rounded">
+          </div>
+
+          <!-- Address -->
+          <div>
+            <label class="block text-xs font-bold mb-1">Address (Street Number and Name)</label>
+            <input type="text" class="w-full p-2 border-2 border-gray-400 rounded">
+          </div>
+
+          <div class="grid grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-bold mb-1">Apt. Number</label>
+              <input type="text" class="w-full p-2 border-2 border-gray-400 rounded">
+            </div>
+            <div>
+              <label class="block text-xs font-bold mb-1">City or Town</label>
+              <input type="text" class="w-full p-2 border-2 border-gray-400 rounded">
+            </div>
+            <div>
+              <label class="block text-xs font-bold mb-1">State</label>
+              <select class="w-full p-2 border-2 border-gray-400 rounded">
+                <option value="">Select State</option>
+                <option value="AL">Alabama</option>
+                <option value="AK">Alaska</option>
+                <option value="AZ">Arizona</option>
+                <option value="AR">Arkansas</option>
+                <option value="CA">California</option>
+                <option value="CO">Colorado</option>
+                <option value="CT">Connecticut</option>
+                <option value="DE">Delaware</option>
+                <option value="FL">Florida</option>
+                <option value="GA">Georgia</option>
+                <option value="HI">Hawaii</option>
+                <option value="ID">Idaho</option>
+                <option value="IL">Illinois</option>
+                <option value="IN">Indiana</option>
+                <option value="IA">Iowa</option>
+                <option value="KS">Kansas</option>
+                <option value="KY">Kentucky</option>
+                <option value="LA">Louisiana</option>
+                <option value="ME">Maine</option>
+                <option value="MD">Maryland</option>
+                <option value="MA">Massachusetts</option>
+                <option value="MI">Michigan</option>
+                <option value="MN">Minnesota</option>
+                <option value="MS">Mississippi</option>
+                <option value="MO">Missouri</option>
+                <option value="MT">Montana</option>
+                <option value="NE">Nebraska</option>
+                <option value="NV">Nevada</option>
+                <option value="NH">New Hampshire</option>
+                <option value="NJ">New Jersey</option>
+                <option value="NM">New Mexico</option>
+                <option value="NY">New York</option>
+                <option value="NC">North Carolina</option>
+                <option value="ND">North Dakota</option>
+                <option value="OH">Ohio</option>
+                <option value="OK">Oklahoma</option>
+                <option value="OR">Oregon</option>
+                <option value="PA">Pennsylvania</option>
+                <option value="RI">Rhode Island</option>
+                <option value="SC">South Carolina</option>
+                <option value="SD">South Dakota</option>
+                <option value="TN">Tennessee</option>
+                <option value="TX">Texas</option>
+                <option value="UT">Utah</option>
+                <option value="VT">Vermont</option>
+                <option value="VA">Virginia</option>
+                <option value="WA">Washington</option>
+                <option value="WV">West Virginia</option>
+                <option value="WI">Wisconsin</option>
+                <option value="WY">Wyoming</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-bold mb-1">ZIP Code</label>
+              <input type="text" class="w-full p-2 border-2 border-gray-400 rounded" maxlength="10">
+            </div>
+            <div>
+              <label class="block text-xs font-bold mb-1">Date of Birth (mm/dd/yyyy)</label>
+              <input type="date" class="w-full p-2 border-2 border-gray-400 rounded">
+            </div>
+            <div>
+              <label class="block text-xs font-bold mb-1">U.S. Social Security Number</label>
+              <input type="text" class="w-full p-2 border-2 border-gray-400 rounded" placeholder="XXX-XX-XXXX" maxlength="11">
+            </div>
+          </div>
+
+          <!-- Email and Phone -->
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold mb-1">Employee's Email Address</label>
+              <input type="email" class="w-full p-2 border-2 border-gray-400 rounded">
+            </div>
+            <div>
+              <label class="block text-xs font-bold mb-1">Employee's Telephone Number</label>
+              <input type="tel" class="w-full p-2 border-2 border-gray-400 rounded">
+            </div>
+          </div>
+
+          <!-- Citizenship Status -->
+          <div class="bg-gray-100 p-4 border-2 border-gray-400">
+            <p class="text-xs font-bold mb-3">I am aware that federal law provides for imprisonment and/or fines for false statements or use of false documents in connection with the completion of this form. I attest, under penalty of perjury, that I am (check one of the following boxes):</p>
+
+            <div class="space-y-2">
+              <label class="flex items-start">
+                <input type="radio" name="citizenship" class="mr-3 mt-1" value="citizen">
+                <span class="text-xs"><strong>1. A citizen of the United States</strong></span>
+              </label>
+
+              <label class="flex items-start">
+                <input type="radio" name="citizenship" class="mr-3 mt-1" value="noncitizen">
+                <span class="text-xs"><strong>2. A noncitizen national of the United States</strong> (See instructions)</span>
+              </label>
+
+              <label class="flex items-start">
+                <input type="radio" name="citizenship" class="mr-3 mt-1" value="lpr">
+                <span class="text-xs"><strong>3. A lawful permanent resident</strong> (Alien Registration Number/USCIS Number):</span>
+              </label>
+              <input type="text" class="w-full p-2 border-2 border-gray-400 rounded ml-8" placeholder="Enter A-Number or USCIS Number">
+
+              <label class="flex items-start">
+                <input type="radio" name="citizenship" class="mr-3 mt-1" value="alien">
+                <span class="text-xs"><strong>4. An alien authorized to work</strong> until (expiration date, if applicable, mm/dd/yyyy):</span>
+              </label>
+              <div class="ml-8 grid grid-cols-3 gap-4">
+                <input type="date" class="w-full p-2 border-2 border-gray-400 rounded" placeholder="Expiration Date">
+                <input type="text" class="w-full p-2 border-2 border-gray-400 rounded" placeholder="Alien Number or I-94 Number">
+                <input type="text" class="w-full p-2 border-2 border-gray-400 rounded" placeholder="Foreign Passport Number">
+              </div>
+            </div>
+          </div>
+
+          <!-- Signature -->
+          <div class="bg-red-50 border-2 border-red-600 p-4 mt-6">
+            <p class="text-xs font-bold mb-4">Signature of Employee: I certify, under penalty of perjury, that the information I have provided is true and correct.</p>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold mb-1">Signature of Employee</label>
+                <div class="w-full p-4 border-2 border-black rounded bg-white" style="min-height: 60px;"></div>
+              </div>
+              <div>
+                <label class="block text-xs font-bold mb-1">Today's Date (mm/dd/yyyy)</label>
+                <input type="date" class="w-full p-2 border-2 border-gray-400 rounded">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 2: Employer or Authorized Representative -->
+      <div class="mb-8 border-4 border-gray-800 p-6">
+        <h2 class="text-xl font-black mb-4 bg-gray-800 text-white p-2">SECTION 2. Employer or Authorized Representative Review and Verification (For HR Use Only)</h2>
+
+        <div class="bg-yellow-50 p-4 mb-4">
+          <p class="text-xs font-bold">Employers or their authorized representative must complete and sign Section 2 within 3 business days of the employee's first day of employment.</p>
+        </div>
+
+        <!-- Document verification boxes -->
+        <div class="grid grid-cols-2 gap-6 mb-6">
+          <div class="border-2 border-gray-400 p-4">
+            <p class="text-xs font-bold mb-3">LIST A: Documents that Establish Both Identity and Employment Authorization</p>
+            <div class="space-y-2">
+              <div>
+                <label class="block text-xs mb-1">Document Title</label>
+                <input type="text" class="w-full p-1 border border-gray-400 rounded text-xs">
+              </div>
+              <div>
+                <label class="block text-xs mb-1">Issuing Authority</label>
+                <input type="text" class="w-full p-1 border border-gray-400 rounded text-xs">
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-xs mb-1">Document Number</label>
+                  <input type="text" class="w-full p-1 border border-gray-400 rounded text-xs">
+                </div>
+                <div>
+                  <label class="block text-xs mb-1">Expiration Date</label>
+                  <input type="date" class="w-full p-1 border border-gray-400 rounded text-xs">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="border-2 border-gray-400 p-4">
+            <p class="text-xs font-bold mb-3">LIST B: Documents that Establish Identity</p>
+            <div class="space-y-2 mb-4">
+              <div>
+                <label class="block text-xs mb-1">Document Title</label>
+                <input type="text" class="w-full p-1 border border-gray-400 rounded text-xs">
+              </div>
+              <div>
+                <label class="block text-xs mb-1">Issuing Authority</label>
+                <input type="text" class="w-full p-1 border border-gray-400 rounded text-xs">
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-xs mb-1">Document Number</label>
+                  <input type="text" class="w-full p-1 border border-gray-400 rounded text-xs">
+                </div>
+                <div>
+                  <label class="block text-xs mb-1">Expiration Date</label>
+                  <input type="date" class="w-full p-1 border border-gray-400 rounded text-xs">
+                </div>
+              </div>
+            </div>
+
+            <p class="text-xs font-bold mb-3">LIST C: Documents that Establish Employment Authorization</p>
+            <div class="space-y-2">
+              <div>
+                <label class="block text-xs mb-1">Document Title</label>
+                <input type="text" class="w-full p-1 border border-gray-400 rounded text-xs">
+              </div>
+              <div>
+                <label class="block text-xs mb-1">Issuing Authority</label>
+                <input type="text" class="w-full p-1 border border-gray-400 rounded text-xs">
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-xs mb-1">Document Number</label>
+                  <input type="text" class="w-full p-1 border border-gray-400 rounded text-xs">
+                </div>
+                <div>
+                  <label class="block text-xs mb-1">Expiration Date</label>
+                  <input type="date" class="w-full p-1 border border-gray-400 rounded text-xs">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Employer info -->
+        <div class="space-y-4 bg-gray-50 p-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold mb-1">First Day of Employment (mm/dd/yyyy)</label>
+              <input type="date" class="w-full p-2 border-2 border-gray-400 rounded">
+            </div>
+            <div>
+              <label class="block text-xs font-bold mb-1">Employee Last Name, First Name, Middle Initial</label>
+              <input type="text" class="w-full p-2 border-2 border-gray-400 rounded">
+            </div>
+          </div>
+
+          <div class="bg-red-50 border-2 border-red-600 p-4">
+            <p class="text-xs font-bold mb-4">Certification: I attest, under penalty of perjury, that (1) I have examined the document(s) presented by the above-named employee, (2) the above-listed document(s) appear to be genuine and to relate to the employee named, and (3) to the best of my knowledge the employee is authorized to work in the United States.</p>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold mb-1">Signature of Employer or Authorized Representative</label>
+                <div class="w-full p-4 border-2 border-black rounded bg-white" style="min-height: 60px;"></div>
+              </div>
+              <div>
+                <label class="block text-xs font-bold mb-1">Today's Date (mm/dd/yyyy)</label>
+                <input type="date" class="w-full p-2 border-2 border-gray-400 rounded">
+              </div>
+            </div>
+
+            <div class="mt-4 grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold mb-1">Title of Employer or Authorized Representative</label>
+                <input type="text" class="w-full p-2 border-2 border-gray-400 rounded">
+              </div>
+              <div>
+                <label class="block text-xs font-bold mb-1">Last Name, First Name of Employer or Authorized Representative</label>
+                <input type="text" class="w-full p-2 border-2 border-gray-400 rounded">
+              </div>
+            </div>
+          </div>
+
+          <!-- Company info -->
+          <div class="mt-6">
+            <p class="text-xs font-bold mb-3">Employer's Business or Organization Name</p>
+            <input type="text" class="w-full p-2 border-2 border-gray-400 rounded mb-4" value="CollagenDirect" readonly>
+
+            <p class="text-xs font-bold mb-1">Employer's Business or Organization Address (Street Number and Name)</p>
+            <input type="text" class="w-full p-2 border-2 border-gray-400 rounded mb-4">
+
+            <div class="grid grid-cols-3 gap-4">
+              <div>
+                <label class="block text-xs font-bold mb-1">City or Town</label>
+                <input type="text" class="w-full p-2 border-2 border-gray-400 rounded">
+              </div>
+              <div>
+                <label class="block text-xs font-bold mb-1">State</label>
+                <input type="text" class="w-full p-2 border-2 border-gray-400 rounded">
+              </div>
+              <div>
+                <label class="block text-xs font-bold mb-1">ZIP Code</label>
+                <input type="text" class="w-full p-2 border-2 border-gray-400 rounded">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 3: Reverification and Rehires -->
+      <div class="border-4 border-gray-800 p-6">
+        <h2 class="text-xl font-black mb-4 bg-gray-800 text-white p-2">SECTION 3. Reverification and Rehires (For HR Use Only)</h2>
+        <p class="text-xs mb-4">To be completed and signed by employer or authorized representative. Complete this section if the employee requires reverification.</p>
+
+        <div class="bg-gray-50 p-4">
+          <p class="text-xs text-gray-600 italic">This section is typically left blank at hire. Used only for rehires or when work authorization expires.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Footer Notice -->
+    <div class="no-print mt-6 bg-blue-50 border-2 border-blue-600 p-4 rounded">
+      <p class="text-sm font-bold text-blue-900 mb-2">Important Reminders:</p>
+      <ul class="text-xs text-blue-800 space-y-1 ml-4 list-disc">
+        <li>Employee must complete Section 1 on or before the first day of employment</li>
+        <li>Employee must bring original documents (List A OR List B + List C)</li>
+        <li>Employer must complete Section 2 within 3 business days of first day of employment</li>
+        <li>Keep this form in employee's personnel file for 3 years after hire or 1 year after termination, whichever is later</li>
+        <li>DO NOT file with the government - keep on file at CollagenDirect</li>
+      </ul>
+    </div>
+
+  </div>
+
+</body>
+</html>

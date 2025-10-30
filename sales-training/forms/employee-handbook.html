@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Employee Handbook | CollagenDirect</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @media print {
+      .no-print { display: none !important; }
+      body { background: white; }
+      .toc { page-break-after: always; }
+      h2 { page-break-before: always; }
+    }
+  </style>
+</head>
+<body class="bg-gray-100 p-8">
+
+  <div class="max-w-5xl mx-auto">
+    <!-- Header (no print) -->
+    <div class="no-print mb-6 flex items-center justify-between">
+      <a href="../new-hire-welcome.php" class="text-brand-teal hover:underline flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+        </svg>
+        Back to Onboarding
+      </a>
+      <button onclick="window.print()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Print / Save PDF</button>
+    </div>
+
+    <!-- Form Container -->
+    <div class="bg-white p-12 rounded-lg shadow-2xl">
+
+      <!-- Cover Page -->
+      <div class="text-center mb-16 border-b-4 border-brand-teal pb-8">
+        <img src="/assets/collagendirect.png" alt="CollagenDirect" class="h-16 mx-auto mb-8">
+        <h1 class="text-5xl font-black text-gray-900 mb-4">Employee Handbook</h1>
+        <p class="text-2xl text-gray-600 mb-8">CollagenDirect</p>
+        <p class="text-lg text-gray-500">Effective Date: January 2025</p>
+        <p class="text-sm text-gray-400 mt-4">Version 1.0</p>
+      </div>
+
+      <!-- Welcome Letter -->
+      <section class="mb-12">
+        <h2 class="text-3xl font-black text-gray-900 mb-6">Welcome to CollagenDirect!</h2>
+        <div class="prose max-w-none">
+          <p class="text-gray-700 leading-relaxed mb-4">
+            Dear Team Member,
+          </p>
+          <p class="text-gray-700 leading-relaxed mb-4">
+            Welcome to CollagenDirect! We are thrilled to have you join our mission to provide healthcare professionals with fast, compliant access to evidence-based wound care products that improve patient outcomes.
+          </p>
+          <p class="text-gray-700 leading-relaxed mb-4">
+            This Employee Handbook contains important information about our company policies, benefits, expectations, and resources. Please take the time to read it carefully and keep it for future reference.
+          </p>
+          <p class="text-gray-700 leading-relaxed mb-4">
+            At CollagenDirect, we value integrity, innovation, patient focus, and teamwork. We are committed to creating a workplace where every employee can thrive, grow professionally, and contribute to our shared success.
+          </p>
+          <p class="text-gray-700 leading-relaxed mb-4">
+            This handbook is designed to help you understand what you can expect from CollagenDirect and what we expect from you. If you have any questions, please don't hesitate to reach out to your manager or Human Resources.
+          </p>
+          <p class="text-gray-700 leading-relaxed mb-4">
+            Again, welcome aboard. We're excited to work with you!
+          </p>
+          <p class="text-gray-700 leading-relaxed font-semibold">
+            Sincerely,<br>
+            The CollagenDirect Leadership Team
+          </p>
+        </div>
+      </section>
+
+      <!-- Important Notice -->
+      <div class="bg-yellow-50 border-4 border-yellow-600 p-8 mb-12">
+        <h3 class="text-2xl font-black text-yellow-900 mb-4">⚠️ IMPORTANT NOTICE - AT-WILL EMPLOYMENT</h3>
+        <p class="text-sm text-yellow-800 leading-relaxed mb-4">
+          <strong>THIS HANDBOOK IS NOT A CONTRACT OF EMPLOYMENT.</strong> Employment with CollagenDirect is <strong>AT-WILL</strong>, which means that either you or CollagenDirect may terminate the employment relationship at any time, with or without cause, and with or without notice.
+        </p>
+        <p class="text-sm text-yellow-800 leading-relaxed mb-4">
+          <strong>No manager, supervisor, or employee of CollagenDirect has any authority to enter into any agreement for employment for any specified period of time or to make any agreement contrary to the at-will employment relationship.</strong>
+        </p>
+        <p class="text-sm text-yellow-800 leading-relaxed">
+          CollagenDirect reserves the right to modify, revoke, suspend, terminate, or change any or all policies, procedures, or benefits at any time, with or without notice. This handbook supersedes all previous handbooks and policy statements.
+        </p>
+      </div>
+
+      <!-- Table of Contents -->
+      <section class="mb-12 toc">
+        <h2 class="text-3xl font-black text-gray-900 mb-6 pb-4 border-b-2 border-gray-300">Table of Contents</h2>
+        <div class="grid md:grid-cols-2 gap-4 text-sm">
+          <div>
+            <ol class="space-y-2">
+              <li class="font-bold">1. About CollagenDirect</li>
+              <li class="font-bold">2. Equal Employment Opportunity</li>
+              <li class="font-bold">3. Employment Classification</li>
+              <li class="font-bold">4. Work Hours & Attendance</li>
+              <li class="font-bold">5. Compensation & Payroll</li>
+              <li class="font-bold">6. Benefits</li>
+              <li class="font-bold">7. Time Off Policies</li>
+              <li class="font-bold">8. Performance Management</li>
+            </ol>
+          </div>
+          <div>
+            <ol start="9" class="space-y-2">
+              <li class="font-bold">9. Code of Conduct</li>
+              <li class="font-bold">10. HIPAA & Confidentiality</li>
+              <li class="font-bold">11. Technology & Equipment</li>
+              <li class="font-bold">12. Workplace Safety</li>
+              <li class="font-bold">13. Anti-Harassment Policy</li>
+              <li class="font-bold">14. Disciplinary Action</li>
+              <li class="font-bold">15. Termination of Employment</li>
+              <li class="font-bold">16. Acknowledgment Form</li>
+            </ol>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 1: About CollagenDirect -->
+      <section class="mb-12">
+        <h2 class="text-3xl font-black text-gray-900 mb-6 pb-4 border-b-2 border-gray-300">1. About CollagenDirect</h2>
+        <h3 class="text-xl font-bold text-gray-900 mb-3">Our Mission</h3>
+        <p class="text-gray-700 leading-relaxed mb-4">
+          To provide healthcare professionals with fast, compliant access to evidence-based collagen therapies that accelerate wound healing and improve patient outcomes.
+        </p>
+        <h3 class="text-xl font-bold text-gray-900 mb-3">Our Values</h3>
+        <ul class="list-disc ml-6 space-y-2 text-gray-700 mb-6">
+          <li><strong>Patient First:</strong> Everything we do is focused on improving patient outcomes</li>
+          <li><strong>Integrity:</strong> We operate with transparency, honesty, and ethical practices</li>
+          <li><strong>Compliance:</strong> We maintain the highest standards of regulatory and HIPAA compliance</li>
+          <li><strong>Innovation:</strong> We continuously improve our products, services, and processes</li>
+          <li><strong>Teamwork:</strong> We collaborate, support each other, and celebrate shared success</li>
+        </ul>
+      </section>
+
+      <!-- Section 2: Equal Employment Opportunity -->
+      <section class="mb-12">
+        <h2 class="text-3xl font-black text-gray-900 mb-6 pb-4 border-b-2 border-gray-300">2. Equal Employment Opportunity</h2>
+        <p class="text-gray-700 leading-relaxed mb-4">
+          CollagenDirect is an equal opportunity employer. We are committed to providing equal employment opportunities to all employees and applicants without regard to race, color, religion, sex, national origin, age, disability, genetic information, veteran status, sexual orientation, gender identity, or any other characteristic protected by federal, state, or local law.
+        </p>
+        <p class="text-gray-700 leading-relaxed mb-4">
+          This policy applies to all terms and conditions of employment, including recruiting, hiring, placement, promotion, termination, layoff, recall, transfer, leaves of absence, compensation, and training.
+        </p>
+      </section>
+
+      <!-- Section 3: Employment Classification -->
+      <section class="mb-12">
+        <h2 class="text-3xl font-black text-gray-900 mb-6 pb-4 border-b-2 border-gray-300">3. Employment Classification</h2>
+        <h3 class="text-xl font-bold text-gray-900 mb-3">Full-Time Employees</h3>
+        <p class="text-gray-700 leading-relaxed mb-4">
+          Employees who work 40 hours per week on a regular basis. Eligible for all company benefits.
+        </p>
+        <h3 class="text-xl font-bold text-gray-900 mb-3">Part-Time Employees</h3>
+        <p class="text-gray-700 leading-relaxed mb-4">
+          Employees who work less than 40 hours per week. Eligibility for benefits may vary.
+        </p>
+        <h3 class="text-xl font-bold text-gray-900 mb-3">Exempt vs. Non-Exempt</h3>
+        <p class="text-gray-700 leading-relaxed mb-4">
+          <strong>Exempt:</strong> Salaried employees not entitled to overtime pay under the Fair Labor Standards Act (FLSA).<br>
+          <strong>Non-Exempt:</strong> Hourly employees entitled to overtime pay for hours worked over 40 in a workweek.
+        </p>
+      </section>
+
+      <!-- Section 4: Work Hours & Attendance -->
+      <section class="mb-12">
+        <h2 class="text-3xl font-black text-gray-900 mb-6 pb-4 border-b-2 border-gray-300">4. Work Hours & Attendance</h2>
+        <h3 class="text-xl font-bold text-gray-900 mb-3">Standard Business Hours</h3>
+        <p class="text-gray-700 leading-relaxed mb-4">
+          Monday - Friday, 9:00 AM - 5:00 PM (local time). Specific work schedules may vary by department and role.
+        </p>
+        <h3 class="text-xl font-bold text-gray-900 mb-3">Attendance Policy</h3>
+        <p class="text-gray-700 leading-relaxed mb-4">
+          Regular and punctual attendance is essential. If you will be late or absent, notify your supervisor as soon as possible, preferably before your scheduled start time.
+        </p>
+        <h3 class="text-xl font-bold text-gray-900 mb-3">Time Tracking</h3>
+        <p class="text-gray-700 leading-relaxed mb-4">
+          Non-exempt employees must accurately record all time worked using the company's time tracking system. Falsification of time records may result in disciplinary action up to and including termination.
+        </p>
+      </section>
+
+      <!-- Section 5: Compensation & Payroll -->
+      <section class="mb-12">
+        <h2 class="text-3xl font-black text-gray-900 mb-6 pb-4 border-b-2 border-gray-300">5. Compensation & Payroll</h2>
+        <h3 class="text-xl font-bold text-gray-900 mb-3">Pay Schedule</h3>
+        <p class="text-gray-700 leading-relaxed mb-4">
+          Employees are paid bi-weekly via direct deposit. Pay stubs are available electronically through the payroll system.
+        </p>
+        <h3 class="text-xl font-bold text-gray-900 mb-3">Overtime</h3>
+        <p class="text-gray-700 leading-relaxed mb-4">
+          Non-exempt employees will be paid overtime at 1.5 times their regular rate for all hours worked over 40 in a workweek. Overtime must be pre-approved by your supervisor.
+        </p>
+        <h3 class="text-xl font-bold text-gray-900 mb-3">Sales Commissions</h3>
+        <p class="text-gray-700 leading-relaxed mb-4">
+          Sales employees may be eligible for commission-based compensation as outlined in their individual employment agreements or commission plans.
+        </p>
+      </section>
+
+      <!-- Section 6: Benefits -->
+      <section class="mb-12">
+        <h2 class="text-3xl font-black text-gray-900 mb-6 pb-4 border-b-2 border-gray-300">6. Benefits</h2>
+        <p class="text-gray-700 leading-relaxed mb-4">
+          Full-time employees are eligible for the following benefits (subject to plan terms and waiting periods):
+        </p>
+        <ul class="list-disc ml-6 space-y-2 text-gray-700 mb-6">
+          <li><strong>Health Insurance:</strong> Medical, dental, and vision coverage</li>
+          <li><strong>401(k) Retirement Plan:</strong> With company match</li>
+          <li><strong>Life Insurance:</strong> Basic life and AD&D coverage</li>
+          <li><strong>Paid Time Off:</strong> Vacation, sick leave, and holidays</li>
+          <li><strong>Professional Development:</strong> Training and continuing education opportunities</li>
+        </ul>
+        <p class="text-gray-700 leading-relaxed">
+          Detailed benefit information is provided during new hire orientation and is available from Human Resources.
+        </p>
+      </section>
+
+      <!-- Section 7: Time Off Policies -->
+      <section class="mb-12">
+        <h2 class="text-3xl font-black text-gray-900 mb-6 pb-4 border-b-2 border-gray-300">7. Time Off Policies</h2>
+        <h3 class="text-xl font-bold text-gray-900 mb-3">Paid Time Off (PTO)</h3>
+        <p class="text-gray-700 leading-relaxed mb-4">
+          Full-time employees accrue PTO based on length of service. PTO can be used for vacation, personal days, or illness. PTO must be requested and approved in advance except in cases of emergency.
+        </p>
+        <h3 class="text-xl font-bold text-gray-900 mb-3">Holidays</h3>
+        <p class="text-gray-700 leading-relaxed mb-4">
+          CollagenDirect observes the following paid holidays: New Year's Day, Memorial Day, Independence Day, Labor Day, Thanksgiving Day, Day After Thanksgiving, Christmas Eve, Christmas Day, and New Year's Eve.
+        </p>
+        <h3 class="text-xl font-bold text-gray-900 mb-3">Medical Leave</h3>
+        <p class="text-gray-700 leading-relaxed mb-4">
+          Employees may be eligible for leave under the Family and Medical Leave Act (FMLA) or applicable state laws. Contact HR for more information.
+        </p>
+      </section>
+
+      <!-- Section 8: Performance Management -->
+      <section class="mb-12">
+        <h2 class="text-3xl font-black text-gray-900 mb-6 pb-4 border-b-2 border-gray-300">8. Performance Management</h2>
+        <h3 class="text-xl font-bold text-gray-900 mb-3">Performance Reviews</h3>
+        <p class="text-gray-700 leading-relaxed mb-4">
+          Formal performance reviews are conducted annually. Your manager will provide ongoing feedback throughout the year to help you succeed and grow in your role.
+        </p>
+        <h3 class="text-xl font-bold text-gray-900 mb-3">Professional Development</h3>
+        <p class="text-gray-700 leading-relaxed mb-4">
+          We encourage continuous learning and professional growth. Employees may be eligible for training programs, conferences, and educational assistance.
+        </p>
+      </section>
+
+      <!-- Section 9: Code of Conduct -->
+      <section class="mb-12">
+        <h2 class="text-3xl font-black text-gray-900 mb-6 pb-4 border-b-2 border-gray-300">9. Code of Conduct</h2>
+        <p class="text-gray-700 leading-relaxed mb-4">
+          All employees are expected to:
+        </p>
+        <ul class="list-disc ml-6 space-y-2 text-gray-700 mb-6">
+          <li>Conduct themselves professionally at all times</li>
+          <li>Treat colleagues, customers, and partners with respect</li>
+          <li>Follow all company policies and procedures</li>
+          <li>Comply with all applicable laws and regulations</li>
+          <li>Protect company and customer confidential information</li>
+          <li>Avoid conflicts of interest</li>
+          <li>Report any suspected violations of policy or law</li>
+        </ul>
+      </section>
+
+      <!-- Section 10: HIPAA & Confidentiality -->
+      <section class="mb-12">
+        <h2 class="text-3xl font-black text-gray-900 mb-6 pb-4 border-b-2 border-gray-300">10. HIPAA & Confidentiality</h2>
+        <div class="bg-red-50 border-2 border-red-600 p-6 mb-4">
+          <p class="text-red-900 font-bold mb-2">⚠️ CRITICAL COMPLIANCE REQUIREMENT</p>
+          <p class="text-sm text-red-800">
+            All employees are Business Associates under HIPAA and must comply with the Business Associate Agreement and HIPAA Rules. Violations can result in severe penalties and immediate termination.
+          </p>
+        </div>
+        <p class="text-gray-700 leading-relaxed mb-4">
+          <strong>Key Requirements:</strong>
+        </p>
+        <ul class="list-disc ml-6 space-y-2 text-gray-700 mb-6">
+          <li>Access PHI only when necessary for your job duties</li>
+          <li>Never discuss patient information in public or on social media</li>
+          <li>Use secure, encrypted communication for PHI</li>
+          <li>Lock away documents and secure your workstation</li>
+          <li>Report any suspected breaches within 24 hours</li>
+          <li>Complete annual HIPAA training</li>
+        </ul>
+        <p class="text-gray-700 leading-relaxed">
+          For questions or to report incidents, contact the Privacy Officer at privacy@collagendirect.health.
+        </p>
+      </section>
+
+      <!-- Section 11: Technology & Equipment -->
+      <section class="mb-12">
+        <h2 class="text-3xl font-black text-gray-900 mb-6 pb-4 border-b-2 border-gray-300">11. Technology & Equipment</h2>
+        <h3 class="text-xl font-bold text-gray-900 mb-3">Acceptable Use</h3>
+        <p class="text-gray-700 leading-relaxed mb-4">
+          Company technology and equipment (computers, phones, email, internet) are provided for business purposes. Personal use should be minimal and not interfere with work responsibilities.
+        </p>
+        <h3 class="text-xl font-bold text-gray-900 mb-3">Security</h3>
+        <p class="text-gray-700 leading-relaxed mb-4">
+          Employees must use strong passwords, never share login credentials, and report lost or stolen devices immediately. Company systems may be monitored for security and compliance purposes.
+        </p>
+        <h3 class="text-xl font-bold text-gray-900 mb-3">Social Media</h3>
+        <p class="text-gray-700 leading-relaxed mb-4">
+          Do not post confidential company or customer information on social media. Do not represent yourself as speaking on behalf of CollagenDirect without authorization.
+        </p>
+      </section>
+
+      <!-- Section 12: Workplace Safety -->
+      <section class="mb-12">
+        <h2 class="text-3xl font-black text-gray-900 mb-6 pb-4 border-b-2 border-gray-300">12. Workplace Safety</h2>
+        <p class="text-gray-700 leading-relaxed mb-4">
+          CollagenDirect is committed to providing a safe and healthy work environment. Employees are expected to follow all safety policies and report any unsafe conditions or accidents immediately to their supervisor or HR.
+        </p>
+        <h3 class="text-xl font-bold text-gray-900 mb-3">Drug-Free Workplace</h3>
+        <p class="text-gray-700 leading-relaxed mb-4">
+          CollagenDirect maintains a drug-free workplace. The use, possession, or distribution of illegal drugs or alcohol on company premises or during work hours is strictly prohibited.
+        </p>
+      </section>
+
+      <!-- Section 13: Anti-Harassment Policy -->
+      <section class="mb-12">
+        <h2 class="text-3xl font-black text-gray-900 mb-6 pb-4 border-b-2 border-gray-300">13. Anti-Harassment Policy</h2>
+        <p class="text-gray-700 leading-relaxed mb-4">
+          CollagenDirect prohibits harassment of any kind, including harassment based on race, color, religion, sex, national origin, age, disability, sexual orientation, gender identity, or any other protected characteristic.
+        </p>
+        <p class="text-gray-700 leading-relaxed mb-4">
+          If you experience or witness harassment, report it immediately to your supervisor, HR, or any member of management. All complaints will be investigated promptly and confidentially. Retaliation against anyone who reports harassment is strictly prohibited.
+        </p>
+      </section>
+
+      <!-- Section 14: Disciplinary Action -->
+      <section class="mb-12">
+        <h2 class="text-3xl font-black text-gray-900 mb-6 pb-4 border-b-2 border-gray-300">14. Disciplinary Action</h2>
+        <p class="text-gray-700 leading-relaxed mb-4">
+          CollagenDirect may use progressive discipline (verbal warning, written warning, suspension, termination) when addressing policy violations or performance issues. However, the company reserves the right to skip steps or proceed directly to termination for serious violations.
+        </p>
+        <p class="text-gray-700 leading-relaxed mb-4">
+          Immediate termination may result from: HIPAA violations, theft, violence, harassment, insubordination, falsification of records, or other serious misconduct.
+        </p>
+      </section>
+
+      <!-- Section 15: Termination of Employment -->
+      <section class="mb-12">
+        <h2 class="text-3xl font-black text-gray-900 mb-6 pb-4 border-b-2 border-gray-300">15. Termination of Employment</h2>
+        <h3 class="text-xl font-bold text-gray-900 mb-3">Resignation</h3>
+        <p class="text-gray-700 leading-relaxed mb-4">
+          Employees who wish to resign are requested to provide two weeks' written notice to allow for a smooth transition.
+        </p>
+        <h3 class="text-xl font-bold text-gray-900 mb-3">Return of Company Property</h3>
+        <p class="text-gray-700 leading-relaxed mb-4">
+          Upon termination, employees must return all company property, including computers, phones, keys, access badges, and documents containing confidential or PHI information.
+        </p>
+        <h3 class="text-xl font-bold text-gray-900 mb-3">Final Paycheck</h3>
+        <p class="text-gray-700 leading-relaxed mb-4">
+          Final paychecks will be issued in accordance with applicable state law.
+        </p>
+      </section>
+
+      <!-- Section 16: Acknowledgment (Reference) -->
+      <section class="mb-12">
+        <h2 class="text-3xl font-black text-gray-900 mb-6 pb-4 border-b-2 border-gray-300">16. Acknowledgment Form</h2>
+        <p class="text-gray-700 leading-relaxed mb-4">
+          All employees must sign the Employee Handbook Acknowledgment Form confirming they have received, read, and understood the policies in this handbook.
+        </p>
+        <div class="bg-blue-50 border-2 border-blue-600 p-6">
+          <p class="text-sm text-blue-900">
+            <strong>→ Complete the acknowledgment form:</strong> <a href="employee-handbook-acknowledgment.html" class="text-blue-700 underline font-bold">Click here to open the acknowledgment form</a>
+          </p>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <div class="mt-16 pt-8 border-t-4 border-gray-800 text-center">
+        <p class="text-sm text-gray-600 mb-2">CollagenDirect Employee Handbook</p>
+        <p class="text-sm text-gray-600">Version 1.0 | Effective January 2025</p>
+        <p class="text-xs text-gray-500 mt-4">This handbook supersedes all previous handbooks and policy statements</p>
+      </div>
+
+    </div>
+
+    <!-- Notice -->
+    <div class="no-print mt-6 bg-blue-50 border-2 border-blue-600 p-4 rounded">
+      <p class="text-sm font-bold text-blue-900 mb-2">📖 Next Step:</p>
+      <p class="text-xs text-blue-800">
+        After reading this handbook, complete the <a href="employee-handbook-acknowledgment.html" class="underline font-bold">Employee Handbook Acknowledgment Form</a> and return it to HR.
+      </p>
+    </div>
+
+  </div>
+
+</body>
+</html>

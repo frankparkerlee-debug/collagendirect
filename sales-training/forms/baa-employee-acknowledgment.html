@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Employee BAA Acknowledgment | CollagenDirect</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @media print {
+      .no-print { display: none !important; }
+      body { background: white; }
+      .form-container { box-shadow: none; border: 2px solid #000; max-width: 100%; }
+      input { border: 1px solid #000 !important; }
+    }
+  </style>
+</head>
+<body class="bg-gray-100 p-8">
+
+  <div class="max-w-4xl mx-auto">
+    <!-- Header (no print) -->
+    <div class="no-print mb-6 flex items-center justify-between">
+      <a href="../new-hire-welcome.php" class="text-brand-teal hover:underline flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+        </svg>
+        Back to Onboarding
+      </a>
+      <div class="flex gap-2">
+        <a href="/legal/baa.html" target="_blank" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">View Full BAA</a>
+        <button onclick="window.print()" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">Print / Save PDF</button>
+      </div>
+    </div>
+
+    <!-- Form Container -->
+    <div class="bg-white p-10 rounded-lg shadow-2xl form-container">
+
+      <!-- Header -->
+      <div class="text-center mb-8 border-b-4 border-red-600 pb-6">
+        <img src="/assets/collagendirect.png" alt="CollagenDirect" class="h-12 mx-auto mb-4">
+        <h1 class="text-3xl font-black text-gray-900 mb-2">Employee Business Associate Agreement<br>Acknowledgment Form</h1>
+        <p class="text-sm text-red-600 font-bold uppercase">HIPAA Compliance - Required for All Employees</p>
+      </div>
+
+      <div class="bg-red-100 border-4 border-red-600 p-6 mb-8">
+        <p class="text-red-900 font-bold text-lg mb-2">⚠️ CRITICAL NOTICE</p>
+        <p class="text-sm text-red-800 mb-3">
+          As a CollagenDirect employee, you are a "Business Associate" under HIPAA and will have access to Protected Health Information (PHI). This form confirms you understand your legal obligations.
+        </p>
+        <p class="text-xs text-red-700">
+          <strong>Penalties for violations:</strong> Civil fines up to $50,000 per violation (up to $1.5M per year) and criminal penalties up to $250,000 and 10 years imprisonment.
+        </p>
+      </div>
+
+      <!-- Employee Information -->
+      <section class="mb-8 bg-gray-50 p-6 rounded-lg">
+        <h2 class="text-xl font-black text-gray-900 mb-4">Employee Information</h2>
+        <div class="space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-bold mb-1">Full Name <span class="text-red-600">*</span></label>
+              <input type="text" class="w-full p-2 border-2 border-gray-400 rounded" required>
+            </div>
+            <div>
+              <label class="block text-sm font-bold mb-1">Employee ID</label>
+              <input type="text" class="w-full p-2 border-2 border-gray-400 rounded">
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-bold mb-1">Position/Title <span class="text-red-600">*</span></label>
+              <input type="text" class="w-full p-2 border-2 border-gray-400 rounded" required>
+            </div>
+            <div>
+              <label class="block text-sm font-bold mb-1">Department</label>
+              <select class="w-full p-2 border-2 border-gray-400 rounded">
+                <option value="">Select Department</option>
+                <option value="sales">Sales</option>
+                <option value="operations">Operations</option>
+                <option value="customer-service">Customer Service</option>
+                <option value="it">IT</option>
+                <option value="hr">HR</option>
+                <option value="executive">Executive</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-bold mb-1">Start Date <span class="text-red-600">*</span></label>
+              <input type="date" class="w-full p-2 border-2 border-gray-400 rounded" required>
+            </div>
+            <div>
+              <label class="block text-sm font-bold mb-1">Work Email</label>
+              <input type="email" class="w-full p-2 border-2 border-gray-400 rounded" placeholder="@collagendirect.health">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Quick Summary of Obligations -->
+      <section class="mb-8">
+        <h2 class="text-2xl font-black text-gray-900 mb-4">Your Key Obligations as a Business Associate</h2>
+
+        <div class="space-y-4">
+          <div class="border-l-4 border-red-600 bg-red-50 p-4">
+            <h3 class="font-bold text-red-900 mb-2">1. Access Only When Necessary</h3>
+            <p class="text-sm text-red-800">Only access PHI when required for your job duties. Never access patient information out of curiosity.</p>
+          </div>
+
+          <div class="border-l-4 border-orange-600 bg-orange-50 p-4">
+            <h3 class="font-bold text-orange-900 mb-2">2. Maintain Confidentiality</h3>
+            <p class="text-sm text-orange-800">Never discuss patient information in public areas, on social media, or with family/friends.</p>
+          </div>
+
+          <div class="border-l-4 border-yellow-600 bg-yellow-50 p-4">
+            <h3 class="font-bold text-yellow-900 mb-2">3. Use Secure Communication</h3>
+            <p class="text-sm text-yellow-800">Use encrypted email only. Never send PHI via text, personal email, or unsecured methods.</p>
+          </div>
+
+          <div class="border-l-4 border-green-600 bg-green-50 p-4">
+            <h3 class="font-bold text-green-900 mb-2">4. Physical Security</h3>
+            <p class="text-sm text-green-800">Lock away documents, secure your workstation, shred PHI before disposal.</p>
+          </div>
+
+          <div class="border-l-4 border-blue-600 bg-blue-50 p-4">
+            <h3 class="font-bold text-blue-900 mb-2">5. Report Breaches Immediately</h3>
+            <p class="text-sm text-blue-800">Report any suspected breach or security incident within 24 hours to the Privacy Officer.</p>
+          </div>
+
+          <div class="border-l-4 border-purple-600 bg-purple-50 p-4">
+            <h3 class="font-bold text-purple-900 mb-2">6. No Personal Devices</h3>
+            <p class="text-sm text-purple-800">Never store PHI on personal phones, laptops, or cloud storage (Dropbox, Google Drive, etc.).</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Privacy Officer Contact -->
+      <section class="mb-8 bg-blue-50 p-6 rounded-lg border-2 border-blue-600">
+        <h2 class="text-xl font-black text-blue-900 mb-4">Privacy Officer Contact Information</h2>
+        <p class="text-sm text-blue-800 mb-4">Report any suspected breaches, security incidents, or questions about PHI to:</p>
+        <div class="bg-white p-4 rounded border border-blue-300">
+          <p class="text-sm"><strong>Email:</strong> <a href="mailto:privacy@collagendirect.health" class="text-blue-700 hover:underline">privacy@collagendirect.health</a></p>
+          <p class="text-sm"><strong>Phone:</strong> [To Be Determined]</p>
+          <p class="text-sm"><strong>Emergency Hotline:</strong> [To Be Determined] (24/7)</p>
+        </div>
+        <p class="text-xs text-red-700 font-bold mt-4">⏰ DO NOT DELAY REPORTING. Early reporting can prevent penalties and protect patients.</p>
+      </section>
+
+      <!-- Required Acknowledgments -->
+      <section class="mb-8 border-4 border-black p-6 bg-gray-50">
+        <h2 class="text-2xl font-black text-gray-900 mb-6">Required Acknowledgments</h2>
+
+        <div class="bg-white p-6 space-y-3">
+          <p class="text-sm font-bold mb-4">I acknowledge and agree to the following (check all boxes):</p>
+
+          <label class="flex items-start">
+            <input type="checkbox" class="mr-3 mt-1 w-5 h-5" required>
+            <span class="text-sm">I have reviewed the full <a href="/legal/baa.html" target="_blank" class="text-blue-700 underline">CollagenDirect Business Associate Agreement</a> and understand my obligations under HIPAA.</span>
+          </label>
+
+          <label class="flex items-start">
+            <input type="checkbox" class="mr-3 mt-1 w-5 h-5" required>
+            <span class="text-sm">I understand that Protected Health Information (PHI) includes patient names, addresses, dates of birth, medical records, diagnoses, and any other individually identifiable health information.</span>
+          </label>
+
+          <label class="flex items-start">
+            <input type="checkbox" class="mr-3 mt-1 w-5 h-5" required>
+            <span class="text-sm">I will ONLY access PHI when necessary to perform my job duties and will use the minimum necessary information.</span>
+          </label>
+
+          <label class="flex items-start">
+            <input type="checkbox" class="mr-3 mt-1 w-5 h-5" required>
+            <span class="text-sm">I will implement appropriate safeguards to prevent unauthorized use or disclosure of PHI, including password protection, clean desk policy, and secure communication.</span>
+          </label>
+
+          <label class="flex items-start">
+            <input type="checkbox" class="mr-3 mt-1 w-5 h-5" required>
+            <span class="text-sm">I will NEVER share login credentials, discuss patients in public, access records out of curiosity, or post any patient information on social media.</span>
+          </label>
+
+          <label class="flex items-start">
+            <input type="checkbox" class="mr-3 mt-1 w-5 h-5" required>
+            <span class="text-sm">I will report any suspected breach, security incident, or unauthorized access to the Privacy Officer within 24 hours of discovery.</span>
+          </label>
+
+          <label class="flex items-start">
+            <input type="checkbox" class="mr-3 mt-1 w-5 h-5" required>
+            <span class="text-sm">I will complete all required HIPAA training and maintain current knowledge of HIPAA Rules.</span>
+          </label>
+
+          <label class="flex items-start">
+            <input type="checkbox" class="mr-3 mt-1 w-5 h-5" required>
+            <span class="text-sm">I understand that violations may result in civil penalties up to $50,000 per violation (up to $1.5M per year) and criminal penalties up to $250,000 and 10 years imprisonment.</span>
+          </label>
+
+          <label class="flex items-start">
+            <input type="checkbox" class="mr-3 mt-1 w-5 h-5" required>
+            <span class="text-sm">I understand that HIPAA violations may result in immediate termination of employment, loss of professional licenses, and personal liability.</span>
+          </label>
+
+          <label class="flex items-start">
+            <input type="checkbox" class="mr-3 mt-1 w-5 h-5" required>
+            <span class="text-sm">Upon termination of employment, I will return or destroy all PHI in my possession and retain no copies.</span>
+          </label>
+
+          <label class="flex items-start">
+            <input type="checkbox" class="mr-3 mt-1 w-5 h-5" required>
+            <span class="text-sm">I agree to be bound by all terms and conditions of the CollagenDirect Business Associate Agreement for the duration of my employment.</span>
+          </label>
+        </div>
+      </section>
+
+      <!-- Signature Section -->
+      <section class="border-4 border-red-600 p-8 bg-red-50">
+        <h2 class="text-2xl font-black text-red-900 mb-6 text-center">Employee Signature</h2>
+
+        <div class="bg-white p-6 rounded">
+          <p class="text-sm font-bold mb-6 text-center">By signing below, I certify under penalty of perjury that I have read, understand, and agree to comply with all terms of the Business Associate Agreement and this Acknowledgment.</p>
+
+          <div class="grid grid-cols-2 gap-6">
+            <div>
+              <label class="block text-sm font-bold mb-1">Employee Signature <span class="text-red-600">*</span></label>
+              <div class="w-full p-4 border-2 border-black rounded" style="min-height: 60px;"></div>
+            </div>
+            <div>
+              <label class="block text-sm font-bold mb-1">Date <span class="text-red-600">*</span></label>
+              <input type="date" class="w-full p-2 border-2 border-gray-400 rounded" required>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- HR Use Only -->
+      <section class="mt-8 bg-gray-800 text-white p-6 rounded-lg">
+        <h3 class="text-lg font-bold mb-4">FOR HR USE ONLY</h3>
+        <div class="grid grid-cols-3 gap-4 text-sm">
+          <div>
+            <label class="block mb-1">Date Received:</label>
+            <input type="date" class="w-full p-2 border-2 border-gray-400 rounded text-black">
+          </div>
+          <div>
+            <label class="block mb-1">Received By:</label>
+            <input type="text" class="w-full p-2 border-2 border-gray-400 rounded text-black">
+          </div>
+          <div>
+            <label class="block mb-1">Filed:</label>
+            <input type="checkbox" class="w-5 h-5 mt-2">
+          </div>
+        </div>
+        <div class="mt-4 grid grid-cols-2 gap-4">
+          <div>
+            <label class="block mb-1">HIPAA Training Completed:</label>
+            <input type="checkbox" class="w-5 h-5">
+          </div>
+          <div>
+            <label class="block mb-1">Training Completion Date:</label>
+            <input type="date" class="w-full p-2 border-2 border-gray-400 rounded text-black">
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Footer Notice -->
+    <div class="no-print mt-6 bg-yellow-50 border-2 border-yellow-600 p-4 rounded">
+      <p class="text-sm font-bold text-yellow-900 mb-2">📋 Instructions:</p>
+      <ul class="text-xs text-yellow-800 space-y-1 ml-4 list-disc">
+        <li>Read the full Business Associate Agreement at <a href="/legal/baa.html" target="_blank" class="underline">collagendirect.health/legal/baa.html</a></li>
+        <li>Complete all fields and check all acknowledgment boxes</li>
+        <li>Sign and date this form</li>
+        <li>Complete HIPAA training before accessing any patient information</li>
+        <li>Return this form to HR on or before your first day of employment</li>
+        <li>Keep a copy for your records</li>
+      </ul>
+    </div>
+
+  </div>
+
+</body>
+</html>

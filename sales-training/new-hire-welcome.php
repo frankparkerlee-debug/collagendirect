@@ -88,7 +88,7 @@ $user_name = explode('@', $user_email)[0];
           <div class="text-sm font-bold text-gray-600 whitespace-nowrap"><span id="progress-percent">0</span>% Complete</div>
         </div>
         <p class="text-sm text-gray-600">
-          <span id="completed-count">0</span> of <span id="total-count">18</span> tasks completed
+          <span id="completed-count">0</span> of <span id="total-count">19</span> tasks completed
         </p>
       </div>
     </div>
@@ -115,7 +115,7 @@ $user_name = explode('@', $user_email)[0];
           <div class="flex-1">
             <div class="font-bold text-gray-900 group-hover:text-brand-teal transition">Complete Form I-9 (Employment Eligibility)</div>
             <p class="text-sm text-gray-600 mt-1">Verify identity and employment authorization (bring two forms of ID)</p>
-            <a href="https://www.uscis.gov/i-9" target="_blank" class="text-xs text-brand-teal hover:underline mt-2 inline-block">→ Download I-9 form (USCIS.gov)</a>
+            <a href="forms/i-9.html" target="_blank" class="text-xs text-brand-teal hover:underline mt-2 inline-block">→ Open & print I-9 form</a>
           </div>
         </label>
 
@@ -124,7 +124,7 @@ $user_name = explode('@', $user_email)[0];
           <div class="flex-1">
             <div class="font-bold text-gray-900 group-hover:text-brand-teal transition">Complete Form W-4 (Tax Withholding)</div>
             <p class="text-sm text-gray-600 mt-1">Federal tax withholding information</p>
-            <a href="https://www.irs.gov/pub/irs-pdf/fw4.pdf" target="_blank" class="text-xs text-brand-teal hover:underline mt-2 inline-block">→ Download W-4 form (IRS.gov)</a>
+            <a href="forms/w-4.html" target="_blank" class="text-xs text-brand-teal hover:underline mt-2 inline-block">→ Open & print W-4 form</a>
           </div>
         </label>
 
@@ -165,7 +165,11 @@ $user_name = explode('@', $user_email)[0];
               Review & Sign Business Associate Agreement (BAA)
             </div>
             <p class="text-sm text-red-800 mt-1">Required for handling Protected Health Information (PHI)</p>
-            <a href="/legal/baa.html" target="_blank" class="text-xs text-red-700 hover:underline mt-2 inline-block font-semibold">→ Review & print BAA</a>
+            <div class="mt-2 space-y-1">
+              <a href="/legal/baa.html" target="_blank" class="text-xs text-red-700 hover:underline inline-block font-semibold">→ Read full BAA agreement</a>
+              <br>
+              <a href="forms/baa-employee-acknowledgment.html" target="_blank" class="text-xs text-red-700 hover:underline inline-block font-semibold">→ Print & sign BAA acknowledgment</a>
+            </div>
           </div>
         </label>
 
@@ -174,7 +178,20 @@ $user_name = explode('@', $user_email)[0];
           <div class="flex-1">
             <div class="font-bold text-gray-900 group-hover:text-brand-teal transition">Review & Acknowledge Employee Handbook</div>
             <p class="text-sm text-gray-600 mt-1">Company policies, code of conduct, benefits overview</p>
-            <a href="forms/employee-handbook-acknowledgment.html" target="_blank" class="text-xs text-brand-teal hover:underline mt-2 inline-block">→ Print acknowledgment form</a>
+            <div class="mt-2 space-y-1">
+              <a href="forms/employee-handbook.html" target="_blank" class="text-xs text-brand-teal hover:underline inline-block">→ Read full employee handbook</a>
+              <br>
+              <a href="forms/employee-handbook-acknowledgment.html" target="_blank" class="text-xs text-brand-teal hover:underline inline-block">→ Print acknowledgment form</a>
+            </div>
+          </div>
+        </label>
+
+        <label class="flex items-start gap-4 p-5 bg-gray-50 rounded-xl border-2 border-gray-200 hover:border-brand-teal cursor-pointer transition group">
+          <input type="checkbox" class="w-5 h-5 text-brand-teal mt-1 onboarding-checkbox" data-category="compliance">
+          <div class="flex-1">
+            <div class="font-bold text-gray-900 group-hover:text-brand-teal transition">Complete Emergency Contact Information</div>
+            <p class="text-sm text-gray-600 mt-1">Provide emergency contacts and optional medical information</p>
+            <a href="forms/emergency-contact.html" target="_blank" class="text-xs text-brand-teal hover:underline mt-2 inline-block">→ Open & print form</a>
           </div>
         </label>
 
