@@ -115,7 +115,7 @@ $user_name = explode('@', $user_email)[0];
           <div class="flex-1">
             <div class="font-bold text-gray-900 group-hover:text-brand-teal transition">Complete Form I-9 (Employment Eligibility)</div>
             <p class="text-sm text-gray-600 mt-1">Verify identity and employment authorization (bring two forms of ID)</p>
-            <a href="mailto:hr@collagendirect.health?subject=I-9%20Form%20Request" class="text-xs text-brand-teal hover:underline mt-2 inline-block">→ Request form from HR</a>
+            <a href="https://www.uscis.gov/i-9" target="_blank" class="text-xs text-brand-teal hover:underline mt-2 inline-block">→ Download I-9 form (USCIS.gov)</a>
           </div>
         </label>
 
@@ -133,7 +133,7 @@ $user_name = explode('@', $user_email)[0];
           <div class="flex-1">
             <div class="font-bold text-gray-900 group-hover:text-brand-teal transition">Complete Direct Deposit Form</div>
             <p class="text-sm text-gray-600 mt-1">Bank account info for payroll (bring voided check or bank letter)</p>
-            <a href="mailto:hr@collagendirect.health?subject=Direct%20Deposit%20Form" class="text-xs text-brand-teal hover:underline mt-2 inline-block">→ Request form from HR</a>
+            <a href="forms/direct-deposit.html" target="_blank" class="text-xs text-brand-teal hover:underline mt-2 inline-block">→ Open & print form</a>
           </div>
         </label>
 
@@ -147,7 +147,11 @@ $user_name = explode('@', $user_email)[0];
               Complete HIPAA Training & Sign Confidentiality Agreement
             </div>
             <p class="text-sm text-red-800 mt-1">REQUIRED for healthcare organizations - protects patient privacy</p>
-            <a href="/sales-training/hipaa-training.php" class="text-xs text-red-700 hover:underline mt-2 inline-block font-semibold">→ Start HIPAA training (30 minutes)</a>
+            <div class="mt-2 space-y-1">
+              <a href="hipaa-training.php" target="_blank" class="text-xs text-red-700 hover:underline inline-block font-semibold">→ Start HIPAA training (30 minutes)</a>
+              <br>
+              <a href="forms/hipaa-confidentiality-agreement.html" target="_blank" class="text-xs text-red-700 hover:underline inline-block font-semibold">→ Print & sign confidentiality agreement</a>
+            </div>
           </div>
         </label>
 
@@ -161,16 +165,16 @@ $user_name = explode('@', $user_email)[0];
               Review & Sign Business Associate Agreement (BAA)
             </div>
             <p class="text-sm text-red-800 mt-1">Required for handling Protected Health Information (PHI)</p>
-            <a href="/legal/baa.html" target="_blank" class="text-xs text-red-700 hover:underline mt-2 inline-block font-semibold">→ Review BAA</a>
+            <a href="/legal/baa.html" target="_blank" class="text-xs text-red-700 hover:underline mt-2 inline-block font-semibold">→ Review & print BAA</a>
           </div>
         </label>
 
         <label class="flex items-start gap-4 p-5 bg-gray-50 rounded-xl border-2 border-gray-200 hover:border-brand-teal cursor-pointer transition group">
           <input type="checkbox" class="w-5 h-5 text-brand-teal mt-1 onboarding-checkbox" data-category="compliance">
           <div class="flex-1">
-            <div class="font-bold text-gray-900 group-hover:text-brand-teal transition">Review Employee Handbook</div>
+            <div class="font-bold text-gray-900 group-hover:text-brand-teal transition">Review & Acknowledge Employee Handbook</div>
             <p class="text-sm text-gray-600 mt-1">Company policies, code of conduct, benefits overview</p>
-            <a href="mailto:hr@collagendirect.health?subject=Employee%20Handbook%20Request" class="text-xs text-brand-teal hover:underline mt-2 inline-block">→ Request handbook from HR</a>
+            <a href="forms/employee-handbook-acknowledgment.html" target="_blank" class="text-xs text-brand-teal hover:underline mt-2 inline-block">→ Print acknowledgment form</a>
           </div>
         </label>
 

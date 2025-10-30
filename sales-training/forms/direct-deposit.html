@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Direct Deposit Authorization Form | CollagenDirect</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @media print {
+      .no-print { display: none; }
+      body { background: white; }
+      .form-container { box-shadow: none; border: 2px solid #000; }
+    }
+    input[type="text"], input[type="date"], input[type="number"] {
+      border-bottom: 1px solid #000;
+      background: transparent;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 p-8">
+
+  <div class="max-w-4xl mx-auto">
+    <div class="no-print mb-6 flex items-center justify-between">
+      <a href="../new-hire-welcome.php" class="text-blue-600 hover:underline">&larr; Back to Onboarding</a>
+      <button onclick="window.print()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Print / Save PDF</button>
+    </div>
+
+    <div class="bg-white p-12 shadow-lg form-container">
+
+      <!-- Header -->
+      <div class="text-center mb-8 border-b-2 border-gray-800 pb-6">
+        <h1 class="text-3xl font-bold mb-2">DIRECT DEPOSIT AUTHORIZATION FORM</h1>
+        <p class="text-lg">CollagenDirect, LLC</p>
+        <p class="text-sm text-gray-600">Healthcare Wound Care Solutions</p>
+      </div>
+
+      <!-- Employee Information -->
+      <div class="mb-8">
+        <h2 class="text-xl font-bold mb-4 bg-gray-200 p-2">EMPLOYEE INFORMATION</h2>
+        <div class="grid grid-cols-2 gap-6 mb-4">
+          <div>
+            <label class="block text-sm font-bold mb-1">Employee Name (First, Middle, Last)</label>
+            <input type="text" class="w-full p-2" placeholder="">
+          </div>
+          <div>
+            <label class="block text-sm font-bold mb-1">Employee ID (if assigned)</label>
+            <input type="text" class="w-full p-2" placeholder="">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-6 mb-4">
+          <div>
+            <label class="block text-sm font-bold mb-1">Social Security Number</label>
+            <input type="text" class="w-full p-2" placeholder="XXX-XX-XXXX">
+          </div>
+          <div>
+            <label class="block text-sm font-bold mb-1">Email Address</label>
+            <input type="text" class="w-full p-2" placeholder="@collagendirect.health">
+          </div>
+        </div>
+      </div>
+
+      <!-- Banking Information -->
+      <div class="mb-8">
+        <h2 class="text-xl font-bold mb-4 bg-gray-200 p-2">BANKING INFORMATION</h2>
+
+        <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-6">
+          <p class="text-sm"><strong>IMPORTANT:</strong> Please attach a voided check or bank letter showing your account and routing numbers.</p>
+        </div>
+
+        <div class="mb-6">
+          <label class="block text-sm font-bold mb-1">Financial Institution Name</label>
+          <input type="text" class="w-full p-2" placeholder="Bank name">
+        </div>
+
+        <div class="grid grid-cols-2 gap-6 mb-6">
+          <div>
+            <label class="block text-sm font-bold mb-1">Routing Number (9 digits)</label>
+            <input type="text" class="w-full p-2" placeholder="XXXXXXXXX" maxlength="9">
+            <p class="text-xs text-gray-600 mt-1">Found at bottom left of check</p>
+          </div>
+          <div>
+            <label class="block text-sm font-bold mb-1">Account Number</label>
+            <input type="text" class="w-full p-2" placeholder="">
+            <p class="text-xs text-gray-600 mt-1">Found at bottom center of check</p>
+          </div>
+        </div>
+
+        <div class="mb-6">
+          <label class="block text-sm font-bold mb-2">Account Type</label>
+          <div class="flex gap-6">
+            <label class="flex items-center">
+              <input type="radio" name="account_type" class="mr-2"> Checking
+            </label>
+            <label class="flex items-center">
+              <input type="radio" name="account_type" class="mr-2"> Savings
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Distribution Options -->
+      <div class="mb-8">
+        <h2 class="text-xl font-bold mb-4 bg-gray-200 p-2">DEPOSIT DISTRIBUTION</h2>
+
+        <div class="mb-6">
+          <label class="flex items-center mb-2">
+            <input type="radio" name="distribution" class="mr-2" checked>
+            <span class="font-bold">Full Deposit</span> - Deposit 100% of my net pay into the account above
+          </label>
+        </div>
+
+        <div class="mb-6">
+          <label class="flex items-center mb-2">
+            <input type="radio" name="distribution" class="mr-2">
+            <span class="font-bold">Partial Deposit</span> - Deposit a specific amount, remainder by paper check
+          </label>
+          <div class="ml-6 mt-2">
+            <label class="block text-sm font-bold mb-1">Amount to Deposit Each Pay Period</label>
+            <input type="text" class="w-48 p-2" placeholder="$">
+          </div>
+        </div>
+      </div>
+
+      <!-- Authorization -->
+      <div class="mb-8">
+        <h2 class="text-xl font-bold mb-4 bg-gray-200 p-2">AUTHORIZATION</h2>
+
+        <div class="border-2 border-gray-800 p-6 mb-6">
+          <p class="text-sm mb-4 leading-relaxed">
+            I hereby authorize CollagenDirect, LLC ("Employer") to initiate direct deposit credit entries to my account at the financial institution named above. I also authorize Employer to make debit adjustments for any credit entries made in error.
+          </p>
+          <p class="text-sm mb-4 leading-relaxed">
+            This authorization will remain in effect until I submit a written notice of cancellation to the Human Resources department, or until Employer terminates it. I understand that advance notification of at least one (1) pay period is required for changes or cancellations.
+          </p>
+          <p class="text-sm mb-4 leading-relaxed">
+            I acknowledge that it is my responsibility to verify that direct deposits are made correctly and to notify Human Resources immediately of any discrepancies.
+          </p>
+          <p class="text-sm font-bold">
+            I certify that I am an authorized signer on the account listed above and that the information provided is accurate.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-8 mb-8">
+          <div>
+            <label class="block text-sm font-bold mb-2">Employee Signature</label>
+            <div class="border-b-2 border-black pt-8"></div>
+            <p class="text-xs text-gray-600 mt-1">Sign above</p>
+          </div>
+          <div>
+            <label class="block text-sm font-bold mb-2">Date</label>
+            <input type="date" class="w-full p-2">
+          </div>
+        </div>
+      </div>
+
+      <!-- HR Use Only -->
+      <div class="border-t-2 border-gray-800 pt-6">
+        <h2 class="text-xl font-bold mb-4 bg-gray-300 p-2">FOR HR USE ONLY</h2>
+
+        <div class="grid grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-bold mb-1">Processed By</label>
+            <input type="text" class="w-full p-2 bg-gray-100">
+          </div>
+          <div>
+            <label class="block text-sm font-bold mb-1">Date Processed</label>
+            <input type="date" class="w-full p-2 bg-gray-100">
+          </div>
+          <div>
+            <label class="block text-sm font-bold mb-1">Effective Pay Date</label>
+            <input type="date" class="w-full p-2 bg-gray-100">
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <label class="flex items-center">
+            <input type="checkbox" class="mr-2">
+            <span class="text-sm">Voided check or bank letter attached</span>
+          </label>
+          <label class="flex items-center mt-2">
+            <input type="checkbox" class="mr-2">
+            <span class="text-sm">Information verified in payroll system</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="mt-8 text-center text-xs text-gray-600 border-t pt-4">
+        <p>CollagenDirect, LLC | Direct Deposit Authorization Form</p>
+        <p>For questions, contact HR at hr@collagendirect.health</p>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>
