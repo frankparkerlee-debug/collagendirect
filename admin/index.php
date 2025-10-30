@@ -218,7 +218,7 @@ try {
 } catch(Throwable $e){ error_log("[recent] ".$e->getMessage()); }
 
 /* ---------- Reminders (safe) ---------- */
-$expiringOrders = 0; $delayedShipments = 0; $pendingPreauth = 0;
+$expiringOrders = 0; $pendingPreauth = 0; $unreadPhysicianComments = 0;
 
 if ($adminRole === 'superadmin' || $adminRole === 'manufacturer' || $adminRole === 'admin') {
   // Admin roles see all reminders
@@ -228,14 +228,15 @@ if ($adminRole === 'superadmin' || $adminRole === 'manufacturer' || $adminRole =
     }
   } catch(Throwable $e){}
   try {
-    if (has_column($pdo,'orders','shipped_at') && has_column($pdo,'orders','delivered_at')) {
-      $delayedShipments = qCount($pdo,"SELECT COUNT(*) c FROM orders WHERE status='in_transit' AND shipped_at IS NOT NULL AND delivered_at IS NULL AND shipped_at < (NOW() - INTERVAL '7 days')");
-    }
-  } catch(Throwable $e){}
-  try {
     // Count patients needing pre-authorization status (pending or need_info)
     if (has_column($pdo,'patients','state')) {
       $pendingPreauth = qCount($pdo,"SELECT COUNT(*) c FROM patients WHERE state IN ('pending', 'need_info')");
+    }
+  } catch(Throwable $e){}
+  try {
+    // Count unread physician comments (provider_response exists but admin hasn't read)
+    if (has_column($pdo,'patients','provider_response') && has_column($pdo,'patients','admin_response_read_at')) {
+      $unreadPhysicianComments = qCount($pdo,"SELECT COUNT(*) c FROM patients WHERE provider_response IS NOT NULL AND provider_response != '' AND (admin_response_read_at IS NULL OR admin_response_read_at < provider_response_at)");
     }
   } catch(Throwable $e){}
 } else {
@@ -246,14 +247,15 @@ if ($adminRole === 'superadmin' || $adminRole === 'manufacturer' || $adminRole =
     }
   } catch(Throwable $e){}
   try {
-    if (has_column($pdo,'orders','shipped_at') && has_column($pdo,'orders','delivered_at')) {
-      $delayedShipments = qCount($pdo,"SELECT COUNT(*) c FROM orders o WHERE o.status='in_transit' AND o.shipped_at IS NOT NULL AND o.delivered_at IS NULL AND o.shipped_at < (NOW() - INTERVAL '7 days') AND EXISTS (SELECT 1 FROM admin_physicians ap WHERE ap.admin_id = ? AND ap.physician_user_id = o.user_id)", [$adminId]);
-    }
-  } catch(Throwable $e){}
-  try {
     // Count patients needing pre-authorization status (pending or need_info) - filtered by assigned physicians
     if (has_column($pdo,'patients','state')) {
       $pendingPreauth = qCount($pdo,"SELECT COUNT(*) c FROM patients p WHERE p.state IN ('pending', 'need_info') AND EXISTS (SELECT 1 FROM admin_physicians ap WHERE ap.admin_id = ? AND ap.physician_user_id = p.user_id)", [$adminId]);
+    }
+  } catch(Throwable $e){}
+  try {
+    // Count unread physician comments - filtered by assigned physicians
+    if (has_column($pdo,'patients','provider_response') && has_column($pdo,'patients','admin_response_read_at')) {
+      $unreadPhysicianComments = qCount($pdo,"SELECT COUNT(*) c FROM patients p WHERE p.provider_response IS NOT NULL AND p.provider_response != '' AND (p.admin_response_read_at IS NULL OR p.admin_response_read_at < p.provider_response_at) AND EXISTS (SELECT 1 FROM admin_physicians ap WHERE ap.admin_id = ? AND ap.physician_user_id = p.user_id)", [$adminId]);
     }
   } catch(Throwable $e){}
 }
@@ -400,11 +402,12 @@ include __DIR__.'/_header.php';
             <span class="text-xl font-bold text-red-600"><?=$expiringOrders?></span>
           </div>
         </a>
-        <a href="/admin/shipments.php" class="block p-3 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">
+        <a href="/admin/patients.php" class="block p-3 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors">
           <div class="flex items-center justify-between">
-            <span class="text-sm font-medium text-blue-900">Delayed Shipments (&gt;7 days)</span>
-            <span class="text-xl font-bold text-blue-600"><?=$delayedShipments?></span>
+            <span class="text-sm font-medium text-green-900">Unread Physician Comments</span>
+            <span class="text-xl font-bold text-green-600"><?=$unreadPhysicianComments?></span>
           </div>
+          <div class="text-xs text-green-700 mt-1">Provider responses pending review</div>
         </a>
         <a href="/admin/patients.php?status=pending" class="block p-3 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors">
           <div class="flex items-center justify-between">
