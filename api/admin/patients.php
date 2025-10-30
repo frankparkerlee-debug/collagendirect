@@ -60,10 +60,10 @@ $action = $_POST['action'] ?? '';
 try {
   // Mark provider response as read by admin
   if ($action === 'mark_response_read') {
-    $patientId = (int)($_POST['patient_id'] ?? 0);
+    $patientId = trim($_POST['patient_id'] ?? '');
 
-    if (!$patientId) {
-      echo json_encode(['ok' => false, 'error' => 'Invalid patient ID']);
+    if (empty($patientId)) {
+      echo json_encode(['ok' => false, 'error' => 'Patient ID is required']);
       exit;
     }
 
@@ -88,17 +88,17 @@ try {
     $patientId = trim($_POST['patient_id'] ?? '');
     $replyMessage = trim($_POST['reply_message'] ?? '');
 
-    // Log for debugging (log raw value before any conversion)
-    error_log("Reply request - Raw Patient ID: " . var_export($_POST['patient_id'] ?? 'MISSING', true) . ", Patient ID: $patientId, Reply length: " . strlen($replyMessage));
+    // Log for debugging
+    error_log("Reply request - Patient ID: $patientId, Reply length: " . strlen($replyMessage));
 
-    // Validate patient ID (must be numeric)
-    if (empty($patientId) || !is_numeric($patientId)) {
-      echo json_encode(['ok' => false, 'error' => 'Invalid patient ID: ' . $patientId]);
+    // Validate patient ID (can be numeric or UUID string)
+    if (empty($patientId)) {
+      echo json_encode(['ok' => false, 'error' => 'Patient ID is required']);
       exit;
     }
 
-    // Convert to int after validation
-    $patientId = (int)$patientId;
+    // Patient ID can be either numeric (old style) or UUID string (new style)
+    // Just keep it as-is and let the database handle it
 
     if (!$replyMessage) {
       echo json_encode(['ok' => false, 'error' => 'Reply message cannot be empty']);
