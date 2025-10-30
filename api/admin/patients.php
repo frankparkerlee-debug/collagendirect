@@ -2,22 +2,21 @@
 // Start output buffering to catch any stray output
 ob_start();
 
-require_once __DIR__.'/../../includes/db.php';
-require_once __DIR__.'/../../includes/auth.php';
+require_once __DIR__.'/../../db.php';
 
 // Clear any output that might have been generated
 ob_clean();
 
 header('Content-Type: application/json');
 
-// Check authentication
-if (!isset($_SESSION['admin_id'])) {
+// Check authentication - session is started in db.php
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
   echo json_encode(['ok' => false, 'error' => 'Not authenticated']);
   exit;
 }
 
-$adminId = (int)$_SESSION['admin_id'];
-$adminRole = $_SESSION['admin_role'] ?? '';
+$adminId = (int)$_SESSION['user_id'];
+$adminRole = $_SESSION['role'] ?? '';
 $action = $_POST['action'] ?? '';
 
 try {
