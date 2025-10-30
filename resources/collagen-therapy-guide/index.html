@@ -443,25 +443,75 @@
   </article>
 
   <!-- Footer -->
-  <footer class="bg-white border-t border-gray-200 py-12">
+  <footer class="bg-gradient-to-b from-white to-gray-50 border-t border-gray-200 py-16">
     <div class="max-w-7xl mx-auto px-6 lg:px-8">
-      <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-        <div class="flex items-center gap-3">
-          <img src="/assets/collagendirect.png" alt="CollagenDirect" class="h-8 w-auto">
-          <div>
-            <div class="text-sm font-bold text-gray-900">CollagenDirect</div>
-            <div class="text-xs text-gray-500">Advanced Wound Care</div>
+      <div class="grid md:grid-cols-5 gap-10 mb-12">
+        <!-- Brand Column -->
+        <div class="md:col-span-2">
+          <div class="flex items-center gap-3 mb-4">
+            <img src="/assets/collagendirect.png" alt="CollagenDirect" class="h-8 w-auto">
+            <div>
+              <div class="text-sm font-bold text-gray-900">CollagenDirect</div>
+              <div class="text-xs text-gray-500">Advanced Wound Care</div>
+            </div>
+          </div>
+          <p class="text-gray-600 leading-relaxed max-w-md mb-6">
+            Evidence-based collagen therapies with direct access, streamlined ordering, complete compliance.
+          </p>
+          <div class="text-sm text-gray-500">
+            <p class="font-semibold text-gray-700 mb-2">Contact Us</p>
+            <p>Email: <a href="mailto:support@collagendirect.health" class="text-brand-blue hover:text-brand-teal transition">support@collagendirect.health</a></p>
+            <p>Phone: 1-800-XXX-XXXX</p>
           </div>
         </div>
-        <div class="flex gap-6">
-          <a href="/" class="text-sm text-gray-600 hover:text-brand-teal transition">Home</a>
-          <a href="/products/" class="text-sm text-gray-600 hover:text-brand-teal transition">Products</a>
-          <a href="/for-healthcare-professionals/" class="text-sm text-gray-600 hover:text-brand-teal transition">For Professionals</a>
-          <a href="/resources/" class="text-sm text-gray-600 hover:text-brand-teal transition">Resources</a>
+
+        <!-- Products & Services -->
+        <div>
+          <h3 class="font-bold text-gray-900 mb-4">Products</h3>
+          <ul class="space-y-2 text-sm">
+            <li><a href="/products/" class="text-gray-600 hover:text-brand-teal transition">All Products</a></li>
+            <li><a href="/products/#sheets" class="text-gray-600 hover:text-brand-teal transition">Collagen Sheets</a></li>
+            <li><a href="/products/#particles" class="text-gray-600 hover:text-brand-teal transition">Particles & Powder</a></li>
+            <li><a href="/products/#gels" class="text-gray-600 hover:text-brand-teal transition">Antimicrobial Gels</a></li>
+          </ul>
+        </div>
+
+        <!-- Resources -->
+        <div>
+          <h3 class="font-bold text-gray-900 mb-4">Resources</h3>
+          <ul class="space-y-2 text-sm">
+            <li><a href="/for-healthcare-professionals/" class="text-gray-600 hover:text-brand-teal transition">For Professionals</a></li>
+            <li><a href="/clinical-evidence/" class="text-gray-600 hover:text-brand-teal transition">Clinical Evidence</a></li>
+            <li><a href="/resources/" class="text-gray-600 hover:text-brand-teal transition">Educational Content</a></li>
+            <li><a href="/register" class="text-gray-600 hover:text-brand-teal transition">Register</a></li>
+            <li><a href="/login" class="text-gray-600 hover:text-brand-teal transition">Sign In</a></li>
+          </ul>
+        </div>
+
+        <!-- Legal & Policies -->
+        <div>
+          <h3 class="font-bold text-gray-900 mb-4">Legal & Policies</h3>
+          <ul class="space-y-2 text-sm">
+            <li><a href="/privacy-policy.html" class="text-gray-600 hover:text-brand-teal transition">Privacy Policy</a></li>
+            <li><a href="/terms-conditions.html" class="text-gray-600 hover:text-brand-teal transition">Terms & Conditions</a></li>
+            <li><a href="/electronic-communications.html" class="text-gray-600 hover:text-brand-teal transition">Electronic Communications</a></li>
+            <li><a href="/legal/baa.html" class="text-gray-600 hover:text-brand-teal transition">BAA Agreement</a></li>
+          </ul>
         </div>
       </div>
-      <div class="mt-8 pt-8 border-t border-gray-200 text-center">
-        <p class="text-sm text-gray-500">© 2025 CollagenDirect. All rights reserved.</p>
+
+      <!-- Bottom Bar -->
+      <div class="pt-8 border-t border-gray-300 flex flex-col md:flex-row justify-between items-center gap-4">
+        <p class="text-sm text-gray-500">
+          © 2025 CollagenDirect. All rights reserved.
+        </p>
+        <div class="flex flex-wrap justify-center gap-4 text-xs text-gray-400">
+          <span>FDA Cleared Medical Devices</span>
+          <span class="hidden md:inline">•</span>
+          <span>HIPAA Compliant Platform</span>
+          <span class="hidden md:inline">•</span>
+          <span>Made in USA</span>
+        </div>
       </div>
     </div>
   </footer>
