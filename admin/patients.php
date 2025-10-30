@@ -216,9 +216,17 @@ try {
       p.state, p.created_at,
       p.notes_path, p.ins_card_path, p.id_card_path,
       p.insurance_provider, p.insurance_member_id, p.insurance_group_id, p.insurance_payer_phone,
+      p.status_comment, p.status_updated_at, p.provider_response, p.provider_response_at, p.admin_response_read_at,
       u.first_name AS phys_first, u.last_name AS phys_last, u.practice_name,
       COUNT(DISTINCT o.id) AS order_count,
-      MAX(o.created_at) AS last_order_date
+      MAX(o.created_at) AS last_order_date,
+      CASE
+        WHEN p.provider_response IS NOT NULL
+          AND p.provider_response != ''
+          AND (p.admin_response_read_at IS NULL OR p.admin_response_read_at < p.provider_response_at)
+        THEN TRUE
+        ELSE FALSE
+      END as has_unread_response
     FROM patients p
     LEFT JOIN users u ON u.id = p.user_id
     LEFT JOIN orders o ON o.patient_id = p.id AND o.status NOT IN ('rejected','cancelled')
@@ -226,6 +234,7 @@ try {
     GROUP BY p.id, p.user_id, p.first_name, p.last_name, p.email, p.phone, p.dob,
              p.state, p.created_at, p.notes_path, p.ins_card_path, p.id_card_path,
              p.insurance_provider, p.insurance_member_id, p.insurance_group_id, p.insurance_payer_phone,
+             p.status_comment, p.status_updated_at, p.provider_response, p.provider_response_at, p.admin_response_read_at,
              u.first_name, u.last_name, u.practice_name
     $having
     ORDER BY p.created_at DESC
@@ -440,8 +449,11 @@ include __DIR__.'/_header.php';
               <td class="py-2">
                 <button
                   onclick="togglePatientDetails('<?=e($pid)?>')"
-                  class="text-brand underline text-xs hover:text-brand-dark cursor-pointer"
+                  class="text-brand underline text-xs hover:text-brand-dark cursor-pointer relative"
                 >
+                  <?php if (!empty($row['has_unread_response']) && $row['has_unread_response']): ?>
+                    <span style="position: absolute; top: -4px; right: -4px; width: 8px; height: 8px; background: #ef4444; border-radius: 50%; border: 2px solid white;"></span>
+                  <?php endif; ?>
                   <span class="expand-text">View Details</span>
                   <span class="collapse-text hidden">Hide Details</span>
                 </button>
@@ -504,6 +516,63 @@ include __DIR__.'/_header.php';
                         <div><span class="text-slate-600">Insurance:</span> <?=render_view_link($insLinks)?></div>
                       </div>
                     </div>
+                  </div>
+
+                  <!-- Communication Thread -->
+                  <?php if (!empty($row['status_comment']) || !empty($row['provider_response'])): ?>
+                    <div class="mt-6 border-t pt-4">
+                      <h4 class="font-semibold mb-3">Communication Thread</h4>
+
+                      <!-- Manufacturer Comment to Provider -->
+                      <?php if (!empty($row['status_comment'])): ?>
+                        <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded">
+                          <div class="flex justify-between items-start mb-2">
+                            <span class="text-xs font-semibold text-blue-900">Manufacturer → Physician</span>
+                            <?php if (!empty($row['status_updated_at'])): ?>
+                              <span class="text-xs text-blue-700"><?=e(substr($row['status_updated_at'], 0, 16))?></span>
+                            <?php endif; ?>
+                          </div>
+                          <div class="text-sm text-blue-900"><?=nl2br(e($row['status_comment']))?></div>
+                        </div>
+                      <?php endif; ?>
+
+                      <!-- Provider Response -->
+                      <?php if (!empty($row['provider_response'])): ?>
+                        <div class="mb-4 p-3 bg-green-50 border border-green-200 rounded relative">
+                          <?php if (!empty($row['has_unread_response']) && $row['has_unread_response']): ?>
+                            <span class="absolute -top-2 -right-2 w-4 h-4 bg-red-500 rounded-full border-2 border-white" title="Unread response"></span>
+                          <?php endif; ?>
+                          <div class="flex justify-between items-start mb-2">
+                            <span class="text-xs font-semibold text-green-900">Physician → Manufacturer</span>
+                            <?php if (!empty($row['provider_response_at'])): ?>
+                              <span class="text-xs text-green-700"><?=e(substr($row['provider_response_at'], 0, 16))?></span>
+                            <?php endif; ?>
+                          </div>
+                          <div class="text-sm text-green-900"><?=nl2br(e($row['provider_response']))?></div>
+                        </div>
+
+                        <!-- Reply Form (for manufacturers) -->
+                        <?php if ($adminRole === 'superadmin' || $adminRole === 'manufacturer'): ?>
+                          <form id="reply-form-<?=e($pid)?>" onsubmit="sendReply(event, '<?=e($pid)?>')" class="mt-3">
+                            <label class="block text-sm font-medium text-slate-700 mb-2">Reply to Physician:</label>
+                            <textarea
+                              name="reply_message"
+                              rows="3"
+                              class="w-full px-3 py-2 border border-slate-300 rounded focus:ring-2 focus:ring-brand focus:border-transparent"
+                              placeholder="Type your response here..."
+                              required
+                            ></textarea>
+                            <button
+                              type="submit"
+                              class="mt-2 px-4 py-2 bg-brand text-white rounded hover:bg-brand-dark transition"
+                            >
+                              Send Reply
+                            </button>
+                          </form>
+                        <?php endif; ?>
+                      <?php endif; ?>
+                    </div>
+                  <?php endif; ?>
                   </div>
                 </div>
 
@@ -619,11 +688,62 @@ function togglePatientDetails(patientId) {
     detailsRow.classList.remove('hidden');
     expandText.classList.add('hidden');
     collapseText.classList.remove('hidden');
+
+    // Mark provider response as read by admin
+    markResponseAsRead(patientId, button);
   } else {
     // Close this one
     detailsRow.classList.add('hidden');
     expandText.classList.remove('hidden');
     collapseText.classList.add('hidden');
+  }
+}
+
+async function markResponseAsRead(patientId, button) {
+  try {
+    const formData = new FormData();
+    formData.append('action', 'mark_response_read');
+    formData.append('patient_id', patientId);
+
+    await fetch('/api/admin/patients.php', {
+      method: 'POST',
+      body: formData
+    });
+
+    // Remove red dot indicator
+    const redDot = button.querySelector('span[style*="background: #ef4444"]');
+    if (redDot) {
+      redDot.remove();
+    }
+  } catch (error) {
+    console.error('Error marking response as read:', error);
+  }
+}
+
+async function sendReply(event, patientId) {
+  event.preventDefault();
+  const form = event.target;
+  const formData = new FormData(form);
+  formData.append('action', 'send_reply_to_provider');
+  formData.append('patient_id', patientId);
+
+  try {
+    const response = await fetch('/api/admin/patients.php', {
+      method: 'POST',
+      body: formData
+    });
+
+    const result = await response.json();
+
+    if (result.ok) {
+      alert('Reply sent successfully!');
+      location.reload();
+    } else {
+      alert('Error: ' + (result.error || 'Failed to send reply'));
+    }
+  } catch (error) {
+    console.error('Send reply error:', error);
+    alert('Error sending reply: ' + error.message);
   }
 }
 

@@ -379,6 +379,17 @@ if ($action) {
     $p=$s->fetch(PDO::FETCH_ASSOC);
     if(!$p) jerr('Patient not found',404);
 
+    // Mark manufacturer comment as read by provider
+    if ($userRole !== 'superadmin' && !empty($p['status_comment'])) {
+      try {
+        $pdo->prepare("UPDATE patients SET provider_comment_read_at = NOW() WHERE id = ? AND user_id = ?")
+            ->execute([$pid, $userId]);
+      } catch (Throwable $e) {
+        // Column might not exist yet - ignore error
+        error_log("Could not update provider_comment_read_at: " . $e->getMessage());
+      }
+    }
+
     // Add default values for notes if columns don't exist
     if (!$hasNotesCols) {
       $p['notes_path'] = null;
@@ -4897,7 +4908,8 @@ if (<?php echo json_encode($page==='dashboard'); ?>){
           <td class="py-3 px-2" style="color: var(--ink-light);">${esc(p.email||'-')}</td>
           <td class="py-3 px-2">${statusBadge}</td>
           <td class="py-3 px-2 text-right">
-            <button class="icon-btn" type="button" data-acc="${p.id}" style="width: 32px; height: 32px;">
+            <button class="icon-btn" type="button" data-acc="${p.id}" style="width: 32px; height: 32px; position: relative;">
+              ${p.has_unread_comment ? '<span style="position: absolute; top: 2px; right: 2px; width: 8px; height: 8px; background: #ef4444; border-radius: 50%; border: 2px solid white;"></span>' : ''}
               <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg>
             </button>
           </td>

@@ -45,13 +45,22 @@ try {
       SELECT p.id, p.first_name, p.last_name, p.dob, p.phone, p.email, p.address, p.city, p.state, p.zip,
              p.insurance_provider, p.insurance_member_id, p.insurance_group_id, p.insurance_payer_phone,
              p.note_path, p.ins_card_path, p.id_card_path, p.created_at, p.updated_at,
-             COUNT(DISTINCT o.product_id) as product_count
+             p.status_comment, p.status_updated_at, p.provider_comment_read_at,
+             COUNT(DISTINCT o.product_id) as product_count,
+             CASE
+               WHEN p.status_comment IS NOT NULL
+                 AND p.status_comment != ''
+                 AND (p.provider_comment_read_at IS NULL OR p.provider_comment_read_at < p.status_updated_at)
+               THEN TRUE
+               ELSE FALSE
+             END as has_unread_comment
       FROM patients p
       LEFT JOIN orders o ON o.patient_id = p.id
       WHERE p.user_id = ?
       GROUP BY p.id, p.first_name, p.last_name, p.dob, p.phone, p.email, p.address, p.city, p.state, p.zip,
                p.insurance_provider, p.insurance_member_id, p.insurance_group_id, p.insurance_payer_phone,
-               p.note_path, p.ins_card_path, p.id_card_path, p.created_at, p.updated_at
+               p.note_path, p.ins_card_path, p.id_card_path, p.created_at, p.updated_at,
+               p.status_comment, p.status_updated_at, p.provider_comment_read_at
       ORDER BY p.updated_at DESC
       LIMIT {$limit}
     ");
