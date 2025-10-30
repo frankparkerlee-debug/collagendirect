@@ -321,10 +321,10 @@ include __DIR__.'/_header.php';
         <label class="text-xs text-slate-500 mb-1 block">Status</label>
         <select name="status" class="w-full border rounded px-3 py-1.5 text-sm">
           <option value="all" <?=$status==='all'?'selected':''?>>All Statuses</option>
-          <option value="pending" <?=$status==='pending'?'selected':''?>>Pending</option>
+          <option value="pending" <?=$status==='pending'?'selected':''?>>Pending Review</option>
           <option value="approved" <?=$status==='approved'?'selected':''?>>Approved</option>
           <option value="not_covered" <?=$status==='not_covered'?'selected':''?>>Not Covered</option>
-          <option value="need_info" <?=$status==='need_info'?'selected':''?>>Need Info</option>
+          <option value="need_info" <?=$status==='need_info'?'selected':''?>>Need More Info</option>
           <option value="active" <?=$status==='active'?'selected':''?>>Active</option>
           <option value="inactive" <?=$status==='inactive'?'selected':''?>>Inactive</option>
         </select>
@@ -632,12 +632,11 @@ include __DIR__.'/_header.php';
                         <div>
                           <label class="block text-slate-600 mb-1">Status</label>
                           <select name="state" class="w-full px-2 py-1 border rounded">
-                            <option value="new" <?=$status==='new'?'selected':''?>>New</option>
+                            <option value="pending" <?=$status==='pending'?'selected':''?>>Pending Review</option>
                             <option value="approved" <?=$status==='approved'?'selected':''?>>Approved</option>
+                            <option value="not_covered" <?=$status==='not_covered'?'selected':''?>>Not Covered</option>
+                            <option value="need_info" <?=$status==='need_info'?'selected':''?>>Need More Info</option>
                             <option value="active" <?=$status==='active'?'selected':''?>>Active</option>
-                            <option value="no_coverage" <?=$status==='no_coverage'?'selected':''?>>No Coverage</option>
-                            <option value="benefits_expired" <?=$status==='benefits_expired'?'selected':''?>>Benefits Expired</option>
-                            <option value="pending" <?=$status==='pending'?'selected':''?>>Pending</option>
                             <option value="inactive" <?=$status==='inactive'?'selected':''?>>Inactive</option>
                           </select>
                         </div>
