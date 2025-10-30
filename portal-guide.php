@@ -223,18 +223,19 @@
           </div>
 
           <div>
-            <h3 class="text-xl font-bold mb-4">Quick Actions</h3>
+            <h3 class="text-xl font-bold mb-4">Quick Actions Guide</h3>
+            <p class="text-sm text-gray-600 mb-4">Learn how to perform common tasks in the portal</p>
             <div class="space-y-3">
-              <a href="/portal/?page=order-add" class="block w-full bg-brand-teal text-white py-3 px-4 rounded-lg font-semibold hover:bg-teal-600 transition text-left flex items-center justify-between">
-                <span>New Order</span>
+              <a href="#orders" class="block w-full bg-brand-teal text-white py-3 px-4 rounded-lg font-semibold hover:bg-teal-600 transition text-left flex items-center justify-between">
+                <span>📋 How to Create a New Order</span>
                 <span>→</span>
               </a>
-              <a href="/portal/?page=patient-add" class="block w-full bg-white border-2 border-gray-300 py-3 px-4 rounded-lg font-semibold hover:border-brand-teal hover:text-brand-teal transition text-left flex items-center justify-between">
-                <span>Add Patient</span>
+              <a href="#patients" class="block w-full bg-white border-2 border-gray-300 py-3 px-4 rounded-lg font-semibold hover:border-brand-teal hover:text-brand-teal transition text-left flex items-center justify-between">
+                <span>👤 How to Add a Patient</span>
                 <span>→</span>
               </a>
-              <a href="/portal/?page=patients" class="block w-full bg-white border-2 border-gray-300 py-3 px-4 rounded-lg font-semibold hover:border-brand-teal hover:text-brand-teal transition text-left flex items-center justify-between">
-                <span>View All Patients</span>
+              <a href="#patients" class="block w-full bg-white border-2 border-gray-300 py-3 px-4 rounded-lg font-semibold hover:border-brand-teal hover:text-brand-teal transition text-left flex items-center justify-between">
+                <span>📁 How to View All Patients</span>
                 <span>→</span>
               </a>
             </div>
