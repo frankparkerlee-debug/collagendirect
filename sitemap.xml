@@ -34,6 +34,30 @@
     <priority>0.8</priority>
   </url>
 
+  <!-- Insurance Coverage Hub -->
+  <url>
+    <loc>https://collagendirect.health/insurance-coverage.html</loc>
+    <lastmod>2025-10-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Physician FAQ -->
+  <url>
+    <loc>https://collagendirect.health/faq-physicians.html</loc>
+    <lastmod>2025-10-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Patient FAQ -->
+  <url>
+    <loc>https://collagendirect.health/faq-patients.html</loc>
+    <lastmod>2025-10-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
   <!-- Registration -->
   <url>
     <loc>https://collagendirect.health/register</loc>
