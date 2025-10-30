@@ -88,6 +88,9 @@ try {
     $patientId = (int)($_POST['patient_id'] ?? 0);
     $replyMessage = trim($_POST['reply_message'] ?? '');
 
+    // Log for debugging
+    error_log("Reply request - Patient ID: $patientId, Reply length: " . strlen($replyMessage));
+
     if (!$patientId) {
       echo json_encode(['ok' => false, 'error' => 'Invalid patient ID']);
       exit;
@@ -117,13 +120,23 @@ try {
 
     // Get current comment to append to it (for conversation thread)
     $currentComment = '';
+    $patientExists = false;
     try {
       $stmt = $pdo->prepare("SELECT status_comment FROM patients WHERE id = ?");
       $stmt->execute([$patientId]);
       $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+      if (!$row) {
+        echo json_encode(['ok' => false, 'error' => 'Patient not found']);
+        exit;
+      }
+
+      $patientExists = true;
       $currentComment = $row['status_comment'] ?? '';
     } catch (Throwable $e) {
-      error_log("Error fetching current comment: " . $e->getMessage());
+      error_log("Error fetching patient: " . $e->getMessage());
+      echo json_encode(['ok' => false, 'error' => 'Failed to fetch patient: ' . $e->getMessage()]);
+      exit;
     }
 
     // Build conversation thread by appending new message
