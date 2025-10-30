@@ -18,7 +18,7 @@ register_shutdown_function(function() {
 ob_start();
 
 try {
-  require_once __DIR__.'/../../db.php';
+  require_once __DIR__.'/../db.php';
 } catch (Throwable $e) {
   while (ob_get_level()) ob_end_clean();
   header('Content-Type: application/json');
