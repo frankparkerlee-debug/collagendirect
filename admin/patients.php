@@ -607,20 +607,35 @@ include __DIR__.'/_header.php';
                       <!-- Reply Form (for manufacturers) -->
                       <?php if ($adminRole === 'superadmin' || $adminRole === 'manufacturer'): ?>
                         <form id="reply-form-<?=e($pid)?>" onsubmit="sendReply(event, '<?=e($pid)?>')" class="mt-4 p-3 bg-slate-50 rounded border">
-                          <label class="block text-sm font-medium text-slate-700 mb-2">Send Reply to Physician:</label>
+                          <div class="flex justify-between items-center mb-2">
+                            <label class="block text-sm font-medium text-slate-700">Send Reply to Physician:</label>
+                            <button
+                              type="button"
+                              onclick="generateAIResponse('<?=e($pid)?>')"
+                              class="px-3 py-1.5 text-xs bg-purple-600 text-white rounded hover:bg-purple-700 transition flex items-center gap-1"
+                              title="AI will analyze the order and suggest a professional response"
+                            >
+                              <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+                              AI Suggest Response
+                            </button>
+                          </div>
                           <textarea
+                            id="reply-textarea-<?=e($pid)?>"
                             name="reply_message"
                             rows="3"
                             class="w-full px-3 py-2 border border-slate-300 rounded focus:ring-2 focus:ring-brand focus:border-transparent"
-                            placeholder="Type your response here..."
+                            placeholder="Type your response here or use AI to generate a suggestion..."
                             required
                           ></textarea>
-                          <button
-                            type="submit"
-                            class="mt-2 px-4 py-2 bg-brand text-white rounded hover:bg-brand-dark transition"
-                          >
-                            Send Reply
-                          </button>
+                          <div class="flex items-center gap-2 mt-2">
+                            <button
+                              type="submit"
+                              class="px-4 py-2 bg-brand text-white rounded hover:bg-brand-dark transition"
+                            >
+                              Send Reply
+                            </button>
+                            <span id="ai-status-<?=e($pid)?>" class="text-xs text-slate-500"></span>
+                          </div>
                         </form>
                       <?php endif; ?>
                     </div>
@@ -837,6 +852,73 @@ async function sendReply(event, patientId) {
   } catch (error) {
     console.error('Send reply error:', error);
     alert('Error sending reply: ' + error.message);
+  }
+}
+
+// AI Response Generator
+async function generateAIResponse(patientId) {
+  const textarea = document.getElementById('reply-textarea-' + patientId);
+  const statusSpan = document.getElementById('ai-status-' + patientId);
+  const button = event.target.closest('button');
+
+  // Show loading state
+  statusSpan.textContent = 'AI is analyzing order and generating response...';
+  statusSpan.className = 'text-xs text-purple-600 animate-pulse';
+  button.disabled = true;
+  button.classList.add('opacity-50');
+
+  try {
+    const formData = new FormData();
+    formData.append('action', 'generate_response');
+    formData.append('patient_id', patientId);
+
+    const response = await fetch('/api/admin/ai_assistant.php', {
+      method: 'POST',
+      body: formData
+    });
+
+    const result = await response.json();
+
+    if (result.ok) {
+      // Populate textarea with AI-generated response
+      textarea.value = result.message;
+      textarea.rows = Math.min(Math.max(result.message.split('\n').length + 1, 5), 15);
+
+      // Show success message
+      statusSpan.textContent = '✓ AI response generated. You can edit it before sending.';
+      statusSpan.className = 'text-xs text-green-600';
+
+      // Clear success message after 5 seconds
+      setTimeout(() => {
+        statusSpan.textContent = '';
+      }, 5000);
+
+      // Highlight the textarea briefly
+      textarea.classList.add('ring-2', 'ring-purple-400');
+      setTimeout(() => {
+        textarea.classList.remove('ring-2', 'ring-purple-400');
+      }, 2000);
+
+    } else {
+      statusSpan.textContent = '⚠ ' + (result.error || 'Failed to generate response');
+      statusSpan.className = 'text-xs text-red-600';
+
+      // Show more details in console
+      console.error('AI generation error:', result);
+
+      // If API key not configured, show helpful message
+      if (result.error && result.error.includes('not configured')) {
+        alert('AI Assistant is not configured yet. Please set the ANTHROPIC_API_KEY environment variable.');
+      }
+    }
+  } catch (error) {
+    console.error('AI generation error:', error);
+    statusSpan.textContent = '⚠ Error: ' + error.message;
+    statusSpan.className = 'text-xs text-red-600';
+  } finally {
+    // Re-enable button
+    button.disabled = false;
+    button.classList.remove('opacity-50');
   }
 }
 
