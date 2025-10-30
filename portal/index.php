@@ -255,12 +255,23 @@ if ($action) {
             ON last.patient_id=o1.patient_id AND last.m=o1.created_at
         ) lo ON lo.patient_id=p.id";
       $sql = "SELECT DISTINCT p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.address_state as state,p.zip,p.mrn,
-                   p.updated_at,p.created_at,p.status_comment,p.state as auth_status,
-                   lo.status last_status,lo.shipments_remaining last_remaining
+                   p.updated_at,p.created_at,p.status_comment,p.state as auth_status,p.status_updated_at,p.provider_comment_read_at,
+                   lo.status last_status,lo.shipments_remaining last_remaining,
+                   COUNT(DISTINCT o.product_id) as product_count,
+                   CASE
+                     WHEN p.status_comment IS NOT NULL
+                       AND p.status_comment != ''
+                       AND (p.provider_comment_read_at IS NULL OR p.provider_comment_read_at < p.status_updated_at)
+                     THEN TRUE
+                     ELSE FALSE
+                   END as has_unread_comment
             FROM patients p
             LEFT JOIN orders o ON o.patient_id = p.id
             $join
-            WHERE 1=1";
+            WHERE 1=1
+            GROUP BY p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.address_state,p.zip,p.mrn,
+                     p.updated_at,p.created_at,p.status_comment,p.state,p.status_updated_at,p.provider_comment_read_at,
+                     lo.status,lo.shipments_remaining";
     }
     // Practice admins can only see patients from their practice physicians
     elseif ($userRole === 'practice_admin') {
@@ -292,12 +303,23 @@ if ($action) {
           WHERE o1.user_id IN ($placeholders)
         ) lo ON lo.patient_id=p.id";
       $sql = "SELECT DISTINCT p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.address_state as state,p.zip,p.mrn,
-                   p.updated_at,p.created_at,p.status_comment,p.state as auth_status,
-                   lo.status last_status,lo.shipments_remaining last_remaining
+                   p.updated_at,p.created_at,p.status_comment,p.state as auth_status,p.status_updated_at,p.provider_comment_read_at,
+                   lo.status last_status,lo.shipments_remaining last_remaining,
+                   COUNT(DISTINCT o.product_id) as product_count,
+                   CASE
+                     WHEN p.status_comment IS NOT NULL
+                       AND p.status_comment != ''
+                       AND (p.provider_comment_read_at IS NULL OR p.provider_comment_read_at < p.status_updated_at)
+                     THEN TRUE
+                     ELSE FALSE
+                   END as has_unread_comment
             FROM patients p
             LEFT JOIN orders o ON o.patient_id = p.id
             $join
-            WHERE p.user_id IN ($placeholders)";
+            WHERE p.user_id IN ($placeholders)
+            GROUP BY p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.address_state,p.zip,p.mrn,
+                     p.updated_at,p.created_at,p.status_comment,p.state,p.status_updated_at,p.provider_comment_read_at,
+                     lo.status,lo.shipments_remaining";
     } else {
       // Regular physicians only see their own patients
       $args = [$userId, $userId, $userId];
@@ -309,13 +331,26 @@ if ($action) {
           WHERE o1.user_id=?
         ) lo ON lo.patient_id=p.id";
       $sql = "SELECT DISTINCT p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.address_state as state,p.zip,p.mrn,
-                   p.updated_at,p.created_at,p.status_comment,p.state as auth_status,
-                   lo.status last_status,lo.shipments_remaining last_remaining
+                   p.updated_at,p.created_at,p.status_comment,p.state as auth_status,p.status_updated_at,p.provider_comment_read_at,
+                   lo.status last_status,lo.shipments_remaining last_remaining,
+                   COUNT(DISTINCT o.product_id) as product_count,
+                   CASE
+                     WHEN p.status_comment IS NOT NULL
+                       AND p.status_comment != ''
+                       AND (p.provider_comment_read_at IS NULL OR p.provider_comment_read_at < p.status_updated_at)
+                     THEN TRUE
+                     ELSE FALSE
+                   END as has_unread_comment
             FROM patients p
             LEFT JOIN orders o ON o.patient_id = p.id
             $join
-            WHERE p.user_id=?";
+            WHERE p.user_id=?
+            GROUP BY p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.address_state,p.zip,p.mrn,
+                     p.updated_at,p.created_at,p.status_comment,p.state,p.status_updated_at,p.provider_comment_read_at,
+                     lo.status,lo.shipments_remaining";
     }
+
+    $havingConditions = [];
 
     if ($q!==''){
       $like="%$q%";
@@ -323,9 +358,9 @@ if ($action) {
       array_push($args,$like,$like,$like,$like,$like);
     }
 
-    // Filter by product (only if filtering, otherwise show all patients)
+    // Filter by product (apply after GROUP BY using HAVING)
     if ($productId !== '') {
-      $sql .= " AND o.product_id = ?";
+      $havingConditions[] = "COUNT(CASE WHEN o.product_id = ? THEN 1 END) > 0";
       $args[] = $productId;
     }
 
@@ -333,6 +368,11 @@ if ($action) {
     if ($dateRange !== 'all') {
       $months = (int)$dateRange;
       $sql .= " AND (o.created_at >= (NOW() - INTERVAL '" . $months . " months') OR o.created_at IS NULL)";
+    }
+
+    // Add HAVING clause if needed
+    if (!empty($havingConditions)) {
+      $sql .= " HAVING " . implode(' AND ', $havingConditions);
     }
 
     $sql.=" ORDER BY p.updated_at DESC,p.created_at DESC LIMIT $limit OFFSET $offset";

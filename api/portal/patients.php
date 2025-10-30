@@ -38,9 +38,41 @@ try {
   }
 
   if ($method === 'GET') {
-    // List view
+    // List view with filters
     $limit = (int)($_GET['limit'] ?? 50);
     $limit = max(1, min(500, $limit));
+
+    // Filter parameters
+    $searchQuery = trim($_GET['q'] ?? '');
+    $productId = !empty($_GET['product_id']) ? (int)$_GET['product_id'] : null;
+    $dateRange = !empty($_GET['date_range']) ? (int)$_GET['date_range'] : null;
+
+    // Build WHERE conditions
+    $conditions = ['p.user_id = ?'];
+    $params = [$uid];
+
+    // Search filter (name, email, MRN)
+    if ($searchQuery) {
+      $conditions[] = "(LOWER(CONCAT(p.first_name, ' ', p.last_name)) LIKE LOWER(?) OR LOWER(p.email) LIKE LOWER(?) OR CAST(p.id AS TEXT) LIKE ?)";
+      $searchPattern = '%' . $searchQuery . '%';
+      $params[] = $searchPattern;
+      $params[] = $searchPattern;
+      $params[] = $searchPattern;
+    }
+
+    // Product filter
+    if ($productId) {
+      $conditions[] = "EXISTS (SELECT 1 FROM orders o2 WHERE o2.patient_id = p.id AND o2.product_id = ?)";
+      $params[] = $productId;
+    }
+
+    // Date range filter (months)
+    if ($dateRange) {
+      $conditions[] = "p.created_at >= NOW() - INTERVAL '{$dateRange} months'";
+    }
+
+    $whereClause = implode(' AND ', $conditions);
+
     $stmt = $pdo->prepare("
       SELECT p.id, p.first_name, p.last_name, p.dob, p.phone, p.email, p.address, p.city, p.state, p.zip,
              p.insurance_provider, p.insurance_member_id, p.insurance_group_id, p.insurance_payer_phone,
@@ -56,7 +88,7 @@ try {
              END as has_unread_comment
       FROM patients p
       LEFT JOIN orders o ON o.patient_id = p.id
-      WHERE p.user_id = ?
+      WHERE {$whereClause}
       GROUP BY p.id, p.first_name, p.last_name, p.dob, p.phone, p.email, p.address, p.city, p.state, p.zip,
                p.insurance_provider, p.insurance_member_id, p.insurance_group_id, p.insurance_payer_phone,
                p.note_path, p.ins_card_path, p.id_card_path, p.created_at, p.updated_at,
@@ -64,7 +96,7 @@ try {
       ORDER BY p.updated_at DESC
       LIMIT {$limit}
     ");
-    $stmt->execute([$uid]);
+    $stmt->execute($params);
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     echo json_encode(['ok'=>true,'data'=>$rows]); exit;
