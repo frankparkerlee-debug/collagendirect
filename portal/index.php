@@ -245,27 +245,6 @@ if ($action) {
     $productId = trim((string)($_GET['product_id'] ?? ''));
     $dateRange = trim((string)($_GET['date_range'] ?? '3')); // Default to 3 months
 
-    // Check if new columns exist (backwards compatibility)
-    $hasReadTracking = false;
-    try {
-      $cols = $pdo->query("SELECT column_name FROM information_schema.columns WHERE table_name = 'patients' AND column_name IN ('provider_comment_read_at', 'status_updated_at')")->fetchAll(PDO::FETCH_COLUMN);
-      $hasReadTracking = in_array('provider_comment_read_at', $cols) && in_array('status_updated_at', $cols);
-    } catch (Throwable $e) {
-      error_log("Could not check for read tracking columns: " . $e->getMessage());
-    }
-
-    $readTrackingCols = $hasReadTracking ? "p.status_updated_at,p.provider_comment_read_at," : "";
-    $hasUnreadCalc = $hasReadTracking ?
-      "CASE
-        WHEN p.status_comment IS NOT NULL
-          AND p.status_comment != ''
-          AND (p.provider_comment_read_at IS NULL OR p.provider_comment_read_at < p.status_updated_at)
-        THEN TRUE
-        ELSE FALSE
-      END" : "FALSE";
-    // Don't include trailing comma - it will be added in the SQL string
-    $readTrackingGroup = $hasReadTracking ? "p.status_updated_at,p.provider_comment_read_at" : "";
-
     // Superadmins see all patients
     if ($userRole === 'superadmin') {
       $args = [];
@@ -276,17 +255,23 @@ if ($action) {
             ON last.patient_id=o1.patient_id AND last.m=o1.created_at
         ) lo ON lo.patient_id=p.id";
       $sql = "SELECT DISTINCT p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.address_state as state,p.zip,p.mrn,
-                   p.updated_at,p.created_at,p.status_comment,p.state as auth_status,$readTrackingCols
+                   p.updated_at,p.created_at,p.status_comment,p.state as auth_status,p.status_updated_at,p.provider_comment_read_at,
                    lo.status last_status,lo.shipments_remaining last_remaining,
                    STRING_AGG(DISTINCT prod.name, ', ') as product_names,
-                   $hasUnreadCalc as has_unread_comment
+                   CASE
+                     WHEN p.status_comment IS NOT NULL
+                       AND p.status_comment != ''
+                       AND (p.provider_comment_read_at IS NULL OR p.provider_comment_read_at < p.status_updated_at)
+                     THEN TRUE
+                     ELSE FALSE
+                   END as has_unread_comment
             FROM patients p
             LEFT JOIN orders o ON o.patient_id = p.id
             LEFT JOIN products prod ON prod.id = o.product_id
             $join
             WHERE 1=1
             GROUP BY p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.address_state,p.zip,p.mrn,
-                     p.updated_at,p.created_at,p.status_comment,p.state" . ($readTrackingGroup ? ",$readTrackingGroup" : "") . ",
+                     p.updated_at,p.created_at,p.status_comment,p.state,p.status_updated_at,p.provider_comment_read_at,
                      lo.status,lo.shipments_remaining";
     }
     // Practice admins can only see patients from their practice physicians
@@ -319,17 +304,23 @@ if ($action) {
           WHERE o1.user_id IN ($placeholders)
         ) lo ON lo.patient_id=p.id";
       $sql = "SELECT DISTINCT p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.address_state as state,p.zip,p.mrn,
-                   p.updated_at,p.created_at,p.status_comment,p.state as auth_status,$readTrackingCols
+                   p.updated_at,p.created_at,p.status_comment,p.state as auth_status,p.status_updated_at,p.provider_comment_read_at,
                    lo.status last_status,lo.shipments_remaining last_remaining,
                    STRING_AGG(DISTINCT prod.name, ', ') as product_names,
-                   $hasUnreadCalc as has_unread_comment
+                   CASE
+                     WHEN p.status_comment IS NOT NULL
+                       AND p.status_comment != ''
+                       AND (p.provider_comment_read_at IS NULL OR p.provider_comment_read_at < p.status_updated_at)
+                     THEN TRUE
+                     ELSE FALSE
+                   END as has_unread_comment
             FROM patients p
             LEFT JOIN orders o ON o.patient_id = p.id
             LEFT JOIN products prod ON prod.id = o.product_id
             $join
             WHERE p.user_id IN ($placeholders)
             GROUP BY p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.address_state,p.zip,p.mrn,
-                     p.updated_at,p.created_at,p.status_comment,p.state" . ($readTrackingGroup ? ",$readTrackingGroup" : "") . ",
+                     p.updated_at,p.created_at,p.status_comment,p.state,p.status_updated_at,p.provider_comment_read_at,
                      lo.status,lo.shipments_remaining";
     } else {
       // Regular physicians only see their own patients
@@ -342,17 +333,23 @@ if ($action) {
           WHERE o1.user_id=?
         ) lo ON lo.patient_id=p.id";
       $sql = "SELECT DISTINCT p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.address_state as state,p.zip,p.mrn,
-                   p.updated_at,p.created_at,p.status_comment,p.state as auth_status,$readTrackingCols
+                   p.updated_at,p.created_at,p.status_comment,p.state as auth_status,p.status_updated_at,p.provider_comment_read_at,
                    lo.status last_status,lo.shipments_remaining last_remaining,
                    STRING_AGG(DISTINCT prod.name, ', ') as product_names,
-                   $hasUnreadCalc as has_unread_comment
+                   CASE
+                     WHEN p.status_comment IS NOT NULL
+                       AND p.status_comment != ''
+                       AND (p.provider_comment_read_at IS NULL OR p.provider_comment_read_at < p.status_updated_at)
+                     THEN TRUE
+                     ELSE FALSE
+                   END as has_unread_comment
             FROM patients p
             LEFT JOIN orders o ON o.patient_id = p.id
             LEFT JOIN products prod ON prod.id = o.product_id
             $join
             WHERE p.user_id=?
             GROUP BY p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.address_state,p.zip,p.mrn,
-                     p.updated_at,p.created_at,p.status_comment,p.state" . ($readTrackingGroup ? ",$readTrackingGroup" : "") . ",
+                     p.updated_at,p.created_at,p.status_comment,p.state,p.status_updated_at,p.provider_comment_read_at,
                      lo.status,lo.shipments_remaining";
     }
 
