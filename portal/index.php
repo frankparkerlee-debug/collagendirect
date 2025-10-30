@@ -3826,6 +3826,12 @@ if ($page==='logout'){
         </svg>
         New Order
       </button>
+      <button id="generate-visit-note-btn" class="btn" type="button" style="display:none; background: #8B5CF6; color: white; border-color: #8B5CF6;" title="AI will generate a comprehensive visit note based on patient data">
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24" style="display: inline; margin-right: 4px; vertical-align: middle;">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
+        </svg>
+        Generate Visit Note
+      </button>
     </div>
     <?php endif; ?>
   </div>
@@ -7010,6 +7016,13 @@ function renderPatientDetailPage(p, orders, isEditing) {
     topBtn.onclick = () => openOrderDialog(p.id);
   }
 
+  // Show Generate Visit Note button
+  const visitNoteBtn = document.getElementById('generate-visit-note-btn');
+  if (visitNoteBtn) {
+    visitNoteBtn.style.display = 'inline-flex';
+    visitNoteBtn.onclick = () => generateVisitNote(p.id);
+  }
+
   // Right column - Orders and History (matching screenshot layout)
   const rightColumn = `
     <div class="lg:col-span-2 space-y-6">
@@ -7175,6 +7188,141 @@ async function saveProviderResponse(patientId) {
   } catch (e) {
     alert('Error saving response: ' + e.message);
   }
+}
+
+/* ========== AI VISIT NOTE GENERATOR ========== */
+
+async function generateVisitNote(patientId) {
+  // Create and show modal
+  const modal = document.createElement('dialog');
+  modal.id = 'visit-note-modal';
+  modal.style.cssText = 'max-width: 900px; width: 90%; max-height: 90vh; border: none; border-radius: 0.5rem; padding: 0; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);';
+
+  modal.innerHTML = `
+    <div style="padding: 1.5rem; background: #8B5CF6; color: white;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="font-size: 1.25rem; font-weight: 600; margin: 0;">AI-Generated Visit Note</h3>
+        <button onclick="document.getElementById('visit-note-modal').close(); document.getElementById('visit-note-modal').remove();"
+                style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0; width: 2rem; height: 2rem;">&times;</button>
+      </div>
+      <p style="margin-top: 0.5rem; font-size: 0.875rem; opacity: 0.9;">Comprehensive, insurance-defensible clinical documentation</p>
+    </div>
+
+    <div id="visit-note-content" style="padding: 1.5rem; overflow-y: auto; max-height: calc(90vh - 180px);">
+      <div style="text-align: center; padding: 3rem;">
+        <div style="display: inline-block; width: 3rem; height: 3rem; border: 3px solid #8B5CF6; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        <p style="margin-top: 1rem; color: #6B7280;">AI is generating your comprehensive visit note...</p>
+        <p style="margin-top: 0.5rem; font-size: 0.875rem; color: #9CA3AF;">This may take 10-15 seconds</p>
+      </div>
+    </div>
+
+    <div style="padding: 1rem 1.5rem; background: #F9FAFB; border-top: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center;">
+      <div id="visit-note-status" style="font-size: 0.875rem; color: #6B7280;"></div>
+      <div style="display: flex; gap: 0.5rem;">
+        <button id="copy-visit-note-btn" onclick="copyVisitNote()"
+                style="display: none; padding: 0.5rem 1rem; background: #8B5CF6; color: white; border: none; border-radius: 0.375rem; cursor: pointer; font-size: 0.875rem; font-weight: 500;">
+          📋 Copy to Clipboard
+        </button>
+        <button onclick="document.getElementById('visit-note-modal').close(); document.getElementById('visit-note-modal').remove();"
+                style="padding: 0.5rem 1rem; background: white; border: 1px solid #D1D5DB; border-radius: 0.375rem; cursor: pointer; font-size: 0.875rem;">
+          Close
+        </button>
+      </div>
+    </div>
+
+    <style>
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
+  `;
+
+  document.body.appendChild(modal);
+  modal.showModal();
+
+  // Call API to generate visit note
+  try {
+    const formData = new FormData();
+    formData.append('action', 'generate_visit_note');
+    formData.append('patient_id', patientId);
+
+    const response = await fetch('/api/portal/ai_visit_note.php', {
+      method: 'POST',
+      body: formData
+    });
+
+    const result = await response.json();
+
+    const contentDiv = document.getElementById('visit-note-content');
+    const statusDiv = document.getElementById('visit-note-status');
+    const copyBtn = document.getElementById('copy-visit-note-btn');
+
+    if (result.ok) {
+      // Store note text for copying
+      window._currentVisitNote = result.note;
+
+      // Show the generated note
+      contentDiv.innerHTML = `
+        <div style="background: #F0FDF4; border: 1px solid #86EFAC; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem; color: #166534; font-weight: 500; margin-bottom: 0.5rem;">
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+            Visit Note Generated Successfully
+          </div>
+          <p style="font-size: 0.875rem; color: #166534;">
+            Review and edit as needed, then copy to your EMR system.
+          </p>
+        </div>
+        <div style="background: white; border: 1px solid #E5E7EB; border-radius: 0.5rem; padding: 1.5rem; font-family: 'Courier New', monospace; font-size: 0.875rem; white-space: pre-wrap; line-height: 1.6;">` +
+        result.note.replace(/</g, '&lt;').replace(/>/g, '&gt;') +
+        `</div>
+        <div style="margin-top: 1rem; padding: 1rem; background: #FEF3C7; border: 1px solid #FCD34D; border-radius: 0.5rem; font-size: 0.875rem; color: #92400E;">
+          <strong>⚠️ Important:</strong> This AI-generated note is a template. You must review, edit, and verify all information before using it in patient care or submitting to insurance. The physician is responsible for the accuracy and completeness of all documentation.
+        </div>
+      `;
+
+      statusDiv.textContent = '✓ Generated at ' + new Date().toLocaleTimeString();
+      copyBtn.style.display = 'inline-block';
+    } else {
+      contentDiv.innerHTML = `
+        <div style="background: #FEE2E2; border: 1px solid #FCA5A5; border-radius: 0.5rem; padding: 1.5rem; color: #991B1B;">
+          <div style="font-weight: 600; margin-bottom: 0.5rem;">❌ Error Generating Visit Note</div>
+          <p style="font-size: 0.875rem;">${result.error}</p>
+          ${result.error.includes('not configured') ? `
+            <p style="margin-top: 1rem; font-size: 0.875rem;">
+              The AI service needs to be configured. Please contact support.
+            </p>
+          ` : ''}
+        </div>
+      `;
+      statusDiv.textContent = 'Failed to generate';
+    }
+  } catch (error) {
+    const contentDiv = document.getElementById('visit-note-content');
+    contentDiv.innerHTML = `
+      <div style="background: #FEE2E2; border: 1px solid #FCA5A5; border-radius: 0.5rem; padding: 1.5rem; color: #991B1B;">
+        <div style="font-weight: 600; margin-bottom: 0.5rem;">❌ Connection Error</div>
+        <p style="font-size: 0.875rem;">${error.message}</p>
+      </div>
+    `;
+  }
+}
+
+function copyVisitNote() {
+  if (!window._currentVisitNote) return;
+
+  navigator.clipboard.writeText(window._currentVisitNote).then(() => {
+    const btn = document.getElementById('copy-visit-note-btn');
+    const originalText = btn.textContent;
+    btn.textContent = '✓ Copied!';
+    btn.style.background = '#10B981';
+
+    setTimeout(() => {
+      btn.textContent = originalText;
+      btn.style.background = '#8B5CF6';
+    }, 2000);
+  }).catch(err => {
+    alert('Failed to copy to clipboard. Please select and copy manually.');
+  });
 }
 
 /* ========== ADD PATIENT FORM HANDLER ========== */

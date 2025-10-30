@@ -85,6 +85,29 @@ class AIService {
   }
 
   /**
+   * Generate comprehensive visit note for physician documentation
+   * This is the primary physician-facing feature - generates defensible clinical notes
+   */
+  public function generateVisitNote(array $orderData, array $patientData, array $physicianData = []): array {
+    if (empty($this->apiKey)) {
+      return ['error' => 'AI service not configured. Please set ANTHROPIC_API_KEY.'];
+    }
+
+    $prompt = $this->buildVisitNotePrompt($orderData, $patientData, $physicianData);
+
+    try {
+      $response = $this->callClaudeAPI($prompt, 4096); // Longer output for comprehensive note
+      return [
+        'success' => true,
+        'note' => $response
+      ];
+    } catch (Exception $e) {
+      error_log('[AIService] Visit note generation error: ' . $e->getMessage());
+      return ['error' => 'Visit note generation failed: ' . $e->getMessage()];
+    }
+  }
+
+  /**
    * Build prompt for order analysis
    */
   private function buildOrderAnalysisPrompt(array $order, array $patient): string {
@@ -233,12 +256,140 @@ PROMPT;
   }
 
   /**
+   * Build prompt for comprehensive visit note generation
+   */
+  private function buildVisitNotePrompt(array $order, array $patient, array $physician): string {
+    $patientAge = !empty($patient['dob']) ? date_diff(date_create($patient['dob']), date_create('today'))->y : 'Unknown';
+    $todayDate = date('F j, Y');
+
+    // Determine wound bed description based on available data
+    $woundBedDesc = !empty($order['wound_notes']) ? $order['wound_notes'] : 'See physical examination';
+
+    // Calculate wound volume if dimensions available
+    $volume = '';
+    if (!empty($order['wound_length_cm']) && !empty($order['wound_width_cm']) && !empty($order['wound_depth_cm'])) {
+      $vol = $order['wound_length_cm'] * $order['wound_width_cm'] * $order['wound_depth_cm'];
+      $volume = sprintf('%.2f', $vol) . ' cm³';
+    }
+
+    return <<<PROMPT
+You are an experienced physician writing a comprehensive wound care visit note for medical documentation and insurance authorization.
+
+PATIENT INFORMATION:
+- Name: {$patient['first_name']} {$patient['last_name']}
+- Date of Birth: {$patient['dob']}
+- Age: {$patientAge} years
+- MRN: {$patient['mrn']}
+- Insurance: {$patient['insurance_provider']}
+- Member ID: {$patient['insurance_member_id']}
+
+VISIT DATE: {$todayDate}
+
+CLINICAL INFORMATION:
+- Primary Diagnosis: {$order['icd10_primary']}
+- Secondary Diagnosis: {$order['icd10_secondary']}
+- Wound Type: {$order['wound_type']}
+- Wound Stage/Grade: {$order['wound_stage']}
+- Location: {$order['wound_location']} ({$order['wound_laterality']})
+- Measurements: Length {$order['wound_length_cm']} cm × Width {$order['wound_width_cm']} cm × Depth {$order['wound_depth_cm']} cm
+- Volume: {$volume}
+- Last Evaluation: {$order['last_eval_date']}
+- Start Date: {$order['start_date']}
+
+TREATMENT PLAN:
+- Product: {$order['product']}
+- HCPCS/CPT Code: {$order['cpt']}
+- Frequency: {$order['frequency_per_week']} times per week
+- Quantity per change: {$order['qty_per_change']}
+- Duration: {$order['duration_days']} days
+- Refills: {$order['refills_allowed']}
+
+ADDITIONAL INFORMATION:
+- Clinical Notes: {$woundBedDesc}
+- Special Instructions: {$order['additional_instructions']}
+
+TASK:
+Write a comprehensive, insurance-auditable wound care visit note that includes ALL of the following sections:
+
+1. HEADER: Date, patient name, DOB, MRN
+
+2. CHIEF COMPLAINT: Brief statement of why patient is being seen
+
+3. HISTORY OF PRESENT ILLNESS:
+   - When wound developed and duration
+   - Presumed cause/etiology
+   - Prior treatments attempted (be specific about failed conservative care - this is CRITICAL for insurance)
+   - Current wound status and trajectory
+   - Impact on patient's quality of life/function
+
+4. PHYSICAL EXAMINATION - WOUND ASSESSMENT:
+   - Anatomical location with specificity
+   - Measurements (include all three dimensions)
+   - Wound stage/depth classification
+   - Wound bed appearance (% granulation, slough, eschar, necrotic tissue)
+   - Exudate amount (minimal/moderate/heavy) and character (serous/serosanguinous/purulent)
+   - Periwound skin condition
+   - Presence of undermining or tunneling (if applicable)
+   - Odor (if present)
+   - Signs of infection (if present)
+   - Surrounding tissue viability
+
+5. ASSESSMENT:
+   - Primary diagnosis with ICD-10 code
+   - Secondary diagnoses with ICD-10 codes
+   - Comorbidities affecting wound healing
+   - Current wound healing stage
+
+6. MEDICAL NECESSITY JUSTIFICATION:
+   - Why this specific advanced wound care product is medically necessary
+   - Why standard/conventional care is insufficient
+   - Clinical rationale for product selection based on wound characteristics
+   - Expected therapeutic benefit
+   - Why less expensive alternatives won't work
+
+7. PLAN OF CARE:
+   - Specific product with HCPCS code
+   - Detailed application instructions
+   - Frequency and rationale for frequency
+   - Quantity per application and rationale
+   - Duration of treatment
+   - Adjunctive therapies (pressure relief, nutrition, etc.)
+   - Follow-up schedule
+   - Wound measurement and reassessment plan
+
+8. EXPECTED OUTCOMES & PROGNOSIS:
+   - Anticipated % reduction in wound size by 2 weeks, 4 weeks
+   - Expected time to complete healing
+   - Specific measurable goals
+
+9. PHYSICIAN ATTESTATION BLOCK:
+   Physician Signature: _____________________
+   Date: _____________________
+   Printed Name: [Physician Name]
+   NPI: [Physician NPI]
+
+CRITICAL REQUIREMENTS:
+- Be specific and detailed - generic statements won't pass insurance review
+- Include EXACT measurements and percentages
+- Document FAILED prior treatments explicitly (insurance requires this)
+- Explain WHY standard care failed and WHY advanced care is needed
+- Use proper medical terminology
+- Make it defendable in an audit
+- Include all information needed for pre-authorization
+- Reference clinical guidelines when appropriate
+- Ensure medical necessity is crystal clear
+
+Write the complete note now. Make it professional, thorough, and bulletproof for insurance review.
+PROMPT;
+  }
+
+  /**
    * Call Claude API with the given prompt
    */
-  private function callClaudeAPI(string $prompt): string {
+  private function callClaudeAPI(string $prompt, int $maxTokens = 2048): string {
     $data = [
       'model' => $this->model,
-      'max_tokens' => 2048,
+      'max_tokens' => $maxTokens,
       'messages' => [
         [
           'role' => 'user',
