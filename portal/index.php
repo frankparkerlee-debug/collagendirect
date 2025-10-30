@@ -6889,33 +6889,76 @@ function renderPatientDetailPage(p, orders, isEditing) {
               </div>
               ${p.status_updated_at ? `<div class="text-slate-500 text-xs mt-1">Updated: ${fmt(p.status_updated_at)}</div>` : ''}
             </div>
-            ${p.status_comment ? `
+            ${p.status_comment || p.provider_response ? `
               <div>
-                <div class="text-slate-500 text-xs mb-1 font-semibold">Manufacturer Comments</div>
-                <div class="bg-slate-50 border-l-4 ${
-                  p.auth_state === 'approved' ? 'border-green-500' :
-                  p.auth_state === 'not_covered' ? 'border-red-500' :
-                  p.auth_state === 'need_info' ? 'border-orange-500' :
-                  'border-blue-500'
-                } p-3 rounded text-sm" style="white-space: pre-wrap;">
-                  ${esc(p.status_comment)}
-                  ${p.status_updated_at ? `<div class="text-xs text-slate-500 mt-2">Updated: ${fmt(p.status_updated_at)}</div>` : ''}
+                <div class="text-slate-500 text-xs mb-2 font-semibold">Conversation Thread</div>
+                <div class="space-y-3">
+                  ${(() => {
+                    // Parse the conversation thread
+                    const messages = [];
+
+                    // Parse manufacturer messages from status_comment
+                    if (p.status_comment) {
+                      const parts = p.status_comment.split(/\n\n---\n\n/);
+                      parts.forEach(part => {
+                        const match = part.match(/^\[([^\]]+)\]\s+Manufacturer:\n([\s\S]+)/);
+                        if (match) {
+                          messages.push({
+                            type: 'manufacturer',
+                            timestamp: match[1],
+                            message: match[2].trim()
+                          });
+                        }
+                      });
+                    }
+
+                    // Add provider response if exists
+                    if (p.provider_response) {
+                      messages.push({
+                        type: 'provider',
+                        timestamp: p.provider_response_at,
+                        message: p.provider_response
+                      });
+                    }
+
+                    // Sort by timestamp
+                    messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+                    // Render messages
+                    return messages.map(msg => {
+                      if (msg.type === 'manufacturer') {
+                        return \`
+                          <div class="bg-slate-50 border-l-4 border-orange-500 p-3 rounded text-sm">
+                            <div class="flex items-center gap-2 mb-1">
+                              <span class="text-xs font-semibold text-orange-700">Manufacturer</span>
+                              <span class="text-xs text-slate-500">\${msg.timestamp}</span>
+                            </div>
+                            <div style="white-space: pre-wrap;">\${esc(msg.message)}</div>
+                          </div>
+                        \`;
+                      } else {
+                        return \`
+                          <div class="bg-blue-50 border-l-4 border-blue-500 p-3 rounded text-sm">
+                            <div class="flex items-center gap-2 mb-1">
+                              <span class="text-xs font-semibold text-blue-700">You (Physician)</span>
+                              <span class="text-xs text-slate-500">\${fmt(msg.timestamp)}</span>
+                            </div>
+                            <div style="white-space: pre-wrap;">\${esc(msg.message)}</div>
+                          </div>
+                        \`;
+                      }
+                    }).join('');
+                  })()}
                 </div>
-              </div>
-            ` : ''}
-            ${p.status_comment ? `
-              <div class="mt-4">
-                <div class="text-slate-500 text-xs mb-1 font-semibold">Your Response</div>
-                ${p.provider_response ? `
-                  <div class="bg-blue-50 border-l-4 border-blue-500 p-3 rounded text-sm mb-2">
-                    ${esc(p.provider_response)}
-                    <div class="text-xs text-slate-500 mt-1">Sent: ${fmt(p.provider_response_at)}</div>
-                  </div>
-                ` : ''}
-                <textarea id="provider-response-${esc(p.id)}" class="w-full border rounded px-3 py-2 text-sm" rows="3" placeholder="Respond to manufacturer with the requested information...">${esc(p.provider_response||'')}</textarea>
-                <button type="button" class="mt-2 px-4 py-2 bg-teal-600 text-white rounded text-sm hover:bg-teal-700" onclick="saveProviderResponse('${esc(p.id)}')">
-                  ${p.provider_response ? 'Update Response' : 'Send Response'}
-                </button>
+
+                <!-- Reply Form -->
+                <div class="mt-4">
+                  <label class="text-slate-500 text-xs mb-1 font-semibold block">Send Reply</label>
+                  <textarea id="provider-response-${esc(p.id)}" class="w-full border rounded px-3 py-2 text-sm" rows="3" placeholder="Type your response here...">${esc(p.provider_response||'')}</textarea>
+                  <button type="button" class="mt-2 px-4 py-2 bg-teal-600 text-white rounded text-sm hover:bg-teal-700" onclick="saveProviderResponse('${esc(p.id)}')">
+                    Send Reply
+                  </button>
+                </div>
               </div>
             ` : ''}
           </div>
