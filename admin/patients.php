@@ -541,55 +541,87 @@ include __DIR__.'/_header.php';
                   <!-- Communication Thread -->
                   <?php if (!empty($row['status_comment']) || !empty($row['provider_response'])): ?>
                     <div class="mt-6 border-t pt-4">
-                      <h4 class="font-semibold mb-3">Communication Thread</h4>
+                      <h4 class="font-semibold mb-3">Conversation Thread</h4>
 
-                      <!-- Manufacturer Comment to Provider -->
-                      <?php if (!empty($row['status_comment'])): ?>
-                        <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded">
+                      <?php
+                      // Parse the conversation thread to display messages sequentially
+                      $messages = [];
+
+                      // Parse manufacturer messages from status_comment
+                      if (!empty($row['status_comment'])) {
+                        $parts = preg_split('/\n\n---\n\n/', $row['status_comment']);
+                        foreach ($parts as $part) {
+                          // Match pattern: [YYYY-MM-DD HH:MM:SS] Manufacturer:\nMessage
+                          if (preg_match('/^\[([^\]]+)\]\s+Manufacturer:\n(.+)/s', $part, $match)) {
+                            $messages[] = [
+                              'type' => 'manufacturer',
+                              'timestamp' => $match[1],
+                              'message' => trim($match[2])
+                            ];
+                          }
+                        }
+                      }
+
+                      // Add provider response if exists
+                      if (!empty($row['provider_response'])) {
+                        $messages[] = [
+                          'type' => 'provider',
+                          'timestamp' => $row['provider_response_at'] ?? '',
+                          'message' => $row['provider_response'],
+                          'unread' => !empty($row['has_unread_response']) && $row['has_unread_response']
+                        ];
+                      }
+
+                      // Sort by timestamp
+                      usort($messages, function($a, $b) {
+                        return strtotime($a['timestamp']) - strtotime($b['timestamp']);
+                      });
+
+                      // Display messages sequentially
+                      foreach ($messages as $msg):
+                        if ($msg['type'] === 'manufacturer'):
+                      ?>
+                        <div class="mb-3 p-3 bg-orange-50 border-l-4 border-orange-500 rounded">
                           <div class="flex justify-between items-start mb-2">
-                            <span class="text-xs font-semibold text-blue-900">Manufacturer → Physician</span>
-                            <?php if (!empty($row['status_updated_at'])): ?>
-                              <span class="text-xs text-blue-700"><?=e(substr($row['status_updated_at'], 0, 16))?></span>
-                            <?php endif; ?>
+                            <span class="text-xs font-semibold text-orange-700">Manufacturer</span>
+                            <span class="text-xs text-slate-500"><?=e($msg['timestamp'])?></span>
                           </div>
-                          <div class="text-sm text-blue-900"><?=nl2br(e($row['status_comment']))?></div>
+                          <div class="text-sm text-slate-900" style="white-space: pre-wrap;"><?=e($msg['message'])?></div>
                         </div>
-                      <?php endif; ?>
-
-                      <!-- Provider Response -->
-                      <?php if (!empty($row['provider_response'])): ?>
-                        <div class="mb-4 p-3 bg-green-50 border border-green-200 rounded relative">
-                          <?php if (!empty($row['has_unread_response']) && $row['has_unread_response']): ?>
+                      <?php else: ?>
+                        <div class="mb-3 p-3 bg-blue-50 border-l-4 border-blue-500 rounded relative">
+                          <?php if (!empty($msg['unread'])): ?>
                             <span class="absolute -top-2 -right-2 w-4 h-4 bg-red-500 rounded-full border-2 border-white" title="Unread response"></span>
                           <?php endif; ?>
                           <div class="flex justify-between items-start mb-2">
-                            <span class="text-xs font-semibold text-green-900">Physician → Manufacturer</span>
-                            <?php if (!empty($row['provider_response_at'])): ?>
-                              <span class="text-xs text-green-700"><?=e(substr($row['provider_response_at'], 0, 16))?></span>
-                            <?php endif; ?>
+                            <span class="text-xs font-semibold text-blue-700">Physician</span>
+                            <span class="text-xs text-slate-500"><?=e(substr($msg['timestamp'], 0, 16))?></span>
                           </div>
-                          <div class="text-sm text-green-900"><?=nl2br(e($row['provider_response']))?></div>
+                          <div class="text-sm text-slate-900" style="white-space: pre-wrap;"><?=e($msg['message'])?></div>
                         </div>
+                      <?php
+                        endif;
+                      endforeach;
+                      ?>
 
-                        <!-- Reply Form (for manufacturers) -->
-                        <?php if ($adminRole === 'superadmin' || $adminRole === 'manufacturer'): ?>
-                          <form id="reply-form-<?=e($pid)?>" onsubmit="sendReply(event, '<?=e($pid)?>')" class="mt-3">
-                            <label class="block text-sm font-medium text-slate-700 mb-2">Reply to Physician:</label>
-                            <textarea
-                              name="reply_message"
-                              rows="3"
-                              class="w-full px-3 py-2 border border-slate-300 rounded focus:ring-2 focus:ring-brand focus:border-transparent"
-                              placeholder="Type your response here..."
-                              required
-                            ></textarea>
-                            <button
-                              type="submit"
-                              class="mt-2 px-4 py-2 bg-brand text-white rounded hover:bg-brand-dark transition"
-                            >
-                              Send Reply
-                            </button>
-                          </form>
-                        <?php endif; ?>
+                      <!-- Reply Form (for manufacturers) -->
+                      <?php if ($adminRole === 'superadmin' || $adminRole === 'manufacturer'): ?>
+                        <form id="reply-form-<?=e($pid)?>" onsubmit="sendReply(event, '<?=e($pid)?>')" class="mt-4 p-3 bg-slate-50 rounded border">
+                          <label class="block text-sm font-medium text-slate-700 mb-2">Send Reply to Physician:</label>
+                          <textarea
+                            name="reply_message"
+                            rows="3"
+                            class="w-full px-3 py-2 border border-slate-300 rounded focus:ring-2 focus:ring-brand focus:border-transparent"
+                            placeholder="Type your response here..."
+                            required
+                          ></textarea>
+                          <button
+                            type="submit"
+                            class="mt-2 px-4 py-2 bg-brand text-white rounded hover:bg-brand-dark transition"
+                          >
+                            Send Reply
+                          </button>
+                        </form>
                       <?php endif; ?>
                     </div>
                   <?php endif; ?>
