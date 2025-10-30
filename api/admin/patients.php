@@ -104,13 +104,15 @@ try {
       exit;
     }
 
-    // Check if admin_response_read_at column exists
+    // Check if tracking columns exist
     $hasAdminReadTracking = false;
+    $hasProviderReadTracking = false;
     try {
-      $cols = $pdo->query("SELECT column_name FROM information_schema.columns WHERE table_name = 'patients' AND column_name = 'admin_response_read_at'")->fetchAll(PDO::FETCH_COLUMN);
+      $cols = $pdo->query("SELECT column_name FROM information_schema.columns WHERE table_name = 'patients' AND column_name IN ('admin_response_read_at', 'provider_comment_read_at')")->fetchAll(PDO::FETCH_COLUMN);
       $hasAdminReadTracking = in_array('admin_response_read_at', $cols);
+      $hasProviderReadTracking = in_array('provider_comment_read_at', $cols);
     } catch (Throwable $e) {
-      error_log("Could not check for admin_response_read_at column: " . $e->getMessage());
+      error_log("Could not check for tracking columns: " . $e->getMessage());
     }
 
     // Get current comment to append to it (for conversation thread)
@@ -140,26 +142,28 @@ try {
     // Update the patient with the conversation thread
     // Reset provider_comment_read_at so physician sees the red dot notification
     try {
+      // Build SQL based on available columns
+      $sql = "UPDATE patients SET status_comment = ?, status_updated_at = NOW()";
+      $params = [$fullComment];
+
       if ($hasAdminReadTracking) {
-        $pdo->prepare("
-          UPDATE patients
-          SET status_comment = ?,
-              status_updated_at = NOW(),
-              admin_response_read_at = NOW(),
-              provider_comment_read_at = NULL
-          WHERE id = ?
-        ")->execute([$fullComment, $patientId]);
-      } else {
-        $pdo->prepare("
-          UPDATE patients
-          SET status_comment = ?,
-              status_updated_at = NOW(),
-              provider_comment_read_at = NULL
-          WHERE id = ?
-        ")->execute([$fullComment, $patientId]);
+        $sql .= ", admin_response_read_at = NOW()";
       }
+
+      if ($hasProviderReadTracking) {
+        $sql .= ", provider_comment_read_at = NULL";
+      }
+
+      $sql .= " WHERE id = ?";
+      $params[] = $patientId;
+
+      $stmt = $pdo->prepare($sql);
+      $stmt->execute($params);
+
+      // Log success for debugging
+      error_log("Successfully updated patient $patientId with conversation thread. SQL: $sql");
     } catch (Throwable $e) {
-      error_log("Error updating patient comment: " . $e->getMessage());
+      error_log("Error updating patient comment: " . $e->getMessage() . " SQL: $sql");
       echo json_encode(['ok' => false, 'error' => 'Failed to update patient record: ' . $e->getMessage()]);
       exit;
     }

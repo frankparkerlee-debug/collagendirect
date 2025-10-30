@@ -6897,7 +6897,7 @@ function renderPatientDetailPage(p, orders, isEditing) {
                   p.auth_state === 'not_covered' ? 'border-red-500' :
                   p.auth_state === 'need_info' ? 'border-orange-500' :
                   'border-blue-500'
-                } p-3 rounded text-sm">
+                } p-3 rounded text-sm" style="white-space: pre-wrap;">
                   ${esc(p.status_comment)}
                   ${p.status_updated_at ? `<div class="text-xs text-slate-500 mt-2">Updated: ${fmt(p.status_updated_at)}</div>` : ''}
                 </div>
