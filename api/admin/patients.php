@@ -1,11 +1,16 @@
 <?php
+// Suppress all errors from being displayed (log them instead)
+ini_set('display_errors', '0');
+error_reporting(E_ALL);
+
 // Start output buffering to catch any stray output
 ob_start();
 
 require_once __DIR__.'/../../db.php';
 
-// Clear any output that might have been generated
-ob_clean();
+// Clear any output that might have been generated (warnings, notices, etc.)
+ob_end_clean();
+ob_start();
 
 header('Content-Type: application/json');
 

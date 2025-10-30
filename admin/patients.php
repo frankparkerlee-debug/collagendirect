@@ -763,7 +763,19 @@ async function sendReply(event, patientId) {
       body: formData
     });
 
-    const result = await response.json();
+    // Get the response text first to see what we're receiving
+    const text = await response.text();
+    console.log('Raw API response:', text);
+
+    // Try to parse as JSON
+    let result;
+    try {
+      result = JSON.parse(text);
+    } catch (e) {
+      console.error('JSON parse error. Response was:', text.substring(0, 500));
+      alert('Server returned invalid response. Check console for details.');
+      return;
+    }
 
     if (result.ok) {
       alert('Reply sent successfully!');
