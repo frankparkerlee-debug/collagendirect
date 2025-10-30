@@ -183,19 +183,67 @@
         </a>
       </div>
     </section>
-    <section id="patients" class="section mb-20">
-      <h2 class="text-4xl font-bold mb-8">Patient Management</h2>
+    <section id="dashboard" class="section mb-20">
+      <h2 class="text-4xl font-bold mb-8">Dashboard Overview</h2>
 
-      <!-- Patient List Screenshot -->
       <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
-        <h3 class="text-2xl font-bold mb-4">Patient List Overview</h3>
         <div class="mb-6">
-          <img src="/uploads/portal-screenshots/?file=patients-list.png"
-               alt="Patient list showing all patients with search and filter options"
+          <img src="/uploads/portal-screenshots/?file=dashboard.png"
+               alt="Portal Dashboard showing revenue analytics, patient count, and recent activity"
                class="w-full rounded-lg shadow-md border">
         </div>
-        <p class="text-gray-600">View all your patients, search by name, and quickly access patient details and order history.</p>
-      </div>
+
+        <div class="grid md:grid-cols-2 gap-8">
+          <div>
+            <h3 class="text-xl font-bold mb-4">Key Metrics</h3>
+            <ul class="space-y-3">
+              <li class="flex items-start gap-3">
+                <span class="text-green-500 text-xl">✓</span>
+                <div>
+                  <strong>Revenue Analytics</strong>
+                  <p class="text-gray-600 text-sm">Track commissions and total revenue from orders</p>
+                </div>
+              </li>
+              <li class="flex items-start gap-3">
+                <span class="text-green-500 text-xl">✓</span>
+                <div>
+                  <strong>Recent Patients</strong>
+                  <p class="text-gray-600 text-sm">Quick access to recently added patients</p>
+                </div>
+              </li>
+              <li class="flex items-start gap-3">
+                <span class="text-green-500 text-xl">✓</span>
+                <div>
+                  <strong>Order Statistics</strong>
+                  <p class="text-gray-600 text-sm">Active orders, pending approvals, and shipment status</p>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 class="text-xl font-bold mb-4">Quick Actions Guide</h3>
+            <p class="text-sm text-gray-600 mb-4">Jump directly to step-by-step instructions:</p>
+            <div class="space-y-3">
+              <a href="#add-patient" class="block w-full bg-brand-teal text-white py-3 px-4 rounded-lg font-semibold hover:bg-teal-600 transition text-left flex items-center justify-between">
+                <span>👤 How to Add a Patient</span>
+                <span>→</span>
+              </a>
+              <a href="#orders" class="block w-full bg-white border-2 border-brand-teal py-3 px-4 rounded-lg font-semibold hover:bg-brand-teal hover:text-white transition text-left flex items-center justify-between">
+                <span>📋 How to Create a New Order</span>
+                <span>→</span>
+              </a>
+              <a href="#view-patients" class="block w-full bg-white border-2 border-gray-300 py-3 px-4 rounded-lg font-semibold hover:border-brand-teal hover:text-brand-teal transition text-left flex items-center justify-between">
+                <span>📁 How to View All Patients</span>
+                <span>→</span>
+              </a>
+            </div>
+          </div>
+        </div>
+
+    <!-- Add a New Patient -->
+    <section id="add-patient" class="section mb-20">
+      <h2 class="text-4xl font-bold mb-8">How to Add a New Patient</h2>
 
       <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
         <h3 class="text-2xl font-bold mb-6">Adding a New Patient</h3>
@@ -273,45 +321,7 @@
             </div>
           </div>
         </div>
-      </div>
-
-      <div class="bg-white rounded-xl shadow-lg p-8">
-        <h3 class="text-2xl font-bold mb-6">Viewing & Editing Patient Information</h3>
-
-        <!-- Patient Detail Screenshot -->
-        <div class="mb-6">
-          <img src="/uploads/portal-screenshots/?file=patient-detail.png"
-               alt="Patient detail page showing demographics, order history, and action buttons"
-               class="w-full rounded-lg shadow-md border">
-        </div>
-
-        <div class="grid md:grid-cols-2 gap-6">
-          <div>
-            <p class="text-gray-600 mb-4">Navigate to the patient detail page and click "Edit Patient" to update:</p>
-            <ul class="space-y-2 text-sm">
-              <li class="flex items-center gap-2">
-                <span class="text-brand-teal">✓</span> Date of Birth
-              </li>
-              <li class="flex items-center gap-2">
-                <span class="text-brand-teal">✓</span> Contact Information (Phone, Email)
-              </li>
-              <li class="flex items-center gap-2">
-                <span class="text-brand-teal">✓</span> Address
-              </li>
-              <li class="flex items-center gap-2">
-                <span class="text-brand-teal">✓</span> Insurance Details
-              </li>
-              <li class="flex items-center gap-2">
-                <span class="text-brand-teal">✓</span> Upload New Documents
-              </li>
-            </ul>
-          </div>
-          <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
-            <h4 class="font-bold text-yellow-900 mb-2">💡 Pro Tip</h4>
-            <p class="text-yellow-800 text-sm">Keep patient phone numbers up to date! They're used for SMS delivery confirmations.</p>
-          </div>
-        </div>
-      </div>
+    </section>
     </section>
     <section id="documents" class="section mb-20">
       <h2 class="text-4xl font-bold mb-8">Document Management</h2>
@@ -382,7 +392,6 @@
           <h4 class="font-bold text-yellow-900 mb-2">📱 Mobile Uploads</h4>
           <p class="text-yellow-800 text-sm">The portal works great on mobile! Take photos with your phone camera and upload directly from the patient detail page.</p>
         </div>
-      </div>
     </section>
     <section id="icd10" class="section mb-20">
       <div class="flex items-center gap-3 mb-8">
@@ -520,7 +529,6 @@
             </ul>
           </div>
         </div>
-      </div>
     </section>
     <section id="orders" class="section mb-20">
       <h2 class="text-4xl font-bold mb-8">Creating Orders</h2>
@@ -619,66 +627,60 @@
             <span class="text-green-900">Patient receives delivery confirmation SMS</span>
           </div>
         </div>
-      </div>
-    </section>
-    <section id="dashboard" class="section mb-20">
-      <h2 class="text-4xl font-bold mb-8">Dashboard Overview</h2>
 
+    <!-- View All Patients -->
+    <section id="view-patients" class="section mb-20">
+      <h2 class="text-4xl font-bold mb-8">How to View & Manage All Patients</h2>
+
+      <!-- Patient List Screenshot -->
       <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+        <h3 class="text-2xl font-bold mb-4">Patient List Overview</h3>
         <div class="mb-6">
-          <img src="/uploads/portal-screenshots/?file=dashboard.png"
-               alt="Portal Dashboard showing revenue analytics, patient count, and recent activity"
+          <img src="/uploads/portal-screenshots/?file=patients-list.png"
+               alt="Patient list showing all patients with search and filter options"
+               class="w-full rounded-lg shadow-md border">
+        </div>
+        <p class="text-gray-600 mb-4">View all your patients, search by name, and quickly access patient details and order history.</p>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-lg p-8">
+        <h3 class="text-2xl font-bold mb-6">Viewing & Editing Patient Information</h3>
+
+        <!-- Patient Detail Screenshot -->
+        <div class="mb-6">
+          <img src="/uploads/portal-screenshots/?file=patient-detail.png"
+               alt="Patient detail page showing demographics, order history, and action buttons"
                class="w-full rounded-lg shadow-md border">
         </div>
 
-        <div class="grid md:grid-cols-2 gap-8">
+        <div class="grid md:grid-cols-2 gap-6">
           <div>
-            <h3 class="text-xl font-bold mb-4">Key Metrics</h3>
-            <ul class="space-y-3">
-              <li class="flex items-start gap-3">
-                <span class="text-green-500 text-xl">✓</span>
-                <div>
-                  <strong>Revenue Analytics</strong>
-                  <p class="text-gray-600 text-sm">Track commissions and total revenue from orders</p>
-                </div>
+            <p class="text-gray-600 mb-4">Navigate to the patient detail page and click "Edit Patient" to update:</p>
+            <ul class="space-y-2 text-sm">
+              <li class="flex items-center gap-2">
+                <span class="text-brand-teal">✓</span> Date of Birth
               </li>
-              <li class="flex items-start gap-3">
-                <span class="text-green-500 text-xl">✓</span>
-                <div>
-                  <strong>Recent Patients</strong>
-                  <p class="text-gray-600 text-sm">Quick access to recently added patients</p>
-                </div>
+              <li class="flex items-center gap-2">
+                <span class="text-brand-teal">✓</span> Contact Information (Phone, Email)
               </li>
-              <li class="flex items-start gap-3">
-                <span class="text-green-500 text-xl">✓</span>
-                <div>
-                  <strong>Order Statistics</strong>
-                  <p class="text-gray-600 text-sm">Active orders, pending approvals, and shipment status</p>
-                </div>
+              <li class="flex items-center gap-2">
+                <span class="text-brand-teal">✓</span> Address
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="text-brand-teal">✓</span> Insurance Details
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="text-brand-teal">✓</span> Upload New Documents
               </li>
             </ul>
           </div>
-
-          <div>
-            <h3 class="text-xl font-bold mb-4">Quick Actions Guide</h3>
-            <p class="text-sm text-gray-600 mb-4">Learn how to perform common tasks in the portal</p>
-            <div class="space-y-3">
-              <a href="#orders" class="block w-full bg-brand-teal text-white py-3 px-4 rounded-lg font-semibold hover:bg-teal-600 transition text-left flex items-center justify-between">
-                <span>📋 How to Create a New Order</span>
-                <span>→</span>
-              </a>
-              <a href="#patients" class="block w-full bg-white border-2 border-gray-300 py-3 px-4 rounded-lg font-semibold hover:border-brand-teal hover:text-brand-teal transition text-left flex items-center justify-between">
-                <span>👤 How to Add a Patient</span>
-                <span>→</span>
-              </a>
-              <a href="#patients" class="block w-full bg-white border-2 border-gray-300 py-3 px-4 rounded-lg font-semibold hover:border-brand-teal hover:text-brand-teal transition text-left flex items-center justify-between">
-                <span>📁 How to View All Patients</span>
-                <span>→</span>
-              </a>
-            </div>
+          <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
+            <h4 class="font-bold text-yellow-900 mb-2">💡 Pro Tip</h4>
+            <p class="text-yellow-800 text-sm">Keep patient phone numbers up to date! They're used for SMS delivery confirmations.</p>
           </div>
         </div>
       </div>
+    </section>
     </section>
     <section id="tips" class="section mb-20">
       <h2 class="text-4xl font-bold mb-8">Tips & Tricks</h2>
@@ -869,8 +871,29 @@
           link.classList.add('text-brand-teal', 'font-bold');
         }
       });
+
+      // Show/hide back to top button
+      const backToTop = document.getElementById('backToTop');
+      if (window.scrollY > 500) {
+        backToTop.classList.add('show');
+      } else {
+        backToTop.classList.remove('show');
+      }
     });
+
+    // Back to top functionality
+    function scrollToTop() {
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    }
   </script>
+
+  <!-- Back to Top Button -->
+  <button id="backToTop" onclick="scrollToTop()" class="bg-gradient-to-r from-brand-teal to-emerald-500 text-white w-14 h-14 rounded-full shadow-lg hover:shadow-xl hover:scale-110 transition-all flex items-center justify-center font-bold text-xl">
+    ↑
+  </button>
 
 </body>
 </html>
