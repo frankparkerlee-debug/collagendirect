@@ -4,7 +4,7 @@
 
 class AIService {
   private $apiKey;
-  private $model = 'claude-sonnet-4-5-20250514';
+  private $model = 'claude-sonnet-4-5-20250929';
   private $apiUrl = 'https://api.anthropic.com/v1/messages';
 
   public function __construct() {

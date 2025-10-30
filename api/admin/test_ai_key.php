@@ -39,7 +39,7 @@ if (empty($apiKey)) {
   echo "\n=== Testing Claude API Connection ===\n";
 
   $data = [
-    'model' => 'claude-sonnet-4-5-20250514',
+    'model' => 'claude-sonnet-4-5-20250929',
     'max_tokens' => 50,
     'messages' => [
       [
