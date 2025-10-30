@@ -72,13 +72,14 @@ try {
     ")->execute([$replyMessage, $patientId]);
 
     // Get patient and provider info for notification
-    $patient = $pdo->prepare("
+    $stmt = $pdo->prepare("
       SELECT p.id, p.user_id, p.first_name, p.last_name, u.email as provider_email
       FROM patients p
       JOIN users u ON u.id = p.user_id
       WHERE p.id = ?
-    ")->execute([$patientId]);
-    $patient = $patient->fetch(PDO::FETCH_ASSOC);
+    ");
+    $stmt->execute([$patientId]);
+    $patient = $stmt->fetch(PDO::FETCH_ASSOC);
 
     // TODO: Send email notification to provider about the new reply
     // Can use SendGrid here similar to other notification emails

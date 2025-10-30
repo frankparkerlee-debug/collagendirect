@@ -689,7 +689,17 @@ include __DIR__.'/_header.php';
 <script>
 function togglePatientDetails(patientId) {
   const detailsRow = document.getElementById('patient-details-' + patientId);
-  const button = document.querySelector('[data-patient-id="' + patientId + '"] button');
+  if (!detailsRow) {
+    console.error('Patient details row not found for ID:', patientId);
+    return;
+  }
+
+  const button = document.querySelector('[data-patient-id="' + patientId + '"]');
+  if (!button) {
+    console.error('Patient button not found for ID:', patientId);
+    return;
+  }
+
   const expandText = button.querySelector('.expand-text');
   const collapseText = button.querySelector('.collapse-text');
 
