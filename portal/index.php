@@ -2902,9 +2902,8 @@ if ($page==='logout'){
             </th>
             <th class="py-3 px-2" style="color: var(--ink-light); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Patient name</th>
             <th class="py-3 px-2" style="color: var(--ink-light); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Patient ID</th>
-            <th class="py-3 px-2" style="color: var(--ink-light); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Age</th>
             <th class="py-3 px-2" style="color: var(--ink-light); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Date of birth</th>
-            <th class="py-3 px-2" style="color: var(--ink-light); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Gender</th>
+            <th class="py-3 px-2" style="color: var(--ink-light); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Products</th>
             <th class="py-3 px-2" style="color: var(--ink-light); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Email</th>
             <th class="py-3 px-2" style="color: var(--ink-light); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Status</th>
             <th class="py-3 px-2" style="width: 40px;"></th>
@@ -4873,6 +4872,12 @@ if (<?php echo json_encode($page==='dashboard'); ?>){
         `<span class="badge badge-${p.last_status.toLowerCase()}">${esc(p.last_status)}</span>` :
         `<span class="badge">Unknown</span>`;
 
+      // Get product count for this patient
+      const productCount = p.product_count || 0;
+      const productsDisplay = productCount > 0
+        ? `<span style="color: var(--brand); font-weight: 500;">${productCount}</span>`
+        : `<span style="color: var(--muted);">0</span>`;
+
       tb.insertAdjacentHTML('beforeend',`
         <tr style="border-bottom: 1px solid var(--border); transition: background 0.15s;">
           <td class="py-3 px-2">
@@ -4880,16 +4885,15 @@ if (<?php echo json_encode($page==='dashboard'); ?>){
           </td>
           <td class="py-3 px-2">
             <div style="display: flex; align-items: center; gap: 0.75rem;">
-              <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--brand); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.75rem; flex-shrink: 0;">
+              <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--brand); color: white; display: flex; align-items: center; justify-center; font-weight: 600; font-size: 0.75rem; flex-shrink: 0;">
                 ${initials}
               </div>
               <a href="?page=patient-detail&id=${p.id}" style="font-weight: 500; color: var(--ink); text-decoration: none; cursor: pointer;" onmouseover="this.style.color='var(--brand)'" onmouseout="this.style.color='var(--ink)'">${esc(p.first_name||'')} ${esc(p.last_name||'')}</a>
             </div>
           </td>
           <td class="py-3 px-2" style="color: var(--ink-light);">${esc(p.mrn || '-')}</td>
-          <td class="py-3 px-2" style="color: var(--ink-light);">${age}</td>
           <td class="py-3 px-2" style="color: var(--ink-light);">${dob}</td>
-          <td class="py-3 px-2" style="color: var(--ink-light);">${esc(p.city && p.state ? p.city+', '+p.state : '-')}</td>
+          <td class="py-3 px-2">${productsDisplay}</td>
           <td class="py-3 px-2" style="color: var(--ink-light);">${esc(p.email||'-')}</td>
           <td class="py-3 px-2">${statusBadge}</td>
           <td class="py-3 px-2 text-right">

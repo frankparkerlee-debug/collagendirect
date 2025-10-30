@@ -42,12 +42,17 @@ try {
     $limit = (int)($_GET['limit'] ?? 50);
     $limit = max(1, min(500, $limit));
     $stmt = $pdo->prepare("
-      SELECT id, first_name, last_name, dob, phone, email, address, city, state, zip,
-             insurance_provider, insurance_member_id, insurance_group_id, insurance_payer_phone,
-             note_path, ins_card_path, id_card_path, created_at, updated_at
-      FROM patients
-      WHERE user_id = ?
-      ORDER BY updated_at DESC
+      SELECT p.id, p.first_name, p.last_name, p.dob, p.phone, p.email, p.address, p.city, p.state, p.zip,
+             p.insurance_provider, p.insurance_member_id, p.insurance_group_id, p.insurance_payer_phone,
+             p.note_path, p.ins_card_path, p.id_card_path, p.created_at, p.updated_at,
+             COUNT(DISTINCT o.product_id) as product_count
+      FROM patients p
+      LEFT JOIN orders o ON o.patient_id = p.id
+      WHERE p.user_id = ?
+      GROUP BY p.id, p.first_name, p.last_name, p.dob, p.phone, p.email, p.address, p.city, p.state, p.zip,
+               p.insurance_provider, p.insurance_member_id, p.insurance_group_id, p.insurance_payer_phone,
+               p.note_path, p.ins_card_path, p.id_card_path, p.created_at, p.updated_at
+      ORDER BY p.updated_at DESC
       LIMIT {$limit}
     ");
     $stmt->execute([$uid]);
