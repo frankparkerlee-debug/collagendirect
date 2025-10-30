@@ -3,16 +3,40 @@
 ini_set('display_errors', '0');
 error_reporting(E_ALL);
 
+// Register shutdown function to catch fatal errors
+register_shutdown_function(function() {
+  $error = error_get_last();
+  if ($error && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
+    while (ob_get_level()) ob_end_clean();
+    header('Content-Type: application/json');
+    echo json_encode(['ok' => false, 'error' => 'Fatal error: ' . $error['message'] . ' in ' . $error['file'] . ':' . $error['line']]);
+    exit;
+  }
+});
+
 // Start output buffering to catch any stray output
 ob_start();
 
-require_once __DIR__.'/../../db.php';
+try {
+  require_once __DIR__.'/../../db.php';
+} catch (Throwable $e) {
+  while (ob_get_level()) ob_end_clean();
+  header('Content-Type: application/json');
+  echo json_encode(['ok' => false, 'error' => 'Database connection failed: ' . $e->getMessage()]);
+  exit;
+}
 
 // Clear any output that might have been generated (warnings, notices, etc.)
 ob_end_clean();
 ob_start();
 
 header('Content-Type: application/json');
+
+// Check if $pdo exists
+if (!isset($pdo)) {
+  echo json_encode(['ok' => false, 'error' => 'Database connection not available']);
+  exit;
+}
 
 // Check authentication - session is started in db.php
 // Support both admin users (from admin_users table) and superadmin (from users table)
