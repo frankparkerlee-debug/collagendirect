@@ -147,6 +147,58 @@ if (!$authorized) {
     </a>
   </section>
 
+  <!-- Quick Start Guide Callout -->
+  <section class="py-12 max-w-7xl mx-auto px-6">
+    <a href="quick-start-guide.php" class="block group">
+      <div class="bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 rounded-3xl p-10 text-white hover:shadow-2xl transition-all relative overflow-hidden">
+        <div class="absolute top-0 right-0 text-[200px] opacity-10 font-black select-none">🚀</div>
+        <div class="relative z-10">
+          <div class="flex items-center gap-4 mb-4">
+            <div class="w-16 h-16 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center">
+              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+              </svg>
+            </div>
+            <div class="flex-1">
+              <div class="inline-flex items-center gap-2 bg-white/20 backdrop-blur px-4 py-1 rounded-full text-sm font-bold mb-2">
+                ⚡ QUICK START
+              </div>
+              <h2 class="text-3xl font-black">Get Selling in 30 Minutes</h2>
+            </div>
+            <div class="text-white/60 group-hover:text-white group-hover:translate-x-2 transition-all">
+              <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+              </svg>
+            </div>
+          </div>
+          <p class="text-lg text-orange-50 mb-6">
+            Need to start making calls TODAY? This guide has everything you need: the 4 products, the cold call script, discovery questions, and objection handlers. Read this first, deep training later.
+          </p>
+          <div class="flex items-center gap-6 text-sm">
+            <div class="flex items-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <span>30-Minute Read</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
+              </svg>
+              <span>Cold Call Script Included</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <span>First Week Strategy</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </a>
+  </section>
+
   <!-- Featured: 4-Step Sales Process -->
   <section class="py-12 max-w-7xl mx-auto px-6">
     <div class="mb-12">
