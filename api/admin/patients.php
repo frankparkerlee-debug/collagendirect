@@ -10,13 +10,22 @@ ob_clean();
 header('Content-Type: application/json');
 
 // Check authentication - session is started in db.php
-if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
+// Support both admin users (from admin_users table) and superadmin (from users table)
+$adminId = null;
+$adminRole = null;
+
+if (isset($_SESSION['admin'])) {
+  // Admin user (employee, manufacturer) from admin_users table
+  $adminId = (int)$_SESSION['admin']['id'];
+  $adminRole = $_SESSION['admin']['role'];
+} elseif (isset($_SESSION['user_id']) && isset($_SESSION['role']) && $_SESSION['role'] === 'superadmin') {
+  // Superadmin from users table
+  $adminId = (int)$_SESSION['user_id'];
+  $adminRole = $_SESSION['role'];
+} else {
   echo json_encode(['ok' => false, 'error' => 'Not authenticated']);
   exit;
 }
-
-$adminId = (int)$_SESSION['user_id'];
-$adminRole = $_SESSION['role'] ?? '';
 $action = $_POST['action'] ?? '';
 
 try {
