@@ -6891,7 +6891,7 @@ function renderPatientDetailPage(p, orders, isEditing) {
             </div>
             ${p.status_comment ? `
               <div>
-                <div class="text-slate-500 text-xs mb-1">Manufacturer Notes</div>
+                <div class="text-slate-500 text-xs mb-1 font-semibold">Manufacturer Comments</div>
                 <div class="bg-slate-50 border-l-4 ${
                   p.auth_state === 'approved' ? 'border-green-500' :
                   p.auth_state === 'not_covered' ? 'border-red-500' :
@@ -6899,12 +6899,13 @@ function renderPatientDetailPage(p, orders, isEditing) {
                   'border-blue-500'
                 } p-3 rounded text-sm">
                   ${esc(p.status_comment)}
+                  ${p.status_updated_at ? `<div class="text-xs text-slate-500 mt-2">Updated: ${fmt(p.status_updated_at)}</div>` : ''}
                 </div>
               </div>
             ` : ''}
-            ${p.status_comment && p.auth_state === 'need_info' ? `
-              <div>
-                <div class="text-slate-500 text-xs mb-1">Your Response</div>
+            ${p.status_comment ? `
+              <div class="mt-4">
+                <div class="text-slate-500 text-xs mb-1 font-semibold">Your Response</div>
                 ${p.provider_response ? `
                   <div class="bg-blue-50 border-l-4 border-blue-500 p-3 rounded text-sm mb-2">
                     ${esc(p.provider_response)}
