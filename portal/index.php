@@ -2721,6 +2721,39 @@ if ($page==='logout'){
       -webkit-tap-highlight-color: transparent;
     }
   }
+
+  /* Responsive table columns */
+  /* Hide less critical columns on tablets and smaller */
+  @media (max-width: 1024px) {
+    /* Patient table on index page - hide Patient ID and Email on tablets */
+    .hide-tablet {
+      display: none !important;
+    }
+  }
+
+  @media (max-width: 768px) {
+    /* Patient table - hide Patient ID, DOB, and Email on mobile */
+    .hide-mobile {
+      display: none !important;
+    }
+
+    /* Make table text smaller on mobile */
+    table.w-full {
+      font-size: 0.8rem;
+    }
+
+    /* Reduce padding on table cells for mobile */
+    table th, table td {
+      padding-left: 0.25rem !important;
+      padding-right: 0.25rem !important;
+    }
+
+    /* Keep action buttons visible but compact */
+    .icon-btn {
+      min-width: 28px !important;
+      min-height: 28px !important;
+    }
+  }
 </style>
 </head>
 <body>
@@ -2953,14 +2986,14 @@ if ($page==='logout'){
       <table class="w-full text-sm">
         <thead style="border-bottom: 1px solid var(--border);">
           <tr class="text-left">
-            <th class="py-3 px-2" style="width: 40px;">
+            <th class="py-3 px-2 hide-mobile" style="width: 40px;">
               <input type="checkbox" id="select-all-patients" style="width: 16px; height: 16px; cursor: pointer;">
             </th>
             <th class="py-3 px-2" style="color: var(--ink-light); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Patient name</th>
-            <th class="py-3 px-2" style="color: var(--ink-light); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Patient ID</th>
-            <th class="py-3 px-2" style="color: var(--ink-light); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Date of birth</th>
+            <th class="py-3 px-2 hide-tablet" style="color: var(--ink-light); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Patient ID</th>
+            <th class="py-3 px-2 hide-mobile" style="color: var(--ink-light); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Date of birth</th>
             <th class="py-3 px-2" style="color: var(--ink-light); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Products</th>
-            <th class="py-3 px-2" style="color: var(--ink-light); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Email</th>
+            <th class="py-3 px-2 hide-tablet" style="color: var(--ink-light); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Email</th>
             <th class="py-3 px-2" style="color: var(--ink-light); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Status</th>
             <th class="py-3 px-2" style="width: 40px;"></th>
           </tr>
@@ -2986,8 +3019,8 @@ if ($page==='logout'){
       <table class="w-full text-sm">
         <thead class="border-b">
           <tr class="text-left">
-            <th class="py-2">Name</th><th class="py-2">DOB</th><th class="py-2">Phone</th><th class="py-2">Email</th>
-            <th class="py-2">City/State</th><th class="py-2">Status</th><th class="py-2">Product Count</th><th class="py-2">Action</th>
+            <th class="py-2">Name</th><th class="py-2 hide-mobile">DOB</th><th class="py-2 hide-tablet">Phone</th><th class="py-2 hide-tablet">Email</th>
+            <th class="py-2 hide-mobile">City/State</th><th class="py-2">Status</th><th class="py-2 hide-mobile">Product Count</th><th class="py-2">Action</th>
           </tr>
         </thead>
         <tbody id="tb"></tbody>
@@ -4936,7 +4969,7 @@ if (<?php echo json_encode($page==='dashboard'); ?>){
 
       tb.insertAdjacentHTML('beforeend',`
         <tr style="border-bottom: 1px solid var(--border); transition: background 0.15s;">
-          <td class="py-3 px-2">
+          <td class="py-3 px-2 hide-mobile">
             <input type="checkbox" class="patient-checkbox" data-patient-id="${p.id}" style="width: 16px; height: 16px; cursor: pointer;">
           </td>
           <td class="py-3 px-2">
@@ -4947,10 +4980,10 @@ if (<?php echo json_encode($page==='dashboard'); ?>){
               <a href="?page=patient-detail&id=${p.id}" style="font-weight: 500; color: var(--ink); text-decoration: none; cursor: pointer;" onmouseover="this.style.color='var(--brand)'" onmouseout="this.style.color='var(--ink)'">${esc(p.first_name||'')} ${esc(p.last_name||'')}</a>
             </div>
           </td>
-          <td class="py-3 px-2" style="color: var(--ink-light);">${esc(p.mrn || '-')}</td>
-          <td class="py-3 px-2" style="color: var(--ink-light);">${dob}</td>
+          <td class="py-3 px-2 hide-tablet" style="color: var(--ink-light);">${esc(p.mrn || '-')}</td>
+          <td class="py-3 px-2 hide-mobile" style="color: var(--ink-light);">${dob}</td>
           <td class="py-3 px-2">${productsDisplay}</td>
-          <td class="py-3 px-2" style="color: var(--ink-light);">${esc(p.email||'-')}</td>
+          <td class="py-3 px-2 hide-tablet" style="color: var(--ink-light);">${esc(p.email||'-')}</td>
           <td class="py-3 px-2">${statusBadge}</td>
           <td class="py-3 px-2 text-right">
             <button class="icon-btn" type="button" data-acc="${p.id}" style="width: 32px; height: 32px; position: relative;">
@@ -5101,12 +5134,12 @@ if (<?php echo json_encode($page==='patients'); ?>){
       tb.insertAdjacentHTML('beforeend',`
         <tr class="border-b hover:bg-slate-50">
           <td class="py-2">${esc(p.first_name||'')} ${esc(p.last_name||'')}</td>
-          <td class="py-2">${esc(p.dob||'')}</td>
-          <td class="py-2">${esc(p.phone||'')}</td>
-          <td class="py-2">${esc(p.email||'')}</td>
-          <td class="py-2">${esc(p.city||'')}${p.state?', '+esc(p.state):''}</td>
+          <td class="py-2 hide-mobile">${esc(p.dob||'')}</td>
+          <td class="py-2 hide-tablet">${esc(p.phone||'')}</td>
+          <td class="py-2 hide-tablet">${esc(p.email||'')}</td>
+          <td class="py-2 hide-mobile">${esc(p.city||'')}${p.state?', '+esc(p.state):''}</td>
           <td class="py-2">${pill(p.last_status)}</td>
-          <td class="py-2">${p.last_remaining ?? '—'}</td>
+          <td class="py-2 hide-mobile">${p.last_remaining ?? '—'}</td>
           <td class="py-2"><button class="btn" type="button" data-acc="${p.id}">View / Edit</button></td>
         </tr>`);
     }
