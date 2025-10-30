@@ -1,6 +1,12 @@
 <?php
+// Start output buffering to catch any stray output
+ob_start();
+
 require_once __DIR__.'/../../includes/db.php';
 require_once __DIR__.'/../../includes/auth.php';
+
+// Clear any output that might have been generated
+ob_clean();
 
 header('Content-Type: application/json');
 
@@ -61,25 +67,54 @@ try {
       exit;
     }
 
+    // Check if admin_response_read_at column exists
+    $hasAdminReadTracking = false;
+    try {
+      $cols = $pdo->query("SELECT column_name FROM information_schema.columns WHERE table_name = 'patients' AND column_name = 'admin_response_read_at'")->fetchAll(PDO::FETCH_COLUMN);
+      $hasAdminReadTracking = in_array('admin_response_read_at', $cols);
+    } catch (Throwable $e) {
+      error_log("Could not check for admin_response_read_at column: " . $e->getMessage());
+    }
+
     // Update the patient with the new comment (overwriting previous manufacturer comment)
-    // and mark the admin response as read
-    $pdo->prepare("
-      UPDATE patients
-      SET status_comment = ?,
-          status_updated_at = NOW(),
-          admin_response_read_at = NOW()
-      WHERE id = ?
-    ")->execute([$replyMessage, $patientId]);
+    // and mark the admin response as read if the column exists
+    try {
+      if ($hasAdminReadTracking) {
+        $pdo->prepare("
+          UPDATE patients
+          SET status_comment = ?,
+              status_updated_at = NOW(),
+              admin_response_read_at = NOW()
+          WHERE id = ?
+        ")->execute([$replyMessage, $patientId]);
+      } else {
+        $pdo->prepare("
+          UPDATE patients
+          SET status_comment = ?,
+              status_updated_at = NOW()
+          WHERE id = ?
+        ")->execute([$replyMessage, $patientId]);
+      }
+    } catch (Throwable $e) {
+      error_log("Error updating patient comment: " . $e->getMessage());
+      echo json_encode(['ok' => false, 'error' => 'Failed to update patient record']);
+      exit;
+    }
 
     // Get patient and provider info for notification
-    $stmt = $pdo->prepare("
-      SELECT p.id, p.user_id, p.first_name, p.last_name, u.email as provider_email
-      FROM patients p
-      JOIN users u ON u.id = p.user_id
-      WHERE p.id = ?
-    ");
-    $stmt->execute([$patientId]);
-    $patient = $stmt->fetch(PDO::FETCH_ASSOC);
+    try {
+      $stmt = $pdo->prepare("
+        SELECT p.id, p.user_id, p.first_name, p.last_name, u.email as provider_email
+        FROM patients p
+        JOIN users u ON u.id = p.user_id
+        WHERE p.id = ?
+      ");
+      $stmt->execute([$patientId]);
+      $patient = $stmt->fetch(PDO::FETCH_ASSOC);
+    } catch (Throwable $e) {
+      error_log("Error fetching patient info: " . $e->getMessage());
+      // Don't fail the request if we can't fetch patient info for notification
+    }
 
     // TODO: Send email notification to provider about the new reply
     // Can use SendGrid here similar to other notification emails
