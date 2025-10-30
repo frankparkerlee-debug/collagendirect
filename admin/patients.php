@@ -210,23 +210,43 @@ try {
     $having = 'HAVING COUNT(DISTINCT o.id) = 0';
   }
 
+  // Check if new columns exist
+  $hasProviderResponse = false;
+  $hasReadTracking = false;
+  try {
+    $cols = $pdo->query("SELECT column_name FROM information_schema.columns WHERE table_name = 'patients' AND column_name IN ('provider_response', 'provider_response_at', 'admin_response_read_at', 'provider_comment_read_at')")->fetchAll(PDO::FETCH_COLUMN);
+    $hasProviderResponse = in_array('provider_response', $cols) && in_array('provider_response_at', $cols);
+    $hasReadTracking = in_array('admin_response_read_at', $cols);
+  } catch (Throwable $e) {
+    error_log("Could not check for new columns: " . $e->getMessage());
+  }
+
+  $providerResponseCols = $hasProviderResponse ? "p.provider_response, p.provider_response_at," : "NULL as provider_response, NULL as provider_response_at,";
+  $readTrackingCol = $hasReadTracking ? "p.admin_response_read_at," : "NULL as admin_response_read_at,";
+
+  $hasUnreadCalc = $hasProviderResponse && $hasReadTracking ?
+    "CASE
+      WHEN p.provider_response IS NOT NULL
+        AND p.provider_response != ''
+        AND (p.admin_response_read_at IS NULL OR p.admin_response_read_at < p.provider_response_at)
+      THEN TRUE
+      ELSE FALSE
+    END" : "FALSE";
+
+  $providerResponseGroup = $hasProviderResponse ? "p.provider_response, p.provider_response_at," : "";
+  $readTrackingGroup = $hasReadTracking ? "p.admin_response_read_at," : "";
+
   $sql = "
     SELECT
       p.id, p.user_id, p.first_name, p.last_name, p.email, p.phone, p.dob,
       p.state, p.created_at,
       p.notes_path, p.ins_card_path, p.id_card_path,
       p.insurance_provider, p.insurance_member_id, p.insurance_group_id, p.insurance_payer_phone,
-      p.status_comment, p.status_updated_at, p.provider_response, p.provider_response_at, p.admin_response_read_at,
+      p.status_comment, p.status_updated_at, $providerResponseCols $readTrackingCol
       u.first_name AS phys_first, u.last_name AS phys_last, u.practice_name,
       COUNT(DISTINCT o.id) AS order_count,
       MAX(o.created_at) AS last_order_date,
-      CASE
-        WHEN p.provider_response IS NOT NULL
-          AND p.provider_response != ''
-          AND (p.admin_response_read_at IS NULL OR p.admin_response_read_at < p.provider_response_at)
-        THEN TRUE
-        ELSE FALSE
-      END as has_unread_response
+      $hasUnreadCalc as has_unread_response
     FROM patients p
     LEFT JOIN users u ON u.id = p.user_id
     LEFT JOIN orders o ON o.patient_id = p.id AND o.status NOT IN ('rejected','cancelled')
@@ -234,7 +254,7 @@ try {
     GROUP BY p.id, p.user_id, p.first_name, p.last_name, p.email, p.phone, p.dob,
              p.state, p.created_at, p.notes_path, p.ins_card_path, p.id_card_path,
              p.insurance_provider, p.insurance_member_id, p.insurance_group_id, p.insurance_payer_phone,
-             p.status_comment, p.status_updated_at, p.provider_response, p.provider_response_at, p.admin_response_read_at,
+             p.status_comment, p.status_updated_at, $providerResponseGroup $readTrackingGroup
              u.first_name, u.last_name, u.practice_name
     $having
     ORDER BY p.created_at DESC
