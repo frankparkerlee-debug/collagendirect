@@ -5140,7 +5140,10 @@ if (<?php echo json_encode($page==='patients'); ?>){
           <td class="py-2 hide-mobile">${esc(p.city||'')}${p.state?', '+esc(p.state):''}</td>
           <td class="py-2">${pill(p.last_status)}</td>
           <td class="py-2 hide-mobile">${p.last_remaining ?? '—'}</td>
-          <td class="py-2"><button class="btn" type="button" data-acc="${p.id}">View / Edit</button></td>
+          <td class="py-2" style="position: relative;">
+            <button class="btn" type="button" data-acc="${p.id}">View / Edit</button>
+            ${p.has_unread_comment ? '<span style="position: absolute; top: 8px; right: 4px; width: 8px; height: 8px; background: #ef4444; border-radius: 50%; border: 2px solid white;"></span>' : ''}
+          </td>
         </tr>`);
     }
   }
