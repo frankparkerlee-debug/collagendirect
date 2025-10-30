@@ -113,28 +113,54 @@ try {
       error_log("Could not check for admin_response_read_at column: " . $e->getMessage());
     }
 
-    // Update the patient with the new comment (overwriting previous manufacturer comment)
-    // and mark the admin response as read if the column exists
+    // Get current comment to append to it (for conversation thread)
+    $currentComment = '';
+    try {
+      $stmt = $pdo->prepare("SELECT status_comment FROM patients WHERE id = ?");
+      $stmt->execute([$patientId]);
+      $row = $stmt->fetch(PDO::FETCH_ASSOC);
+      $currentComment = $row['status_comment'] ?? '';
+    } catch (Throwable $e) {
+      error_log("Error fetching current comment: " . $e->getMessage());
+    }
+
+    // Build conversation thread by appending new message
+    $timestamp = date('Y-m-d H:i:s');
+    $separator = "\n\n---\n\n";
+    $newMessage = "[" . $timestamp . "] Manufacturer:\n" . $replyMessage;
+
+    if (!empty($currentComment)) {
+      // Append to existing conversation
+      $fullComment = $currentComment . $separator . $newMessage;
+    } else {
+      // First message
+      $fullComment = $newMessage;
+    }
+
+    // Update the patient with the conversation thread
+    // Reset provider_comment_read_at so physician sees the red dot notification
     try {
       if ($hasAdminReadTracking) {
         $pdo->prepare("
           UPDATE patients
           SET status_comment = ?,
               status_updated_at = NOW(),
-              admin_response_read_at = NOW()
+              admin_response_read_at = NOW(),
+              provider_comment_read_at = NULL
           WHERE id = ?
-        ")->execute([$replyMessage, $patientId]);
+        ")->execute([$fullComment, $patientId]);
       } else {
         $pdo->prepare("
           UPDATE patients
           SET status_comment = ?,
-              status_updated_at = NOW()
+              status_updated_at = NOW(),
+              provider_comment_read_at = NULL
           WHERE id = ?
-        ")->execute([$replyMessage, $patientId]);
+        ")->execute([$fullComment, $patientId]);
       }
     } catch (Throwable $e) {
       error_log("Error updating patient comment: " . $e->getMessage());
-      echo json_encode(['ok' => false, 'error' => 'Failed to update patient record']);
+      echo json_encode(['ok' => false, 'error' => 'Failed to update patient record: ' . $e->getMessage()]);
       exit;
     }
 

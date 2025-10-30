@@ -778,8 +778,20 @@ async function sendReply(event, patientId) {
     }
 
     if (result.ok) {
-      alert('Reply sent successfully!');
-      location.reload();
+      // Clear the textarea
+      const textarea = form.querySelector('textarea[name="reply_message"]');
+      if (textarea) {
+        textarea.value = '';
+      }
+
+      // Show success message without closing patient details
+      alert('Reply sent successfully! The physician will be notified.');
+
+      // Optionally reload just this patient's data to show the new comment
+      // For now, just tell the user the reply was sent
+      // You could reload the page with a hash to keep the patient open:
+      // location.href = location.pathname + location.search + '#patient-' + patientId;
+      // location.reload();
     } else {
       alert('Error: ' + (result.error || 'Failed to send reply'));
     }
