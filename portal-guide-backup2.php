@@ -125,12 +125,11 @@
     <div class="container mx-auto px-6">
       <div class="flex gap-8 overflow-x-auto py-4 text-sm font-medium">
         <a href="#getting-started" class="text-gray-700 hover:text-brand-teal font-medium whitespace-nowrap transition-colors">Getting Started</a>
-        <a href="#dashboard" class="text-gray-700 hover:text-brand-teal font-medium whitespace-nowrap transition-colors">Dashboard</a>
-        <a href="#add-patient" class="text-gray-700 hover:text-brand-teal font-medium whitespace-nowrap transition-colors">Add Patient</a>
+        <a href="#patients" class="text-gray-700 hover:text-brand-teal font-medium whitespace-nowrap transition-colors">Patient Management</a>
         <a href="#documents" class="text-gray-700 hover:text-brand-teal font-medium whitespace-nowrap transition-colors">Documents</a>
         <a href="#icd10" class="text-gray-700 hover:text-brand-teal font-medium whitespace-nowrap transition-colors">ICD-10 Search</a>
-        <a href="#orders" class="text-gray-700 hover:text-brand-teal font-medium whitespace-nowrap transition-colors">Create Order</a>
-        <a href="#view-patients" class="text-gray-700 hover:text-brand-teal font-medium whitespace-nowrap transition-colors">View Patients</a>
+        <a href="#orders" class="text-gray-700 hover:text-brand-teal font-medium whitespace-nowrap transition-colors">Creating Orders</a>
+        <a href="#dashboard" class="text-gray-700 hover:text-brand-teal font-medium whitespace-nowrap transition-colors">Dashboard</a>
         <a href="#tips" class="text-gray-700 hover:text-brand-teal font-medium whitespace-nowrap transition-colors">Tips & Tricks</a>
       </div>
     </div>

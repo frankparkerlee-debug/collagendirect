@@ -85,16 +85,20 @@ try {
 
   // Send reply from admin to provider
   if ($action === 'send_reply_to_provider') {
-    $patientId = (int)($_POST['patient_id'] ?? 0);
+    $patientId = trim($_POST['patient_id'] ?? '');
     $replyMessage = trim($_POST['reply_message'] ?? '');
 
-    // Log for debugging
-    error_log("Reply request - Patient ID: $patientId, Reply length: " . strlen($replyMessage));
+    // Log for debugging (log raw value before any conversion)
+    error_log("Reply request - Raw Patient ID: " . var_export($_POST['patient_id'] ?? 'MISSING', true) . ", Patient ID: $patientId, Reply length: " . strlen($replyMessage));
 
-    if (!$patientId) {
-      echo json_encode(['ok' => false, 'error' => 'Invalid patient ID']);
+    // Validate patient ID (must be numeric)
+    if (empty($patientId) || !is_numeric($patientId)) {
+      echo json_encode(['ok' => false, 'error' => 'Invalid patient ID: ' . $patientId]);
       exit;
     }
+
+    // Convert to int after validation
+    $patientId = (int)$patientId;
 
     if (!$replyMessage) {
       echo json_encode(['ok' => false, 'error' => 'Reply message cannot be empty']);

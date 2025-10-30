@@ -752,10 +752,18 @@ async function markResponseAsRead(patientId, button) {
 
 async function sendReply(event, patientId) {
   event.preventDefault();
+  console.log('sendReply called with patientId:', patientId);
   const form = event.target;
   const formData = new FormData(form);
   formData.append('action', 'send_reply_to_provider');
   formData.append('patient_id', patientId);
+
+  // Log what we're sending
+  console.log('FormData contents:', {
+    action: formData.get('action'),
+    patient_id: formData.get('patient_id'),
+    reply_message: formData.get('reply_message')
+  });
 
   try {
     const response = await fetch('/api/admin/patients.php', {
