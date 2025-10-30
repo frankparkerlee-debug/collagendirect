@@ -92,8 +92,53 @@ if (!$authorized) {
     </div>
   </section>
 
-  <!-- Quick Links Grid -->
+  <!-- Featured: 4-Step Sales Process -->
   <section class="py-12 max-w-7xl mx-auto px-6">
+    <div class="mb-12">
+      <a href="sales-process.php" class="block group">
+        <div class="bg-gradient-to-r from-brand-teal to-emerald-500 rounded-3xl p-10 text-white hover:shadow-2xl transition-all">
+          <div class="flex items-center gap-4 mb-4">
+            <div class="w-16 h-16 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center">
+              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+              </svg>
+            </div>
+            <div class="flex-1">
+              <div class="text-sm font-bold text-teal-100 mb-1">START HERE</div>
+              <h2 class="text-3xl font-black">The 4-Step Sales Process</h2>
+            </div>
+            <div class="text-white/60 group-hover:text-white group-hover:translate-x-2 transition-all">
+              <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+              </svg>
+            </div>
+          </div>
+          <p class="text-lg text-teal-50 mb-6">
+            Our relationship-driven approach: Get the Meeting → Doctor Conversation → Help Register → Nurture
+          </p>
+          <div class="grid grid-cols-4 gap-4 text-sm">
+            <div class="bg-white/10 backdrop-blur rounded-lg p-3">
+              <div class="font-bold mb-1">Step 1</div>
+              <div class="text-xs text-teal-100">Get lunch or call</div>
+            </div>
+            <div class="bg-white/10 backdrop-blur rounded-lg p-3">
+              <div class="font-bold mb-1">Step 2</div>
+              <div class="text-xs text-teal-100">Find their pain</div>
+            </div>
+            <div class="bg-white/10 backdrop-blur rounded-lg p-3">
+              <div class="font-bold mb-1">Step 3</div>
+              <div class="text-xs text-teal-100">Solve problems</div>
+            </div>
+            <div class="bg-white/10 backdrop-blur rounded-lg p-3">
+              <div class="font-bold mb-1">Step 4</div>
+              <div class="text-xs text-teal-100">Build loyalty</div>
+            </div>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <h2 class="text-2xl font-bold text-gray-900 mb-6">Supporting Resources</h2>
     <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
 
       <!-- Quick Reference Guide -->
