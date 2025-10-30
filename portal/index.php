@@ -6927,25 +6927,21 @@ function renderPatientDetailPage(p, orders, isEditing) {
                     // Render messages
                     return messages.map(msg => {
                       if (msg.type === 'manufacturer') {
-                        return \`
-                          <div class="bg-slate-50 border-l-4 border-orange-500 p-3 rounded text-sm">
-                            <div class="flex items-center gap-2 mb-1">
-                              <span class="text-xs font-semibold text-orange-700">Manufacturer</span>
-                              <span class="text-xs text-slate-500">\${msg.timestamp}</span>
-                            </div>
-                            <div style="white-space: pre-wrap;">\${esc(msg.message)}</div>
-                          </div>
-                        \`;
+                        return '<div class="bg-slate-50 border-l-4 border-orange-500 p-3 rounded text-sm">' +
+                          '<div class="flex items-center gap-2 mb-1">' +
+                          '<span class="text-xs font-semibold text-orange-700">Manufacturer</span>' +
+                          '<span class="text-xs text-slate-500">' + msg.timestamp + '</span>' +
+                          '</div>' +
+                          '<div style="white-space: pre-wrap;">' + esc(msg.message) + '</div>' +
+                          '</div>';
                       } else {
-                        return \`
-                          <div class="bg-blue-50 border-l-4 border-blue-500 p-3 rounded text-sm">
-                            <div class="flex items-center gap-2 mb-1">
-                              <span class="text-xs font-semibold text-blue-700">You (Physician)</span>
-                              <span class="text-xs text-slate-500">\${fmt(msg.timestamp)}</span>
-                            </div>
-                            <div style="white-space: pre-wrap;">\${esc(msg.message)}</div>
-                          </div>
-                        \`;
+                        return '<div class="bg-blue-50 border-l-4 border-blue-500 p-3 rounded text-sm">' +
+                          '<div class="flex items-center gap-2 mb-1">' +
+                          '<span class="text-xs font-semibold text-blue-700">You (Physician)</span>' +
+                          '<span class="text-xs text-slate-500">' + fmt(msg.timestamp) + '</span>' +
+                          '</div>' +
+                          '<div style="white-space: pre-wrap;">' + esc(msg.message) + '</div>' +
+                          '</div>';
                       }
                     }).join('');
                   })()}
