@@ -269,8 +269,8 @@ if ($action) {
             LEFT JOIN orders o ON o.patient_id = p.id
             LEFT JOIN products prod ON prod.id = o.product_id
             $join
-            WHERE 1=1
-            GROUP BY p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.address_state,p.zip,p.mrn,
+            WHERE 1=1";
+      $groupBy = " GROUP BY p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.address_state,p.zip,p.mrn,
                      p.updated_at,p.created_at,p.status_comment,p.state,p.status_updated_at,p.provider_comment_read_at,
                      lo.status,lo.shipments_remaining";
     }
@@ -318,8 +318,8 @@ if ($action) {
             LEFT JOIN orders o ON o.patient_id = p.id
             LEFT JOIN products prod ON prod.id = o.product_id
             $join
-            WHERE p.user_id IN ($placeholders)
-            GROUP BY p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.address_state,p.zip,p.mrn,
+            WHERE p.user_id IN ($placeholders)";
+      $groupBy = " GROUP BY p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.address_state,p.zip,p.mrn,
                      p.updated_at,p.created_at,p.status_comment,p.state,p.status_updated_at,p.provider_comment_read_at,
                      lo.status,lo.shipments_remaining";
     } else {
@@ -347,8 +347,8 @@ if ($action) {
             LEFT JOIN orders o ON o.patient_id = p.id
             LEFT JOIN products prod ON prod.id = o.product_id
             $join
-            WHERE p.user_id=?
-            GROUP BY p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.address_state,p.zip,p.mrn,
+            WHERE p.user_id=?";
+      $groupBy = " GROUP BY p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.address_state,p.zip,p.mrn,
                      p.updated_at,p.created_at,p.status_comment,p.state,p.status_updated_at,p.provider_comment_read_at,
                      lo.status,lo.shipments_remaining";
     }
@@ -373,7 +373,9 @@ if ($action) {
       $sql .= " AND (o.created_at >= (NOW() - INTERVAL '" . $months . " months') OR o.created_at IS NULL)";
     }
 
-    // Add HAVING clause if needed
+    // Add GROUP BY, HAVING, and ORDER BY at the end
+    $sql .= $groupBy;
+
     if (!empty($havingConditions)) {
       $sql .= " HAVING " . implode(' AND ', $havingConditions);
     }
