@@ -182,69 +182,6 @@
         </a>
       </div>
     </section>
-
-    <!-- Dashboard Overview -->
-    <section id="dashboard" class="section mb-20">
-      <h2 class="text-4xl font-bold mb-8">Dashboard Overview</h2>
-
-      <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
-        <div class="mb-6">
-          <img src="/uploads/portal-screenshots/?file=dashboard.png"
-               alt="Portal Dashboard showing revenue analytics, patient count, and recent activity"
-               class="w-full rounded-lg shadow-md border">
-        </div>
-
-        <div class="grid md:grid-cols-2 gap-8">
-          <div>
-            <h3 class="text-xl font-bold mb-4">Key Metrics</h3>
-            <ul class="space-y-3">
-              <li class="flex items-start gap-3">
-                <span class="text-green-500 text-xl">✓</span>
-                <div>
-                  <strong>Revenue Analytics</strong>
-                  <p class="text-gray-600 text-sm">Track commissions and total revenue from orders</p>
-                </div>
-              </li>
-              <li class="flex items-start gap-3">
-                <span class="text-green-500 text-xl">✓</span>
-                <div>
-                  <strong>Recent Patients</strong>
-                  <p class="text-gray-600 text-sm">Quick access to recently added patients</p>
-                </div>
-              </li>
-              <li class="flex items-start gap-3">
-                <span class="text-green-500 text-xl">✓</span>
-                <div>
-                  <strong>Order Statistics</strong>
-                  <p class="text-gray-600 text-sm">Active orders, pending approvals, and shipment status</p>
-                </div>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 class="text-xl font-bold mb-4">Quick Actions Guide</h3>
-            <p class="text-sm text-gray-600 mb-4">Learn how to perform common tasks in the portal</p>
-            <div class="space-y-3">
-              <a href="#orders" class="block w-full bg-brand-teal text-white py-3 px-4 rounded-lg font-semibold hover:bg-teal-600 transition text-left flex items-center justify-between">
-                <span>📋 How to Create a New Order</span>
-                <span>→</span>
-              </a>
-              <a href="#patients" class="block w-full bg-white border-2 border-gray-300 py-3 px-4 rounded-lg font-semibold hover:border-brand-teal hover:text-brand-teal transition text-left flex items-center justify-between">
-                <span>👤 How to Add a Patient</span>
-                <span>→</span>
-              </a>
-              <a href="#patients" class="block w-full bg-white border-2 border-gray-300 py-3 px-4 rounded-lg font-semibold hover:border-brand-teal hover:text-brand-teal transition text-left flex items-center justify-between">
-                <span>📁 How to View All Patients</span>
-                <span>→</span>
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Patient Management -->
     <section id="patients" class="section mb-20">
       <h2 class="text-4xl font-bold mb-8">Patient Management</h2>
 
@@ -375,109 +312,77 @@
         </div>
       </div>
     </section>
+    <section id="documents" class="section mb-20">
+      <h2 class="text-4xl font-bold mb-8">Document Management</h2>
 
-    <!-- Creating Orders -->
-    <section id="orders" class="section mb-20">
-      <h2 class="text-4xl font-bold mb-8">Creating Orders</h2>
-
-      <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
-        <div class="mb-6">
-          <img src="/uploads/portal-screenshots/?file=order-create.png"
-               alt="Order creation form showing product selection, wound documentation, and ICD-10 fields"
-               class="w-full rounded-lg shadow-md border">
+      <div class="grid md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white rounded-xl shadow-lg p-6">
+          <div class="text-4xl mb-4">🪪</div>
+          <h3 class="text-xl font-bold mb-2">Patient ID</h3>
+          <p class="text-gray-600 mb-4">Driver's license, passport, or government-issued ID</p>
+          <div class="text-sm text-gray-500">
+            <strong>Accepted:</strong> PDF, JPG, PNG, WEBP, HEIC
+          </div>
         </div>
 
-        <h3 class="text-2xl font-bold mb-6">Order Workflow</h3>
-
-        <div class="space-y-6">
-          <div class="border-l-4 border-brand-teal pl-6">
-            <h4 class="text-lg font-bold mb-2"><span class="step-number text-2xl">1.</span> Select Patient</h4>
-            <p class="text-gray-600">Choose an existing patient or create a new one</p>
+        <div class="bg-white rounded-xl shadow-lg p-6">
+          <div class="text-4xl mb-4">💳</div>
+          <h3 class="text-xl font-bold mb-2">Insurance Card</h3>
+          <p class="text-gray-600 mb-4">Front and back photos of insurance card</p>
+          <div class="text-sm text-gray-500">
+            <strong>Accepted:</strong> PDF, JPG, PNG, WEBP, HEIC
           </div>
+        </div>
 
-          <div class="border-l-4 border-brand-teal pl-6">
-            <h4 class="text-lg font-bold mb-2"><span class="step-number text-2xl">2.</span> Choose Product</h4>
-            <p class="text-gray-600 mb-2">Select from available wound care products:</p>
-            <ul class="text-sm space-y-1 text-gray-600 ml-4">
-              <li>• Collagen Matrix products in various sizes</li>
-              <li>• Frequency options: Daily, Every other day, Weekly</li>
-              <li>• Quantity and duration settings</li>
-            </ul>
-          </div>
-
-          <div class="border-l-4 border-brand-teal pl-6">
-            <h4 class="text-lg font-bold mb-2"><span class="step-number text-2xl">3.</span> Document Wound Details</h4>
-            <div class="bg-gray-50 p-4 rounded-lg mt-2">
-              <p class="font-semibold mb-2">For each wound, provide:</p>
-              <div class="grid md:grid-cols-2 gap-3 text-sm">
-                <div>
-                  <strong>Location:</strong> Anatomical site
-                  <p class="text-gray-600 text-xs">e.g., Right heel, Left ankle</p>
-                </div>
-                <div>
-                  <strong>Laterality:</strong> Left/Right/Bilateral
-                </div>
-                <div>
-                  <strong>Measurements:</strong> Length, Width, Depth (cm)
-                </div>
-                <div>
-                  <strong>Stage:</strong> I, II, III, IV, or N/A
-                </div>
-                <div>
-                  <strong>ICD-10 Codes:</strong> Primary (required), Secondary (optional)
-                  <p class="text-brand-teal text-xs">✨ NEW: Autocomplete search!</p>
-                </div>
-                <div>
-                  <strong>Notes:</strong> Additional wound details
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="border-l-4 border-brand-teal pl-6">
-            <h4 class="text-lg font-bold mb-2"><span class="step-number text-2xl">4.</span> Enter Shipping Information</h4>
-            <p class="text-gray-600">Delivery address, recipient name, and contact phone</p>
-          </div>
-
-          <div class="border-l-4 border-brand-teal pl-6">
-            <h4 class="text-lg font-bold mb-2"><span class="step-number text-2xl">5.</span> Review & Submit</h4>
-            <p class="text-gray-600">Double-check all information before submitting to CollagenDirect</p>
+        <div class="bg-white rounded-xl shadow-lg p-6">
+          <div class="text-4xl mb-4">📄</div>
+          <h3 class="text-xl font-bold mb-2">Clinical Notes</h3>
+          <p class="text-gray-600 mb-4">Visit notes, wound assessments, medical records</p>
+          <div class="text-sm text-gray-500">
+            <strong>Accepted:</strong> PDF, JPG, PNG, TXT
           </div>
         </div>
       </div>
 
-      <div class="bg-green-50 border-l-4 border-green-500 p-6 rounded-lg">
-        <h4 class="font-bold text-green-900 mb-2">✅ After Submission</h4>
-        <p class="text-green-800 mb-4">Your order is sent to CollagenDirect for review. You'll receive notifications at each stage:</p>
-
-        <!-- Orders List Screenshot -->
-        <div class="mb-4 bg-white rounded-lg p-3">
-          <img src="/uploads/portal-screenshots/?file=orders-list.png"
-               alt="Orders list showing different order statuses and tracking information"
-               class="w-full rounded-lg shadow-md border">
+      <div class="bg-white rounded-xl shadow-lg p-8">
+        <h3 class="text-2xl font-bold mb-6">Uploading Documents</h3>
+        <div class="space-y-4">
+          <div class="flex items-start gap-4">
+            <span class="text-brand-teal text-2xl">1.</span>
+            <div>
+              <p class="font-semibold">Navigate to patient detail page</p>
+              <p class="text-gray-600 text-sm">Click on any patient to view their full profile</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-4">
+            <span class="text-brand-teal text-2xl">2.</span>
+            <div>
+              <p class="font-semibold">Click "Edit Patient" if in view mode</p>
+              <p class="text-gray-600 text-sm">File upload buttons appear in edit mode</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-4">
+            <span class="text-brand-teal text-2xl">3.</span>
+            <div>
+              <p class="font-semibold">Select file to upload</p>
+              <p class="text-gray-600 text-sm">Click "Choose File" button under the appropriate document type</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-4">
+            <span class="text-brand-teal text-2xl">4.</span>
+            <div>
+              <p class="font-semibold">File uploads automatically</p>
+              <p class="text-gray-600 text-sm">See confirmation message when upload completes</p>
+            </div>
+          </div>
         </div>
-        <div class="space-y-2 text-sm">
-          <div class="flex items-center gap-3">
-            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-semibold">Submitted</span>
-            <span class="text-green-900">Order received by CollagenDirect</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-semibold">Approved</span>
-            <span class="text-green-900">Order approved and being prepared</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <span class="bg-amber-100 text-amber-800 px-2 py-1 rounded text-xs font-semibold">In Transit</span>
-            <span class="text-green-900">Shipped to patient with tracking number</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <span class="bg-teal-100 text-teal-800 px-2 py-1 rounded text-xs font-semibold">Delivered</span>
-            <span class="text-green-900">Patient receives delivery confirmation SMS</span>
-          </div>
+
+        <div class="mt-6 bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
+          <h4 class="font-bold text-yellow-900 mb-2">📱 Mobile Uploads</h4>
+          <p class="text-yellow-800 text-sm">The portal works great on mobile! Take photos with your phone camera and upload directly from the patient detail page.</p>
         </div>
       </div>
     </section>
-
-    <!-- ICD-10 Search Feature -->
     <section id="icd10" class="section mb-20">
       <div class="flex items-center gap-3 mb-8">
         <h2 class="text-4xl font-bold">ICD-10 Code Search</h2>
@@ -616,81 +521,164 @@
         </div>
       </div>
     </section>
+    <section id="orders" class="section mb-20">
+      <h2 class="text-4xl font-bold mb-8">Creating Orders</h2>
 
-    <!-- Document Management -->
-    <section id="documents" class="section mb-20">
-      <h2 class="text-4xl font-bold mb-8">Document Management</h2>
-
-      <div class="grid md:grid-cols-3 gap-6 mb-8">
-        <div class="bg-white rounded-xl shadow-lg p-6">
-          <div class="text-4xl mb-4">🪪</div>
-          <h3 class="text-xl font-bold mb-2">Patient ID</h3>
-          <p class="text-gray-600 mb-4">Driver's license, passport, or government-issued ID</p>
-          <div class="text-sm text-gray-500">
-            <strong>Accepted:</strong> PDF, JPG, PNG, WEBP, HEIC
-          </div>
+      <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+        <div class="mb-6">
+          <img src="/uploads/portal-screenshots/?file=order-create.png"
+               alt="Order creation form showing product selection, wound documentation, and ICD-10 fields"
+               class="w-full rounded-lg shadow-md border">
         </div>
 
-        <div class="bg-white rounded-xl shadow-lg p-6">
-          <div class="text-4xl mb-4">💳</div>
-          <h3 class="text-xl font-bold mb-2">Insurance Card</h3>
-          <p class="text-gray-600 mb-4">Front and back photos of insurance card</p>
-          <div class="text-sm text-gray-500">
-            <strong>Accepted:</strong> PDF, JPG, PNG, WEBP, HEIC
-          </div>
-        </div>
+        <h3 class="text-2xl font-bold mb-6">Order Workflow</h3>
 
-        <div class="bg-white rounded-xl shadow-lg p-6">
-          <div class="text-4xl mb-4">📄</div>
-          <h3 class="text-xl font-bold mb-2">Clinical Notes</h3>
-          <p class="text-gray-600 mb-4">Visit notes, wound assessments, medical records</p>
-          <div class="text-sm text-gray-500">
-            <strong>Accepted:</strong> PDF, JPG, PNG, TXT
+        <div class="space-y-6">
+          <div class="border-l-4 border-brand-teal pl-6">
+            <h4 class="text-lg font-bold mb-2"><span class="step-number text-2xl">1.</span> Select Patient</h4>
+            <p class="text-gray-600">Choose an existing patient or create a new one</p>
+          </div>
+
+          <div class="border-l-4 border-brand-teal pl-6">
+            <h4 class="text-lg font-bold mb-2"><span class="step-number text-2xl">2.</span> Choose Product</h4>
+            <p class="text-gray-600 mb-2">Select from available wound care products:</p>
+            <ul class="text-sm space-y-1 text-gray-600 ml-4">
+              <li>• Collagen Matrix products in various sizes</li>
+              <li>• Frequency options: Daily, Every other day, Weekly</li>
+              <li>• Quantity and duration settings</li>
+            </ul>
+          </div>
+
+          <div class="border-l-4 border-brand-teal pl-6">
+            <h4 class="text-lg font-bold mb-2"><span class="step-number text-2xl">3.</span> Document Wound Details</h4>
+            <div class="bg-gray-50 p-4 rounded-lg mt-2">
+              <p class="font-semibold mb-2">For each wound, provide:</p>
+              <div class="grid md:grid-cols-2 gap-3 text-sm">
+                <div>
+                  <strong>Location:</strong> Anatomical site
+                  <p class="text-gray-600 text-xs">e.g., Right heel, Left ankle</p>
+                </div>
+                <div>
+                  <strong>Laterality:</strong> Left/Right/Bilateral
+                </div>
+                <div>
+                  <strong>Measurements:</strong> Length, Width, Depth (cm)
+                </div>
+                <div>
+                  <strong>Stage:</strong> I, II, III, IV, or N/A
+                </div>
+                <div>
+                  <strong>ICD-10 Codes:</strong> Primary (required), Secondary (optional)
+                  <p class="text-brand-teal text-xs">✨ NEW: Autocomplete search!</p>
+                </div>
+                <div>
+                  <strong>Notes:</strong> Additional wound details
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="border-l-4 border-brand-teal pl-6">
+            <h4 class="text-lg font-bold mb-2"><span class="step-number text-2xl">4.</span> Enter Shipping Information</h4>
+            <p class="text-gray-600">Delivery address, recipient name, and contact phone</p>
+          </div>
+
+          <div class="border-l-4 border-brand-teal pl-6">
+            <h4 class="text-lg font-bold mb-2"><span class="step-number text-2xl">5.</span> Review & Submit</h4>
+            <p class="text-gray-600">Double-check all information before submitting to CollagenDirect</p>
           </div>
         </div>
       </div>
 
-      <div class="bg-white rounded-xl shadow-lg p-8">
-        <h3 class="text-2xl font-bold mb-6">Uploading Documents</h3>
-        <div class="space-y-4">
-          <div class="flex items-start gap-4">
-            <span class="text-brand-teal text-2xl">1.</span>
-            <div>
-              <p class="font-semibold">Navigate to patient detail page</p>
-              <p class="text-gray-600 text-sm">Click on any patient to view their full profile</p>
-            </div>
-          </div>
-          <div class="flex items-start gap-4">
-            <span class="text-brand-teal text-2xl">2.</span>
-            <div>
-              <p class="font-semibold">Click "Edit Patient" if in view mode</p>
-              <p class="text-gray-600 text-sm">File upload buttons appear in edit mode</p>
-            </div>
-          </div>
-          <div class="flex items-start gap-4">
-            <span class="text-brand-teal text-2xl">3.</span>
-            <div>
-              <p class="font-semibold">Select file to upload</p>
-              <p class="text-gray-600 text-sm">Click "Choose File" button under the appropriate document type</p>
-            </div>
-          </div>
-          <div class="flex items-start gap-4">
-            <span class="text-brand-teal text-2xl">4.</span>
-            <div>
-              <p class="font-semibold">File uploads automatically</p>
-              <p class="text-gray-600 text-sm">See confirmation message when upload completes</p>
-            </div>
-          </div>
-        </div>
+      <div class="bg-green-50 border-l-4 border-green-500 p-6 rounded-lg">
+        <h4 class="font-bold text-green-900 mb-2">✅ After Submission</h4>
+        <p class="text-green-800 mb-4">Your order is sent to CollagenDirect for review. You'll receive notifications at each stage:</p>
 
-        <div class="mt-6 bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
-          <h4 class="font-bold text-yellow-900 mb-2">📱 Mobile Uploads</h4>
-          <p class="text-yellow-800 text-sm">The portal works great on mobile! Take photos with your phone camera and upload directly from the patient detail page.</p>
+        <!-- Orders List Screenshot -->
+        <div class="mb-4 bg-white rounded-lg p-3">
+          <img src="/uploads/portal-screenshots/?file=orders-list.png"
+               alt="Orders list showing different order statuses and tracking information"
+               class="w-full rounded-lg shadow-md border">
+        </div>
+        <div class="space-y-2 text-sm">
+          <div class="flex items-center gap-3">
+            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-semibold">Submitted</span>
+            <span class="text-green-900">Order received by CollagenDirect</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-semibold">Approved</span>
+            <span class="text-green-900">Order approved and being prepared</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="bg-amber-100 text-amber-800 px-2 py-1 rounded text-xs font-semibold">In Transit</span>
+            <span class="text-green-900">Shipped to patient with tracking number</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="bg-teal-100 text-teal-800 px-2 py-1 rounded text-xs font-semibold">Delivered</span>
+            <span class="text-green-900">Patient receives delivery confirmation SMS</span>
+          </div>
         </div>
       </div>
     </section>
+    <section id="dashboard" class="section mb-20">
+      <h2 class="text-4xl font-bold mb-8">Dashboard Overview</h2>
 
-    <!-- Tips & Tricks -->
+      <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+        <div class="mb-6">
+          <img src="/uploads/portal-screenshots/?file=dashboard.png"
+               alt="Portal Dashboard showing revenue analytics, patient count, and recent activity"
+               class="w-full rounded-lg shadow-md border">
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-8">
+          <div>
+            <h3 class="text-xl font-bold mb-4">Key Metrics</h3>
+            <ul class="space-y-3">
+              <li class="flex items-start gap-3">
+                <span class="text-green-500 text-xl">✓</span>
+                <div>
+                  <strong>Revenue Analytics</strong>
+                  <p class="text-gray-600 text-sm">Track commissions and total revenue from orders</p>
+                </div>
+              </li>
+              <li class="flex items-start gap-3">
+                <span class="text-green-500 text-xl">✓</span>
+                <div>
+                  <strong>Recent Patients</strong>
+                  <p class="text-gray-600 text-sm">Quick access to recently added patients</p>
+                </div>
+              </li>
+              <li class="flex items-start gap-3">
+                <span class="text-green-500 text-xl">✓</span>
+                <div>
+                  <strong>Order Statistics</strong>
+                  <p class="text-gray-600 text-sm">Active orders, pending approvals, and shipment status</p>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 class="text-xl font-bold mb-4">Quick Actions Guide</h3>
+            <p class="text-sm text-gray-600 mb-4">Learn how to perform common tasks in the portal</p>
+            <div class="space-y-3">
+              <a href="#orders" class="block w-full bg-brand-teal text-white py-3 px-4 rounded-lg font-semibold hover:bg-teal-600 transition text-left flex items-center justify-between">
+                <span>📋 How to Create a New Order</span>
+                <span>→</span>
+              </a>
+              <a href="#patients" class="block w-full bg-white border-2 border-gray-300 py-3 px-4 rounded-lg font-semibold hover:border-brand-teal hover:text-brand-teal transition text-left flex items-center justify-between">
+                <span>👤 How to Add a Patient</span>
+                <span>→</span>
+              </a>
+              <a href="#patients" class="block w-full bg-white border-2 border-gray-300 py-3 px-4 rounded-lg font-semibold hover:border-brand-teal hover:text-brand-teal transition text-left flex items-center justify-between">
+                <span>📁 How to View All Patients</span>
+                <span>→</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
     <section id="tips" class="section mb-20">
       <h2 class="text-4xl font-bold mb-8">Tips & Tricks</h2>
 
