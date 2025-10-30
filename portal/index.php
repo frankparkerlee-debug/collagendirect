@@ -263,7 +263,8 @@ if ($action) {
         THEN TRUE
         ELSE FALSE
       END" : "FALSE";
-    $readTrackingGroup = $hasReadTracking ? "p.status_updated_at,p.provider_comment_read_at," : "";
+    // Don't include trailing comma - it will be added in the SQL string
+    $readTrackingGroup = $hasReadTracking ? "p.status_updated_at,p.provider_comment_read_at" : "";
 
     // Superadmins see all patients
     if ($userRole === 'superadmin') {
@@ -285,7 +286,7 @@ if ($action) {
             $join
             WHERE 1=1
             GROUP BY p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.address_state,p.zip,p.mrn,
-                     p.updated_at,p.created_at,p.status_comment,p.state,$readTrackingGroup
+                     p.updated_at,p.created_at,p.status_comment,p.state" . ($readTrackingGroup ? ",$readTrackingGroup" : "") . ",
                      lo.status,lo.shipments_remaining";
     }
     // Practice admins can only see patients from their practice physicians
@@ -328,7 +329,7 @@ if ($action) {
             $join
             WHERE p.user_id IN ($placeholders)
             GROUP BY p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.address_state,p.zip,p.mrn,
-                     p.updated_at,p.created_at,p.status_comment,p.state,$readTrackingGroup
+                     p.updated_at,p.created_at,p.status_comment,p.state" . ($readTrackingGroup ? ",$readTrackingGroup" : "") . ",
                      lo.status,lo.shipments_remaining";
     } else {
       // Regular physicians only see their own patients
@@ -351,7 +352,7 @@ if ($action) {
             $join
             WHERE p.user_id=?
             GROUP BY p.id,p.first_name,p.last_name,p.dob,p.phone,p.email,p.address,p.city,p.address_state,p.zip,p.mrn,
-                     p.updated_at,p.created_at,p.status_comment,p.state,$readTrackingGroup
+                     p.updated_at,p.created_at,p.status_comment,p.state" . ($readTrackingGroup ? ",$readTrackingGroup" : "") . ",
                      lo.status,lo.shipments_remaining";
     }
 
