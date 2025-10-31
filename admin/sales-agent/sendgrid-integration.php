@@ -105,6 +105,57 @@ class SendGridMailer {
     }
 
     /**
+     * Send email using SendGrid dynamic template
+     *
+     * @param string $sendgrid_template_id SendGrid template ID (d-xxxx)
+     * @param string $to_email Recipient email
+     * @param string $to_name Recipient name
+     * @param array $template_data Variables for template substitution
+     * @param array $custom_args Custom tracking arguments
+     * @return array Response
+     */
+    public function sendDynamicTemplate($sendgrid_template_id, $to_email, $to_name, $template_data = [], $custom_args = []) {
+        $email_data = [
+            'personalizations' => [
+                [
+                    'to' => [
+                        [
+                            'email' => $to_email,
+                            'name' => $to_name
+                        ]
+                    ],
+                    'dynamic_template_data' => $template_data
+                ]
+            ],
+            'from' => [
+                'email' => $this->from_email,
+                'name' => $this->from_name
+            ],
+            'template_id' => $sendgrid_template_id,
+            'tracking_settings' => [
+                'click_tracking' => [
+                    'enable' => SENDGRID_ENABLE_CLICK_TRACKING,
+                    'enable_text' => false
+                ],
+                'open_tracking' => [
+                    'enable' => SENDGRID_ENABLE_TRACKING
+                ]
+            ],
+            'categories' => ['sales_outreach', 'automated']
+        ];
+
+        // Add custom args for tracking
+        if (!empty($custom_args)) {
+            $email_data['custom_args'] = array_map('strval', $custom_args);
+        }
+
+        // Send via SendGrid API
+        $response = $this->sendRequest($email_data);
+
+        return $response;
+    }
+
+    /**
      * Send email from template
      *
      * @param int $template_id Database template ID
