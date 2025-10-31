@@ -1,8 +1,12 @@
 <?php
 // Debug script to check conversation threading
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/auth.php';
-require_admin();
+$bootstrap = __DIR__.'/_bootstrap.php'; if (is_file($bootstrap)) require_once $bootstrap;
+$auth = __DIR__ . '/auth.php'; if (is_file($auth)) require_once $auth;
+if (function_exists('require_admin')) require_admin();
 
 $patientId = $_GET['patient_id'] ?? '';
 
@@ -10,22 +14,40 @@ if (!$patientId) {
   die('Usage: ?patient_id=xxx');
 }
 
-$stmt = $pdo->prepare("
-  SELECT
-    id,
-    first_name,
-    last_name,
-    status_comment,
-    provider_response,
-    provider_response_at
-  FROM patients
-  WHERE id = ?
-");
-$stmt->execute([$patientId]);
-$patient = $stmt->fetch(PDO::FETCH_ASSOC);
+// First, list all patients to help debug
+echo "Checking patient: " . htmlspecialchars($patientId) . "\n\n";
 
-if (!$patient) {
-  die('Patient not found');
+try {
+  $countStmt = $pdo->query("SELECT COUNT(*) as total FROM patients");
+  $total = $countStmt->fetch(PDO::FETCH_ASSOC);
+  echo "Total patients in database: " . $total['total'] . "\n\n";
+
+  $stmt = $pdo->prepare("
+    SELECT
+      id,
+      first_name,
+      last_name,
+      status_comment,
+      provider_response,
+      provider_response_at
+    FROM patients
+    WHERE id = ?
+  ");
+  $stmt->execute([$patientId]);
+  $patient = $stmt->fetch(PDO::FETCH_ASSOC);
+
+  if (!$patient) {
+    // List first 5 patients to help find the right ID
+    echo "Patient not found. Here are the first 5 patients:\n\n";
+    $sampleStmt = $pdo->query("SELECT id, first_name, last_name FROM patients ORDER BY created_at DESC LIMIT 5");
+    $samples = $sampleStmt->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($samples as $s) {
+      echo "  - ID: {$s['id']}, Name: {$s['first_name']} {$s['last_name']}\n";
+    }
+    die();
+  }
+} catch (Exception $e) {
+  die("Database error: " . $e->getMessage() . "\n");
 }
 
 header('Content-Type: text/plain; charset=utf-8');
