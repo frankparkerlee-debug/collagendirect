@@ -11,7 +11,7 @@ require_once __DIR__ . '/../api/lib/sg_curl.php';
 
 // New hire information
 $newHireName = 'Alina Herrera';
-$newHireEmail = 'alina@collagendirect.health'; // Update this with the actual email address
+$newHireEmail = 'frank.parker.lee@gmail.com'; // Sending copy to Parker
 $newHireFirstName = 'Alina';
 
 // Check SendGrid configuration

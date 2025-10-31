@@ -2,11 +2,20 @@
 // API endpoint to generate AI approval score for patient profile
 // Called automatically when physician completes patient documentation
 
+// Prevent any HTML/PHP errors from breaking JSON response
+error_reporting(0);
+ini_set('display_errors', 0);
+
 header('Content-Type: application/json');
 session_start();
 
-require_once __DIR__ . '/../db.php';
-require_once __DIR__ . '/../lib/ai_service.php';
+try {
+  require_once __DIR__ . '/../db.php';
+  require_once __DIR__ . '/../lib/ai_service.php';
+} catch (Exception $e) {
+  echo json_encode(['ok' => false, 'error' => 'Failed to load required files: ' . $e->getMessage()]);
+  exit;
+}
 
 // Check authentication
 if (empty($_SESSION['portal_user_id'])) {
@@ -28,32 +37,12 @@ if (empty($patientId)) {
 }
 
 try {
-  // Fetch complete patient data
+  // Fetch complete patient data (without trying to read file content via SQL)
   if ($userRole === 'superadmin') {
-    $stmt = $pdo->prepare("
-      SELECT
-        p.*,
-        CASE
-          WHEN p.notes_path IS NOT NULL THEN
-            pg_read_file(p.notes_path)
-          ELSE NULL
-        END as notes_text
-      FROM patients p
-      WHERE p.id = ?
-    ");
+    $stmt = $pdo->prepare("SELECT p.* FROM patients p WHERE p.id = ?");
     $stmt->execute([$patientId]);
   } else {
-    $stmt = $pdo->prepare("
-      SELECT
-        p.*,
-        CASE
-          WHEN p.notes_path IS NOT NULL THEN
-            pg_read_file(p.notes_path)
-          ELSE NULL
-        END as notes_text
-      FROM patients p
-      WHERE p.id = ? AND p.user_id = ?
-    ");
+    $stmt = $pdo->prepare("SELECT p.* FROM patients p WHERE p.id = ? AND p.user_id = ?");
     $stmt->execute([$patientId, $userId]);
   }
 
@@ -63,6 +52,12 @@ try {
     http_response_code(404);
     echo json_encode(['ok' => false, 'error' => 'Patient not found or access denied']);
     exit;
+  }
+
+  // If notes are stored in a file path, try to read them (optional - may fail if file doesn't exist)
+  $patient['notes_text'] = '';
+  if (!empty($patient['notes_path']) && file_exists($patient['notes_path'])) {
+    $patient['notes_text'] = @file_get_contents($patient['notes_path']) ?: '';
   }
 
   // Prepare documents array for AI analysis
