@@ -6914,7 +6914,10 @@ function renderPatientDetailPage(p, orders, isEditing) {
                     if (p.status_comment) {
                       const parts = p.status_comment.split(/\n\n---\n\n/);
                       parts.forEach(part => {
-                        // Match manufacturer messages
+                        part = part.trim();
+                        if (!part) return;
+
+                        // Match NEW FORMAT manufacturer messages: [YYYY-MM-DD HH:MM:SS] Manufacturer:\nMessage
                         const mfgMatch = part.match(/^\[([^\]]+)\]\s+Manufacturer:\n([\s\S]+)/);
                         if (mfgMatch) {
                           messages.push({
@@ -6925,7 +6928,7 @@ function renderPatientDetailPage(p, orders, isEditing) {
                           return;
                         }
 
-                        // Match physician messages
+                        // Match NEW FORMAT physician messages: [YYYY-MM-DD HH:MM:SS] Physician:\nMessage
                         const physMatch = part.match(/^\[([^\]]+)\]\s+Physician:\n([\s\S]+)/);
                         if (physMatch) {
                           messages.push({
@@ -6933,7 +6936,17 @@ function renderPatientDetailPage(p, orders, isEditing) {
                             timestamp: physMatch[1],
                             message: physMatch[2].trim()
                           });
+                          return;
                         }
+
+                        // OLD FORMAT (plain text without timestamp) - treat as manufacturer message
+                        // Use status_updated_at as fallback timestamp
+                        messages.push({
+                          type: 'manufacturer',
+                          timestamp: p.status_updated_at || new Date().toISOString(),
+                          message: part,
+                          legacy: true
+                        });
                       });
                     }
 

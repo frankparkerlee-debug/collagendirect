@@ -551,7 +551,10 @@ include __DIR__.'/_header.php';
                       if (!empty($row['status_comment'])) {
                         $parts = preg_split('/\n\n---\n\n/', $row['status_comment']);
                         foreach ($parts as $part) {
-                          // Match manufacturer messages: [YYYY-MM-DD HH:MM:SS] Manufacturer:\nMessage
+                          $part = trim($part);
+                          if (empty($part)) continue;
+
+                          // Match NEW FORMAT manufacturer messages: [YYYY-MM-DD HH:MM:SS] Manufacturer:\nMessage
                           if (preg_match('/^\[([^\]]+)\]\s+Manufacturer:\n(.+)/s', $part, $match)) {
                             $messages[] = [
                               'type' => 'manufacturer',
@@ -561,14 +564,24 @@ include __DIR__.'/_header.php';
                             continue;
                           }
 
-                          // Match physician messages: [YYYY-MM-DD HH:MM:SS] Physician:\nMessage
+                          // Match NEW FORMAT physician messages: [YYYY-MM-DD HH:MM:SS] Physician:\nMessage
                           if (preg_match('/^\[([^\]]+)\]\s+Physician:\n(.+)/s', $part, $match)) {
                             $messages[] = [
                               'type' => 'provider',
                               'timestamp' => $match[1],
                               'message' => trim($match[2])
                             ];
+                            continue;
                           }
+
+                          // OLD FORMAT (plain text without timestamp) - treat as manufacturer message
+                          // Use status_updated_at as fallback timestamp
+                          $messages[] = [
+                            'type' => 'manufacturer',
+                            'timestamp' => $row['status_updated_at'] ?? date('Y-m-d H:i:s'),
+                            'message' => trim($part),
+                            'legacy' => true
+                          ];
                         }
                       }
 
