@@ -22,7 +22,8 @@ class OutreachAutomation {
     // SendGrid template IDs
     private $templates = [
         'cold_outreach' => 'd-ffb45888b631435c9261460d993c6a37',
-        'followup_roi' => 'd-6e834e33b85d477e88afb5c38e0e550e',
+        'followup_1' => 'd-ffb45888b631435c9261460d993c6a37', // Same as cold but different angle
+        'followup_roi' => 'd-6e834e33b85d477e88afb5c38e0e550e', // Save ROI for later
         'breakup' => 'd-53cc9016294241d1864885852e3e0f12'
     ];
 
@@ -126,7 +127,7 @@ class OutreachAutomation {
     }
 
     /**
-     * Send follow-up #1 (Day 3) - ROI focused
+     * Send follow-up #1 (Day 3) - Soft touch, no hard ROI numbers yet
      */
     private function sendFollowup1() {
         // Get leads contacted 3 days ago, no response
@@ -149,7 +150,8 @@ class OutreachAutomation {
 
         $sent = 0;
         foreach ($leads as $lead) {
-            if ($this->sendEmail($lead, 'followup_roi', 'Follow-up #1 (ROI)')) {
+            // Use same cold template but follow-up context
+            if ($this->sendEmail($lead, 'followup_1', 'Follow-up #1 (Soft touch)')) {
                 $sent++;
 
                 if (!$this->dry_run) {
@@ -168,7 +170,7 @@ class OutreachAutomation {
     }
 
     /**
-     * Send follow-up #2 (Day 7) - Social proof
+     * Send follow-up #2 (Day 7) - NOW show ROI numbers (trust is building)
      */
     private function sendFollowup2() {
         // Get leads contacted 7 days ago, no response, received 2 emails
@@ -186,13 +188,13 @@ class OutreachAutomation {
         $stmt->execute();
         $leads = $stmt->fetchAll();
 
-        echo "\n--- Follow-up #2 (Day 7) ---\n";
+        echo "\n--- Follow-up #2 (Day 7 - ROI Focus) ---\n";
         echo "Found " . count($leads) . " leads for follow-up\n";
 
         $sent = 0;
         foreach ($leads as $lead) {
-            // Use ROI template again with different angle
-            if ($this->sendEmail($lead, 'followup_roi', 'Follow-up #2 (Social Proof)')) {
+            // NOW we show them the money - they've seen us twice, trust is building
+            if ($this->sendEmail($lead, 'followup_roi', 'Follow-up #2 (ROI Numbers)')) {
                 $sent++;
 
                 if (!$this->dry_run) {

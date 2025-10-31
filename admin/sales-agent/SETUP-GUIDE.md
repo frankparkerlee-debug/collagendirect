@@ -121,15 +121,17 @@ View:
 - Status changes to: `contacted`
 
 ### Day 3: Follow-up #1
-- **Template:** Follow-up ROI
-- **Subject:** "Following up - {{practice_name}}"
-- **Focus:** ROI numbers ($12K+ revenue, $36K+ savings)
+- **Template:** Cold Outreach (same template, different context)
+- **Subject:** "Dr. {{name}} - Save 6 Hours Per Week"
+- **Focus:** Soft touch - reinforce time savings benefit without hard ROI claims
 - Only sent if no reply to Day 0 email
 
-### Day 7: Follow-up #2
-- **Template:** Follow-up ROI (social proof variation)
-- **Focus:** Other practices in their state using CollagenDirect
+### Day 7: Follow-up #2 (NOW show ROI)
+- **Template:** Follow-up ROI
+- **Subject:** "Following up - {{practice_name}}"
+- **Focus:** ROI numbers ($12K+ revenue, $36K+ savings) - NOW we've built trust
 - Only sent if no reply to previous emails
+- They've seen us twice, more receptive to specific claims
 
 ### Day 14: Breakup Email
 - **Template:** Breakup Email
@@ -197,24 +199,26 @@ Points are awarded for:
 - 36-72 hour delivery
 - Pre-verified insurance
 
-### Email 2: Follow-up ROI (Day 3)
+### Email 2: Follow-up Soft Touch (Day 3)
 **When:** 3 days after cold outreach, no reply
-**Goal:** Show concrete financial benefits
+**Goal:** Gentle reminder of time savings benefit
+**CTA:** "Would you be open to a 10-minute call?"
+
+**Key Points:**
+- Same messaging as Email 1 (reinforce consistency)
+- No aggressive ROI claims yet
+- Build familiarity through repetition
+
+### Email 3: ROI Focus (Day 7)
+**When:** 7 days after cold outreach, no reply
+**Goal:** NOW show concrete financial benefits (trust is building)
 **CTA:** "Calculate Your ROI" (link to demo site)
 
 **Key Numbers:**
 - $12,000+ extra monthly revenue
 - $36,000+ annual savings
 - 6 hours saved per week
-
-### Email 3: Follow-up Social Proof (Day 7)
-**When:** 7 days after cold outreach, no reply
-**Goal:** Use social proof from their state
-**CTA:** Same as Email 2
-
-**Messaging:**
-- "Other practices in [STATE] are seeing..."
-- Specialty-specific benefits
+- They've seen us twice - more receptive to specific claims
 
 ### Email 4: Breakup Email (Day 14)
 **When:** 14 days after cold outreach, no reply
