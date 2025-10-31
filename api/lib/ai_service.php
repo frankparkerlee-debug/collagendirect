@@ -408,7 +408,7 @@ PROMPT;
         'x-api-key: ' . $this->apiKey,
         'anthropic-version: 2023-06-01'
       ],
-      CURLOPT_TIMEOUT => 30
+      CURLOPT_TIMEOUT => 90
     ]);
 
     $response = curl_exec($ch);
