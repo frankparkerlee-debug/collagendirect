@@ -423,9 +423,12 @@ class BacklinkAgent {
         $stmt = $this->db->prepare("
             UPDATE backlink_submissions
             SET follow_up_date = ?
-            WHERE opportunity_id = ?
-            ORDER BY submission_date DESC
-            LIMIT 1
+            WHERE id = (
+                SELECT id FROM backlink_submissions
+                WHERE opportunity_id = ?
+                ORDER BY submission_date DESC
+                LIMIT 1
+            )
         ");
         $stmt->execute([$followUpDate, $opportunityId]);
     }
