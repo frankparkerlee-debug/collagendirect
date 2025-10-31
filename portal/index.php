@@ -577,30 +577,43 @@ if ($action) {
     if ($patientId === '') jerr('Missing patient ID');
     if ($response === '') jerr('Response cannot be empty');
 
-    // Verify user has access to this patient
+    // Verify user has access to this patient and get current conversation
     if ($userRole === 'superadmin') {
-      $stmt = $pdo->prepare("SELECT id FROM patients WHERE id=?");
+      $stmt = $pdo->prepare("SELECT id, status_comment FROM patients WHERE id=?");
       $stmt->execute([$patientId]);
     } else {
-      $stmt = $pdo->prepare("SELECT id FROM patients WHERE id=? AND user_id=?");
+      $stmt = $pdo->prepare("SELECT id, status_comment FROM patients WHERE id=? AND user_id=?");
       $stmt->execute([$patientId, $userId]);
     }
 
-    if (!$stmt->fetch()) {
+    $row = $stmt->fetch();
+    if (!$row) {
       jerr('Patient not found or access denied', 403);
     }
 
-    // Save provider response
+    // Append physician response to conversation thread
+    $currentComment = $row['status_comment'] ?? '';
+    $timestamp = date('Y-m-d H:i:s');
+    $separator = "\n\n---\n\n";
+    $newMessage = "[" . $timestamp . "] Physician:\n" . $response;
+
+    if (!empty($currentComment)) {
+      $fullComment = $currentComment . $separator . $newMessage;
+    } else {
+      $fullComment = $newMessage;
+    }
+
+    // Update with threaded comment and reset admin read tracking
     $stmt = $pdo->prepare("
       UPDATE patients
-      SET provider_response = ?,
-          provider_response_at = NOW(),
-          provider_response_by = ?,
+      SET status_comment = ?,
+          status_updated_at = NOW(),
+          admin_response_read_at = NULL,
           updated_at = NOW()
       WHERE id = ?
     ");
 
-    $stmt->execute([$response, $userId, $patientId]);
+    $stmt->execute([$fullComment, $patientId]);
 
     jok(['message' => 'Response saved successfully']);
   }
@@ -6897,23 +6910,35 @@ function renderPatientDetailPage(p, orders, isEditing) {
                     // Parse the conversation thread
                     const messages = [];
 
-                    // Parse manufacturer messages from status_comment
+                    // Parse all messages from status_comment (both manufacturer and physician)
                     if (p.status_comment) {
                       const parts = p.status_comment.split(/\n\n---\n\n/);
                       parts.forEach(part => {
-                        const match = part.match(/^\[([^\]]+)\]\s+Manufacturer:\n([\s\S]+)/);
-                        if (match) {
+                        // Match manufacturer messages
+                        const mfgMatch = part.match(/^\[([^\]]+)\]\s+Manufacturer:\n([\s\S]+)/);
+                        if (mfgMatch) {
                           messages.push({
                             type: 'manufacturer',
-                            timestamp: match[1],
-                            message: match[2].trim()
+                            timestamp: mfgMatch[1],
+                            message: mfgMatch[2].trim()
+                          });
+                          return;
+                        }
+
+                        // Match physician messages
+                        const physMatch = part.match(/^\[([^\]]+)\]\s+Physician:\n([\s\S]+)/);
+                        if (physMatch) {
+                          messages.push({
+                            type: 'provider',
+                            timestamp: physMatch[1],
+                            message: physMatch[2].trim()
                           });
                         }
                       });
                     }
 
-                    // Add provider response if exists
-                    if (p.provider_response) {
+                    // Add legacy provider response if exists (for backward compatibility)
+                    if (p.provider_response && !messages.some(m => m.type === 'provider')) {
                       messages.push({
                         type: 'provider',
                         timestamp: p.provider_response_at,
@@ -6950,7 +6975,7 @@ function renderPatientDetailPage(p, orders, isEditing) {
                 <!-- Reply Form -->
                 <div class="mt-4">
                   <label class="text-slate-500 text-xs mb-1 font-semibold block">Send Reply</label>
-                  <textarea id="provider-response-${esc(p.id)}" class="w-full border rounded px-3 py-2 text-sm" rows="3" placeholder="Type your response here...">${esc(p.provider_response||'')}</textarea>
+                  <textarea id="provider-response-${esc(p.id)}" class="w-full border rounded px-3 py-2 text-sm" rows="3" placeholder="Type your response here..."></textarea>
                   <button type="button" class="mt-2 px-4 py-2 bg-teal-600 text-white rounded text-sm hover:bg-teal-700" onclick="saveProviderResponse('${esc(p.id)}')">
                     Send Reply
                   </button>

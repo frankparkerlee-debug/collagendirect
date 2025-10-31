@@ -547,14 +547,24 @@ include __DIR__.'/_header.php';
                       // Parse the conversation thread to display messages sequentially
                       $messages = [];
 
-                      // Parse manufacturer messages from status_comment
+                      // Parse all messages from status_comment (both manufacturer and physician)
                       if (!empty($row['status_comment'])) {
                         $parts = preg_split('/\n\n---\n\n/', $row['status_comment']);
                         foreach ($parts as $part) {
-                          // Match pattern: [YYYY-MM-DD HH:MM:SS] Manufacturer:\nMessage
+                          // Match manufacturer messages: [YYYY-MM-DD HH:MM:SS] Manufacturer:\nMessage
                           if (preg_match('/^\[([^\]]+)\]\s+Manufacturer:\n(.+)/s', $part, $match)) {
                             $messages[] = [
                               'type' => 'manufacturer',
+                              'timestamp' => $match[1],
+                              'message' => trim($match[2])
+                            ];
+                            continue;
+                          }
+
+                          // Match physician messages: [YYYY-MM-DD HH:MM:SS] Physician:\nMessage
+                          if (preg_match('/^\[([^\]]+)\]\s+Physician:\n(.+)/s', $part, $match)) {
+                            $messages[] = [
+                              'type' => 'provider',
                               'timestamp' => $match[1],
                               'message' => trim($match[2])
                             ];
@@ -562,8 +572,16 @@ include __DIR__.'/_header.php';
                         }
                       }
 
-                      // Add provider response if exists
-                      if (!empty($row['provider_response'])) {
+                      // Add legacy provider response if exists (for backward compatibility)
+                      $hasProviderInThread = false;
+                      foreach ($messages as $msg) {
+                        if ($msg['type'] === 'provider') {
+                          $hasProviderInThread = true;
+                          break;
+                        }
+                      }
+
+                      if (!empty($row['provider_response']) && !$hasProviderInThread) {
                         $messages[] = [
                           'type' => 'provider',
                           'timestamp' => $row['provider_response_at'] ?? '',
