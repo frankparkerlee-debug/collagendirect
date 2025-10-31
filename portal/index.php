@@ -3826,12 +3826,6 @@ if ($page==='logout'){
         </svg>
         New Order
       </button>
-      <button id="generate-visit-note-btn" class="btn" type="button" style="display:none; background: #8B5CF6; color: white; border-color: #8B5CF6;" title="AI will generate a comprehensive visit note based on patient data">
-        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24" style="display: inline; margin-right: 4px; vertical-align: middle;">
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
-        </svg>
-        Generate Visit Note
-      </button>
     </div>
     <?php endif; ?>
   </div>
@@ -7016,13 +7010,6 @@ function renderPatientDetailPage(p, orders, isEditing) {
     topBtn.onclick = () => openOrderDialog(p.id);
   }
 
-  // Show Generate Visit Note button
-  const visitNoteBtn = document.getElementById('generate-visit-note-btn');
-  if (visitNoteBtn) {
-    visitNoteBtn.style.display = 'inline-flex';
-    visitNoteBtn.onclick = () => generateVisitNote(p.id);
-  }
-
   // Right column - Orders and History (matching screenshot layout)
   const rightColumn = `
     <div class="lg:col-span-2 space-y-6">
@@ -7190,9 +7177,11 @@ async function saveProviderResponse(patientId) {
   }
 }
 
-/* ========== AI VISIT NOTE GENERATOR ========== */
+/* ========== AI VISIT NOTE GENERATOR - DISABLED TEMPORARILY ========== */
 
-async function generateVisitNote(patientId) {
+// Removed - will be re-implemented in order form
+
+/* async function generateVisitNote(patientId) {
   // Create and show modal
   const modal = document.createElement('dialog');
   modal.id = 'visit-note-modal';
@@ -7323,7 +7312,7 @@ function copyVisitNote() {
   }).catch(err => {
     alert('Failed to copy to clipboard. Please select and copy manually.');
   });
-}
+} */
 
 /* ========== ADD PATIENT FORM HANDLER ========== */
 
