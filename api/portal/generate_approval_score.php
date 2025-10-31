@@ -108,34 +108,9 @@ try {
     exit;
   }
 
-  // Store the score in database for future reference
-  $scoreData = json_encode([
-    'score' => $result['score'],
-    'score_numeric' => $result['score_numeric'],
-    'summary' => $result['summary'],
-    'generated_at' => date('Y-m-d H:i:s')
-  ]);
-
-  // Add approval_score column if it doesn't exist (for backward compatibility)
-  try {
-    $pdo->exec("ALTER TABLE patients ADD COLUMN IF NOT EXISTS approval_score JSONB");
-    $pdo->exec("ALTER TABLE patients ADD COLUMN IF NOT EXISTS approval_score_at TIMESTAMP");
-  } catch (Exception $e) {
-    error_log("Note: Could not add approval_score columns: " . $e->getMessage());
-  }
-
-  // Update patient record with score
-  try {
-    $updateStmt = $pdo->prepare("
-      UPDATE patients
-      SET approval_score = ?::jsonb,
-          approval_score_at = NOW()
-      WHERE id = ?
-    ");
-    $updateStmt->execute([$scoreData, $patientId]);
-  } catch (Exception $e) {
-    error_log("Could not update approval score: " . $e->getMessage());
-  }
+  // Note: We're skipping database storage for now to avoid JSONB issues
+  // The score will be generated fresh each time (which is fine for now)
+  // TODO: Add proper score caching after migration is run
 
   // Return the score
   echo json_encode([
@@ -152,6 +127,12 @@ try {
 
 } catch (Exception $e) {
   error_log("Approval score generation error: " . $e->getMessage());
+  error_log("Stack trace: " . $e->getTraceAsString());
   http_response_code(500);
-  echo json_encode(['ok' => false, 'error' => 'Failed to generate approval score']);
+  echo json_encode(['ok' => false, 'error' => 'Failed to generate approval score', 'details' => $e->getMessage()]);
+} catch (Throwable $e) {
+  error_log("Fatal error in approval score: " . $e->getMessage());
+  error_log("Stack trace: " . $e->getTraceAsString());
+  http_response_code(500);
+  echo json_encode(['ok' => false, 'error' => 'Server error', 'details' => $e->getMessage()]);
 }
