@@ -199,6 +199,58 @@ if (!$authorized) {
     </a>
   </section>
 
+  <!-- Rep Tools Section -->
+  <section class="py-12 max-w-7xl mx-auto px-6">
+    <a href="/demo/" target="_blank" class="block group">
+      <div class="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 rounded-3xl p-10 text-white hover:shadow-2xl transition-all relative overflow-hidden">
+        <div class="absolute top-0 right-0 text-[200px] opacity-10 font-black select-none">🎯</div>
+        <div class="relative z-10">
+          <div class="flex items-center gap-4 mb-4">
+            <div class="w-16 h-16 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center">
+              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+              </svg>
+            </div>
+            <div class="flex-1">
+              <div class="inline-flex items-center gap-2 bg-white/20 backdrop-blur px-4 py-1 rounded-full text-sm font-bold mb-2">
+                💼 REP TOOLS
+              </div>
+              <h2 class="text-3xl font-black">Physician-Facing Demo Microsite</h2>
+            </div>
+            <div class="text-white/60 group-hover:text-white group-hover:translate-x-2 transition-all">
+              <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+              </svg>
+            </div>
+          </div>
+          <p class="text-lg text-purple-50 mb-6">
+            Use this microsite when meeting with physicians. Features ROI calculator, pain points, value propositions, and portal demo. Perfect for sharing via text/email or presenting in person.
+          </p>
+          <div class="flex items-center gap-6 text-sm">
+            <div class="flex items-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+              </svg>
+              <span>ROI Calculator Built-In</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
+              </svg>
+              <span>Shareable Link</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+              </svg>
+              <span>Mobile Friendly</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </a>
+  </section>
+
   <!-- Featured: 4-Step Sales Process -->
   <section class="py-12 max-w-7xl mx-auto px-6">
     <div class="mb-12">
