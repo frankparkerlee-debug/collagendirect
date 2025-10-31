@@ -11,7 +11,46 @@ if (function_exists('require_admin')) require_admin();
 $patientId = $_GET['patient_id'] ?? '';
 
 if (!$patientId) {
-  die('Usage: ?patient_id=xxx');
+  header('Content-Type: text/html; charset=utf-8');
+  echo '<h2>Conversation Debug Tool</h2>';
+  echo '<p>Select a patient to debug their conversation thread:</p>';
+
+  try {
+    $stmt = $pdo->query("
+      SELECT id, first_name, last_name, status_comment, provider_response, created_at
+      FROM patients
+      WHERE status_comment IS NOT NULL OR provider_response IS NOT NULL
+      ORDER BY created_at DESC
+      LIMIT 20
+    ");
+    $patients = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    if (empty($patients)) {
+      echo '<p>No patients with conversation messages found.</p>';
+
+      // Show all patients instead
+      $allStmt = $pdo->query("SELECT id, first_name, last_name, created_at FROM patients ORDER BY created_at DESC LIMIT 10");
+      $allPatients = $allStmt->fetchAll(PDO::FETCH_ASSOC);
+      echo '<h3>Recent patients (showing first 10):</h3><ul>';
+      foreach ($allPatients as $p) {
+        $url = '?patient_id=' . urlencode($p['id']);
+        echo '<li><a href="' . htmlspecialchars($url) . '">' . htmlspecialchars($p['first_name'] . ' ' . $p['last_name']) . '</a> (ID: ' . htmlspecialchars($p['id']) . ')</li>';
+      }
+      echo '</ul>';
+    } else {
+      echo '<h3>Patients with conversation messages:</h3><ul>';
+      foreach ($patients as $p) {
+        $url = '?patient_id=' . urlencode($p['id']);
+        $hasComment = !empty($p['status_comment']) ? '✓ Comments' : '';
+        $hasResponse = !empty($p['provider_response']) ? '✓ Response' : '';
+        echo '<li><a href="' . htmlspecialchars($url) . '">' . htmlspecialchars($p['first_name'] . ' ' . $p['last_name']) . '</a> - ' . $hasComment . ' ' . $hasResponse . '</li>';
+      }
+      echo '</ul>';
+    }
+  } catch (Exception $e) {
+    echo '<p>Error: ' . htmlspecialchars($e->getMessage()) . '</p>';
+  }
+  exit;
 }
 
 // First, list all patients to help debug
