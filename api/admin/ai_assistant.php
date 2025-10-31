@@ -24,7 +24,7 @@ if ($adminRole !== 'superadmin' && $adminRole !== 'manufacturer') {
   exit;
 }
 
-$action = $_POST['action'] ?? $_GET['action'] ?? '';
+$action = isset($_POST['action']) ? $_POST['action'] : (isset($_GET['action']) ? $_GET['action'] : '');
 
 // Initialize AI service
 $aiService = new AIService();
@@ -33,7 +33,7 @@ $aiService = new AIService();
  * Generate AI response suggestion for manufacturer to send to physician
  */
 if ($action === 'generate_response') {
-  $patientId = trim($_POST['patient_id'] ?? '');
+  $patientId = isset($_POST['patient_id']) ? trim($_POST['patient_id']) : '';
 
   if (empty($patientId)) {
     echo json_encode(['ok' => false, 'error' => 'Patient ID is required']);
@@ -86,7 +86,7 @@ if ($action === 'generate_response') {
     if (!empty($patient['provider_response'])) {
       $conversation[] = [
         'type' => 'provider',
-        'timestamp' => $patient['provider_response_at'] ?? '',
+        'timestamp' => isset($patient['provider_response_at']) ? $patient['provider_response_at'] : '',
         'message' => $patient['provider_response']
       ];
     }
@@ -104,7 +104,7 @@ if ($action === 'generate_response') {
       'message' => $result['message'],
       'context' => [
         'patient_name' => $patient['first_name'] . ' ' . $patient['last_name'],
-        'product' => $order['product_name'] ?? $order['product']
+        'product' => isset($order['product_name']) ? $order['product_name'] : $order['product']
       ]
     ]);
     exit;
@@ -120,7 +120,7 @@ if ($action === 'generate_response') {
  * Analyze order for completeness
  */
 if ($action === 'analyze_order') {
-  $patientId = trim($_POST['patient_id'] ?? $_GET['patient_id'] ?? '');
+  $patientId = isset($_POST['patient_id']) ? trim($_POST['patient_id']) : (isset($_GET['patient_id']) ? trim($_GET['patient_id']) : '');
 
   if (empty($patientId)) {
     echo json_encode(['ok' => false, 'error' => 'Patient ID is required']);
@@ -187,7 +187,7 @@ if ($action === 'analyze_order') {
  * Generate medical necessity letter
  */
 if ($action === 'generate_med_letter') {
-  $patientId = trim($_POST['patient_id'] ?? $_GET['patient_id'] ?? '');
+  $patientId = isset($_POST['patient_id']) ? trim($_POST['patient_id']) : (isset($_GET['patient_id']) ? trim($_GET['patient_id']) : '');
 
   if (empty($patientId)) {
     echo json_encode(['ok' => false, 'error' => 'Patient ID is required']);

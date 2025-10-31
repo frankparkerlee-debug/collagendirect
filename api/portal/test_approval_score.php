@@ -25,10 +25,10 @@ try {
   $response['api_key'] = !empty($apiKey) ? 'present (length: ' . strlen($apiKey) . ')' : 'MISSING';
 
   // Try a simple patient query
-  $patientId = $_GET['patient_id'] ?? '';
+  $patientId = isset($_GET['patient_id']) ? $_GET['patient_id'] : '';
   if ($patientId) {
     $stmt = $pdo->prepare("SELECT id, first_name, last_name FROM patients WHERE id = ? LIMIT 1");
-    $stmt->execute([$patientId]);
+    $stmt->execute(array($patientId));
     $patient = $stmt->fetch(PDO::FETCH_ASSOC);
     $response['patient'] = $patient ? 'found: ' . $patient['first_name'] . ' ' . $patient['last_name'] : 'not found';
   }

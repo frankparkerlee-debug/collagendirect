@@ -92,6 +92,18 @@ function sg_send($to, ?string $subject, ?string $html, array $opts = []): bool {
     $payload['headers'] = $opts['headers'];
   }
 
+  // Tracking settings (disable click/open tracking if requested)
+  $trackingSettings = [];
+  if (isset($opts['disable_click_tracking']) && $opts['disable_click_tracking']) {
+    $trackingSettings['click_tracking'] = ['enable' => false];
+  }
+  if (isset($opts['disable_open_tracking']) && $opts['disable_open_tracking']) {
+    $trackingSettings['open_tracking'] = ['enable' => false];
+  }
+  if (!empty($trackingSettings)) {
+    $payload['tracking_settings'] = $trackingSettings;
+  }
+
   // --- Choose mode: template or simple HTML
   if (!empty($opts['template_id'])) {
     $payload['template_id'] = (string)$opts['template_id'];

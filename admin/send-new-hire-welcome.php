@@ -144,26 +144,37 @@ $htmlContent = <<<HTML
                                     <tr>
                                         <td style="padding: 8px 0;">
                                             <a href="https://collagendirect.health/sales-training/sales-process.php" style="color: #2563eb; text-decoration: none; font-weight: 600; font-size: 14px;">→ 4-Step Sales Process</a>
+                                            <div style="color: #6b7280; font-size: 12px; margin-top: 2px;">Get Meeting → Find Pain → Help Register → Nurture</div>
                                         </td>
                                     </tr>
                                     <tr>
                                         <td style="padding: 8px 0;">
-                                            <a href="https://collagendirect.health/sales-training/product-training.php" style="color: #2563eb; text-decoration: none; font-weight: 600; font-size: 14px;">→ Product Mastery Quest</a>
+                                            <a href="https://collagendirect.health/sales-training/product-training.php" style="color: #2563eb; text-decoration: none; font-weight: 600; font-size: 14px;">→ Product Training</a>
+                                            <div style="color: #6b7280; font-size: 12px; margin-top: 2px;">4 products, HCPCS codes, interactive quiz</div>
                                         </td>
                                     </tr>
                                     <tr>
                                         <td style="padding: 8px 0;">
-                                            <a href="https://collagendirect.health/sales-training/quick-reference.php" style="color: #2563eb; text-decoration: none; font-weight: 600; font-size: 14px;">→ Quick Reference Guide</a>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td style="padding: 8px 0;">
-                                            <a href="https://collagendirect.health/sales-training/scripts.php" style="color: #2563eb; text-decoration: none; font-weight: 600; font-size: 14px;">→ Sales Scripts & Talk Tracks</a>
+                                            <a href="https://collagendirect.health/sales-training/objections.php" style="color: #2563eb; text-decoration: none; font-weight: 600; font-size: 14px;">→ Objection Handling</a>
+                                            <div style="color: #6b7280; font-size: 12px; margin-top: 2px;">VALUE framework, 30+ objections</div>
                                         </td>
                                     </tr>
                                     <tr>
                                         <td style="padding: 8px 0;">
                                             <a href="https://collagendirect.health/sales-training/battle-cards.php" style="color: #2563eb; text-decoration: none; font-weight: 600; font-size: 14px;">→ Competitive Battle Cards</a>
+                                            <div style="color: #6b7280; font-size: 12px; margin-top: 2px;">Smith & Nephew, 3M, Integra, etc.</div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 8px 0;">
+                                            <a href="https://collagendirect.health/sales-training/scripts.php" style="color: #2563eb; text-decoration: none; font-weight: 600; font-size: 14px;">→ Sales Scripts</a>
+                                            <div style="color: #6b7280; font-size: 12px; margin-top: 2px;">Cold calls, voicemails, emails</div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 8px 0;">
+                                            <a href="https://collagendirect.health/sales-training/quick-reference.php" style="color: #2563eb; text-decoration: none; font-weight: 600; font-size: 14px;">→ Quick Reference</a>
+                                            <div style="color: #6b7280; font-size: 12px; margin-top: 2px;">1-page cheat sheet</div>
                                         </td>
                                     </tr>
                                     <tr>
@@ -187,12 +198,10 @@ $htmlContent = <<<HTML
                             <div style="background-color: #f9fafb; border-radius: 8px; padding: 20px; text-align: center;">
                                 <p style="color: #6b7280; font-size: 14px; margin: 0 0 15px 0;">
                                     <strong>Questions or need help?</strong><br>
-                                    Contact your manager or reach out to:
+                                    HR questions, Training support, Technical issues
                                 </p>
-                                <p style="color: #2563eb; font-size: 14px; margin: 0;">
-                                    <a href="mailto:hr@collagendirect.health" style="color: #2563eb; text-decoration: none;">hr@collagendirect.health</a> (HR questions)<br>
-                                    <a href="mailto:sales-support@collagendirect.health" style="color: #2563eb; text-decoration: none;">sales-support@collagendirect.health</a> (Training support)<br>
-                                    <a href="mailto:it@collagendirect.health" style="color: #2563eb; text-decoration: none;">it@collagendirect.health</a> (Technical issues)
+                                <p style="color: #2563eb; font-size: 16px; margin: 0; font-weight: 600;">
+                                    Contact Parker: <a href="mailto:parker@collagendirect.health" style="color: #2563eb; text-decoration: none;">parker@collagendirect.health</a>
                                 </p>
                             </div>
 
@@ -262,10 +271,17 @@ YOUR FIRST WEEK JOURNEY
 QUICK ACCESS RESOURCES
 - Training Hub: https://collagendirect.health/sales-training/
 - 4-Step Sales Process: https://collagendirect.health/sales-training/sales-process.php
+  (Get Meeting → Find Pain → Help Register → Nurture)
 - Product Training: https://collagendirect.health/sales-training/product-training.php
-- Quick Reference: https://collagendirect.health/sales-training/quick-reference.php
+  (4 products, HCPCS codes, interactive quiz)
+- Objection Handling: https://collagendirect.health/sales-training/objections.php
+  (VALUE framework, 30+ objections)
+- Competitive Battle Cards: https://collagendirect.health/sales-training/battle-cards.php
+  (Smith & Nephew, 3M, Integra, etc.)
 - Sales Scripts: https://collagendirect.health/sales-training/scripts.php
-- Battle Cards: https://collagendirect.health/sales-training/battle-cards.php
+  (Cold calls, voicemails, emails)
+- Quick Reference: https://collagendirect.health/sales-training/quick-reference.php
+  (1-page cheat sheet)
 - HIPAA Training: https://collagendirect.health/sales-training/hipaa-training.php
 
 YOUR FIRST ACTIONS
@@ -275,9 +291,8 @@ YOUR FIRST ACTIONS
 4. Review your email for IT setup instructions
 
 NEED HELP?
-- HR questions: hr@collagendirect.health
-- Training support: sales-support@collagendirect.health
-- Technical issues: it@collagendirect.health
+HR questions, Training support, Technical issues
+Contact Parker: parker@collagendirect.health
 
 Welcome to the team!
 
@@ -296,7 +311,8 @@ $success = sg_send(
     $htmlContent,
     [
         'text' => $textContent,
-        'categories' => ['onboarding', 'new-hire', 'sales-team']
+        'categories' => ['onboarding', 'new-hire', 'sales-team'],
+        'disable_click_tracking' => true
     ]
 );
 

@@ -25,10 +25,15 @@ if (empty($_SESSION['portal_user_id'])) {
 }
 
 $userId = $_SESSION['portal_user_id'];
-$userRole = $_SESSION['portal_user_role'] ?? 'physician';
+$userRole = isset($_SESSION['portal_user_role']) ? $_SESSION['portal_user_role'] : 'physician';
 
 // Get patient ID
-$patientId = trim($_POST['patient_id'] ?? $_GET['patient_id'] ?? '');
+$patientId = '';
+if (isset($_POST['patient_id'])) {
+  $patientId = trim($_POST['patient_id']);
+} elseif (isset($_GET['patient_id'])) {
+  $patientId = trim($_GET['patient_id']);
+}
 
 if (empty($patientId)) {
   http_response_code(400);
@@ -69,7 +74,7 @@ try {
       'type' => 'Photo ID',
       'filename' => basename($patient['id_card_path']),
       'path' => $patient['id_card_path'],
-      'mime' => $patient['id_card_mime'] ?? 'unknown',
+      'mime' => isset($patient['id_card_mime']) ? $patient['id_card_mime'] : 'unknown',
       'extracted_text' => '' // TODO: Add OCR extraction if needed
     ];
   }
@@ -80,7 +85,7 @@ try {
       'type' => 'Insurance Card',
       'filename' => basename($patient['ins_card_path']),
       'path' => $patient['ins_card_path'],
-      'mime' => $patient['ins_card_mime'] ?? 'unknown',
+      'mime' => isset($patient['ins_card_mime']) ? $patient['ins_card_mime'] : 'unknown',
       'extracted_text' => '' // TODO: Add OCR extraction if needed
     ];
   }
@@ -91,8 +96,8 @@ try {
       'type' => 'Clinical Notes',
       'filename' => basename($patient['notes_path']),
       'path' => $patient['notes_path'],
-      'mime' => $patient['notes_mime'] ?? 'unknown',
-      'extracted_text' => $patient['notes_text'] ?? ''
+      'mime' => isset($patient['notes_mime']) ? $patient['notes_mime'] : 'unknown',
+      'extracted_text' => isset($patient['notes_text']) ? $patient['notes_text'] : ''
     ];
   }
 

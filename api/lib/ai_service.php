@@ -141,14 +141,14 @@ class AIService {
 
       return [
         'success' => true,
-        'score' => $result['score'] ?? 'YELLOW', // RED, YELLOW, or GREEN
-        'score_numeric' => $result['score_numeric'] ?? 50, // 0-100
-        'summary' => $result['summary'] ?? '',
-        'missing_items' => $result['missing_items'] ?? [],
-        'complete_items' => $result['complete_items'] ?? [],
-        'recommendations' => $result['recommendations'] ?? [],
-        'concerns' => $result['concerns'] ?? [],
-        'document_analysis' => $result['document_analysis'] ?? null
+        'score' => isset($result['score']) ? $result['score'] : 'YELLOW', // RED, YELLOW, or GREEN
+        'score_numeric' => isset($result['score_numeric']) ? $result['score_numeric'] : 50, // 0-100
+        'summary' => isset($result['summary']) ? $result['summary'] : '',
+        'missing_items' => isset($result['missing_items']) ? $result['missing_items'] : [],
+        'complete_items' => isset($result['complete_items']) ? $result['complete_items'] : [],
+        'recommendations' => isset($result['recommendations']) ? $result['recommendations'] : [],
+        'concerns' => isset($result['concerns']) ? $result['concerns'] : [],
+        'document_analysis' => isset($result['document_analysis']) ? $result['document_analysis'] : null
       ];
     } catch (Exception $e) {
       error_log('[AIService] Approval score generation error: ' . $e->getMessage());
@@ -205,7 +205,7 @@ PROMPT;
    */
   private function buildResponsePrompt(array $order, array $patient, array $conversation): string {
     $patientName = $patient['first_name'] . ' ' . $patient['last_name'];
-    $productName = $order['product'] ?? 'wound care product';
+    $productName = isset($order['product']) ? $order['product'] : 'wound care product';
 
     // Build conversation context
     $conversationContext = '';
