@@ -577,45 +577,71 @@ if ($action) {
     if ($patientId === '') jerr('Missing patient ID');
     if ($response === '') jerr('Response cannot be empty');
 
-    // Verify user has access to this patient and get current conversation
-    if ($userRole === 'superadmin') {
-      $stmt = $pdo->prepare("SELECT id, status_comment FROM patients WHERE id=?");
-      $stmt->execute([$patientId]);
-    } else {
-      $stmt = $pdo->prepare("SELECT id, status_comment FROM patients WHERE id=? AND user_id=?");
-      $stmt->execute([$patientId, $userId]);
+    // Message length validation
+    if (strlen($response) > 10000) {
+      jerr('Response message too long (max 10,000 characters)');
     }
 
-    $row = $stmt->fetch();
-    if (!$row) {
-      jerr('Patient not found or access denied', 403);
+    // Use database transaction with row locking to prevent race conditions
+    try {
+      $pdo->beginTransaction();
+
+      // Verify user has access to this patient and lock the row
+      if ($userRole === 'superadmin') {
+        $stmt = $pdo->prepare("SELECT id, status_comment FROM patients WHERE id=? FOR UPDATE");
+        $stmt->execute([$patientId]);
+      } else {
+        $stmt = $pdo->prepare("SELECT id, status_comment FROM patients WHERE id=? AND user_id=? FOR UPDATE");
+        $stmt->execute([$patientId, $userId]);
+      }
+
+      $row = $stmt->fetch();
+      if (!$row) {
+        $pdo->rollBack();
+        jerr('Patient not found or access denied', 403);
+      }
+
+      // Escape separator to prevent injection attacks
+      $escapedResponse = str_replace('---', '-‑-', $response); // Replace with non-breaking hyphen
+
+      // Append physician response to conversation thread
+      $currentComment = $row['status_comment'] ?? '';
+      $timestamp = date('Y-m-d H:i:s');
+      $separator = "\n\n---\n\n";
+      $newMessage = "[" . $timestamp . "] Physician:\n" . $escapedResponse;
+
+      if (!empty($currentComment)) {
+        $fullComment = $currentComment . $separator . $newMessage;
+      } else {
+        $fullComment = $newMessage;
+      }
+
+      // Update with threaded comment and reset admin read tracking
+      $updateStmt = $pdo->prepare("
+        UPDATE patients
+        SET status_comment = ?,
+            status_updated_at = NOW(),
+            admin_response_read_at = NULL,
+            updated_at = NOW()
+        WHERE id = ?
+      ");
+
+      $updateStmt->execute([$fullComment, $patientId]);
+
+      // Commit transaction
+      $pdo->commit();
+
+      jok(['message' => 'Response saved successfully']);
+
+    } catch (Throwable $e) {
+      // Rollback transaction on error
+      if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+      }
+
+      error_log("Error saving provider response: " . $e->getMessage());
+      jerr('Failed to save response');
     }
-
-    // Append physician response to conversation thread
-    $currentComment = $row['status_comment'] ?? '';
-    $timestamp = date('Y-m-d H:i:s');
-    $separator = "\n\n---\n\n";
-    $newMessage = "[" . $timestamp . "] Physician:\n" . $response;
-
-    if (!empty($currentComment)) {
-      $fullComment = $currentComment . $separator . $newMessage;
-    } else {
-      $fullComment = $newMessage;
-    }
-
-    // Update with threaded comment and reset admin read tracking
-    $stmt = $pdo->prepare("
-      UPDATE patients
-      SET status_comment = ?,
-          status_updated_at = NOW(),
-          admin_response_read_at = NULL,
-          updated_at = NOW()
-      WHERE id = ?
-    ");
-
-    $stmt->execute([$fullComment, $patientId]);
-
-    jok(['message' => 'Response saved successfully']);
   }
 
   /* PATIENT uploads — patient-level ID/INS/NOTES, plus generated AOB; order-level RX only */
@@ -6962,8 +6988,20 @@ function renderPatientDetailPage(p, orders, isEditing) {
                     // Sort by timestamp
                     messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
+                    // Limit to last 50 messages for performance
+                    const totalMessages = messages.length;
+                    let hiddenNotice = '';
+                    if (totalMessages > 50) {
+                      const hiddenCount = totalMessages - 50;
+                      messages = messages.slice(-50);
+                      hiddenNotice = '<div class="bg-blue-50 border-l-4 border-blue-500 p-3 rounded text-sm text-blue-800 mb-3">' +
+                        '<strong>Note:</strong> Showing most recent 50 messages. ' + hiddenCount + ' earlier message' +
+                        (hiddenCount > 1 ? 's' : '') + ' hidden for performance.' +
+                        '</div>';
+                    }
+
                     // Render messages
-                    return messages.map(msg => {
+                    const messageHtml = messages.map(msg => {
                       if (msg.type === 'manufacturer') {
                         return '<div class="bg-slate-50 border-l-4 border-orange-500 p-3 rounded text-sm">' +
                           '<div class="flex items-center gap-2 mb-1">' +
@@ -6982,13 +7020,16 @@ function renderPatientDetailPage(p, orders, isEditing) {
                           '</div>';
                       }
                     }).join('');
+
+                    return hiddenNotice + messageHtml;
                   })()}
                 </div>
 
                 <!-- Reply Form -->
                 <div class="mt-4">
                   <label class="text-slate-500 text-xs mb-1 font-semibold block">Send Reply</label>
-                  <textarea id="provider-response-${esc(p.id)}" class="w-full border rounded px-3 py-2 text-sm" rows="3" placeholder="Type your response here..."></textarea>
+                  <textarea id="provider-response-${esc(p.id)}" class="w-full border rounded px-3 py-2 text-sm" rows="3" maxlength="10000" placeholder="Type your response here..."></textarea>
+                  <div class="text-xs text-slate-500 mt-1">Maximum 10,000 characters</div>
                   <button type="button" class="mt-2 px-4 py-2 bg-teal-600 text-white rounded text-sm hover:bg-teal-700" onclick="saveProviderResponse('${esc(p.id)}')">
                     Send Reply
                   </button>

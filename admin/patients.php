@@ -608,6 +608,24 @@ include __DIR__.'/_header.php';
                         return strtotime($a['timestamp']) - strtotime($b['timestamp']);
                       });
 
+                      // Limit to last 50 messages for performance
+                      $totalMessages = count($messages);
+                      if ($totalMessages > 50) {
+                        $messages = array_slice($messages, -50);
+                        $hiddenCount = $totalMessages - 50;
+                      } else {
+                        $hiddenCount = 0;
+                      }
+
+                      // Show notice if messages are hidden
+                      if ($hiddenCount > 0):
+                      ?>
+                        <div class="mb-3 p-3 bg-blue-50 border-l-4 border-blue-500 rounded text-sm text-blue-800">
+                          <strong>Note:</strong> Showing most recent 50 messages. <?=$hiddenCount?> earlier message<?=$hiddenCount > 1 ? 's' : ''?> hidden for performance.
+                        </div>
+                      <?php
+                      endif;
+
                       // Display messages sequentially
                       foreach ($messages as $msg):
                         if ($msg['type'] === 'manufacturer'):
@@ -654,10 +672,12 @@ include __DIR__.'/_header.php';
                             id="reply-textarea-<?=e($pid)?>"
                             name="reply_message"
                             rows="3"
+                            maxlength="10000"
                             class="w-full px-3 py-2 border border-slate-300 rounded focus:ring-2 focus:ring-brand focus:border-transparent"
                             placeholder="Type your response here or use AI to generate a suggestion..."
                             required
                           ></textarea>
+                          <div class="text-xs text-slate-500 mt-1">Maximum 10,000 characters</div>
                           <div class="flex items-center gap-2 mt-2">
                             <button
                               type="submit"

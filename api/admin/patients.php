@@ -105,11 +105,35 @@ try {
       exit;
     }
 
-    // Only superadmin and manufacturer can send replies
-    if ($adminRole !== 'superadmin' && $adminRole !== 'manufacturer') {
-      echo json_encode(['ok' => false, 'error' => 'Unauthorized']);
+    // Message length validation
+    if (strlen($replyMessage) > 10000) {
+      echo json_encode(['ok' => false, 'error' => 'Reply message too long (max 10,000 characters)']);
       exit;
     }
+
+    // Role-based authorization
+    if ($adminRole !== 'superadmin' && $adminRole !== 'manufacturer' && $adminRole !== 'admin') {
+      // Employees and other roles must have access to the patient's physician
+      try {
+        $authCheck = $pdo->prepare("
+          SELECT 1
+          FROM patients p
+          INNER JOIN admin_physicians ap ON ap.physician_user_id = p.user_id
+          WHERE p.id = ? AND ap.admin_id = ?
+        ");
+        $authCheck->execute([$patientId, $adminId]);
+
+        if (!$authCheck->fetch()) {
+          echo json_encode(['ok' => false, 'error' => 'Patient not found or access denied']);
+          exit;
+        }
+      } catch (Throwable $e) {
+        error_log("Authorization check error: " . $e->getMessage());
+        echo json_encode(['ok' => false, 'error' => 'Authorization check failed']);
+        exit;
+      }
+    }
+    // Superadmin, admin, and manufacturer can access all patients (no additional check needed)
 
     // Check if tracking columns exist
     $hasAdminReadTracking = false;
@@ -122,43 +146,42 @@ try {
       error_log("Could not check for tracking columns: " . $e->getMessage());
     }
 
-    // Get current comment to append to it (for conversation thread)
-    $currentComment = '';
-    $patientExists = false;
+    // Use database transaction with row locking to prevent race conditions
     try {
-      $stmt = $pdo->prepare("SELECT status_comment FROM patients WHERE id = ?");
+      $pdo->beginTransaction();
+
+      // Lock the row to prevent simultaneous updates
+      $stmt = $pdo->prepare("SELECT status_comment FROM patients WHERE id = ? FOR UPDATE");
       $stmt->execute([$patientId]);
       $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
       if (!$row) {
+        $pdo->rollBack();
         echo json_encode(['ok' => false, 'error' => 'Patient not found']);
         exit;
       }
 
-      $patientExists = true;
       $currentComment = $row['status_comment'] ?? '';
-    } catch (Throwable $e) {
-      error_log("Error fetching patient: " . $e->getMessage());
-      echo json_encode(['ok' => false, 'error' => 'Failed to fetch patient: ' . $e->getMessage()]);
-      exit;
-    }
 
-    // Build conversation thread by appending new message
-    $timestamp = date('Y-m-d H:i:s');
-    $separator = "\n\n---\n\n";
-    $newMessage = "[" . $timestamp . "] Manufacturer:\n" . $replyMessage;
+      // Escape separator to prevent injection attacks
+      $escapedMessage = str_replace('---', '-‑-', $replyMessage); // Replace with non-breaking hyphen
 
-    if (!empty($currentComment)) {
-      // Append to existing conversation
-      $fullComment = $currentComment . $separator . $newMessage;
-    } else {
-      // First message
-      $fullComment = $newMessage;
-    }
+      // Build conversation thread by appending new message
+      $timestamp = date('Y-m-d H:i:s');
+      $separator = "\n\n---\n\n";
+      $newMessage = "[" . $timestamp . "] Manufacturer:\n" . $escapedMessage;
 
-    // Update the patient with the conversation thread
-    // Reset provider_comment_read_at so physician sees the red dot notification
-    try {
+      if (!empty($currentComment)) {
+        // Append to existing conversation
+        $fullComment = $currentComment . $separator . $newMessage;
+      } else {
+        // First message
+        $fullComment = $newMessage;
+      }
+
+      // Update the patient with the conversation thread
+      // Reset provider_comment_read_at so physician sees the red dot notification
+
       // Build SQL based on available columns
       $sql = "UPDATE patients SET status_comment = ?, status_updated_at = NOW()";
       $params = [$fullComment];
@@ -174,14 +197,22 @@ try {
       $sql .= " WHERE id = ?";
       $params[] = $patientId;
 
-      $stmt = $pdo->prepare($sql);
-      $stmt->execute($params);
+      $updateStmt = $pdo->prepare($sql);
+      $updateStmt->execute($params);
+
+      // Commit transaction
+      $pdo->commit();
 
       // Log success for debugging
       error_log("Successfully updated patient $patientId with conversation thread. SQL: $sql");
     } catch (Throwable $e) {
-      error_log("Error updating patient comment: " . $e->getMessage() . " SQL: $sql");
-      echo json_encode(['ok' => false, 'error' => 'Failed to update patient record: ' . $e->getMessage()]);
+      // Rollback transaction on error
+      if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+      }
+
+      error_log("Error updating patient comment: " . $e->getMessage());
+      echo json_encode(['ok' => false, 'error' => 'Failed to send reply']);
       exit;
     }
 
