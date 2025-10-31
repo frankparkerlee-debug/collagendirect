@@ -13,14 +13,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
 
     if ($action === 'create_campaign') {
-        // In production, insert into database and send emails
-        $success = true;
-        $campaign_preview = [
-            'name' => $_POST['campaign_name'],
-            'type' => $_POST['campaign_type'],
-            'template_id' => $_POST['template_id'],
-            'target_count' => rand(20, 100) // Mock count
-        ];
+        // Execute campaign - this will actually send emails via SendGrid
+        // The form will POST to execute-campaign.php
+        // No processing here, form submits directly to execute-campaign.php
     }
 }
 
@@ -94,7 +89,7 @@ $email_templates = [
     <div class="bg-white rounded-xl border-2 border-gray-200 p-8">
       <h1 class="text-3xl font-black text-gray-900 mb-6">Create Email Campaign</h1>
 
-      <form method="POST" action="" id="campaign-form">
+      <form method="POST" action="execute-campaign.php" id="campaign-form">
         <input type="hidden" name="action" value="create_campaign">
 
         <!-- Campaign Details -->
