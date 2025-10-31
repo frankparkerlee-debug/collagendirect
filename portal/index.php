@@ -6911,6 +6911,28 @@ function renderPatientDetailPage(p, orders, isEditing) {
         </div>
       </div>
 
+      <!-- AI Approval Score Section -->
+      <div class="mb-4 pb-4 border-t pt-4">
+        <div class="flex justify-between items-center mb-3">
+          <h4 class="font-semibold text-sm">AI Approval Readiness Score</h4>
+          <button
+            onclick="generateApprovalScore('${esc(p.id)}')"
+            class="px-3 py-1.5 text-xs bg-purple-600 text-white rounded hover:bg-purple-700 transition flex items-center gap-1"
+            id="approval-score-btn-${esc(p.id)}"
+          >
+            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
+            </svg>
+            Get AI Score
+          </button>
+        </div>
+        <div id="approval-score-display-${esc(p.id)}" class="text-sm">
+          <div class="text-slate-500 text-xs">
+            Click "Get AI Score" to analyze this patient profile for approval likelihood
+          </div>
+        </div>
+      </div>
+
       <!-- Authorization Status Section -->
       ${p.auth_state ? `
         <div class="mb-4 pb-4 border-t pt-4">
@@ -7256,6 +7278,133 @@ async function saveProviderResponse(patientId) {
   }
 }
 
+/* ========== AI APPROVAL SCORE GENERATOR ========== */
+
+async function generateApprovalScore(patientId) {
+  const displayDiv = document.getElementById('approval-score-display-' + patientId);
+  const button = document.getElementById('approval-score-btn-' + patientId);
+
+  if (!displayDiv || !button) return;
+
+  // Show loading state
+  button.disabled = true;
+  button.innerHTML = '<svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Analyzing...';
+
+  displayDiv.innerHTML = '<div class="bg-blue-50 border-l-4 border-blue-500 p-3 rounded text-sm text-blue-800">' +
+    '<div class="flex items-center gap-2">' +
+    '<svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>' +
+    '<span>AI is analyzing patient profile... This may take 10-15 seconds.</span>' +
+    '</div></div>';
+
+  try {
+    const r = await fetch('/api/portal/generate_approval_score.php', {
+      method: 'POST',
+      body: fd({patient_id: patientId})
+    });
+    const j = await r.json();
+
+    if (j.ok) {
+      // Determine color scheme based on score
+      let scoreColor, scoreBg, scoreIcon;
+      if (j.score === 'GREEN') {
+        scoreColor = 'text-green-700';
+        scoreBg = 'bg-green-100 border-green-500';
+        scoreIcon = '✓';
+      } else if (j.score === 'YELLOW') {
+        scoreColor = 'text-yellow-700';
+        scoreBg = 'bg-yellow-100 border-yellow-500';
+        scoreIcon = '⚠';
+      } else {
+        scoreColor = 'text-red-700';
+        scoreBg = 'bg-red-100 border-red-500';
+        scoreIcon = '✗';
+      }
+
+      // Build HTML for display
+      let html = '<div class="' + scoreBg + ' border-l-4 p-4 rounded space-y-3">';
+
+      // Score header
+      html += '<div class="flex items-center justify-between">';
+      html += '<div class="flex items-center gap-2">';
+      html += '<span class="text-2xl">' + scoreIcon + '</span>';
+      html += '<div>';
+      html += '<div class="font-semibold ' + scoreColor + '">' + j.score + ' - ';
+      if (j.score === 'GREEN') html += 'High Likelihood of Approval';
+      else if (j.score === 'YELLOW') html += 'Average Likelihood of Approval';
+      else html += 'Low Likelihood of Approval';
+      html += '</div>';
+      html += '<div class="text-xs ' + scoreColor + ' opacity-75">Score: ' + j.score_numeric + '/100</div>';
+      html += '</div></div>';
+      html += '<button onclick="generateApprovalScore(\'' + patientId + '\')" class="text-xs underline ' + scoreColor + '">Refresh</button>';
+      html += '</div>';
+
+      // Summary
+      if (j.summary) {
+        html += '<div class="text-sm ' + scoreColor + '">' + esc(j.summary) + '</div>';
+      }
+
+      // Missing items (if any)
+      if (j.missing_items && j.missing_items.length > 0) {
+        html += '<div>';
+        html += '<div class="font-semibold text-xs ' + scoreColor + ' mb-1">Missing Information:</div>';
+        html += '<ul class="text-xs ' + scoreColor + ' space-y-1 list-disc list-inside">';
+        j.missing_items.forEach(item => {
+          html += '<li>' + esc(item) + '</li>';
+        });
+        html += '</ul></div>';
+      }
+
+      // Recommendations
+      if (j.recommendations && j.recommendations.length > 0) {
+        html += '<div>';
+        html += '<div class="font-semibold text-xs ' + scoreColor + ' mb-1">Recommendations:</div>';
+        html += '<ul class="text-xs ' + scoreColor + ' space-y-1 list-disc list-inside">';
+        j.recommendations.forEach(rec => {
+          html += '<li>' + esc(rec) + '</li>';
+        });
+        html += '</ul></div>';
+      }
+
+      // Complete items (positive feedback)
+      if (j.complete_items && j.complete_items.length > 0 && j.score !== 'RED') {
+        html += '<div>';
+        html += '<div class="font-semibold text-xs ' + scoreColor + ' mb-1">What\'s Complete:</div>';
+        html += '<ul class="text-xs ' + scoreColor + ' space-y-1 list-disc list-inside">';
+        j.complete_items.slice(0, 3).forEach(item => {
+          html += '<li>' + esc(item) + '</li>';
+        });
+        html += '</ul></div>';
+      }
+
+      html += '</div>';
+
+      displayDiv.innerHTML = html;
+
+      // Reset button
+      button.disabled = false;
+      button.innerHTML = '<svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg> Refresh Score';
+
+    } else {
+      // Error from API
+      displayDiv.innerHTML = '<div class="bg-red-50 border-l-4 border-red-500 p-3 rounded text-sm text-red-800">' +
+        '<div class="font-semibold">Error</div>' +
+        '<div class="text-xs mt-1">' + esc(j.error || 'Failed to generate score') + '</div>' +
+        '</div>';
+
+      button.disabled = false;
+      button.innerHTML = '<svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg> Try Again';
+    }
+
+  } catch (e) {
+    displayDiv.innerHTML = '<div class="bg-red-50 border-l-4 border-red-500 p-3 rounded text-sm text-red-800">' +
+      '<div class="font-semibold">Connection Error</div>' +
+      '<div class="text-xs mt-1">' + esc(e.message) + '</div>' +
+      '</div>';
+
+    button.disabled = false;
+    button.innerHTML = '<svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg> Try Again';
+  }
+}
 
 /* ========== ADD PATIENT FORM HANDLER ========== */
 
