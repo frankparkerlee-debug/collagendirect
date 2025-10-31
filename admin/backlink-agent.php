@@ -88,23 +88,322 @@ class BacklinkAgent {
         $this->apiKeys = [
             'hunter_io' => getenv('HUNTER_IO_KEY') ?: '',
             'sendgrid' => getenv('SENDGRID_KEY') ?: '',
+            'google_search' => getenv('GOOGLE_SEARCH_API_KEY') ?: '',
+            'google_search_cx' => getenv('GOOGLE_SEARCH_CX') ?: '',
+            'reddit_client_id' => getenv('REDDIT_CLIENT_ID') ?: '',
+            'reddit_client_secret' => getenv('REDDIT_CLIENT_SECRET') ?: '',
         ];
     }
 
     /**
      * Main execution method
      */
-    public function executeCampaign() {
+    public function executeCampaign($discover = true) {
         $this->log("🚀 Starting Backlink Acquisition Campaign", "INFO");
 
-        // Step 1: Find new opportunities
-        $this->findOpportunities();
+        // Step 1: Discover new opportunities (if enabled)
+        if ($discover) {
+            $this->discoverNewOpportunities();
+        } else {
+            $this->findOpportunities(); // Use hardcoded list
+        }
 
         // Step 2: Execute pending submissions
         $this->executePendingSubmissions();
 
         // Step 3: Generate report
         return $this->generateReport();
+    }
+
+    /**
+     * Continuously discover new backlink opportunities using multiple strategies
+     */
+    private function discoverNewOpportunities() {
+        $this->log("🔍 Starting automated opportunity discovery...", "INFO");
+
+        // Strategy 1: Google Custom Search for guest posting opportunities
+        $this->discoverViaGoogleSearch();
+
+        // Strategy 2: Reddit discussions about wound care
+        $this->discoverViaReddit();
+
+        // Strategy 3: Web scraping for resource pages
+        $this->discoverResourcePages();
+
+        // Strategy 4: Also add hardcoded high-value opportunities
+        $this->findOpportunities();
+    }
+
+    /**
+     * Use Google Custom Search API to find guest posting opportunities
+     */
+    private function discoverViaGoogleSearch() {
+        if (empty($this->apiKeys['google_search']) || empty($this->apiKeys['google_search_cx'])) {
+            $this->log("⚠️  Google Search API not configured - skipping", "WARNING");
+            return;
+        }
+
+        $this->log("🔎 Searching Google for guest posting opportunities...", "INFO");
+
+        $searchQueries = [
+            '"wound care" "write for us"',
+            '"medical device" "guest post"',
+            '"healthcare blog" "contribute"',
+            '"diabetic foot ulcer" "submit article"',
+            '"podiatry" "guest author"',
+            'inurl:write-for-us medical',
+            'inurl:guest-post healthcare',
+        ];
+
+        $foundCount = 0;
+        foreach ($searchQueries as $query) {
+            $results = $this->googleCustomSearch($query);
+
+            foreach ($results as $result) {
+                if ($this->isValidGuestPostOpportunity($result)) {
+                    $this->addOpportunity([
+                        'url' => $result['link'],
+                        'type' => 'Guest Post Pitch',
+                        'priority' => 'High',
+                        'method' => 'email_outreach',
+                        'notes' => 'Auto-discovered: ' . $result['title']
+                    ]);
+                    $foundCount++;
+                }
+            }
+
+            // Respect API rate limits
+            sleep(1);
+        }
+
+        $this->log("✅ Found {$foundCount} guest posting opportunities via Google", "SUCCESS");
+    }
+
+    /**
+     * Perform Google Custom Search
+     */
+    private function googleCustomSearch($query, $numResults = 10) {
+        $apiKey = $this->apiKeys['google_search'];
+        $cx = $this->apiKeys['google_search_cx'];
+
+        $url = "https://www.googleapis.com/customsearch/v1?" . http_build_query([
+            'key' => $apiKey,
+            'cx' => $cx,
+            'q' => $query,
+            'num' => $numResults
+        ]);
+
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        $response = curl_exec($ch);
+        curl_close($ch);
+
+        if (!$response) {
+            return [];
+        }
+
+        $data = json_decode($response, true);
+        return $data['items'] ?? [];
+    }
+
+    /**
+     * Validate if a search result is a valid guest post opportunity
+     */
+    private function isValidGuestPostOpportunity($result) {
+        $url = strtolower($result['link']);
+        $title = strtolower($result['title'] ?? '');
+        $snippet = strtolower($result['snippet'] ?? '');
+
+        // Must contain guest posting indicators
+        $indicators = ['write for us', 'guest post', 'contribute', 'submit article', 'become a contributor'];
+        $hasIndicator = false;
+        foreach ($indicators as $indicator) {
+            if (strpos($url, str_replace(' ', '-', $indicator)) !== false ||
+                strpos($title, $indicator) !== false ||
+                strpos($snippet, $indicator) !== false) {
+                $hasIndicator = true;
+                break;
+            }
+        }
+
+        // Exclude bad domains
+        $excludeDomains = ['facebook.com', 'twitter.com', 'youtube.com', 'pinterest.com', 'instagram.com'];
+        foreach ($excludeDomains as $domain) {
+            if (strpos($url, $domain) !== false) {
+                return false;
+            }
+        }
+
+        return $hasIndicator;
+    }
+
+    /**
+     * Discover opportunities on Reddit
+     */
+    private function discoverViaReddit() {
+        $this->log("🔎 Searching Reddit for wound care discussions...", "INFO");
+
+        $subreddits = [
+            'nursing',
+            'medicine',
+            'podiatry',
+            'diabetes',
+            'medical',
+            'AskDocs'
+        ];
+
+        $keywords = [
+            'wound care',
+            'diabetic foot ulcer',
+            'pressure ulcer',
+            'collagen dressing',
+            'wound treatment'
+        ];
+
+        $foundCount = 0;
+        foreach ($subreddits as $subreddit) {
+            foreach ($keywords as $keyword) {
+                $posts = $this->searchReddit($subreddit, $keyword);
+
+                foreach ($posts as $post) {
+                    // Only add posts where we can provide value
+                    if ($this->isRelevantRedditPost($post)) {
+                        $this->addOpportunity([
+                            'url' => 'https://reddit.com' . $post['permalink'],
+                            'type' => 'Forum Participation',
+                            'priority' => 'Medium',
+                            'method' => 'content_posting',
+                            'notes' => 'Reddit discussion: ' . $post['title']
+                        ]);
+                        $foundCount++;
+                    }
+                }
+
+                sleep(2); // Reddit rate limiting
+            }
+        }
+
+        $this->log("✅ Found {$foundCount} Reddit discussions", "SUCCESS");
+    }
+
+    /**
+     * Search Reddit for posts
+     */
+    private function searchReddit($subreddit, $keyword, $limit = 5) {
+        // Use Reddit's JSON API (no auth required for reading)
+        $url = "https://www.reddit.com/r/{$subreddit}/search.json?" . http_build_query([
+            'q' => $keyword,
+            'restrict_sr' => 'on',
+            'sort' => 'relevance',
+            'limit' => $limit,
+            't' => 'month' // Last month only
+        ]);
+
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'CollagenDirect Backlink Bot 1.0');
+        $response = curl_exec($ch);
+        curl_close($ch);
+
+        if (!$response) {
+            return [];
+        }
+
+        $data = json_decode($response, true);
+        $posts = [];
+
+        if (isset($data['data']['children'])) {
+            foreach ($data['data']['children'] as $child) {
+                $posts[] = $child['data'];
+            }
+        }
+
+        return $posts;
+    }
+
+    /**
+     * Check if Reddit post is relevant for commenting
+     */
+    private function isRelevantRedditPost($post) {
+        $title = strtolower($post['title']);
+        $selftext = strtolower($post['selftext'] ?? '');
+
+        // Look for questions or discussions where we can add value
+        $relevantIndicators = [
+            'what is the best',
+            'looking for',
+            'recommendations',
+            'which product',
+            'help with',
+            'advice on',
+            'treatment for'
+        ];
+
+        foreach ($relevantIndicators as $indicator) {
+            if (strpos($title, $indicator) !== false || strpos($selftext, $indicator) !== false) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Discover resource pages via web scraping
+     */
+    private function discoverResourcePages() {
+        $this->log("🔎 Discovering resource pages...", "INFO");
+
+        $targetKeywords = [
+            'wound care resources',
+            'medical device resources',
+            'healthcare professional resources',
+            'diabetic foot care links',
+            'podiatry resources'
+        ];
+
+        $foundCount = 0;
+        foreach ($targetKeywords as $keyword) {
+            // Use Google Custom Search if available, otherwise skip
+            if (empty($this->apiKeys['google_search'])) {
+                continue;
+            }
+
+            $results = $this->googleCustomSearch("inurl:resources \"{$keyword}\"", 5);
+
+            foreach ($results as $result) {
+                $url = $result['link'];
+
+                // Check if page has resource links (simple heuristic)
+                if ($this->hasResourceLinks($url)) {
+                    $this->addOpportunity([
+                        'url' => $url,
+                        'type' => 'Resource Page Outreach',
+                        'priority' => 'Medium',
+                        'method' => 'email_outreach',
+                        'notes' => 'Resource page: ' . $result['title']
+                    ]);
+                    $foundCount++;
+                }
+            }
+
+            sleep(1);
+        }
+
+        $this->log("✅ Found {$foundCount} resource pages", "SUCCESS");
+    }
+
+    /**
+     * Check if URL contains resource links
+     */
+    private function hasResourceLinks($url) {
+        // Simple check - does the URL path contain "resource" or "links"
+        $urlLower = strtolower($url);
+        return (strpos($urlLower, 'resource') !== false ||
+                strpos($urlLower, 'links') !== false ||
+                strpos($urlLower, 'directory') !== false);
     }
 
     /**
@@ -363,9 +662,59 @@ class BacklinkAgent {
     }
 
     private function sendEmail($to, $subject, $body) {
-        // In production, use SendGrid or SMTP
-        // For now, just log it
+        // Use SendGrid if API key is configured
+        if (!empty($this->apiKeys['sendgrid'])) {
+            return $this->sendViaSendGrid($to, $subject, $body);
+        }
+
+        // Otherwise just log it for manual sending
+        $this->log("📧 Email logged for manual sending to: {$to}", "INFO");
         return true;
+    }
+
+    /**
+     * Send email via SendGrid API
+     */
+    private function sendViaSendGrid($to, $subject, $body) {
+        $apiKey = $this->apiKeys['sendgrid'];
+        $from = $this->companyInfo['contact_email'];
+        $fromName = $this->companyInfo['contact_person'];
+
+        $data = [
+            'personalizations' => [[
+                'to' => [['email' => $to]],
+                'subject' => $subject
+            ]],
+            'from' => [
+                'email' => $from,
+                'name' => $fromName
+            ],
+            'content' => [[
+                'type' => 'text/plain',
+                'value' => $body
+            ]]
+        ];
+
+        $ch = curl_init('https://api.sendgrid.com/v3/mail/send');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: Bearer ' . $apiKey,
+            'Content-Type: application/json'
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode >= 200 && $httpCode < 300) {
+            $this->log("✅ Email sent successfully to {$to} via SendGrid", "SUCCESS");
+            return true;
+        } else {
+            $this->log("❌ Failed to send email to {$to}: HTTP {$httpCode}", "ERROR");
+            return false;
+        }
     }
 
     private function generateContentForOpportunity($opportunity) {
@@ -467,6 +816,48 @@ class BacklinkAgent {
         $logEntry = "[{$timestamp}] [{$level}] {$message}";
         $this->logs[] = $logEntry;
         error_log($logEntry, 3, __DIR__ . '/backlink_agent.log');
+    }
+}
+
+// ============================================================================
+// CLI MODE FOR CRON JOBS
+// ============================================================================
+
+// Check if running from command line
+if (php_sapi_name() === 'cli') {
+    echo "==============================================\n";
+    echo "CollagenDirect Backlink Agent - CLI Mode\n";
+    echo "==============================================\n\n";
+
+    try {
+        $agent = new BacklinkAgent($pdo);
+        echo "✅ Agent initialized\n\n";
+
+        // Run campaign with discovery enabled
+        $report = $agent->executeCampaign(true);
+
+        echo "\n==============================================\n";
+        echo "Campaign Results:\n";
+        echo "==============================================\n";
+        echo "Total Opportunities: " . ($report['stats']['total'] ?? 0) . "\n";
+        echo "Pending: " . ($report['stats']['pending'] ?? 0) . "\n";
+        echo "Submitted: " . ($report['stats']['submitted'] ?? 0) . "\n";
+        echo "Outreach Sent: " . ($report['stats']['outreach_sent'] ?? 0) . "\n";
+        echo "Content Ready: " . ($report['stats']['content_ready'] ?? 0) . "\n";
+        echo "Needs Manual: " . ($report['stats']['needs_manual'] ?? 0) . "\n";
+
+        echo "\n==============================================\n";
+        echo "Execution Log:\n";
+        echo "==============================================\n";
+        foreach ($report['logs'] as $log) {
+            echo $log . "\n";
+        }
+
+        echo "\n✅ Campaign completed successfully!\n";
+        exit(0);
+    } catch (Exception $e) {
+        echo "\n❌ Error: " . $e->getMessage() . "\n";
+        exit(1);
     }
 }
 
