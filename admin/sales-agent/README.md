@@ -87,11 +87,87 @@ define('BASE_URL', 'https://collagendirect.health');
 ?>
 ```
 
-### 3. Email Service Integration
-Recommended: SendGrid, AWS SES, or Mailgun for email campaigns
-- Setup SMTP credentials in config.php
-- Configure SPF/DKIM records for deliverability
-- Setup webhook for tracking opens/clicks
+### 3. SendGrid Email Service Integration
+
+**Step-by-Step SendGrid Setup:**
+
+1. **Create SendGrid Account**
+   - Go to https://signup.sendgrid.com/
+   - Sign up for free tier (100 emails/day)
+   - Verify your email address
+
+2. **Generate API Key**
+   - Login to SendGrid dashboard
+   - Go to Settings → API Keys
+   - Click "Create API Key"
+   - Name it "CollagenDirect Sales Agent"
+   - Select "Restricted Access"
+   - Enable only "Mail Send" permission (Full Access)
+   - Click "Create & View"
+   - Copy the API key (you won't see it again!)
+
+3. **Configure Sender Email**
+   - Go to Settings → Sender Authentication
+   - Click "Verify Single Sender"
+   - Use: sales@collagendirect.health
+   - Complete verification email
+
+4. **Domain Authentication (Recommended for better deliverability)**
+   - Go to Settings → Sender Authentication → Domain Authentication
+   - Follow wizard to add DNS records to your domain
+   - This prevents emails from going to spam
+
+5. **Add API Key to Config**
+   - Copy `config.example.php` to `config.php`
+   - Set `SENDGRID_API_KEY` to your API key
+   - Set `SENDGRID_FROM_EMAIL` to `sales@collagendirect.health`
+   - Set `SENDGRID_FROM_NAME` to `CollagenDirect Sales Team`
+
+6. **Setup Event Webhook (for tracking opens/clicks)**
+   - Go to Settings → Mail Settings → Event Notification Settings
+   - Enable "Event Webhook"
+   - Set HTTP Post URL to: `https://collagendirect.health/admin/sales-agent/sendgrid-webhook.php`
+   - Select events: Opened, Clicked, Bounced, Dropped, Unsubscribed, Spam Report
+   - Optional: Add Authorization Header with secret token
+   - Save settings
+
+7. **Configure SPF/DKIM Records (for deliverability)**
+   - Add these DNS records to prevent spam filtering:
+   ```
+   TXT record: v=spf1 include:sendgrid.net ~all
+   CNAME: em1234.collagendirect.health → u1234567.wl123.sendgrid.net
+   CNAME: s1._domainkey.collagendirect.health → s1.domainkey.u1234567.wl123.sendgrid.net
+   CNAME: s2._domainkey.collagendirect.health → s2.domainkey.u1234567.wl123.sendgrid.net
+   ```
+   (Replace with actual values from SendGrid domain authentication)
+
+8. **Test Email Sending**
+   ```php
+   require_once('sendgrid-integration.php');
+   $mailer = new SendGridMailer();
+   $result = $mailer->sendEmail([
+       'to_email' => 'your-email@example.com',
+       'to_name' => 'Test Recipient',
+       'subject' => 'Test Email from CollagenDirect',
+       'html_content' => '<h1>Test</h1><p>If you see this, SendGrid is working!</p>',
+       'lead_id' => 1
+   ]);
+   print_r($result);
+   ```
+
+**SendGrid Free Tier Limits:**
+- 100 emails per day (forever free)
+- Upgrade to Essentials ($19.95/mo) for 50,000 emails/month
+- Pro plan ($89.95/mo) for 100,000 emails/month + dedicated IP
+
+**Best Practices:**
+- ✅ Always include unsubscribe link
+- ✅ Use descriptive subject lines (not "Hey" or "Quick question")
+- ✅ Personalize with recipient name
+- ✅ Keep emails under 102KB total size
+- ✅ Avoid spam trigger words (Free, Guarantee, Act Now, etc.)
+- ✅ Send from consistent sender name
+- ✅ Monitor bounce/spam rates (keep under 2%)
 
 ### 4. SMS Service Integration
 Recommended: Twilio for SMS campaigns
