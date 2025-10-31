@@ -108,6 +108,55 @@ class AIService {
   }
 
   /**
+   * Generate approval score and feedback for patient profile
+   * Analyzes patient demographics, diagnosis, wound details, notes, and uploaded documents
+   * Returns color-coded score (Red/Yellow/Green) with detailed feedback
+   */
+  public function generateApprovalScore(array $patientData, array $documents = []): array {
+    if (empty($this->apiKey)) {
+      return ['error' => 'AI service not configured. Please set ANTHROPIC_API_KEY.'];
+    }
+
+    $prompt = $this->buildApprovalScorePrompt($patientData, $documents);
+
+    try {
+      $response = $this->callClaudeAPI($prompt, 3072);
+
+      // Parse JSON response
+      $result = json_decode($response, true);
+
+      if (!$result) {
+        // Fallback if AI doesn't return valid JSON
+        return [
+          'success' => true,
+          'score' => 'YELLOW',
+          'score_numeric' => 50,
+          'summary' => 'Unable to parse AI response. Manual review recommended.',
+          'missing_items' => [],
+          'complete_items' => [],
+          'recommendations' => ['Manual review required'],
+          'concerns' => ['AI scoring error']
+        ];
+      }
+
+      return [
+        'success' => true,
+        'score' => $result['score'] ?? 'YELLOW', // RED, YELLOW, or GREEN
+        'score_numeric' => $result['score_numeric'] ?? 50, // 0-100
+        'summary' => $result['summary'] ?? '',
+        'missing_items' => $result['missing_items'] ?? [],
+        'complete_items' => $result['complete_items'] ?? [],
+        'recommendations' => $result['recommendations'] ?? [],
+        'concerns' => $result['concerns'] ?? [],
+        'document_analysis' => $result['document_analysis'] ?? null
+      ];
+    } catch (Exception $e) {
+      error_log('[AIService] Approval score generation error: ' . $e->getMessage());
+      return ['error' => 'Approval score generation failed: ' . $e->getMessage()];
+    }
+  }
+
+  /**
    * Build prompt for order analysis
    */
   private function buildOrderAnalysisPrompt(array $order, array $patient): string {
@@ -380,6 +429,130 @@ CRITICAL REQUIREMENTS:
 - Ensure medical necessity is crystal clear
 
 Write the complete note now. Make it professional, thorough, and bulletproof for insurance review.
+PROMPT;
+  }
+
+  /**
+   * Build prompt for approval score generation
+   */
+  private function buildApprovalScorePrompt(array $patient, array $documents): string {
+    $patientAge = !empty($patient['dob']) ? date_diff(date_create($patient['dob']), date_create('today'))->y : 'Unknown';
+
+    // Format document information
+    $documentInfo = '';
+    if (!empty($documents)) {
+      $documentInfo = "\n\nUPLOADED DOCUMENTS:\n";
+      foreach ($documents as $doc) {
+        $documentInfo .= "- {$doc['type']}: {$doc['filename']}";
+        if (!empty($doc['extracted_text'])) {
+          $documentInfo .= "\n  Content Preview: " . substr($doc['extracted_text'], 0, 500) . "...\n";
+        }
+        $documentInfo .= "\n";
+      }
+    } else {
+      $documentInfo = "\n\nUPLOADED DOCUMENTS: None yet uploaded\n";
+    }
+
+    // Format notes
+    $notes = !empty($patient['notes_text']) ? $patient['notes_text'] : 'No clinical notes provided';
+
+    return <<<PROMPT
+You are an expert medical billing and insurance authorization specialist reviewing a patient profile for wound care product authorization.
+
+Your task is to analyze ALL available information and provide a comprehensive approval likelihood score.
+
+PATIENT DEMOGRAPHICS:
+- Name: {$patient['first_name']} {$patient['last_name']}
+- DOB: {$patient['dob']}
+- Age: {$patientAge}
+- Sex: {$patient['sex']}
+- Phone: {$patient['phone']}
+- Address: {$patient['address']}, {$patient['city']}, {$patient['address_state']} {$patient['zip']}
+
+INSURANCE INFORMATION:
+- Provider: {$patient['insurance_provider']}
+- Member ID: {$patient['insurance_member_id']}
+- Group ID: {$patient['insurance_group_id']}
+- Payer Phone: {$patient['insurance_payer_phone']}
+
+DOCUMENTATION STATUS:
+- Photo ID: {$patient['id_card_path'] ? 'Uploaded' : 'MISSING'}
+- Insurance Card: {$patient['ins_card_path'] ? 'Uploaded' : 'MISSING'}
+- Clinical Notes: {$patient['notes_path'] ? 'Uploaded' : (!empty($notes) && $notes !== 'No clinical notes provided' ? 'Entered manually' : 'MISSING')}
+{$documentInfo}
+
+CLINICAL NOTES/INFORMATION:
+{$notes}
+
+CRITICAL ANALYSIS REQUIREMENTS:
+
+1. **Document Completeness** (30 points):
+   - Photo ID uploaded?
+   - Insurance card uploaded (both front and back)?
+   - Clinical notes present (uploaded or typed)?
+   - Are notes detailed enough?
+
+2. **Patient Demographics** (15 points):
+   - Complete contact information?
+   - Valid insurance information?
+   - All required fields populated?
+
+3. **Clinical Information Quality** (35 points):
+   - Are clinical notes detailed and specific?
+   - Is there a clear diagnosis/ICD-10 code mentioned?
+   - Are wound details documented (size, location, stage)?
+   - Is there documentation of failed conservative care?
+   - Medical necessity clearly explained?
+
+4. **Insurance Authorization Readiness** (20 points):
+   - Is insurance information complete and accurate?
+   - Insurance card readable and valid?
+   - Member/Group ID format looks correct?
+
+SCORING GUIDELINES:
+- **GREEN (80-100 points)**: High likelihood of approval
+  - All documents uploaded
+  - Comprehensive clinical notes with specific details
+  - Clear medical necessity
+  - Insurance info complete
+
+- **YELLOW (50-79 points)**: Average likelihood of approval
+  - Most documents present but some gaps
+  - Clinical notes present but could be more detailed
+  - Some minor missing information
+  - Will likely need clarification
+
+- **RED (0-49 points)**: Low likelihood of approval
+  - Critical documents missing (ID, insurance card, or notes)
+  - Insufficient clinical information
+  - Missing medical necessity justification
+  - Significant gaps in required data
+
+REQUIRED OUTPUT FORMAT (JSON ONLY):
+{
+  "score": "RED|YELLOW|GREEN",
+  "score_numeric": 0-100,
+  "summary": "2-3 sentence overall assessment",
+  "missing_items": ["Specific item 1", "Specific item 2"],
+  "complete_items": ["What's good item 1", "What's good item 2"],
+  "recommendations": ["Specific action 1", "Specific action 2"],
+  "concerns": ["Specific concern 1", "Specific concern 2"],
+  "document_analysis": {
+    "id_card": "Present/Missing - specific feedback",
+    "insurance_card": "Present/Missing - specific feedback",
+    "clinical_notes": "Present/Missing - quality assessment"
+  }
+}
+
+IMPORTANT:
+- Be specific in your feedback
+- Reference actual patient data in your analysis
+- If clinical notes are vague, say so specifically
+- If documents are missing, list exactly what's needed
+- Be constructive in recommendations
+- Focus on what will help get approval
+
+Return ONLY valid JSON, no additional text.
 PROMPT;
   }
 

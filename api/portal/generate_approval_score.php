@@ -1,0 +1,162 @@
+<?php
+// API endpoint to generate AI approval score for patient profile
+// Called automatically when physician completes patient documentation
+
+header('Content-Type: application/json');
+session_start();
+
+require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../lib/ai_service.php';
+
+// Check authentication
+if (empty($_SESSION['portal_user_id'])) {
+  http_response_code(401);
+  echo json_encode(['ok' => false, 'error' => 'Not authenticated']);
+  exit;
+}
+
+$userId = $_SESSION['portal_user_id'];
+$userRole = $_SESSION['portal_user_role'] ?? 'physician';
+
+// Get patient ID
+$patientId = trim($_POST['patient_id'] ?? $_GET['patient_id'] ?? '');
+
+if (empty($patientId)) {
+  http_response_code(400);
+  echo json_encode(['ok' => false, 'error' => 'Patient ID required']);
+  exit;
+}
+
+try {
+  // Fetch complete patient data
+  if ($userRole === 'superadmin') {
+    $stmt = $pdo->prepare("
+      SELECT
+        p.*,
+        CASE
+          WHEN p.notes_path IS NOT NULL THEN
+            pg_read_file(p.notes_path)
+          ELSE NULL
+        END as notes_text
+      FROM patients p
+      WHERE p.id = ?
+    ");
+    $stmt->execute([$patientId]);
+  } else {
+    $stmt = $pdo->prepare("
+      SELECT
+        p.*,
+        CASE
+          WHEN p.notes_path IS NOT NULL THEN
+            pg_read_file(p.notes_path)
+          ELSE NULL
+        END as notes_text
+      FROM patients p
+      WHERE p.id = ? AND p.user_id = ?
+    ");
+    $stmt->execute([$patientId, $userId]);
+  }
+
+  $patient = $stmt->fetch(PDO::FETCH_ASSOC);
+
+  if (!$patient) {
+    http_response_code(404);
+    echo json_encode(['ok' => false, 'error' => 'Patient not found or access denied']);
+    exit;
+  }
+
+  // Prepare documents array for AI analysis
+  $documents = [];
+
+  // Add ID card document
+  if (!empty($patient['id_card_path'])) {
+    $documents[] = [
+      'type' => 'Photo ID',
+      'filename' => basename($patient['id_card_path']),
+      'path' => $patient['id_card_path'],
+      'mime' => $patient['id_card_mime'] ?? 'unknown',
+      'extracted_text' => '' // TODO: Add OCR extraction if needed
+    ];
+  }
+
+  // Add insurance card document
+  if (!empty($patient['ins_card_path'])) {
+    $documents[] = [
+      'type' => 'Insurance Card',
+      'filename' => basename($patient['ins_card_path']),
+      'path' => $patient['ins_card_path'],
+      'mime' => $patient['ins_card_mime'] ?? 'unknown',
+      'extracted_text' => '' // TODO: Add OCR extraction if needed
+    ];
+  }
+
+  // Add clinical notes document
+  if (!empty($patient['notes_path'])) {
+    $documents[] = [
+      'type' => 'Clinical Notes',
+      'filename' => basename($patient['notes_path']),
+      'path' => $patient['notes_path'],
+      'mime' => $patient['notes_mime'] ?? 'unknown',
+      'extracted_text' => $patient['notes_text'] ?? ''
+    ];
+  }
+
+  // Initialize AI service
+  $aiService = new AIService();
+
+  // Generate approval score
+  $result = $aiService->generateApprovalScore($patient, $documents);
+
+  if (isset($result['error'])) {
+    http_response_code(500);
+    echo json_encode(['ok' => false, 'error' => $result['error']]);
+    exit;
+  }
+
+  // Store the score in database for future reference
+  $scoreData = json_encode([
+    'score' => $result['score'],
+    'score_numeric' => $result['score_numeric'],
+    'summary' => $result['summary'],
+    'generated_at' => date('Y-m-d H:i:s')
+  ]);
+
+  // Add approval_score column if it doesn't exist (for backward compatibility)
+  try {
+    $pdo->exec("ALTER TABLE patients ADD COLUMN IF NOT EXISTS approval_score JSONB");
+    $pdo->exec("ALTER TABLE patients ADD COLUMN IF NOT EXISTS approval_score_at TIMESTAMP");
+  } catch (Exception $e) {
+    error_log("Note: Could not add approval_score columns: " . $e->getMessage());
+  }
+
+  // Update patient record with score
+  try {
+    $updateStmt = $pdo->prepare("
+      UPDATE patients
+      SET approval_score = ?::jsonb,
+          approval_score_at = NOW()
+      WHERE id = ?
+    ");
+    $updateStmt->execute([$scoreData, $patientId]);
+  } catch (Exception $e) {
+    error_log("Could not update approval score: " . $e->getMessage());
+  }
+
+  // Return the score
+  echo json_encode([
+    'ok' => true,
+    'score' => $result['score'],
+    'score_numeric' => $result['score_numeric'],
+    'summary' => $result['summary'],
+    'missing_items' => $result['missing_items'],
+    'complete_items' => $result['complete_items'],
+    'recommendations' => $result['recommendations'],
+    'concerns' => $result['concerns'],
+    'document_analysis' => $result['document_analysis']
+  ]);
+
+} catch (Exception $e) {
+  error_log("Approval score generation error: " . $e->getMessage());
+  http_response_code(500);
+  echo json_encode(['ok' => false, 'error' => 'Failed to generate approval score']);
+}
