@@ -456,6 +456,17 @@ PROMPT;
     // Format notes
     $notes = !empty($patient['notes_text']) ? $patient['notes_text'] : 'No clinical notes provided';
 
+    // Pre-format document status strings (PHP 5 compatibility - can't use ternary in string interpolation)
+    $idCardStatus = !empty($patient['id_card_path']) ? 'Uploaded' : 'MISSING';
+    $insCardStatus = !empty($patient['ins_card_path']) ? 'Uploaded' : 'MISSING';
+
+    $notesStatus = 'MISSING';
+    if (!empty($patient['notes_path'])) {
+      $notesStatus = 'Uploaded';
+    } elseif (!empty($notes) && $notes !== 'No clinical notes provided') {
+      $notesStatus = 'Entered manually';
+    }
+
     return <<<PROMPT
 You are an expert medical billing and insurance authorization specialist reviewing a patient profile for wound care product authorization.
 
@@ -476,9 +487,9 @@ INSURANCE INFORMATION:
 - Payer Phone: {$patient['insurance_payer_phone']}
 
 DOCUMENTATION STATUS:
-- Photo ID: {$patient['id_card_path'] ? 'Uploaded' : 'MISSING'}
-- Insurance Card: {$patient['ins_card_path'] ? 'Uploaded' : 'MISSING'}
-- Clinical Notes: {$patient['notes_path'] ? 'Uploaded' : (!empty($notes) && $notes !== 'No clinical notes provided' ? 'Entered manually' : 'MISSING')}
+- Photo ID: {$idCardStatus}
+- Insurance Card: {$insCardStatus}
+- Clinical Notes: {$notesStatus}
 {$documentInfo}
 
 CLINICAL NOTES/INFORMATION:
