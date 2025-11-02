@@ -24,10 +24,14 @@ $target_specialties = [
 
 class LeadFinder {
     private $pdo;
+    private $hubspot;
     private $api_delay = 1; // seconds between API calls
+    private $use_hubspot = true;
 
-    public function __construct($pdo) {
+    public function __construct($pdo, $hubspot = null) {
         $this->pdo = $pdo;
+        $this->hubspot = $hubspot;
+        $this->use_hubspot = ($hubspot !== null);
     }
 
     /**
@@ -223,11 +227,11 @@ class LeadFinder {
     }
 
     /**
-     * Save lead to database
+     * Save lead to database AND HubSpot
      */
     public function saveLead($lead) {
         // Check if lead already exists (by NPI or email)
-        $stmt = $pdo->prepare("
+        $stmt = $this->pdo->prepare("
             SELECT id FROM leads
             WHERE (email = ? AND email IS NOT NULL)
             OR (phone = ? AND phone IS NOT NULL)
@@ -239,8 +243,8 @@ class LeadFinder {
             return false; // Lead already exists
         }
 
-        // Insert new lead
-        $stmt = $pdo->prepare("
+        // Insert new lead to local database
+        $stmt = $this->pdo->prepare("
             INSERT INTO leads (
                 practice_name, physician_name, specialty,
                 address, city, state, zip,
@@ -254,9 +258,10 @@ class LeadFinder {
                 ?, 'npi_registry', ?,
                 'new', 'medium'
             )
+            RETURNING id
         ");
 
-        return $stmt->execute([
+        $stmt->execute([
             $lead['practice_name'],
             $lead['physician_name'],
             $lead['specialty'],
@@ -270,6 +275,44 @@ class LeadFinder {
             $lead['lead_score'],
             $lead['estimated_monthly_volume']
         ]);
+
+        $localLeadId = $stmt->fetchColumn();
+
+        // Also push to HubSpot
+        if ($this->use_hubspot && $this->hubspot) {
+            $hsResponse = $this->hubspot->createOrUpdateContact($lead);
+
+            if ($hsResponse['success']) {
+                $hsContactId = $hsResponse['data']['id'];
+
+                // Create a deal for this lead
+                $dealData = [
+                    'practice_name' => $lead['practice_name'],
+                    'specialty' => $lead['specialty'],
+                    'estimated_monthly_volume' => $lead['estimated_monthly_volume'],
+                    'estimated_value' => $lead['estimated_monthly_volume'] * 100 // Rough estimate
+                ];
+
+                $this->hubspot->createDeal($hsContactId, $dealData);
+
+                // Log initial note
+                $note = "🔍 New lead found via NPI Registry\n\n";
+                $note .= "Source: NPI Registry automated search\n";
+                $note .= "Specialty: {$lead['specialty']}\n";
+                $note .= "Location: {$lead['city']}, {$lead['state']}\n";
+                $note .= "Lead Score: {$lead['lead_score']}/100\n";
+                $note .= "Estimated Monthly Volume: {$lead['estimated_monthly_volume']} patients\n";
+
+                $this->hubspot->logNote($hsContactId, $note);
+
+                // Store HubSpot ID in local database
+                $this->pdo->prepare("
+                    UPDATE leads SET hubspot_contact_id = ? WHERE id = ?
+                ")->execute([$hsContactId, $localLeadId]);
+            }
+        }
+
+        return true;
     }
 
     /**
