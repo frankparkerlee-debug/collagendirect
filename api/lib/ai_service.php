@@ -122,10 +122,26 @@ class AIService {
     try {
       $response = $this->callClaudeAPI($prompt, 3072);
 
+      // Extract JSON from response (handle markdown code fences)
+      $jsonText = $response;
+
+      // Remove markdown code fences if present
+      if (preg_match('/```json\s*(.*?)\s*```/s', $response, $matches)) {
+        $jsonText = $matches[1];
+      } elseif (preg_match('/```\s*(.*?)\s*```/s', $response, $matches)) {
+        $jsonText = $matches[1];
+      }
+
+      // Trim whitespace
+      $jsonText = trim($jsonText);
+
       // Parse JSON response
-      $result = json_decode($response, true);
+      $result = json_decode($jsonText, true);
 
       if (!$result) {
+        // Log the raw response for debugging
+        error_log('[AIService] Failed to parse JSON. Raw response: ' . substr($response, 0, 500));
+
         // Fallback if AI doesn't return valid JSON
         return [
           'success' => true,
