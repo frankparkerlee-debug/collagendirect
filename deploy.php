@@ -6,8 +6,14 @@
 
 $secret = 'your-secret-token-here'; // Change this!
 
-// Check for secret token
-$token = $_GET['token'] ?? $_POST['token'] ?? '';
+// Check for secret token (PHP 5 compatible)
+$token = '';
+if (isset($_GET['token'])) {
+    $token = $_GET['token'];
+} elseif (isset($_POST['token'])) {
+    $token = $_POST['token'];
+}
+
 if ($token !== $secret) {
     http_response_code(403);
     die('Forbidden');
