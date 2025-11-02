@@ -345,6 +345,35 @@ class HubSpotIntegration {
     }
 
     /**
+     * Test API connection
+     */
+    public function testConnection() {
+        $response = $this->apiRequest('crm/v3/objects/contacts?limit=1', 'GET');
+        return $response;
+    }
+
+    /**
+     * Create custom property
+     */
+    public function createProperty($propertyData) {
+        return $this->apiRequest('crm/v3/properties/contacts', 'POST', $propertyData);
+    }
+
+    /**
+     * Get all pipelines
+     */
+    public function getPipelines() {
+        return $this->apiRequest('crm/v3/pipelines/deals', 'GET');
+    }
+
+    /**
+     * Create pipeline
+     */
+    public function createPipeline($pipelineData) {
+        return $this->apiRequest('crm/v3/pipelines/deals', 'POST', $pipelineData);
+    }
+
+    /**
      * Helper: Extract first name from full name
      */
     private function extractFirstName($fullName) {

@@ -22,13 +22,18 @@ echo "<pre>\n";
 
 // Step 1: Test API Connection
 echo "=== STEP 1: Testing HubSpot API Connection ===\n";
-$testContact = $hubspot->apiRequest('crm/v3/objects/contacts?limit=1', 'GET');
+$testContact = $hubspot->testConnection();
 if ($testContact['success']) {
     echo "✅ API Connection successful!\n";
-    echo "   Portal ID: " . ($testContact['data']['results'][0]['properties']['hs_object_id'] ?? 'N/A') . "\n\n";
+    echo "   Response: Connected to HubSpot API\n\n";
 } else {
     echo "❌ API Connection failed!\n";
-    echo "   Error: " . ($testContact['error'] ?? 'Unknown error') . "\n\n";
+    echo "   Error: " . ($testContact['error'] ?? 'Unknown error') . "\n";
+    echo "   HTTP Code: " . ($testContact['http_code'] ?? 'N/A') . "\n\n";
+    echo "Please check:\n";
+    echo "1. HUBSPOT_API_KEY is set in Render environment variables\n";
+    echo "2. API key is valid and not expired\n";
+    echo "3. API key has proper scopes (contacts.read, contacts.write, deals, etc.)\n\n";
     exit;
 }
 
@@ -113,13 +118,13 @@ $properties = [
 foreach ($properties as $property) {
     echo "Creating property: {$property['label']}... ";
 
-    $result = $hubspot->apiRequest('crm/v3/properties/contacts', 'POST', $property);
+    $result = $hubspot->createProperty($property);
 
     if ($result['success']) {
         echo "✅ Created\n";
     } else {
         // Check if property already exists
-        if (strpos($result['error'], 'already exists') !== false) {
+        if (strpos($result['error'], 'already exists') !== false || strpos($result['error'], 'Property already exists') !== false) {
             echo "⚠️  Already exists (skipping)\n";
         } else {
             echo "❌ Failed: " . $result['error'] . "\n";
@@ -134,7 +139,7 @@ echo "=== STEP 3: Creating Deal Pipeline ===\n";
 
 // First, check if pipeline already exists
 echo "Checking for existing pipelines... ";
-$pipelinesResponse = $hubspot->apiRequest('crm/v3/pipelines/deals', 'GET');
+$pipelinesResponse = $hubspot->getPipelines();
 
 $pipelineExists = false;
 $pipelineId = null;
@@ -226,7 +231,7 @@ if (!$pipelineExists) {
         ]
     ];
 
-    $result = $hubspot->apiRequest('crm/v3/pipelines/deals', 'POST', $pipelineData);
+    $result = $hubspot->createPipeline($pipelineData);
 
     if ($result['success']) {
         $pipelineId = $result['data']['id'];
