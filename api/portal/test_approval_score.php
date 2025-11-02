@@ -9,7 +9,11 @@ $response = ['status' => 'testing'];
 
 try {
   session_start();
-  $response['session'] = isset($_SESSION['portal_user_id']) ? 'authenticated' : 'not authenticated';
+  $response['session'] = isset($_SESSION['user_id']) ? 'authenticated' : 'not authenticated';
+  if (isset($_SESSION['user_id'])) {
+    $response['user_id'] = $_SESSION['user_id'];
+    $response['role'] = isset($_SESSION['role']) ? $_SESSION['role'] : 'unknown';
+  }
 
   require_once __DIR__ . '/../db.php';
   $response['database'] = 'connected';

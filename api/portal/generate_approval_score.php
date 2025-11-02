@@ -17,15 +17,15 @@ try {
   exit;
 }
 
-// Check authentication
-if (empty($_SESSION['portal_user_id'])) {
+// Check authentication (portal uses 'user_id' not 'portal_user_id')
+if (empty($_SESSION['user_id'])) {
   http_response_code(401);
   echo json_encode(['ok' => false, 'error' => 'Not authenticated']);
   exit;
 }
 
-$userId = $_SESSION['portal_user_id'];
-$userRole = isset($_SESSION['portal_user_role']) ? $_SESSION['portal_user_role'] : 'physician';
+$userId = $_SESSION['user_id'];
+$userRole = isset($_SESSION['role']) ? $_SESSION['role'] : 'physician';
 
 // Get patient ID
 $patientId = '';
