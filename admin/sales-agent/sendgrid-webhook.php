@@ -19,6 +19,7 @@
 
 require_once('../config.php');
 require_once('sendgrid-integration.php');
+require_once('hubspot-integration.php');
 
 // Verify webhook authenticity (optional but recommended)
 $webhook_secret = 'your_webhook_secret_token'; // Set this in config.php
@@ -39,18 +40,20 @@ if (!$events) {
     exit('Invalid JSON');
 }
 
-// Initialize database connection
+// Initialize database connection (PostgreSQL)
 try {
-    $pdo = new PDO(
-        "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME,
-        DB_USER,
-        DB_PASS,
-        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
-    );
+    $dsn = "pgsql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME;
+    $pdo = new PDO($dsn, DB_USER, DB_PASS, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    ]);
 } catch (PDOException $e) {
     http_response_code(500);
     exit('Database connection failed');
 }
+
+// Initialize HubSpot integration
+$hubspot = new HubSpotIntegration();
 
 // Process each event
 $processed_count = 0;
@@ -85,13 +88,19 @@ foreach ($events as $event) {
         continue; // Skip if we can't identify the lead
     }
 
+    // Get HubSpot contact ID for this lead
+    $stmt = $pdo->prepare("SELECT hubspot_contact_id FROM leads WHERE id = ?");
+    $stmt->execute([$lead_id]);
+    $lead_data = $stmt->fetch();
+    $hubspot_contact_id = $lead_data['hubspot_contact_id'] ?? null;
+
     // Process event based on type
     switch ($event_type) {
         case 'open':
             // Update outreach_log with open timestamp
             $stmt = $pdo->prepare("
                 UPDATE outreach_log
-                SET opened_at = FROM_UNIXTIME(?)
+                SET opened_at = TO_TIMESTAMP(?)
                 WHERE lead_id = ?
                   AND outreach_type = 'email'
                   AND opened_at IS NULL
@@ -110,6 +119,16 @@ foreach ($events as $event) {
                 $stmt->execute([$campaign_id]);
             }
 
+            // Log to HubSpot
+            if ($hubspot_contact_id) {
+                $hubspot->logNote($hubspot_contact_id,
+                    "📧 Email Opened\n\nPhysician opened our email at " . date('Y-m-d H:i:s', $timestamp) . "\n\n+5 engagement points"
+                );
+            }
+
+            // Update lead score
+            $pdo->prepare("UPDATE leads SET lead_score = lead_score + 5 WHERE id = ?")->execute([$lead_id]);
+
             // Log activity
             logActivity($pdo, $lead_id, 'Email opened', $event);
             break;
@@ -118,7 +137,7 @@ foreach ($events as $event) {
             // Update outreach_log with click timestamp
             $stmt = $pdo->prepare("
                 UPDATE outreach_log
-                SET clicked_at = FROM_UNIXTIME(?)
+                SET clicked_at = TO_TIMESTAMP(?)
                 WHERE lead_id = ?
                   AND outreach_type = 'email'
                   AND clicked_at IS NULL
@@ -139,6 +158,23 @@ foreach ($events as $event) {
 
             // Extract clicked URL
             $url = $event['url'] ?? '';
+
+            // Determine points based on URL
+            $points = 10; // Default click points
+            if (strpos($url, '/demo/') !== false) {
+                $points = 20; // Demo link click worth more
+            }
+
+            // Log to HubSpot
+            if ($hubspot_contact_id) {
+                $hubspot->logNote($hubspot_contact_id,
+                    "🖱️ Link Clicked\n\nPhysician clicked: $url\n\nTimestamp: " . date('Y-m-d H:i:s', $timestamp) . "\n\n+{$points} engagement points"
+                );
+            }
+
+            // Update lead score
+            $pdo->prepare("UPDATE leads SET lead_score = lead_score + ? WHERE id = ?")->execute([$points, $lead_id]);
+
             logActivity($pdo, $lead_id, "Clicked link: $url", $event);
             break;
 
