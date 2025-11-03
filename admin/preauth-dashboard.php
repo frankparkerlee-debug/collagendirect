@@ -92,15 +92,11 @@ $carriers = $carriersStmt->fetchAll(PDO::FETCH_COLUMN);
 if (!isset($_SESSION['csrf'])) {
     $_SESSION['csrf'] = bin2hex(random_bytes(32));
 }
+
+/* ================= View ================= */
+include __DIR__.'/_header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Preauthorization Dashboard - CollagenDirect Admin</title>
-    <link rel="stylesheet" href="/styles/admin.css">
-    <style>
+<style>
         .preauth-dashboard {
             padding: 20px;
             max-width: 1400px;
@@ -271,12 +267,9 @@ if (!isset($_SESSION['csrf'])) {
         .form-group textarea {
             min-height: 100px;
         }
-    </style>
-</head>
-<body>
-    <?php include __DIR__ . '/includes/header.php'; ?>
+</style>
 
-    <div class="preauth-dashboard">
+<div class="preauth-dashboard">
         <h1>Preauthorization Dashboard</h1>
 
         <!-- Statistics -->
@@ -525,5 +518,5 @@ if (!isset($_SESSION['csrf'])) {
             }
         };
     </script>
-</body>
-</html>
+</div>
+<?php include __DIR__.'/_footer.php'; ?>
