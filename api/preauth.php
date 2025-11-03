@@ -20,12 +20,13 @@ header('Content-Type: application/json');
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/services/PreAuthAgent.php';
 require_once __DIR__ . '/services/PreAuthEligibilityChecker.php';
-session_start();
+
+// Session is already started by db.php
 
 // CSRF protection
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $csrfToken = $_POST['csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? null;
-    if (!$csrfToken || !isset($_SESSION['csrf_token']) || $csrfToken !== $_SESSION['csrf_token']) {
+    if (!$csrfToken || !isset($_SESSION['csrf']) || $csrfToken !== $_SESSION['csrf']) {
         http_response_code(403);
         echo json_encode(['ok' => false, 'error' => 'Invalid CSRF token']);
         exit;
@@ -41,10 +42,9 @@ if (!$action) {
     exit;
 }
 
-// Initialize services
-$db = getDbConnection();
-$agent = new PreAuthAgent();
-$eligibilityChecker = new PreAuthEligibilityChecker($db);
+// Initialize services (use global $pdo from db.php)
+$agent = new PreAuthAgent($pdo);
+$eligibilityChecker = new PreAuthEligibilityChecker($pdo);
 
 // Route actions
 switch ($action) {
@@ -85,7 +85,7 @@ switch ($action) {
             exit;
         }
 
-        $stmt = $db->prepare("SELECT * FROM preauth_requests WHERE id = :id");
+        $stmt = $pdo->prepare("SELECT * FROM preauth_requests WHERE id = :id");
         $stmt->execute([':id' => $preauthRequestId]);
         $preauth = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -156,11 +156,11 @@ switch ($action) {
         }
 
         $sql = "UPDATE preauth_requests SET " . implode(', ', $fields) . " WHERE id = :id";
-        $stmt = $db->prepare($sql);
+        $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
 
         // Log the manual update
-        $stmt = $db->prepare("
+        $stmt = $pdo->prepare("
             SELECT log_preauth_action(:preauth_request_id, :action, :actor_type, :actor_id, :actor_name, :success, :error_message, :metadata)
         ");
 
@@ -193,7 +193,7 @@ switch ($action) {
             exit;
         }
 
-        $stmt = $db->prepare("
+        $stmt = $pdo->prepare("
             SELECT * FROM preauth_requests
             WHERE order_id = :order_id
             ORDER BY created_at DESC
@@ -219,7 +219,7 @@ switch ($action) {
             exit;
         }
 
-        $stmt = $db->prepare("
+        $stmt = $pdo->prepare("
             SELECT pr.*, o.wound_type, o.product_name
             FROM preauth_requests pr
             JOIN orders o ON pr.order_id = o.id
@@ -293,7 +293,7 @@ switch ($action) {
             exit;
         }
 
-        $stmt = $db->prepare("
+        $stmt = $pdo->prepare("
             SELECT * FROM preauth_audit_log
             WHERE preauth_request_id = :preauth_request_id
             ORDER BY created_at DESC
@@ -317,7 +317,7 @@ switch ($action) {
             exit;
         }
 
-        $stmt = $db->query("
+        $stmt = $pdo->query("
             SELECT
                 COUNT(*) as total,
                 SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,

@@ -391,7 +391,7 @@ include __DIR__.'/_header.php';
             <th class="py-2">Physician</th>
             <th class="py-2">Orders</th>
             <th class="py-2">Status</th>
-            <th class="py-2">AI Score</th>
+            <th class="py-2 text-center">Auth Ready</th>
             <th class="py-2">Notes</th>
             <th class="py-2">ID</th>
             <th class="py-2">Insurance Card</th>
@@ -457,23 +457,17 @@ include __DIR__.'/_header.php';
                   <?=e(ucfirst($status))?>
                 </span>
               </td>
-              <td class="py-2">
+              <td class="py-2 text-center">
                 <?php
                 $scoreColor = $row['approval_score_color'] ?? null;
                 if ($scoreColor === 'GREEN'): ?>
-                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-green-100 text-green-700">
-                    <span>●</span> GREEN
-                  </span>
+                  <span class="text-green-600 text-xl" title="Ready for authorization">●</span>
                 <?php elseif ($scoreColor === 'YELLOW'): ?>
-                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-yellow-100 text-yellow-700">
-                    <span>●</span> YELLOW
-                  </span>
+                  <span class="text-yellow-600 text-xl" title="Needs improvement">●</span>
                 <?php elseif ($scoreColor === 'RED'): ?>
-                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-red-100 text-red-700">
-                    <span>●</span> RED
-                  </span>
+                  <span class="text-red-600 text-xl" title="Not ready">●</span>
                 <?php else: ?>
-                  <span class="text-slate-400 text-xs">—</span>
+                  <span class="text-slate-300 text-xl" title="Not yet scored">○</span>
                 <?php endif; ?>
               </td>
               <td class="py-2"><?=render_view_link($noteLinks)?></td>

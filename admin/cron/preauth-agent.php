@@ -50,9 +50,8 @@ require_once $rootDir . '/api/services/PreAuthAgent.php';
 $options = getopt('', ['task:']);
 $task = $options['task'] ?? 'all';
 
-// Initialize agent
-$agent = new PreAuthAgent();
-$db = getDbConnection();
+// Initialize agent (use global $pdo from db.php)
+$agent = new PreAuthAgent($pdo);
 
 // Log start
 $timestamp = date('Y-m-d H:i:s');
@@ -70,13 +69,13 @@ try {
             break;
 
         case 'expiration':
-            checkExpirations($db);
+            checkExpirations($pdo);
             break;
 
         case 'all':
             runRetryQueue($agent);
             checkPendingStatus($agent);
-            checkExpirations($db);
+            checkExpirations($pdo);
             break;
 
         default:
@@ -146,11 +145,11 @@ function checkPendingStatus($agent) {
 /**
  * Check for expired preauth approvals
  */
-function checkExpirations($db) {
+function checkExpirations($pdo) {
     echo "  [EXPIRATION] Checking for expired preauth approvals...\n";
 
     // Find preauths that have passed their expiration date
-    $stmt = $db->query("
+    $stmt = $pdo->query("
         SELECT id, preauth_number, carrier_name, expiration_date
         FROM preauth_requests
         WHERE status = 'approved'
@@ -169,7 +168,7 @@ function checkExpirations($db) {
 
     // Update status to expired
     foreach ($expired as $preauth) {
-        $updateStmt = $db->prepare("
+        $updateStmt = $pdo->prepare("
             UPDATE preauth_requests
             SET status = 'expired'
             WHERE id = :id
@@ -178,7 +177,7 @@ function checkExpirations($db) {
         $updateStmt->execute([':id' => $preauth['id']]);
 
         // Log the expiration
-        $logStmt = $db->prepare("
+        $logStmt = $pdo->prepare("
             SELECT log_preauth_action(:preauth_request_id, :action, :actor_type, :actor_id, :actor_name, :success, :error_message, :metadata)
         ");
 

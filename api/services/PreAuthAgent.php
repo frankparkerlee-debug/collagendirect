@@ -39,8 +39,9 @@ class PreAuthAgent {
     private $retryMaxAttempts = 3;
     private $retryDelayHours = 24;
 
-    public function __construct() {
-        $this->db = getDbConnection();
+    public function __construct($pdo = null) {
+        global $pdo as $globalPdo;
+        $this->db = $pdo ?? $globalPdo;
         $this->claudeService = new ClaudeService();
         $this->eligibilityChecker = new PreAuthEligibilityChecker($this->db);
         $this->carrierIntegration = new PreAuthCarrierIntegration($this->db);

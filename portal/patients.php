@@ -60,7 +60,7 @@ $launchOrder = isset($_GET['new_order']);
         <thead class="border-b">
           <tr class="text-left">
             <th class="py-2">Name</th><th class="py-2">DOB</th><th class="py-2">Phone</th>
-            <th class="py-2">City/State</th><th class="py-2">Status</th><th class="py-2">Auth Status</th><th class="py-2">AI Score</th><th class="py-2">Product Count</th><th class="py-2">Action</th>
+            <th class="py-2">City/State</th><th class="py-2">Status</th><th class="py-2">Auth Status</th><th class="py-2 text-center">Auth Ready</th><th class="py-2">Product Count</th><th class="py-2">Action</th>
           </tr>
         </thead>
         <tbody id="tb"></tbody>
@@ -96,14 +96,14 @@ function draw(){
           ? '<span class="pill pill--pending">Need Info</span>'
           : '<span class="pill pill--pending">Pending</span>';
 
-    // AI Approval Score
-    let scorePill = '<span class="text-slate-400 text-xs">—</span>';
+    // Auth Ready indicator - just colored dots
+    let readyDot = '<span class="text-slate-300 text-xl" title="Not yet scored">○</span>';
     if (p.approval_score_color === 'GREEN') {
-      scorePill = '<span class="pill pill--active" style="background:#dcfce7;color:#166534;border-color:#86efac;">● GREEN</span>';
+      readyDot = '<span class="text-green-600 text-xl" title="Ready for authorization">●</span>';
     } else if (p.approval_score_color === 'YELLOW') {
-      scorePill = '<span class="pill" style="background:#fef3c7;color:#854d0e;border-color:#fcd34d;">● YELLOW</span>';
+      readyDot = '<span class="text-yellow-600 text-xl" title="Needs improvement">●</span>';
     } else if (p.approval_score_color === 'RED') {
-      scorePill = '<span class="pill pill--stopped" style="background:#fee2e2;color:#991b1b;border-color:#fca5a5;">● RED</span>';
+      readyDot = '<span class="text-red-600 text-xl" title="Not ready">●</span>';
     }
 
     tb.insertAdjacentHTML('beforeend',`
@@ -119,7 +119,7 @@ function draw(){
             : authPill
           }
         </td>
-        <td class="py-2">${scorePill}</td>
+        <td class="py-2 text-center">${readyDot}</td>
         <td class="py-2">${p.last_remaining ?? '—'}</td>
         <td class="py-2">
           <button type="button" class="btn" data-open="${p.id}">View / Edit</button>

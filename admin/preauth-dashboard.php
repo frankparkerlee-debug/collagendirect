@@ -9,7 +9,8 @@
  */
 
 require_once __DIR__ . '/../api/db.php';
-session_start();
+
+// Session is already started by db.php
 
 // Check authentication
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['superadmin', 'manufacturer', 'admin'])) {
@@ -17,7 +18,7 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['superadmin', 
     exit;
 }
 
-$db = getDbConnection();
+// Use global $pdo from db.php
 
 // Get filter parameters
 $statusFilter = $_GET['status'] ?? 'all';
@@ -45,7 +46,7 @@ if ($dateRange !== 'all') {
 $whereSQL = count($whereClauses) > 0 ? 'WHERE ' . implode(' AND ', $whereClauses) : '';
 
 // Get preauth requests
-$stmt = $db->prepare("
+$stmt = $pdo->prepare("
     SELECT
         pr.*,
         p.first_name,
@@ -67,7 +68,7 @@ $stmt->execute($params);
 $preauths = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Get statistics
-$statsStmt = $db->query("
+$statsStmt = $pdo->query("
     SELECT
         COUNT(*) as total,
         SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
@@ -83,7 +84,7 @@ $statsStmt = $db->query("
 $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
 
 // Get unique carriers for filter dropdown
-$carriersStmt = $db->query("
+$carriersStmt = $pdo->query("
     SELECT DISTINCT carrier_name
     FROM preauth_requests
     ORDER BY carrier_name
@@ -91,8 +92,8 @@ $carriersStmt = $db->query("
 $carriers = $carriersStmt->fetchAll(PDO::FETCH_COLUMN);
 
 // Generate CSRF token
-if (!isset($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+if (!isset($_SESSION['csrf'])) {
+    $_SESSION['csrf'] = bin2hex(random_bytes(32));
 }
 ?>
 <!DOCTYPE html>
@@ -432,7 +433,7 @@ if (!isset($_SESSION['csrf_token'])) {
             </div>
             <form id="updateStatusForm">
                 <input type="hidden" id="updatePreauthId" name="preauth_request_id">
-                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf'] ?>">
 
                 <div class="form-group">
                     <label for="status">Status</label>
