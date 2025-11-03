@@ -141,25 +141,18 @@ function generateClinicalNote(array $photo, string $assessment, string $notes, P
   $stmt->execute([$photo['patient_id']]);
   $patient = $stmt->fetch(PDO::FETCH_ASSOC);
 
-  $assessmentTexts = [
-    'improving' => 'Wound demonstrates signs of improvement. Appropriate granulation tissue is present. Epithelialization is progressing. No signs of infection noted on visual assessment.',
-    'stable' => 'Wound remains stable without significant changes from previous assessment. Healing is progressing at expected rate. No signs of infection or complications noted.',
-    'concern' => 'Wound demonstrates concerning features. Possible signs of infection or delayed healing noted. Close monitoring recommended.',
-    'urgent' => 'Wound demonstrates significant concerning features requiring immediate attention. Signs of possible infection, deterioration, or complications present.'
-  ];
-
-  $planTexts = [
-    'improving' => 'Continue current treatment regimen. Patient instructed to continue daily dressing changes as prescribed. Monitor for any changes.',
-    'stable' => 'Continue current treatment protocol. Patient to maintain current dressing schedule. Upload follow-up photo in 7 days.',
-    'concern' => 'Modify treatment plan as needed. Consider antibiotic therapy if signs of infection present. Schedule in-person evaluation within 3-5 days.',
-    'urgent' => 'Immediate treatment modification required. Patient to schedule urgent in-person evaluation within 24-48 hours. Consider empiric antibiotic therapy pending culture results.'
-  ];
-
   $date = date('F j, Y');
   $time = date('g:i A');
 
   $woundLocation = $photo['wound_location'] ?? 'wound';
-  $patientNotes = !empty($photo['patient_notes']) ? "\n\nPatient Notes: " . htmlspecialchars($photo['patient_notes']) : '';
+  $patientNotes = $photo['patient_notes'] ?? '';
+
+  // Generate AI-enhanced assessment based on wound location and patient notes
+  $assessmentText = generateAIAssessment($assessment, $woundLocation, $patientNotes);
+  $planText = generateAIPlan($assessment, $woundLocation, $patientNotes);
+
+  // Format patient notes if present
+  $formattedPatientNotes = !empty($patientNotes) ? "\n\nPatient Notes: " . htmlspecialchars($patientNotes) : '';
 
   $note = "TELEHEALTH VISIT - Asynchronous Wound Photo Review
 
@@ -172,19 +165,19 @@ Time of Review: {$time}
 CHIEF COMPLAINT: Follow-up evaluation of {$woundLocation}
 
 HISTORY OF PRESENT ILLNESS:
-Patient submitted digital photograph for remote wound evaluation via secure telehealth platform. Photo uploaded on " . date('F j, Y \a\t g:i A', strtotime($photo['uploaded_at'])) . ".{$patientNotes}
+Patient submitted digital photograph for remote wound evaluation via secure telehealth platform. Photo uploaded on " . date('F j, Y \a\t g:i A', strtotime($photo['uploaded_at'])) . ".{$formattedPatientNotes}
 
 ASSESSMENT:
 Reviewed submitted digital photograph using secure HIPAA-compliant telehealth system.
 
-{$assessmentTexts[$assessment]}";
+{$assessmentText}";
 
   if (!empty($notes)) {
     $note .= "\n\nAdditional Clinical Observations:\n" . htmlspecialchars($notes);
   }
 
   $note .= "\n\nPLAN:
-{$planTexts[$assessment]}
+{$planText}
 
 Patient will upload follow-up photograph in 7 days or sooner if condition changes.
 
@@ -204,6 +197,155 @@ ICD-10: [Auto-populated from patient record]
 Electronically signed by Provider on {$date} at {$time}";
 
   return $note;
+}
+
+/**
+ * Generate AI-enhanced assessment text based on wound characteristics
+ */
+function generateAIAssessment(string $assessment, string $woundLocation, string $patientNotes): string {
+  // Analyze wound location for specific considerations
+  $locationInsights = getLocationSpecificInsights($woundLocation);
+
+  // Analyze patient notes for keywords
+  $symptomAnalysis = analyzePatientSymptoms($patientNotes);
+
+  $baseTexts = [
+    'improving' => 'Wound demonstrates signs of improvement. ' . $locationInsights . ' Appropriate granulation tissue is present. Epithelialization is progressing.',
+    'stable' => 'Wound remains stable without significant changes from previous assessment. ' . $locationInsights . ' Healing is progressing at expected rate.',
+    'concern' => 'Wound demonstrates concerning features. ' . $locationInsights . ' Possible signs of infection or delayed healing noted. Close monitoring recommended.',
+    'urgent' => 'Wound demonstrates significant concerning features requiring immediate attention. ' . $locationInsights . ' Signs of possible infection, deterioration, or complications present.'
+  ];
+
+  $assessmentText = $baseTexts[$assessment];
+
+  // Add symptom-specific observations
+  if (!empty($symptomAnalysis)) {
+    $assessmentText .= " " . $symptomAnalysis;
+  }
+
+  // Add signs based on assessment level
+  if ($assessment === 'improving') {
+    $assessmentText .= " No signs of infection noted on visual assessment. Wound edges appear approximated with good epithelialization.";
+  } elseif ($assessment === 'stable') {
+    $assessmentText .= " No signs of infection or complications noted. Wound bed appears clean.";
+  } elseif ($assessment === 'concern') {
+    $assessmentText .= " Increased vigilance warranted for signs of infection or impaired healing.";
+  } else {
+    $assessmentText .= " Immediate clinical correlation required.";
+  }
+
+  return $assessmentText;
+}
+
+/**
+ * Generate location-specific insights
+ */
+function getLocationSpecificInsights(string $location): string {
+  $location = strtolower($location);
+
+  if (strpos($location, 'heel') !== false || strpos($location, 'foot') !== false) {
+    return "Given lower extremity location, vascular status and offloading are critical factors.";
+  } elseif (strpos($location, 'sacr') !== false || strpos($location, 'coccyx') !== false) {
+    return "Given sacral location, pressure relief and repositioning protocol are essential.";
+  } elseif (strpos($location, 'leg') !== false || strpos($location, 'calf') !== false) {
+    return "Venous insufficiency and compression therapy compliance should be evaluated.";
+  } elseif (strpos($location, 'surgical') !== false || strpos($location, 'incision') !== false) {
+    return "Post-surgical wound healing monitored for dehiscence or infection.";
+  } elseif (strpos($location, 'diabetic') !== false) {
+    return "Diabetic wound requiring strict glycemic control and neuropathy assessment.";
+  }
+
+  return "Wound location and underlying etiology considered in assessment.";
+}
+
+/**
+ * Analyze patient-reported symptoms
+ */
+function analyzePatientSymptoms(string $notes): string {
+  if (empty($notes)) return '';
+
+  $notes = strtolower($notes);
+  $observations = [];
+
+  // Pain-related
+  if (strpos($notes, 'pain') !== false) {
+    if (strpos($notes, 'reduced pain') !== false || strpos($notes, 'less pain') !== false) {
+      $observations[] = "Patient reports reduced pain, which is encouraging.";
+    } elseif (strpos($notes, 'increased pain') !== false || strpos($notes, 'more pain') !== false) {
+      $observations[] = "Patient reports increased pain, requiring further evaluation.";
+    } else {
+      $observations[] = "Patient notes pain symptoms.";
+    }
+  }
+
+  // Drainage
+  if (strpos($notes, 'drainage') !== false || strpos($notes, 'draining') !== false) {
+    if (strpos($notes, 'no drainage') !== false) {
+      $observations[] = "Patient reports no drainage.";
+    } else {
+      $observations[] = "Patient reports drainage from wound site.";
+    }
+  }
+
+  // Redness/inflammation
+  if (strpos($notes, 'red') !== false || strpos($notes, 'warm') !== false || strpos($notes, 'warmth') !== false) {
+    $observations[] = "Patient notes erythema or warmth surrounding wound.";
+  }
+
+  // Improvement
+  if (strpos($notes, 'better') !== false || strpos($notes, 'improving') !== false || strpos($notes, 'healing') !== false) {
+    $observations[] = "Patient perceives improvement in wound status.";
+  }
+
+  // Deterioration
+  if (strpos($notes, 'worse') !== false || strpos($notes, 'worsening') !== false || strpos($notes, 'not healing') !== false) {
+    $observations[] = "Patient expresses concern about wound progression.";
+  }
+
+  // Infection signs
+  if (strpos($notes, 'pus') !== false || strpos($notes, 'odor') !== false || strpos($notes, 'smell') !== false) {
+    $observations[] = "Patient describes signs potentially consistent with infection.";
+  }
+
+  return !empty($observations) ? implode(' ', $observations) : '';
+}
+
+/**
+ * Generate AI-enhanced treatment plan
+ */
+function generateAIPlan(string $assessment, string $woundLocation, string $patientNotes): string {
+  $basePlans = [
+    'improving' => 'Continue current treatment regimen. Patient instructed to continue daily dressing changes as prescribed.',
+    'stable' => 'Continue current treatment protocol. Patient to maintain current dressing schedule.',
+    'concern' => 'Modify treatment plan as needed. Consider antibiotic therapy if clinical signs of infection present. Schedule in-person evaluation within 3-5 days.',
+    'urgent' => 'Immediate treatment modification required. Patient to schedule urgent in-person evaluation within 24-48 hours. Consider empiric antibiotic therapy pending culture results if infection suspected.'
+  ];
+
+  $plan = $basePlans[$assessment];
+
+  // Add location-specific recommendations
+  $location = strtolower($woundLocation);
+
+  if (strpos($location, 'foot') !== false || strpos($location, 'heel') !== false) {
+    $plan .= " Ensure proper offloading footwear. Assess vascular status if not healing as expected.";
+  } elseif (strpos($location, 'sacr') !== false) {
+    $plan .= " Continue pressure-relieving measures. Reposition every 2 hours while in bed.";
+  } elseif (strpos($location, 'leg') !== false) {
+    $plan .= " Continue compression therapy if venous in origin. Elevate leg when sitting.";
+  }
+
+  // Add follow-up based on assessment
+  if ($assessment === 'improving') {
+    $plan .= " Monitor for continued improvement. Upload follow-up photo in 7 days.";
+  } elseif ($assessment === 'stable') {
+    $plan .= " Upload follow-up photo in 7 days or sooner if any changes noted.";
+  } elseif ($assessment === 'concern') {
+    $plan .= " Upload follow-up photo in 3-5 days. Call office if condition worsens.";
+  } else {
+    $plan .= " Urgent follow-up required. Contact office immediately to schedule in-person visit.";
+  }
+
+  return $plan;
 }
 
 /* ============================================================
@@ -792,7 +934,7 @@ if ($action) {
 
   /* ---- Get pending wound photos for review ---- */
   if ($action==='get_pending_photos'){
-    // Get all unreviewed photos for this physician's patients
+    // Get all unreviewed photos for this physician's or practice's patients
     if ($userRole === 'superadmin') {
       $sql = "
         SELECT
@@ -808,16 +950,35 @@ if ($action) {
       ";
       $stmt = $pdo->prepare($sql);
       $stmt->execute();
-    } else {
+    } elseif ($userRole === 'practice_admin') {
+      // Practice admins see photos from all physicians in their practice
       $sql = "
-        SELECT
+        SELECT DISTINCT
           wp.*,
           p.first_name, p.last_name, p.dob, p.mrn,
           pr.wound_location, pr.requested_at
         FROM wound_photos wp
         JOIN patients p ON p.id = wp.patient_id
         LEFT JOIN photo_requests pr ON pr.id = wp.photo_request_id
-        WHERE p.user_id = ? AND wp.reviewed = FALSE
+        JOIN admin_physicians ap ON ap.physician_user_id = p.user_id
+        WHERE ap.admin_id = ? AND wp.reviewed = FALSE
+        ORDER BY wp.uploaded_at DESC
+        LIMIT 50
+      ";
+      $stmt = $pdo->prepare($sql);
+      $stmt->execute([$userId]);
+    } else {
+      // Regular physicians see photos from their own patients via admin_physicians
+      $sql = "
+        SELECT DISTINCT
+          wp.*,
+          p.first_name, p.last_name, p.dob, p.mrn,
+          pr.wound_location, pr.requested_at
+        FROM wound_photos wp
+        JOIN patients p ON p.id = wp.patient_id
+        LEFT JOIN photo_requests pr ON pr.id = wp.photo_request_id
+        JOIN admin_physicians ap ON ap.physician_user_id = p.user_id
+        WHERE ap.admin_id = ? AND wp.reviewed = FALSE
         ORDER BY wp.uploaded_at DESC
         LIMIT 50
       ";
@@ -843,7 +1004,7 @@ if ($action) {
 
     // Get photo and verify access
     $stmt = $pdo->prepare("
-      SELECT wp.*, p.user_id, p.first_name, p.last_name, p.dob
+      SELECT wp.*, p.user_id, p.first_name, p.last_name, p.dob, p.id as patient_id
       FROM wound_photos wp
       JOIN patients p ON p.id = wp.patient_id
       WHERE wp.id = ?
@@ -853,9 +1014,29 @@ if ($action) {
 
     if (!$photo) jerr('Photo not found', 404);
 
-    // Check access
-    if ($userRole !== 'superadmin' && $photo['user_id'] !== $userId) {
-      jerr('Access denied', 403);
+    // Check access (allow superadmin, practice_admin, or physician with access to patient)
+    if ($userRole !== 'superadmin') {
+      if ($userRole === 'practice_admin') {
+        // Practice admin must have access via admin_physicians
+        $accessCheck = $pdo->prepare("
+          SELECT 1 FROM admin_physicians
+          WHERE admin_id = ? AND physician_user_id = ?
+        ");
+        $accessCheck->execute([$userId, $photo['user_id']]);
+        if (!$accessCheck->fetch()) {
+          jerr('Access denied', 403);
+        }
+      } else {
+        // Regular physician must be the admin for this patient's physician
+        $accessCheck = $pdo->prepare("
+          SELECT 1 FROM admin_physicians
+          WHERE admin_id = ? AND physician_user_id = ?
+        ");
+        $accessCheck->execute([$userId, $photo['user_id']]);
+        if (!$accessCheck->fetch()) {
+          jerr('Access denied', 403);
+        }
+      }
     }
 
     // Check if already reviewed
