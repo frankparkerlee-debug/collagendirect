@@ -6,7 +6,7 @@
  * Run via: https://collagendirect.health/admin/create-sample-wound-photos.php
  */
 
-require_once __DIR__ . '/../api/lib/db.php';
+require_once __DIR__ . '/../api/db.php';
 
 header('Content-Type: text/plain; charset=utf-8');
 
