@@ -2,7 +2,7 @@
 -- This allows the agent to know which carriers require preauth for which HCPCS codes
 
 CREATE TABLE IF NOT EXISTS preauth_rules (
-    id VARCHAR(64) PRIMARY KEY DEFAULT encode(gen_random_bytes(32), 'hex'),
+    id VARCHAR(64) PRIMARY KEY,
 
     -- Carrier Information
     carrier_name VARCHAR(255) NOT NULL,

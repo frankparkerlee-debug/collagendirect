@@ -2,7 +2,7 @@
 -- This table integrates with the existing orders and patients tables
 
 CREATE TABLE IF NOT EXISTS preauth_requests (
-    id VARCHAR(64) PRIMARY KEY DEFAULT encode(gen_random_bytes(32), 'hex'),
+    id VARCHAR(64) PRIMARY KEY,
 
     -- Foreign Keys
     order_id VARCHAR(64) NOT NULL REFERENCES orders(id) ON DELETE CASCADE,

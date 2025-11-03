@@ -2,7 +2,7 @@
 -- Tracks all actions taken on preauthorization requests for compliance
 
 CREATE TABLE IF NOT EXISTS preauth_audit_log (
-    id VARCHAR(64) PRIMARY KEY DEFAULT encode(gen_random_bytes(32), 'hex'),
+    id VARCHAR(64) PRIMARY KEY,
 
     -- Reference to preauth request
     preauth_request_id VARCHAR(64) NOT NULL REFERENCES preauth_requests(id) ON DELETE CASCADE,
