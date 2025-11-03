@@ -935,7 +935,8 @@ if ($action) {
   /* ---- Get pending wound photos for review ---- */
   if ($action==='get_pending_photos'){
     // Get all unreviewed photos for this physician's or practice's patients
-    if ($userRole === 'superadmin') {
+    if ($userRole === 'superadmin' || $userRole === 'practice_admin') {
+      // Superadmins and practice admins see all photos
       $sql = "
         SELECT
           wp.*,
@@ -950,35 +951,17 @@ if ($action) {
       ";
       $stmt = $pdo->prepare($sql);
       $stmt->execute();
-    } elseif ($userRole === 'practice_admin') {
-      // Practice admins see photos from all physicians in their practice
-      $sql = "
-        SELECT DISTINCT
-          wp.*,
-          p.first_name, p.last_name, p.dob, p.mrn,
-          pr.wound_location, pr.requested_at
-        FROM wound_photos wp
-        JOIN patients p ON p.id = wp.patient_id
-        LEFT JOIN photo_requests pr ON pr.id = wp.photo_request_id
-        JOIN admin_physicians ap ON ap.physician_user_id = p.user_id
-        WHERE ap.admin_id = ? AND wp.reviewed = FALSE
-        ORDER BY wp.uploaded_at DESC
-        LIMIT 50
-      ";
-      $stmt = $pdo->prepare($sql);
-      $stmt->execute([$userId]);
     } else {
-      // Regular physicians see photos from their own patients via admin_physicians
+      // Regular physicians see photos from their own patients
       $sql = "
-        SELECT DISTINCT
+        SELECT
           wp.*,
           p.first_name, p.last_name, p.dob, p.mrn,
           pr.wound_location, pr.requested_at
         FROM wound_photos wp
         JOIN patients p ON p.id = wp.patient_id
         LEFT JOIN photo_requests pr ON pr.id = wp.photo_request_id
-        JOIN admin_physicians ap ON ap.physician_user_id = p.user_id
-        WHERE ap.admin_id = ? AND wp.reviewed = FALSE
+        WHERE p.user_id = ? AND wp.reviewed = FALSE
         ORDER BY wp.uploaded_at DESC
         LIMIT 50
       ";
@@ -1014,28 +997,11 @@ if ($action) {
 
     if (!$photo) jerr('Photo not found', 404);
 
-    // Check access (allow superadmin, practice_admin, or physician with access to patient)
-    if ($userRole !== 'superadmin') {
-      if ($userRole === 'practice_admin') {
-        // Practice admin must have access via admin_physicians
-        $accessCheck = $pdo->prepare("
-          SELECT 1 FROM admin_physicians
-          WHERE admin_id = ? AND physician_user_id = ?
-        ");
-        $accessCheck->execute([$userId, $photo['user_id']]);
-        if (!$accessCheck->fetch()) {
-          jerr('Access denied', 403);
-        }
-      } else {
-        // Regular physician must be the admin for this patient's physician
-        $accessCheck = $pdo->prepare("
-          SELECT 1 FROM admin_physicians
-          WHERE admin_id = ? AND physician_user_id = ?
-        ");
-        $accessCheck->execute([$userId, $photo['user_id']]);
-        if (!$accessCheck->fetch()) {
-          jerr('Access denied', 403);
-        }
+    // Check access (allow superadmin, practice_admin, or physician with their own patients)
+    if ($userRole !== 'superadmin' && $userRole !== 'practice_admin') {
+      // Regular physicians can only review photos from their own patients
+      if ($photo['user_id'] !== $userId) {
+        jerr('Access denied', 403);
       }
     }
 
