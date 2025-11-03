@@ -14,7 +14,9 @@ $migrations = [
     'add-provider-response-field.php' => 'Add provider response fields',
     'add-comment-read-tracking.php' => 'Add comment read tracking',
     'add-wound-photo-tables.php' => 'Add wound photo upload and E/M billing tables',
-    'add-order-id-to-wound-photos.php' => 'Link wound photos to treatment orders'
+    'add-order-id-to-wound-photos.php' => 'Link wound photos to treatment orders',
+    'add-billing-fields-to-patients.php' => 'Add insurance and billing fields to patients table',
+    'add-npi-to-users.php' => 'Add NPI field to users table'
 ];
 
 $success = 0;
