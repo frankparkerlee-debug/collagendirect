@@ -1069,20 +1069,21 @@ if ($action) {
 
   /* ---- Get pending wound photos for review ---- */
   if ($action==='get_pending_photos'){
-    // Get all unreviewed photos for this physician's or practice's patients
+    // Get ALL photos (both reviewed and pending) with billing status
     if ($userRole === 'superadmin' || $userRole === 'practice_admin') {
       // Superadmins and practice admins see all photos
       $sql = "
         SELECT
           wp.*,
           p.first_name, p.last_name, p.dob, p.mrn,
-          pr.wound_location, pr.requested_at
+          pr.wound_location, pr.requested_at,
+          be.assessment, be.cpt_code, be.charge_amount, be.exported, be.encounter_date
         FROM wound_photos wp
         JOIN patients p ON p.id = wp.patient_id
         LEFT JOIN photo_requests pr ON pr.id = wp.photo_request_id
-        WHERE wp.reviewed = FALSE
+        LEFT JOIN billable_encounters be ON be.wound_photo_id = wp.id
         ORDER BY wp.uploaded_at DESC
-        LIMIT 50
+        LIMIT 200
       ";
       $stmt = $pdo->prepare($sql);
       $stmt->execute();
@@ -1092,17 +1093,62 @@ if ($action) {
         SELECT
           wp.*,
           p.first_name, p.last_name, p.dob, p.mrn,
-          pr.wound_location, pr.requested_at
+          pr.wound_location, pr.requested_at,
+          be.assessment, be.cpt_code, be.charge_amount, be.exported, be.encounter_date
         FROM wound_photos wp
         JOIN patients p ON p.id = wp.patient_id
         LEFT JOIN photo_requests pr ON pr.id = wp.photo_request_id
-        WHERE p.user_id = ? AND wp.reviewed = FALSE
+        LEFT JOIN billable_encounters be ON be.wound_photo_id = wp.id
+        WHERE p.user_id = ?
         ORDER BY wp.uploaded_at DESC
-        LIMIT 50
+        LIMIT 200
       ";
       $stmt = $pdo->prepare($sql);
       $stmt->execute([$userId]);
     }
+
+    $photos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $pendingCount = count(array_filter($photos, fn($p) => !$p['reviewed']));
+    jok(['photos' => $photos, 'count' => count($photos), 'pending_count' => $pendingCount]);
+  }
+
+  /* ---- Get wound photos for specific patient ---- */
+  if ($action==='get_patient_photos'){
+    $patientId = (string)($_GET['patient_id'] ?? '');
+
+    if (!$patientId) {
+      jerr('Patient ID required');
+    }
+
+    // Verify access to this patient
+    if ($userRole === 'superadmin' || $userRole === 'practice_admin') {
+      // Admins can view all patients
+      $accessCheck = true;
+    } else {
+      // Regular physicians must own the patient
+      $accessStmt = $pdo->prepare("SELECT 1 FROM patients WHERE id = ? AND user_id = ?");
+      $accessStmt->execute([$patientId, $userId]);
+      $accessCheck = $accessStmt->fetch();
+    }
+
+    if (!$accessCheck) {
+      jerr('Access denied to this patient');
+    }
+
+    // Get photos for this patient
+    $sql = "
+      SELECT
+        wp.*,
+        pr.wound_location, pr.requested_at,
+        be.assessment, be.cpt_code, be.charge_amount, be.exported, be.encounter_date
+      FROM wound_photos wp
+      LEFT JOIN photo_requests pr ON pr.id = wp.photo_request_id
+      LEFT JOIN billable_encounters be ON be.wound_photo_id = wp.id
+      WHERE wp.patient_id = ?
+      ORDER BY wp.uploaded_at DESC
+    ";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$patientId]);
 
     $photos = $stmt->fetchAll(PDO::FETCH_ASSOC);
     jok(['photos' => $photos, 'count' => count($photos)]);
@@ -5962,6 +6008,111 @@ if (<?php echo json_encode($page==='dashboard'); ?>){
     }
   }
 
+  // Load wound photos for specific patient
+  async function loadPatientWoundPhotos(patientId) {
+    const container = document.getElementById(`patient-wound-photos-${patientId}`);
+    if (!container) return;
+
+    try {
+      const response = await api(`action=get_patient_photos&patient_id=${encodeURIComponent(patientId)}`);
+
+      if (response.ok && response.photos && response.photos.length > 0) {
+        const photos = response.photos;
+
+        // Build photo grid
+        let html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">';
+
+        photos.forEach(photo => {
+          const uploadDate = new Date(photo.uploaded_at);
+          const dateStr = uploadDate.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+          });
+
+          // Status badge
+          let statusBadge = '';
+          if (photo.reviewed) {
+            const assessmentColors = {
+              'improving': '#10b981',
+              'stable': '#3b82f6',
+              'concern': '#f59e0b',
+              'urgent': '#ef4444'
+            };
+            const assessmentLabels = {
+              'improving': 'Improving',
+              'stable': 'Stable',
+              'concern': 'Concern',
+              'urgent': 'Urgent'
+            };
+            const color = assessmentColors[photo.assessment] || '#6b7280';
+            const label = assessmentLabels[photo.assessment] || 'Reviewed';
+
+            statusBadge = `<span style="display: inline-block; padding: 0.25rem 0.5rem; background: ${color}; color: white; border-radius: 6px; font-size: 0.75rem; font-weight: 600;">${label}</span>`;
+          } else {
+            statusBadge = '<span style="display: inline-block; padding: 0.25rem 0.5rem; background: #dc2626; color: white; border-radius: 6px; font-size: 0.75rem; font-weight: 600;">Pending</span>';
+          }
+
+          // Billing info
+          let billingInfo = '';
+          if (photo.cpt_code && photo.charge_amount) {
+            billingInfo = `
+              <div style="margin-top: 0.5rem; padding: 0.5rem; background: #f8fafc; border-radius: 4px; font-size: 0.75rem;">
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: #64748b;">CPT:</span>
+                  <span style="font-weight: 600;">${photo.cpt_code}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: #64748b;">Charge:</span>
+                  <span style="font-weight: 600; color: #059669;">$${parseFloat(photo.charge_amount).toFixed(0)}</span>
+                </div>
+              </div>
+            `;
+          }
+
+          html += `
+            <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: white;">
+              <img src="${photo.photo_path}" alt="Wound photo" style="width: 100%; height: 200px; object-fit: cover; cursor: pointer;" onclick="window.open('${photo.photo_path}', '_blank')" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22><text x=%2250%%22 y=%2250%%22 text-anchor=%22middle%22 fill=%22%23999%22>Image unavailable</text></svg>'">
+              <div style="padding: 0.75rem;">
+                <div style="margin-bottom: 0.5rem;">
+                  ${statusBadge}
+                </div>
+                <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.25rem;">
+                  ${dateStr}
+                </div>
+                ${photo.wound_location ? `<div style="font-size: 0.75rem; color: #334155; margin-bottom: 0.25rem;"><strong>Location:</strong> ${photo.wound_location}</div>` : ''}
+                ${photo.patient_notes ? `<div style="font-size: 0.75rem; color: #475569; font-style: italic; margin-top: 0.5rem;">"${photo.patient_notes}"</div>` : ''}
+                ${billingInfo}
+              </div>
+            </div>
+          `;
+        });
+
+        html += '</div>';
+        container.innerHTML = html;
+      } else {
+        container.innerHTML = `
+          <div style="text-align: center; padding: 2rem; color: #94a3b8;">
+            <svg style="width: 48px; height: 48px; margin: 0 auto 1rem; opacity: 0.5;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+            </svg>
+            <div>No wound photos for this patient yet</div>
+          </div>
+        `;
+      }
+    } catch (error) {
+      console.error('Error loading patient photos:', error);
+      container.innerHTML = `
+        <div style="text-align: center; padding: 2rem; color: #ef4444;">
+          <svg style="width: 48px; height: 48px; margin: 0 auto 1rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <div>Failed to load wound photos</div>
+        </div>
+      `;
+    }
+  }
+
   loadProducts();
   loadPatients('', '', '3'); // Default to 3 months
 
@@ -6860,10 +7011,38 @@ async function toggleAccordion(rowEl, patientId, page){
               </div>
             </details>
           </div>
+
+          <!-- Wound Photos Section -->
+          <div class="card p-6" id="wound-photos-${p.id}">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h4 class="font-semibold text-lg">Wound Photos</h4>
+                <p class="text-sm text-slate-500">Patient wound photo submissions and reviews</p>
+              </div>
+              <button class="btn btn-primary" type="button" onclick="requestWoundPhoto('${esc(p.id)}', '${esc(p.first_name + ' ' + p.last_name)}', '${esc(p.phone || '')}')">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: inline-block; margin-right: 0.5rem;">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                Request Photo
+              </button>
+            </div>
+            <div id="patient-wound-photos-${p.id}" style="min-height: 100px;">
+              <div style="text-align: center; padding: 2rem; color: #94a3b8;">
+                <svg style="width: 48px; height: 48px; margin: 0 auto 1rem; opacity: 0.5;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                Loading wound photos...
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </td>`;
   rowEl.after(acc);
+
+  // Load wound photos for this patient
+  loadPatientWoundPhotos(p.id);
 
   if (editable){
     const saveBtn = acc.querySelector(`[data-p-save="${p.id}"]`);

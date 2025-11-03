@@ -468,8 +468,15 @@ function renderPhotoGrid() {
 function createPhotoCard(photo) {
   const card = document.createElement('div');
   card.className = 'photo-card';
-  card.onclick = () => openReviewModal(photo);
-  card.style.cursor = 'pointer';
+
+  // Only allow click to review if not already reviewed
+  if (!photo.reviewed) {
+    card.onclick = () => openReviewModal(photo);
+    card.style.cursor = 'pointer';
+  } else {
+    card.style.cursor = 'default';
+    card.style.opacity = '0.9';
+  }
 
   const uploadDate = new Date(photo.uploaded_at);
   const dateStr = uploadDate.toLocaleDateString('en-US', {
@@ -480,9 +487,74 @@ function createPhotoCard(photo) {
     minute: '2-digit'
   });
 
+  // Determine status badge
+  let statusBadge = '';
+  if (photo.reviewed) {
+    const assessmentColors = {
+      'improving': '#10b981',
+      'stable': '#3b82f6',
+      'concern': '#f59e0b',
+      'urgent': '#ef4444'
+    };
+    const assessmentLabels = {
+      'improving': 'Improving',
+      'stable': 'Stable',
+      'concern': 'Concern',
+      'urgent': 'Urgent'
+    };
+    const color = assessmentColors[photo.assessment] || '#6b7280';
+    const label = assessmentLabels[photo.assessment] || 'Reviewed';
+
+    statusBadge = `
+      <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem;">
+        <span style="display: inline-block; padding: 0.25rem 0.75rem; background: ${color}; color: white; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">
+          ${label}
+        </span>
+        ${photo.exported ?
+          '<span style="display: inline-block; padding: 0.25rem 0.75rem; background: #059669; color: white; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">Exported</span>' :
+          '<span style="display: inline-block; padding: 0.25rem 0.75rem; background: #f59e0b; color: white; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">Not Exported</span>'
+        }
+      </div>
+    `;
+  } else {
+    statusBadge = `
+      <div style="margin-bottom: 0.75rem;">
+        <span style="display: inline-block; padding: 0.25rem 0.75rem; background: #dc2626; color: white; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">
+          ⚠️ Pending Review
+        </span>
+      </div>
+    `;
+  }
+
+  // Build action button
+  let actionButton = '';
+  if (!photo.reviewed) {
+    actionButton = `
+      <div style="text-align: center; padding: 0.75rem; background: #f0fdf4; border-radius: 6px; margin-top: 1rem; font-size: 0.875rem; color: #059669; font-weight: 500;">
+        Click to Review & Bill
+      </div>
+    `;
+  } else {
+    const charge = photo.charge_amount ? '$' + parseFloat(photo.charge_amount).toFixed(0) : 'N/A';
+    const cptCode = photo.cpt_code || 'N/A';
+    actionButton = `
+      <div style="background: #f8fafc; padding: 0.75rem; border-radius: 6px; margin-top: 1rem; font-size: 0.875rem;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+          <span style="color: #64748b; font-weight: 500;">CPT:</span>
+          <span style="font-weight: 600;">${cptCode}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: #64748b; font-weight: 500;">Charge:</span>
+          <span style="font-weight: 600; color: #059669;">${charge}</span>
+        </div>
+      </div>
+    `;
+  }
+
   card.innerHTML = `
     <img src="${photo.photo_path}" alt="Wound photo" class="photo-image" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22><text x=%2250%%22 y=%2250%%22 text-anchor=%22middle%22 fill=%22%23999%22>Image unavailable</text></svg>'">
     <div class="photo-details">
+      ${statusBadge}
       <div class="photo-patient-name">${photo.first_name} ${photo.last_name}</div>
       <div class="photo-meta">
         <strong>DOB:</strong> ${formatDate(photo.dob)}<br>
@@ -492,9 +564,7 @@ function createPhotoCard(photo) {
         <strong>Via:</strong> ${photo.uploaded_via || 'SMS'}
       </div>
       ${photo.patient_notes ? `<div class="photo-notes">"${photo.patient_notes}"</div>` : ''}
-      <div style="text-align: center; padding: 0.75rem; background: #f0fdf4; border-radius: 6px; margin-top: 1rem; font-size: 0.875rem; color: #059669; font-weight: 500;">
-        Click to Review & Bill
-      </div>
+      ${actionButton}
     </div>
   `;
 
@@ -658,11 +728,11 @@ loadPendingPhotos = async function() {
 
     if (response.ok) {
       allPhotos = response.photos; // Store all photos
-      pendingPhotos = response.photos;
+      pendingPhotos = response.photos.filter(p => !p.reviewed); // Default to pending only
       renderPhotoGrid();
 
       // Update pending count
-      document.getElementById('pending-count').textContent = response.count;
+      document.getElementById('pending-count').textContent = response.pending_count || pendingPhotos.length;
     } else {
       console.error('Failed to load photos:', response.error);
     }
