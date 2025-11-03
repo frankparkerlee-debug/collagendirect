@@ -12,7 +12,8 @@ echo "=== Running All Migrations ===\n\n";
 
 $migrations = [
     'add-provider-response-field.php' => 'Add provider response fields',
-    'add-comment-read-tracking.php' => 'Add comment read tracking'
+    'add-comment-read-tracking.php' => 'Add comment read tracking',
+    'add-wound-photo-tables.php' => 'Add wound photo upload and E/M billing tables'
 ];
 
 $success = 0;
