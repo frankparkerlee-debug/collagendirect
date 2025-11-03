@@ -102,34 +102,65 @@ function usStates(): array {
 /**
  * Get billing information based on assessment
  */
-function getBillingInfo(string $assessment): array {
+/**
+ * Get billing information based on assessment and provider credential type
+ *
+ * Reimbursement rates:
+ * - MD/DO: 100% of Medicare rate
+ * - NP: 85% of Medicare rate (can be 100% with direct credentialing)
+ * - PA: 85% of Medicare rate (requires supervising physician)
+ * - RN: Cannot bill E/M codes (this is blocked earlier)
+ */
+function getBillingInfo(string $assessment, string $credentialType = 'MD'): array {
+  // Base rates (100% for MD/DO)
+  $baseRates = [
+    '99213' => 92.00,  // Level 3
+    '99214' => 130.00, // Level 4
+    '99215' => 180.00  // Level 5
+  ];
+
+  // Determine CPT code based on assessment
   switch ($assessment) {
     case 'improving':
     case 'stable':
-      return [
-        'cpt_code' => '99213',
-        'charge_amount' => 92.00,
-        'level' => 'Level 3 - Straightforward'
-      ];
+      $cptCode = '99213';
+      $level = 'Level 3 - Straightforward';
+      break;
     case 'concern':
-      return [
-        'cpt_code' => '99214',
-        'charge_amount' => 130.00,
-        'level' => 'Level 4 - Moderate Complexity'
-      ];
+      $cptCode = '99214';
+      $level = 'Level 4 - Moderate Complexity';
+      break;
     case 'urgent':
-      return [
-        'cpt_code' => '99215',
-        'charge_amount' => 180.00,
-        'level' => 'Level 5 - High Complexity'
-      ];
+      $cptCode = '99215';
+      $level = 'Level 5 - High Complexity';
+      break;
     default:
-      return [
-        'cpt_code' => '99213',
-        'charge_amount' => 92.00,
-        'level' => 'Level 3 - Straightforward'
-      ];
+      $cptCode = '99213';
+      $level = 'Level 3 - Straightforward';
   }
+
+  $baseCharge = $baseRates[$cptCode];
+
+  // Apply credential-based reimbursement rate
+  $reimbursementRate = 1.0; // Default 100%
+
+  if ($credentialType === 'NP' || $credentialType === 'PA') {
+    // NP and PA typically get 85% reimbursement
+    $reimbursementRate = 0.85;
+  }
+  // MD and DO get 100%
+  // RN is blocked before this function is called
+
+  $chargeAmount = round($baseCharge * $reimbursementRate, 2);
+
+  return [
+    'cpt_code' => $cptCode,
+    'charge_amount' => $chargeAmount,
+    'base_charge' => $baseCharge,
+    'reimbursement_rate' => $reimbursementRate,
+    'credential_type' => $credentialType,
+    'level' => $level
+  ];
 }
 
 /**
@@ -479,7 +510,33 @@ if ($action) {
       $sql = "SELECT COUNT(*) FROM orders WHERE user_id=?" . $dateFilter . $productFilter;
       $q = $pdo->prepare($sql); $q->execute($args); $total = (int)$q->fetchColumn();
     }
-    jok(['metrics'=>['patients'=>$patients,'pending'=>$pending,'active_orders'=>$active,'total_orders'=>$total]]);
+
+    // Get wound photo revenue for current month
+    $revenueMonth = date('Y-m');
+    $revenueStart = $revenueMonth . '-01';
+    $revenueEnd = date('Y-m-t', strtotime($revenueStart));
+
+    if ($userRole === 'superadmin' || $userRole === 'practice_admin') {
+      $sql = "SELECT COUNT(*), COALESCE(SUM(charge_amount), 0) FROM billable_encounters
+              WHERE encounter_date >= ? AND encounter_date <= ?";
+      $q = $pdo->prepare($sql);
+      $q->execute([$revenueStart, $revenueEnd . ' 23:59:59']);
+    } else {
+      $sql = "SELECT COUNT(*), COALESCE(SUM(charge_amount), 0) FROM billable_encounters
+              WHERE physician_id = ? AND encounter_date >= ? AND encounter_date <= ?";
+      $q = $pdo->prepare($sql);
+      $q->execute([$userId, $revenueStart, $revenueEnd . ' 23:59:59']);
+    }
+    list($reviewCount, $revenue) = $q->fetch(PDO::FETCH_NUM);
+
+    jok(['metrics'=>[
+      'patients'=>$patients,
+      'pending'=>$pending,
+      'active_orders'=>$active,
+      'total_orders'=>$total,
+      'revenue'=>$revenue,
+      'review_count'=>$reviewCount
+    ]]);
   }
 
   if ($action==='chart_data'){
@@ -1066,6 +1123,17 @@ if ($action) {
       jerr('Invalid assessment value');
     }
 
+    // Get current user's credential type
+    $userStmt = $pdo->prepare("SELECT credential_type, supervising_physician_id FROM users WHERE id = ?");
+    $userStmt->execute([$userId]);
+    $currentUser = $userStmt->fetch(PDO::FETCH_ASSOC);
+    $credentialType = $currentUser['credential_type'] ?? 'MD';
+
+    // Check if this credential can bill E/M codes
+    if ($credentialType === 'RN') {
+      jerr('Registered Nurses (RN) cannot bill E/M codes for wound photo reviews. Only MD, DO, NP, or PA credentials are eligible.');
+    }
+
     // Get photo and verify access
     $stmt = $pdo->prepare("
       SELECT wp.*, p.user_id, p.first_name, p.last_name, p.dob, p.id as patient_id
@@ -1091,8 +1159,21 @@ if ($action) {
       jerr('Photo already reviewed');
     }
 
-    // Determine CPT code and charge based on assessment
-    $billing = getBillingInfo($assessment);
+    // Check for same-day duplicate billing (prevent multiple E/M same patient same day)
+    $dupCheck = $pdo->prepare("
+      SELECT COUNT(*) FROM billable_encounters
+      WHERE patient_id = ?
+        AND physician_id = ?
+        AND DATE(encounter_date) = CURRENT_DATE
+    ");
+    $dupCheck->execute([$photo['patient_id'], $userId]);
+
+    if ($dupCheck->fetchColumn() > 0) {
+      jerr('Cannot bill multiple E/M encounters for same patient on same day. Medicare allows only 1 E/M per patient per day per provider.');
+    }
+
+    // Determine CPT code and charge based on assessment AND credential type
+    $billing = getBillingInfo($assessment, $credentialType);
 
     // Auto-generate clinical note
     $clinicalNote = generateClinicalNote($photo, $assessment, $notes, $pdo);
@@ -1116,7 +1197,7 @@ if ($action) {
       $assessment,
       $notes,
       $billing['cpt_code'],
-      '95', // Telehealth modifier
+      '', // No modifier (removed 95 for compliance - asynchronous reviews)
       $billing['charge_amount'],
       $clinicalNote
     ]);
@@ -1170,7 +1251,8 @@ if ($action) {
           e.clinical_note,
           u.first_name as provider_first_name,
           u.last_name as provider_last_name,
-          u.npi as provider_npi
+          u.npi as provider_npi,
+          u.credential_type as provider_credential
         FROM billable_encounters e
         JOIN patients p ON p.id = e.patient_id
         LEFT JOIN users u ON u.id = e.physician_id
@@ -1207,7 +1289,8 @@ if ($action) {
           e.clinical_note,
           u.first_name as provider_first_name,
           u.last_name as provider_last_name,
-          u.npi as provider_npi
+          u.npi as provider_npi,
+          u.credential_type as provider_credential
         FROM billable_encounters e
         JOIN patients p ON p.id = e.patient_id
         LEFT JOIN users u ON u.id = e.physician_id
@@ -1252,6 +1335,7 @@ if ($action) {
       'Group Number',
       'Provider Last Name',
       'Provider First Name',
+      'Provider Credential',
       'Provider NPI',
       'CPT Code',
       'Modifier',
@@ -1292,6 +1376,7 @@ if ($action) {
         $e['group_number'] ?: '',                         // Group Number
         $e['provider_last_name'] ?: '',                   // Provider Last Name
         $e['provider_first_name'] ?: '',                  // Provider First Name
+        $e['provider_credential'] ?: 'MD',                // Provider Credential (MD/DO/NP/PA)
         $e['provider_npi'] ?: '',                         // Provider NPI
         $e['cpt_code'],                                   // CPT Code
         $e['modifier'],                                   // Modifier (95 for telehealth)
@@ -3762,28 +3847,40 @@ if ($page==='logout'){
 <?php if ($page==='dashboard'): ?>
   <!-- Stat Cards -->
   <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-    <a href="?page=patients" class="card p-5 no-underline cursor-pointer transition-all hover:shadow-lg" style="text-decoration: none;">
-      <div class="text-sm text-muted mb-2" style="color: var(--ink-light); font-weight: 500;">Total Patients</div>
-      <div id="m-patients" class="text-3xl font-bold mb-2" style="color: var(--ink);">-</div>
-      <div class="text-sm" style="color: var(--muted);">Registered patients in system</div>
+    <a href="?page=patients" class="card p-5 no-underline cursor-pointer transition-all hover:shadow-lg hover:scale-105" style="text-decoration: none; border-left: 4px solid #3b82f6;">
+      <div class="flex items-center justify-between mb-3">
+        <div class="text-sm text-muted" style="color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Total Patients</div>
+        <svg style="width: 24px; height: 24px; color: #3b82f6;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+      </div>
+      <div id="m-patients" class="text-3xl font-bold mb-1" style="color: #1e293b;">-</div>
+      <div class="text-xs" style="color: #94a3b8;">Registered in system</div>
     </a>
 
-    <a href="?page=orders&status=active" class="card p-5 no-underline cursor-pointer transition-all hover:shadow-lg" style="text-decoration: none;">
-      <div class="text-sm text-muted mb-2" style="color: var(--ink-light); font-weight: 500;">Active Orders</div>
-      <div id="m-active" class="text-3xl font-bold mb-2" style="color: var(--ink);">-</div>
-      <div class="text-sm" style="color: var(--muted);">Approved & shipped orders</div>
+    <a href="?page=orders&status=active" class="card p-5 no-underline cursor-pointer transition-all hover:shadow-lg hover:scale-105" style="text-decoration: none; border-left: 4px solid #10b981;">
+      <div class="flex items-center justify-between mb-3">
+        <div class="text-sm text-muted" style="color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Active Orders</div>
+        <svg style="width: 24px; height: 24px; color: #10b981;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+      </div>
+      <div id="m-active" class="text-3xl font-bold mb-1" style="color: #1e293b;">-</div>
+      <div class="text-xs" style="color: #94a3b8;">Approved & shipped</div>
     </a>
 
-    <a href="?page=orders&status=pending" class="card p-5 no-underline cursor-pointer transition-all hover:shadow-lg" style="text-decoration: none;">
-      <div class="text-sm text-muted mb-2" style="color: var(--ink-light); font-weight: 500;">Pending Orders</div>
-      <div id="m-pending" class="text-3xl font-bold mb-2" style="color: var(--ink);">-</div>
-      <div class="text-sm" style="color: var(--muted);">Awaiting approval</div>
+    <a href="?page=orders&status=pending" class="card p-5 no-underline cursor-pointer transition-all hover:shadow-lg hover:scale-105" style="text-decoration: none; border-left: 4px solid #f59e0b;">
+      <div class="flex items-center justify-between mb-3">
+        <div class="text-sm text-muted" style="color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Pending Orders</div>
+        <svg style="width: 24px; height: 24px; color: #f59e0b;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+      </div>
+      <div id="m-pending" class="text-3xl font-bold mb-1" style="color: #1e293b;">-</div>
+      <div class="text-xs" style="color: #94a3b8;">Awaiting approval</div>
     </a>
 
-    <a href="?page=orders" class="card p-5 no-underline cursor-pointer transition-all hover:shadow-lg" style="text-decoration: none;">
-      <div class="text-sm text-muted mb-2" style="color: var(--ink-light); font-weight: 500;">Total Orders</div>
-      <div id="m-total" class="text-3xl font-bold mb-2" style="color: var(--ink);">-</div>
-      <div class="text-sm" style="color: var(--muted);">All orders (all statuses)</div>
+    <a href="?page=photo-reviews" class="card p-5 no-underline cursor-pointer transition-all hover:shadow-lg hover:scale-105" style="text-decoration: none; background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; border: none;">
+      <div class="flex items-center justify-between mb-3">
+        <div class="text-sm" style="color: rgba(255,255,255,0.95); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Monthly Revenue</div>
+        <svg style="width: 24px; height: 24px; color: rgba(255,255,255,0.9);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+      </div>
+      <div id="m-revenue" class="text-3xl font-bold mb-1" style="color: white;">$0</div>
+      <div class="text-xs" style="color: rgba(255,255,255,0.85);"><span id="m-revenue-count">0</span> photo reviews</div>
     </a>
   </section>
 
@@ -5352,7 +5449,12 @@ if (<?php echo json_encode($page==='dashboard'); ?>) {
       $('#m-patients').textContent = m.metrics.patients;
       $('#m-pending').textContent = m.metrics.pending;
       $('#m-active').textContent = m.metrics.active_orders;
-      $('#m-total').textContent = m.metrics.total_orders;
+
+      // Update revenue tile
+      const revenue = parseFloat(m.metrics.revenue || 0);
+      const reviewCount = parseInt(m.metrics.review_count || 0);
+      $('#m-revenue').textContent = '$' + revenue.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+      $('#m-revenue-count').textContent = reviewCount;
     } catch(e) {
       console.error('Failed to load metrics:', e);
     }

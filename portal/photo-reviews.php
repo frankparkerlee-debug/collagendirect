@@ -8,6 +8,48 @@
   <p style="color: #64748b; margin-top: 0.5rem;">Review patient wound photos and generate billable E/M codes</p>
 </div>
 
+<!-- Filter Bar -->
+<div style="background: white; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+  <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+    <div style="flex: 1; min-width: 250px;">
+      <input type="text" id="filter-patient-search" placeholder="Search patient name..." style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.875rem;">
+    </div>
+    <div>
+      <select id="filter-status" style="padding: 0.5rem 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.875rem; min-width: 150px;">
+        <option value="all">All Photos</option>
+        <option value="pending" selected>Pending Review</option>
+        <option value="reviewed">Reviewed</option>
+      </select>
+    </div>
+    <div>
+      <select id="filter-assessment" style="padding: 0.5rem 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.875rem; min-width: 150px;">
+        <option value="all">All Assessments</option>
+        <option value="improving">Improving</option>
+        <option value="stable">Stable</option>
+        <option value="concern">Concern</option>
+        <option value="urgent">Urgent</option>
+      </select>
+    </div>
+    <div>
+      <select id="filter-date-range" style="padding: 0.5rem 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.875rem; min-width: 150px;">
+        <option value="7">Last 7 days</option>
+        <option value="30" selected>Last 30 days</option>
+        <option value="90">Last 90 days</option>
+        <option value="all">All time</option>
+      </select>
+    </div>
+    <button onclick="applyFilters()" style="padding: 0.5rem 1rem; background: #3b82f6; color: white; border: none; border-radius: 6px; font-size: 0.875rem; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+      <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+      </svg>
+      Apply
+    </button>
+    <button onclick="clearFilters()" style="padding: 0.5rem 1rem; background: #f1f5f9; color: #475569; border: none; border-radius: 6px; font-size: 0.875rem; font-weight: 500; cursor: pointer;">
+      Clear
+    </button>
+  </div>
+</div>
+
 <!-- Billing Summary -->
 <div class="billing-summary">
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
@@ -602,6 +644,101 @@ document.addEventListener('click', function(event) {
   const modal = document.getElementById('review-modal');
   if (event.target === modal) {
     closeReviewModal();
+  }
+});
+
+// Filter functionality
+let allPhotos = []; // Store all photos for filtering
+
+// Update loadPendingPhotos to store all photos
+const originalLoadPendingPhotos = loadPendingPhotos;
+loadPendingPhotos = async function() {
+  try {
+    const response = await api('action=get_pending_photos');
+
+    if (response.ok) {
+      allPhotos = response.photos; // Store all photos
+      pendingPhotos = response.photos;
+      renderPhotoGrid();
+
+      // Update pending count
+      document.getElementById('pending-count').textContent = response.count;
+    } else {
+      console.error('Failed to load photos:', response.error);
+    }
+  } catch (error) {
+    console.error('Error loading photos:', error);
+  }
+};
+
+function applyFilters() {
+  const searchTerm = document.getElementById('filter-patient-search').value.toLowerCase();
+  const status = document.getElementById('filter-status').value;
+  const assessment = document.getElementById('filter-assessment').value;
+  const dateRange = document.getElementById('filter-date-range').value;
+
+  let filtered = [...allPhotos];
+
+  // Filter by patient name
+  if (searchTerm) {
+    filtered = filtered.filter(photo => {
+      const fullName = `${photo.first_name} ${photo.last_name}`.toLowerCase();
+      return fullName.includes(searchTerm);
+    });
+  }
+
+  // Filter by review status
+  if (status === 'pending') {
+    filtered = filtered.filter(photo => !photo.reviewed);
+  } else if (status === 'reviewed') {
+    filtered = filtered.filter(photo => photo.reviewed);
+  }
+
+  // Filter by assessment (only for reviewed photos)
+  if (assessment !== 'all') {
+    filtered = filtered.filter(photo => photo.assessment === assessment);
+  }
+
+  // Filter by date range
+  if (dateRange !== 'all') {
+    const days = parseInt(dateRange);
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+
+    filtered = filtered.filter(photo => {
+      const uploadDate = new Date(photo.uploaded_at);
+      return uploadDate >= cutoffDate;
+    });
+  }
+
+  pendingPhotos = filtered;
+  renderPhotoGrid();
+
+  // Update count
+  document.getElementById('pending-count').textContent = filtered.length;
+}
+
+function clearFilters() {
+  document.getElementById('filter-patient-search').value = '';
+  document.getElementById('filter-status').value = 'pending';
+  document.getElementById('filter-assessment').value = 'all';
+  document.getElementById('filter-date-range').value = '30';
+
+  // Reset to show all pending photos
+  pendingPhotos = allPhotos.filter(photo => !photo.reviewed);
+  renderPhotoGrid();
+  document.getElementById('pending-count').textContent = pendingPhotos.length;
+}
+
+// Auto-apply filters when Enter is pressed in search
+document.addEventListener('DOMContentLoaded', function() {
+  const searchInput = document.getElementById('filter-patient-search');
+  if (searchInput) {
+    searchInput.addEventListener('keyup', function(event) {
+      if (event.key === 'Enter') {
+        applyFilters();
+      }
+    });
   }
 });
 </script>
