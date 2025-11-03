@@ -13,8 +13,17 @@ RUN apt-get update && apt-get install -y \
     && a2enmod rewrite \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
 # Set working directory
 WORKDIR /var/www/html
+
+# Copy composer files first for better layer caching
+COPY composer.json composer.lock* ./
+
+# Install PHP dependencies (Twilio SDK)
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Copy application files
 COPY . /var/www/html/
@@ -25,6 +34,7 @@ RUN mkdir -p /var/www/html/uploads/ids \
     /var/www/html/uploads/notes \
     /var/www/html/uploads/aob \
     /var/www/html/uploads/rx \
+    /var/www/html/uploads/wound_photos \
     && chown -R www-data:www-data /var/www/html/uploads \
     && chmod -R 755 /var/www/html/uploads
 
