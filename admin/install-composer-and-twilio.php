@@ -12,6 +12,19 @@ echo "=== Composer & Twilio SDK Installation ===\n\n";
 $baseDir = __DIR__ . '/..';
 chdir($baseDir);
 
+// Set HOME environment variable for Composer
+putenv('HOME=' . $baseDir);
+putenv('COMPOSER_HOME=' . $baseDir . '/.composer');
+
+// Create .composer directory if it doesn't exist
+if (!is_dir($baseDir . '/.composer')) {
+    mkdir($baseDir . '/.composer', 0755, true);
+}
+
+echo "✓ Environment configured\n";
+echo "  HOME: " . getenv('HOME') . "\n";
+echo "  COMPOSER_HOME: " . getenv('COMPOSER_HOME') . "\n\n";
+
 // Step 1: Download and install Composer
 echo "Step 1: Installing Composer...\n";
 echo str_repeat('-', 60) . "\n";
@@ -25,10 +38,10 @@ if (!$composerSetup) {
 file_put_contents('composer-setup.php', $composerSetup);
 echo "✓ Downloaded Composer installer\n";
 
-// Run Composer installer
+// Run Composer installer with HOME set
 $output = [];
 $returnCode = 0;
-exec('php composer-setup.php 2>&1', $output, $returnCode);
+exec('HOME=' . escapeshellarg($baseDir) . ' php composer-setup.php 2>&1', $output, $returnCode);
 
 foreach ($output as $line) {
     echo $line . "\n";
@@ -56,8 +69,10 @@ echo str_repeat('-', 60) . "\n";
 $output = [];
 $returnCode = 0;
 
-// Run composer install
-passthru('php composer.phar install --no-interaction 2>&1', $returnCode);
+// Run composer install with HOME variable
+$homeVar = 'HOME=' . escapeshellarg($baseDir);
+$composerHomeVar = 'COMPOSER_HOME=' . escapeshellarg($baseDir . '/.composer');
+passthru("$homeVar $composerHomeVar php composer.phar install --no-interaction 2>&1", $returnCode);
 
 echo "\n" . str_repeat('-', 60) . "\n";
 
@@ -74,8 +89,8 @@ if (!file_exists('vendor/autoload.php')) {
     echo "✗ vendor/autoload.php not found\n";
     echo "\nTrying alternative installation method...\n";
 
-    // Try composer require directly
-    passthru('php composer.phar require twilio/sdk --no-interaction 2>&1', $returnCode);
+    // Try composer require directly with HOME variable
+    passthru("$homeVar $composerHomeVar php composer.phar require twilio/sdk --no-interaction 2>&1", $returnCode);
 
     if (!file_exists('vendor/autoload.php')) {
         echo "\n✗ Installation failed\n";
