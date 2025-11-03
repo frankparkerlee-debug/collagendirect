@@ -42,3 +42,4 @@ prisma/migrations/
 
 # Docker volumes
 docker-compose.override.yml
+composer.phar

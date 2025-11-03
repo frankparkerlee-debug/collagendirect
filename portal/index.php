@@ -707,6 +707,7 @@ if ($action) {
   /* ---- Request wound photo from patient via SMS ---- */
   if ($action==='request_wound_photo'){
     $patientId = (string)($_POST['patient_id'] ?? '');
+    $orderId = (string)($_POST['order_id'] ?? '');
     $woundLocation = trim((string)($_POST['wound_location'] ?? 'wound'));
 
     if ($patientId === '') jerr('Missing patient ID');
@@ -728,6 +729,15 @@ if ($action) {
       jerr('Patient does not have a phone number on file');
     }
 
+    // If order_id provided, verify it exists and belongs to this patient
+    if ($orderId) {
+      $orderCheck = $pdo->prepare("SELECT id FROM orders WHERE id = ? AND patient_id = ?");
+      $orderCheck->execute([$orderId, $patientId]);
+      if (!$orderCheck->fetch()) {
+        $orderId = ''; // Invalid order, ignore it
+      }
+    }
+
     // Create photo request
     $requestId = bin2hex(random_bytes(16));
     $uploadToken = bin2hex(random_bytes(32));
@@ -735,8 +745,8 @@ if ($action) {
 
     $stmt = $pdo->prepare("
       INSERT INTO photo_requests
-      (id, patient_id, physician_id, requested_by, wound_location, upload_token, token_expires_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      (id, patient_id, physician_id, requested_by, wound_location, upload_token, token_expires_at, order_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ");
     $stmt->execute([
       $requestId,
@@ -745,7 +755,8 @@ if ($action) {
       $userId,
       $woundLocation,
       $uploadToken,
-      $tokenExpires
+      $tokenExpires,
+      $orderId ?: null
     ]);
 
     // Send SMS using Twilio
@@ -7324,6 +7335,13 @@ function renderPatientDetailPage(p, orders, isEditing) {
             </svg>
             New Order
           </button>
+          <button class="btn flex-1" type="button" onclick="requestWoundPhoto('${esc(p.id)}', '${esc(p.first_name)}', '${esc(p.phone)}')">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: inline; margin-right: 4px; vertical-align: middle;">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+            Request Photo
+          </button>
           <button class="btn" type="button" onclick="document.getElementById('action-menu-${esc(p.id)}').classList.toggle('hidden')">•••</button>
         </div>
         <!-- Action Menu -->
@@ -7765,6 +7783,39 @@ async function saveProviderResponse(patientId) {
     }
   } catch (e) {
     alert('Error saving response: ' + e.message);
+  }
+}
+
+/* ========== WOUND PHOTO REQUEST ========== */
+
+async function requestWoundPhoto(patientId, patientName, phone) {
+  // Validate phone number
+  if (!phone || phone.length < 10) {
+    alert('This patient does not have a valid phone number on file. Please update the patient record first.');
+    return;
+  }
+
+  // Show confirmation with order selection
+  const orderId = prompt(`Request wound photo from ${patientName}?\n\nOptional: Enter Order ID to link photo to specific order:\n(Leave blank to request general wound photo)`);
+
+  if (orderId === null) {
+    // User clicked cancel
+    return;
+  }
+
+  try {
+    const response = await api('action=request_wound_photo', {
+      patient_id: patientId,
+      order_id: orderId || null
+    });
+
+    if (response.ok) {
+      alert(`Photo request sent to ${patientName} via SMS!\n\nThe patient will receive a text message and can reply with a photo.`);
+    } else {
+      alert('Error sending photo request: ' + (response.error || 'Unknown error'));
+    }
+  } catch (e) {
+    alert('Failed to send photo request: ' + e.message);
   }
 }
 
