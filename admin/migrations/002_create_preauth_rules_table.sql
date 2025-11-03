@@ -2,7 +2,7 @@
 -- This allows the agent to know which carriers require preauth for which HCPCS codes
 
 CREATE TABLE IF NOT EXISTS preauth_rules (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id VARCHAR(64) PRIMARY KEY DEFAULT encode(gen_random_bytes(32), 'hex'),
 
     -- Carrier Information
     carrier_name VARCHAR(255) NOT NULL,
@@ -64,9 +64,9 @@ CREATE TABLE IF NOT EXISTS preauth_rules (
     -- Audit Fields
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    created_by UUID,
-    updated_by UUID,
-    notes TEXT -- Internal notes about this rule
+    created_by VARCHAR(64),
+    updated_by VARCHAR(64),
+    notes TEXT, -- Internal notes about this rule
 
     -- Composite unique constraint: one rule per carrier+hcpcs combination
     CONSTRAINT unique_carrier_hcpcs UNIQUE (carrier_name, hcpcs_code)

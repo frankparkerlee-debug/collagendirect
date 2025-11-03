@@ -2,10 +2,10 @@
 -- Tracks all actions taken on preauthorization requests for compliance
 
 CREATE TABLE IF NOT EXISTS preauth_audit_log (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id VARCHAR(64) PRIMARY KEY DEFAULT encode(gen_random_bytes(32), 'hex'),
 
     -- Reference to preauth request
-    preauth_request_id UUID NOT NULL REFERENCES preauth_requests(id) ON DELETE CASCADE,
+    preauth_request_id VARCHAR(64) NOT NULL REFERENCES preauth_requests(id) ON DELETE CASCADE,
 
     -- Action Details
     action VARCHAR(50) NOT NULL,
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS preauth_audit_log (
     -- Who performed the action
     actor_type VARCHAR(50) NOT NULL,
     -- Values: system, admin, agent, patient, physician, carrier
-    actor_id UUID, -- User ID if applicable
+    actor_id VARCHAR(64), -- User ID if applicable
     actor_name VARCHAR(255), -- Name of actor for display
 
     -- What changed
@@ -77,18 +77,18 @@ CREATE INDEX idx_audit_metadata ON preauth_audit_log USING GIN (metadata);
 
 -- Helper function to easily log preauth actions
 CREATE OR REPLACE FUNCTION log_preauth_action(
-    p_preauth_request_id UUID,
+    p_preauth_request_id VARCHAR(64),
     p_action VARCHAR,
     p_actor_type VARCHAR,
-    p_actor_id UUID DEFAULT NULL,
+    p_actor_id VARCHAR(64) DEFAULT NULL,
     p_actor_name VARCHAR DEFAULT NULL,
     p_success BOOLEAN DEFAULT TRUE,
     p_error_message TEXT DEFAULT NULL,
     p_metadata JSONB DEFAULT NULL
 )
-RETURNS UUID AS $$
+RETURNS VARCHAR(64) AS $$
 DECLARE
-    v_log_id UUID;
+    v_log_id VARCHAR(64);
 BEGIN
     INSERT INTO preauth_audit_log (
         preauth_request_id,

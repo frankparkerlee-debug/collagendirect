@@ -3,7 +3,7 @@
 -- and improve performance when the same member is verified multiple times
 
 CREATE TABLE IF NOT EXISTS eligibility_cache (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id VARCHAR(64) PRIMARY KEY DEFAULT encode(gen_random_bytes(32), 'hex'),
 
     -- Insurance Information
     member_id VARCHAR(100) NOT NULL,

@@ -2,11 +2,11 @@
 -- This table integrates with the existing orders and patients tables
 
 CREATE TABLE IF NOT EXISTS preauth_requests (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id VARCHAR(64) PRIMARY KEY DEFAULT encode(gen_random_bytes(32), 'hex'),
 
     -- Foreign Keys
-    order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-    patient_id UUID NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+    order_id VARCHAR(64) NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    patient_id VARCHAR(64) NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
 
     -- Request Details
     preauth_number VARCHAR(100), -- Carrier-assigned preauth/reference number
@@ -56,8 +56,8 @@ CREATE TABLE IF NOT EXISTS preauth_requests (
     -- Audit Fields
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    created_by UUID, -- Admin user who created (if manual)
-    updated_by UUID, -- Last admin user who updated
+    created_by VARCHAR(64), -- Admin user who created (if manual)
+    updated_by VARCHAR(64), -- Last admin user who updated
 
     -- Indexes for common queries
     CONSTRAINT valid_status CHECK (status IN ('pending', 'submitted', 'approved', 'denied', 'expired', 'cancelled', 'need_info'))
