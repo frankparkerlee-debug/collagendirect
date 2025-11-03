@@ -98,28 +98,28 @@ CREATE TRIGGER trigger_update_preauth_rules_updated_at
     EXECUTE FUNCTION update_preauth_rules_updated_at();
 
 -- Insert default rules for common carriers
-INSERT INTO preauth_rules (carrier_name, hcpcs_code, requires_preauth, typical_turnaround_days, special_instructions) VALUES
-    ('Medicare', 'A6010', TRUE, 3, 'Medicare Part B DME requires preauth for quantities over 30-day supply'),
-    ('Medicare', 'A6021', TRUE, 3, 'Medicare Part B DME requires preauth for quantities over 30-day supply'),
-    ('Medicare', 'A6210', TRUE, 3, 'Medicare Part B DME requires preauth for quantities over 30-day supply'),
-    ('Medicaid', 'A6010', TRUE, 5, 'State Medicaid programs may have varying requirements - verify with local plan'),
-    ('Medicaid', 'A6021', TRUE, 5, 'State Medicaid programs may have varying requirements - verify with local plan'),
-    ('Medicaid', 'A6210', TRUE, 5, 'State Medicaid programs may have varying requirements - verify with local plan'),
-    ('Blue Cross Blue Shield', 'A6010', TRUE, 5, 'BCBS plans vary by state - check specific plan requirements'),
-    ('Blue Cross Blue Shield', 'A6021', TRUE, 5, 'BCBS plans vary by state - check specific plan requirements'),
-    ('Blue Cross Blue Shield', 'A6210', TRUE, 5, 'BCBS plans vary by state - check specific plan requirements'),
-    ('UnitedHealthcare', 'A6010', TRUE, 3, 'UHC typically requires preauth for advanced wound care products'),
-    ('UnitedHealthcare', 'A6021', TRUE, 3, 'UHC typically requires preauth for advanced wound care products'),
-    ('UnitedHealthcare', 'A6210', TRUE, 3, 'UHC typically requires preauth for advanced wound care products'),
-    ('Aetna', 'A6010', TRUE, 5, 'Aetna requires medical necessity documentation'),
-    ('Aetna', 'A6021', TRUE, 5, 'Aetna requires medical necessity documentation'),
-    ('Aetna', 'A6210', TRUE, 5, 'Aetna requires medical necessity documentation'),
-    ('Cigna', 'A6010', TRUE, 5, 'Cigna requires prior authorization for DME over $500'),
-    ('Cigna', 'A6021', TRUE, 5, 'Cigna requires prior authorization for DME over $500'),
-    ('Cigna', 'A6210', TRUE, 5, 'Cigna requires prior authorization for DME over $500'),
-    ('Humana', 'A6010', TRUE, 5, 'Humana Medicare Advantage plans require preauth'),
-    ('Humana', 'A6021', TRUE, 5, 'Humana Medicare Advantage plans require preauth'),
-    ('Humana', 'A6210', TRUE, 5, 'Humana Medicare Advantage plans require preauth')
+INSERT INTO preauth_rules (id, carrier_name, hcpcs_code, requires_preauth, typical_turnaround_days, special_instructions) VALUES
+    (md5('Medicare_A6010'), 'Medicare', 'A6010', TRUE, 3, 'Medicare Part B DME requires preauth for quantities over 30-day supply'),
+    (md5('Medicare_A6021'), 'Medicare', 'A6021', TRUE, 3, 'Medicare Part B DME requires preauth for quantities over 30-day supply'),
+    (md5('Medicare_A6210'), 'Medicare', 'A6210', TRUE, 3, 'Medicare Part B DME requires preauth for quantities over 30-day supply'),
+    (md5('Medicaid_A6010'), 'Medicaid', 'A6010', TRUE, 5, 'State Medicaid programs may have varying requirements - verify with local plan'),
+    (md5('Medicaid_A6021'), 'Medicaid', 'A6021', TRUE, 5, 'State Medicaid programs may have varying requirements - verify with local plan'),
+    (md5('Medicaid_A6210'), 'Medicaid', 'A6210', TRUE, 5, 'State Medicaid programs may have varying requirements - verify with local plan'),
+    (md5('BCBS_A6010'), 'Blue Cross Blue Shield', 'A6010', TRUE, 5, 'BCBS plans vary by state - check specific plan requirements'),
+    (md5('BCBS_A6021'), 'Blue Cross Blue Shield', 'A6021', TRUE, 5, 'BCBS plans vary by state - check specific plan requirements'),
+    (md5('BCBS_A6210'), 'Blue Cross Blue Shield', 'A6210', TRUE, 5, 'BCBS plans vary by state - check specific plan requirements'),
+    (md5('UHC_A6010'), 'UnitedHealthcare', 'A6010', TRUE, 3, 'UHC typically requires preauth for advanced wound care products'),
+    (md5('UHC_A6021'), 'UnitedHealthcare', 'A6021', TRUE, 3, 'UHC typically requires preauth for advanced wound care products'),
+    (md5('UHC_A6210'), 'UnitedHealthcare', 'A6210', TRUE, 3, 'UHC typically requires preauth for advanced wound care products'),
+    (md5('Aetna_A6010'), 'Aetna', 'A6010', TRUE, 5, 'Aetna requires medical necessity documentation'),
+    (md5('Aetna_A6021'), 'Aetna', 'A6021', TRUE, 5, 'Aetna requires medical necessity documentation'),
+    (md5('Aetna_A6210'), 'Aetna', 'A6210', TRUE, 5, 'Aetna requires medical necessity documentation'),
+    (md5('Cigna_A6010'), 'Cigna', 'A6010', TRUE, 5, 'Cigna requires prior authorization for DME over $500'),
+    (md5('Cigna_A6021'), 'Cigna', 'A6021', TRUE, 5, 'Cigna requires prior authorization for DME over $500'),
+    (md5('Cigna_A6210'), 'Cigna', 'A6210', TRUE, 5, 'Cigna requires prior authorization for DME over $500'),
+    (md5('Humana_A6010'), 'Humana', 'A6010', TRUE, 5, 'Humana Medicare Advantage plans require preauth'),
+    (md5('Humana_A6021'), 'Humana', 'A6021', TRUE, 5, 'Humana Medicare Advantage plans require preauth'),
+    (md5('Humana_A6210'), 'Humana', 'A6210', TRUE, 5, 'Humana Medicare Advantage plans require preauth')
 ON CONFLICT (carrier_name, hcpcs_code) DO NOTHING;
 
 -- Comments for documentation
