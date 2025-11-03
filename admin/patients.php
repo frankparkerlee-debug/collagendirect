@@ -242,7 +242,8 @@ try {
       p.state, p.created_at,
       p.notes_path, p.ins_card_path, p.id_card_path,
       p.insurance_provider, p.insurance_member_id, p.insurance_group_id, p.insurance_payer_phone,
-      p.status_comment, p.status_updated_at, $providerResponseCols $readTrackingCol
+      p.status_comment, p.status_updated_at, p.approval_score_color, p.approval_score_at,
+      $providerResponseCols $readTrackingCol
       u.first_name AS phys_first, u.last_name AS phys_last, u.practice_name,
       COUNT(DISTINCT o.id) AS order_count,
       MAX(o.created_at) AS last_order_date,
@@ -254,7 +255,8 @@ try {
     GROUP BY p.id, p.user_id, p.first_name, p.last_name, p.email, p.phone, p.dob,
              p.state, p.created_at, p.notes_path, p.ins_card_path, p.id_card_path,
              p.insurance_provider, p.insurance_member_id, p.insurance_group_id, p.insurance_payer_phone,
-             p.status_comment, p.status_updated_at, $providerResponseGroup $readTrackingGroup
+             p.status_comment, p.status_updated_at, p.approval_score_color, p.approval_score_at,
+             $providerResponseGroup $readTrackingGroup
              u.first_name, u.last_name, u.practice_name
     $having
     ORDER BY p.created_at DESC
@@ -389,6 +391,7 @@ include __DIR__.'/_header.php';
             <th class="py-2">Physician</th>
             <th class="py-2">Orders</th>
             <th class="py-2">Status</th>
+            <th class="py-2">AI Score</th>
             <th class="py-2">Notes</th>
             <th class="py-2">ID</th>
             <th class="py-2">Insurance Card</th>
@@ -453,6 +456,25 @@ include __DIR__.'/_header.php';
                 <span class="inline-block px-2 py-0.5 rounded text-[11px] font-medium <?=$statusColor?>">
                   <?=e(ucfirst($status))?>
                 </span>
+              </td>
+              <td class="py-2">
+                <?php
+                $scoreColor = $row['approval_score_color'] ?? null;
+                if ($scoreColor === 'GREEN'): ?>
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-green-100 text-green-700">
+                    <span>●</span> GREEN
+                  </span>
+                <?php elseif ($scoreColor === 'YELLOW'): ?>
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-yellow-100 text-yellow-700">
+                    <span>●</span> YELLOW
+                  </span>
+                <?php elseif ($scoreColor === 'RED'): ?>
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-red-100 text-red-700">
+                    <span>●</span> RED
+                  </span>
+                <?php else: ?>
+                  <span class="text-slate-400 text-xs">—</span>
+                <?php endif; ?>
               </td>
               <td class="py-2"><?=render_view_link($noteLinks)?></td>
               <td class="py-2"><?=render_view_link($idLinks)?></td>

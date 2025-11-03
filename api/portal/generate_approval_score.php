@@ -113,9 +113,19 @@ try {
     exit;
   }
 
-  // Note: We're skipping database storage for now to avoid JSONB issues
-  // The score will be generated fresh each time (which is fine for now)
-  // TODO: Add proper score caching after migration is run
+  // Save the score color to the database for display in patient lists
+  try {
+    $updateStmt = $pdo->prepare("
+      UPDATE patients
+      SET approval_score_color = ?,
+          approval_score_at = NOW()
+      WHERE id = ?
+    ");
+    $updateStmt->execute([$result['score'], $patientId]);
+  } catch (Exception $e) {
+    error_log("Failed to save approval score color: " . $e->getMessage());
+    // Don't fail the request, just log the error
+  }
 
   // Return the score
   echo json_encode([
