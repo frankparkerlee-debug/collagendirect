@@ -979,6 +979,9 @@ if ($action) {
     $assessment = (string)($_POST['assessment'] ?? ''); // 'improving', 'stable', 'concern', 'urgent'
     $notes = trim((string)($_POST['notes'] ?? ''));
 
+    // Debug logging
+    error_log("[review_wound_photo] photo_id: " . $photoId . ", assessment: " . $assessment);
+
     if ($photoId === '') jerr('Missing photo ID');
     if ($assessment === '') jerr('Missing assessment');
     if (!in_array($assessment, ['improving', 'stable', 'concern', 'urgent'])) {

@@ -532,9 +532,12 @@ async function submitReview(event) {
 
   try {
     const response = await api('action=review_wound_photo', {
-      photo_id: photoId,
-      assessment: selectedAssessment,
-      notes: notes
+      method: 'POST',
+      body: fd({
+        photo_id: photoId,
+        assessment: selectedAssessment,
+        notes: notes
+      })
     });
 
     if (response.ok) {
