@@ -99,6 +99,113 @@ function usStates(): array {
   return ['AL','AK','AZ','AR','CA','CO','CT','DE','DC','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'];
 }
 
+/**
+ * Get billing information based on assessment
+ */
+function getBillingInfo(string $assessment): array {
+  switch ($assessment) {
+    case 'improving':
+    case 'stable':
+      return [
+        'cpt_code' => '99213',
+        'charge_amount' => 92.00,
+        'level' => 'Level 3 - Straightforward'
+      ];
+    case 'concern':
+      return [
+        'cpt_code' => '99214',
+        'charge_amount' => 130.00,
+        'level' => 'Level 4 - Moderate Complexity'
+      ];
+    case 'urgent':
+      return [
+        'cpt_code' => '99215',
+        'charge_amount' => 180.00,
+        'level' => 'Level 5 - High Complexity'
+      ];
+    default:
+      return [
+        'cpt_code' => '99213',
+        'charge_amount' => 92.00,
+        'level' => 'Level 3 - Straightforward'
+      ];
+  }
+}
+
+/**
+ * Auto-generate clinical note for wound photo review
+ */
+function generateClinicalNote(array $photo, string $assessment, string $notes, PDO $pdo): string {
+  // Get patient full details
+  $stmt = $pdo->prepare("SELECT * FROM patients WHERE id = ?");
+  $stmt->execute([$photo['patient_id']]);
+  $patient = $stmt->fetch(PDO::FETCH_ASSOC);
+
+  $assessmentTexts = [
+    'improving' => 'Wound demonstrates signs of improvement. Appropriate granulation tissue is present. Epithelialization is progressing. No signs of infection noted on visual assessment.',
+    'stable' => 'Wound remains stable without significant changes from previous assessment. Healing is progressing at expected rate. No signs of infection or complications noted.',
+    'concern' => 'Wound demonstrates concerning features. Possible signs of infection or delayed healing noted. Close monitoring recommended.',
+    'urgent' => 'Wound demonstrates significant concerning features requiring immediate attention. Signs of possible infection, deterioration, or complications present.'
+  ];
+
+  $planTexts = [
+    'improving' => 'Continue current treatment regimen. Patient instructed to continue daily dressing changes as prescribed. Monitor for any changes.',
+    'stable' => 'Continue current treatment protocol. Patient to maintain current dressing schedule. Upload follow-up photo in 7 days.',
+    'concern' => 'Modify treatment plan as needed. Consider antibiotic therapy if signs of infection present. Schedule in-person evaluation within 3-5 days.',
+    'urgent' => 'Immediate treatment modification required. Patient to schedule urgent in-person evaluation within 24-48 hours. Consider empiric antibiotic therapy pending culture results.'
+  ];
+
+  $date = date('F j, Y');
+  $time = date('g:i A');
+
+  $woundLocation = $photo['wound_location'] ?? 'wound';
+  $patientNotes = !empty($photo['patient_notes']) ? "\n\nPatient Notes: " . htmlspecialchars($photo['patient_notes']) : '';
+
+  $note = "TELEHEALTH VISIT - Asynchronous Wound Photo Review
+
+Patient: {$patient['first_name']} {$patient['last_name']}
+DOB: " . date('m/d/Y', strtotime($patient['dob'])) . "
+MRN: {$patient['mrn']}
+Date of Service: {$date}
+Time of Review: {$time}
+
+CHIEF COMPLAINT: Follow-up evaluation of {$woundLocation}
+
+HISTORY OF PRESENT ILLNESS:
+Patient submitted digital photograph for remote wound evaluation via secure telehealth platform. Photo uploaded on " . date('F j, Y \a\t g:i A', strtotime($photo['uploaded_at'])) . ".{$patientNotes}
+
+ASSESSMENT:
+Reviewed submitted digital photograph using secure HIPAA-compliant telehealth system.
+
+{$assessmentTexts[$assessment]}";
+
+  if (!empty($notes)) {
+    $note .= "\n\nAdditional Clinical Observations:\n" . htmlspecialchars($notes);
+  }
+
+  $note .= "\n\nPLAN:
+{$planTexts[$assessment]}
+
+Patient will upload follow-up photograph in 7 days or sooner if condition changes.
+
+Patient counseled to seek immediate in-person care if experiencing:
+- Increased pain, redness, or swelling
+- Fever or chills
+- Purulent drainage
+- Spreading erythema
+- Any other concerning symptoms
+
+Time spent reviewing image and documenting: 3 minutes
+
+BILLING:
+CPT Code: " . getBillingInfo($assessment)['cpt_code'] . "-95 (Telehealth E/M " . getBillingInfo($assessment)['level'] . ")
+ICD-10: [Auto-populated from patient record]
+
+Electronically signed by Provider on {$date} at {$time}";
+
+  return $note;
+}
+
 /* ============================================================
    API
    ============================================================ */
@@ -670,6 +777,256 @@ if ($action) {
       error_log('[request_wound_photo] Error: ' . $e->getMessage());
       jerr('SMS service unavailable: ' . $e->getMessage());
     }
+  }
+
+  /* ---- Get pending wound photos for review ---- */
+  if ($action==='get_pending_photos'){
+    // Get all unreviewed photos for this physician's patients
+    if ($userRole === 'superadmin') {
+      $sql = "
+        SELECT
+          wp.*,
+          p.first_name, p.last_name, p.dob, p.mrn,
+          pr.wound_location, pr.requested_at
+        FROM wound_photos wp
+        JOIN patients p ON p.id = wp.patient_id
+        LEFT JOIN photo_requests pr ON pr.id = wp.photo_request_id
+        WHERE wp.reviewed = FALSE
+        ORDER BY wp.uploaded_at DESC
+        LIMIT 50
+      ";
+      $stmt = $pdo->prepare($sql);
+      $stmt->execute();
+    } else {
+      $sql = "
+        SELECT
+          wp.*,
+          p.first_name, p.last_name, p.dob, p.mrn,
+          pr.wound_location, pr.requested_at
+        FROM wound_photos wp
+        JOIN patients p ON p.id = wp.patient_id
+        LEFT JOIN photo_requests pr ON pr.id = wp.photo_request_id
+        WHERE p.user_id = ? AND wp.reviewed = FALSE
+        ORDER BY wp.uploaded_at DESC
+        LIMIT 50
+      ";
+      $stmt = $pdo->prepare($sql);
+      $stmt->execute([$userId]);
+    }
+
+    $photos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    jok(['photos' => $photos, 'count' => count($photos)]);
+  }
+
+  /* ---- Review wound photo and generate billing ---- */
+  if ($action==='review_wound_photo'){
+    $photoId = (string)($_POST['photo_id'] ?? '');
+    $assessment = (string)($_POST['assessment'] ?? ''); // 'improving', 'stable', 'concern', 'urgent'
+    $notes = trim((string)($_POST['notes'] ?? ''));
+
+    if ($photoId === '') jerr('Missing photo ID');
+    if ($assessment === '') jerr('Missing assessment');
+    if (!in_array($assessment, ['improving', 'stable', 'concern', 'urgent'])) {
+      jerr('Invalid assessment value');
+    }
+
+    // Get photo and verify access
+    $stmt = $pdo->prepare("
+      SELECT wp.*, p.user_id, p.first_name, p.last_name, p.dob
+      FROM wound_photos wp
+      JOIN patients p ON p.id = wp.patient_id
+      WHERE wp.id = ?
+    ");
+    $stmt->execute([$photoId]);
+    $photo = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$photo) jerr('Photo not found', 404);
+
+    // Check access
+    if ($userRole !== 'superadmin' && $photo['user_id'] !== $userId) {
+      jerr('Access denied', 403);
+    }
+
+    // Check if already reviewed
+    if ($photo['reviewed']) {
+      jerr('Photo already reviewed');
+    }
+
+    // Determine CPT code and charge based on assessment
+    $billing = getBillingInfo($assessment);
+
+    // Auto-generate clinical note
+    $clinicalNote = generateClinicalNote($photo, $assessment, $notes, $pdo);
+
+    // Create billable encounter
+    $encounterId = bin2hex(random_bytes(16));
+
+    $stmt = $pdo->prepare("
+      INSERT INTO billable_encounters (
+        id, patient_id, physician_id, wound_photo_id,
+        assessment, physician_notes, cpt_code, modifier,
+        charge_amount, clinical_note, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+    ");
+
+    $stmt->execute([
+      $encounterId,
+      $photo['patient_id'],
+      $userId,
+      $photoId,
+      $assessment,
+      $notes,
+      $billing['cpt_code'],
+      '95', // Telehealth modifier
+      $billing['charge_amount'],
+      $clinicalNote
+    ]);
+
+    // Mark photo as reviewed
+    $pdo->prepare("
+      UPDATE wound_photos
+      SET reviewed = TRUE, reviewed_at = NOW(), reviewed_by = ?, billable_encounter_id = ?
+      WHERE id = ?
+    ")->execute([$userId, $encounterId, $photoId]);
+
+    jok([
+      'message' => 'Review saved successfully',
+      'billed' => $billing['charge_amount'],
+      'cpt_code' => $billing['cpt_code'],
+      'encounter_id' => $encounterId
+    ]);
+  }
+
+  /* ---- Export billing encounters to CSV ---- */
+  if ($action==='export_billing'){
+    $month = $_GET['month'] ?? date('Y-m');
+    $startDate = $month . '-01';
+    $endDate = date('Y-m-t', strtotime($startDate));
+
+    // Get encounters for this physician
+    if ($userRole === 'superadmin') {
+      $sql = "
+        SELECT
+          e.encounter_date,
+          p.first_name || ' ' || p.last_name as patient_name,
+          p.mrn,
+          e.cpt_code,
+          e.modifier,
+          e.charge_amount,
+          e.id,
+          e.clinical_note
+        FROM billable_encounters e
+        JOIN patients p ON p.id = e.patient_id
+        WHERE e.encounter_date >= ? AND e.encounter_date <= ?
+          AND e.exported = FALSE
+        ORDER BY e.encounter_date
+      ";
+      $stmt = $pdo->prepare($sql);
+      $stmt->execute([$startDate, $endDate . ' 23:59:59']);
+    } else {
+      $sql = "
+        SELECT
+          e.encounter_date,
+          p.first_name || ' ' || p.last_name as patient_name,
+          p.mrn,
+          e.cpt_code,
+          e.modifier,
+          e.charge_amount,
+          e.id,
+          e.clinical_note
+        FROM billable_encounters e
+        JOIN patients p ON p.id = e.patient_id
+        WHERE e.physician_id = ?
+          AND e.encounter_date >= ? AND e.encounter_date <= ?
+          AND e.exported = FALSE
+        ORDER BY e.encounter_date
+      ";
+      $stmt = $pdo->prepare($sql);
+      $stmt->execute([$userId, $startDate, $endDate . ' 23:59:59']);
+    }
+
+    $encounters = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Generate CSV
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment; filename="telehealth_billing_' . $month . '.csv"');
+
+    $output = fopen('php://output', 'w');
+
+    // CSV Header
+    fputcsv($output, [
+      'Date',
+      'Patient Name',
+      'MRN',
+      'CPT Code',
+      'Modifier',
+      'Charge',
+      'ICD-10',
+      'Note ID'
+    ]);
+
+    // CSV Rows
+    foreach ($encounters as $e) {
+      fputcsv($output, [
+        date('Y-m-d', strtotime($e['encounter_date'])),
+        $e['patient_name'],
+        $e['mrn'],
+        $e['cpt_code'],
+        $e['modifier'],
+        number_format($e['charge_amount'], 2),
+        'E11.621', // TODO: Get from patient diagnosis
+        $e['id']
+      ]);
+    }
+
+    fclose($output);
+
+    // Mark as exported
+    $encounterIds = array_column($encounters, 'id');
+    if (!empty($encounterIds)) {
+      $placeholders = implode(',', array_fill(0, count($encounterIds), '?'));
+      $pdo->prepare("UPDATE billable_encounters SET exported = TRUE, exported_at = NOW() WHERE id IN ($placeholders)")
+          ->execute($encounterIds);
+    }
+
+    exit;
+  }
+
+  /* ---- Get billing summary ---- */
+  if ($action==='get_billing_summary'){
+    $month = $_GET['month'] ?? date('Y-m');
+    $startDate = $month . '-01';
+    $endDate = date('Y-m-t', strtotime($startDate));
+
+    if ($userRole === 'superadmin') {
+      $sql = "
+        SELECT
+          COUNT(*) as total_encounters,
+          SUM(charge_amount) as total_charges,
+          COUNT(CASE WHEN exported = TRUE THEN 1 END) as exported_count,
+          SUM(CASE WHEN exported = TRUE THEN charge_amount ELSE 0 END) as exported_amount
+        FROM billable_encounters
+        WHERE encounter_date >= ? AND encounter_date <= ?
+      ";
+      $stmt = $pdo->prepare($sql);
+      $stmt->execute([$startDate, $endDate . ' 23:59:59']);
+    } else {
+      $sql = "
+        SELECT
+          COUNT(*) as total_encounters,
+          SUM(charge_amount) as total_charges,
+          COUNT(CASE WHEN exported = TRUE THEN 1 END) as exported_count,
+          SUM(CASE WHEN exported = TRUE THEN charge_amount ELSE 0 END) as exported_amount
+        FROM billable_encounters
+        WHERE physician_id = ?
+          AND encounter_date >= ? AND encounter_date <= ?
+      ";
+      $stmt = $pdo->prepare($sql);
+      $stmt->execute([$userId, $startDate, $endDate . ' 23:59:59']);
+    }
+
+    $summary = $stmt->fetch(PDO::FETCH_ASSOC);
+    jok(['summary' => $summary]);
   }
 
   if ($action==='patient.save_provider_response'){
@@ -2987,6 +3344,10 @@ if ($page==='logout'){
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
         <span>Patient</span>
       </a>
+      <a class="<?php echo $page==='photo-reviews'?'active':''; ?>" href="?page=photo-reviews">
+        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+        <span>Photo Reviews</span>
+      </a>
       <a class="<?php echo $page==='orders'?'active':''; ?>" href="?page=orders">
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
         <span>Orders</span>
@@ -4149,6 +4510,9 @@ if ($page==='logout'){
       </div>
     </div>
   </div>
+
+<?php elseif ($page==='photo-reviews'): ?>
+  <?php include __DIR__ . '/photo-reviews.php'; ?>
 
 <?php endif; ?>
 </main>
