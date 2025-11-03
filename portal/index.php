@@ -597,6 +597,81 @@ if ($action) {
     jok(['id'=>$pid,'mrn'=>$mrn]);
   }
 
+  /* ---- Request wound photo from patient via SMS ---- */
+  if ($action==='request_wound_photo'){
+    $patientId = (string)($_POST['patient_id'] ?? '');
+    $woundLocation = trim((string)($_POST['wound_location'] ?? 'wound'));
+
+    if ($patientId === '') jerr('Missing patient ID');
+
+    // Verify patient access
+    if ($userRole === 'superadmin') {
+      $stmt = $pdo->prepare("SELECT * FROM patients WHERE id=?");
+      $stmt->execute([$patientId]);
+    } else {
+      $stmt = $pdo->prepare("SELECT * FROM patients WHERE id=? AND user_id=?");
+      $stmt->execute([$patientId, $userId]);
+    }
+
+    $patient = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$patient) jerr('Patient not found', 404);
+
+    // Check if patient has phone number
+    if (empty($patient['phone'])) {
+      jerr('Patient does not have a phone number on file');
+    }
+
+    // Create photo request
+    $requestId = bin2hex(random_bytes(16));
+    $uploadToken = bin2hex(random_bytes(32));
+    $tokenExpires = date('Y-m-d H:i:s', strtotime('+7 days'));
+
+    $stmt = $pdo->prepare("
+      INSERT INTO photo_requests
+      (id, patient_id, physician_id, requested_by, wound_location, upload_token, token_expires_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    ");
+    $stmt->execute([
+      $requestId,
+      $patientId,
+      $userId,
+      $userId,
+      $woundLocation,
+      $uploadToken,
+      $tokenExpires
+    ]);
+
+    // Send SMS using Twilio
+    try {
+      require_once __DIR__ . '/../api/lib/twilio_helper.php';
+      $twilioHelper = new TwilioHelper();
+
+      $result = $twilioHelper->sendPhotoRequest(
+        $patient['phone'],
+        $patient['first_name'],
+        $uploadToken
+      );
+
+      if ($result['success']) {
+        // Update request status
+        $pdo->prepare("UPDATE photo_requests SET sms_sent = TRUE, sms_sent_at = NOW() WHERE id = ?")
+            ->execute([$requestId]);
+
+        jok([
+          'message' => 'Photo request sent via SMS',
+          'sms_sent' => true,
+          'phone' => $patient['phone']
+        ]);
+      } else {
+        jerr('Failed to send SMS: ' . $result['error']);
+      }
+
+    } catch (Exception $e) {
+      error_log('[request_wound_photo] Error: ' . $e->getMessage());
+      jerr('SMS service unavailable: ' . $e->getMessage());
+    }
+  }
+
   if ($action==='patient.save_provider_response'){
     $patientId = (string)($_POST['patient_id'] ?? '');
     $response = trim((string)($_POST['provider_response'] ?? ''));
