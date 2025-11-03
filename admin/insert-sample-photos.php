@@ -11,7 +11,7 @@ header('Content-Type: text/plain; charset=utf-8');
 echo "=== Inserting Sample Wound Photos ===\n\n";
 
 try {
-    $pdo = getPDO();
+    // $pdo is already created by db.php
     $pdo->beginTransaction();
 
     // Get Parker's user ID
