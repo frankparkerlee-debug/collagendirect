@@ -464,7 +464,7 @@ if (!isset($_SESSION['csrf'])) {
     </div>
 
     <script>
-        const csrfToken = '<?= $_SESSION['csrf_token'] ?>';
+        const csrfToken = '<?= $_SESSION['csrf'] ?>';
 
         function applyFilters() {
             const status = document.getElementById('statusFilter').value;

@@ -412,6 +412,7 @@ if ($action) {
                                status_comment,status_updated_at,status_updated_by,
                                provider_response,provider_response_at,provider_response_by,
                                state as auth_state,
+                               approval_score_color,approval_score_at,
                                created_at,updated_at
                         FROM patients WHERE id=?");
       $s->execute([$pid]);
@@ -423,6 +424,7 @@ if ($action) {
                                status_comment,status_updated_at,status_updated_by,
                                provider_response,provider_response_at,provider_response_by,
                                state as auth_state,
+                               approval_score_color,approval_score_at,
                                created_at,updated_at
                         FROM patients WHERE id=? AND user_id=?");
       $s->execute([$pid,$userId]);
@@ -3065,7 +3067,7 @@ if ($page==='logout'){
         <thead class="border-b">
           <tr class="text-left">
             <th class="py-2">Name</th><th class="py-2 hide-mobile">DOB</th><th class="py-2 hide-tablet">Phone</th><th class="py-2 hide-tablet">Email</th>
-            <th class="py-2 hide-mobile">City/State</th><th class="py-2">Status</th><th class="py-2 hide-mobile">Product Count</th><th class="py-2">Action</th>
+            <th class="py-2 hide-mobile">City/State</th><th class="py-2">Status</th><th class="py-2 text-center">Auth Ready</th><th class="py-2 hide-mobile">Product Count</th><th class="py-2">Action</th>
           </tr>
         </thead>
         <tbody id="tb"></tbody>
@@ -5174,8 +5176,18 @@ if (<?php echo json_encode($page==='patients'); ?>){
   async function load(q=''){ const res=await api('action=patients&limit=200&q='+encodeURIComponent(q)); rows=res.rows||[]; draw(); }
   function draw(){
     const tb=$('#tb'); tb.innerHTML='';
-    if(!rows.length){ tb.innerHTML=`<tr><td colspan="8" class="py-6 text-center text-slate-500">No patients</td></tr>`; return; }
+    if(!rows.length){ tb.innerHTML=`<tr><td colspan="9" class="py-6 text-center text-slate-500">No patients</td></tr>`; return; }
     for(const p of rows){
+      // Auth Ready indicator
+      let readyDot = '<span class="text-slate-300 text-xl" title="Not yet scored">○</span>';
+      if (p.approval_score_color === 'GREEN') {
+        readyDot = '<span class="text-green-600 text-xl" title="Ready for authorization">●</span>';
+      } else if (p.approval_score_color === 'YELLOW') {
+        readyDot = '<span class="text-yellow-600 text-xl" title="Needs improvement">●</span>';
+      } else if (p.approval_score_color === 'RED') {
+        readyDot = '<span class="text-red-600 text-xl" title="Not ready">●</span>';
+      }
+
       tb.insertAdjacentHTML('beforeend',`
         <tr class="border-b hover:bg-slate-50">
           <td class="py-2">${esc(p.first_name||'')} ${esc(p.last_name||'')}</td>
@@ -5184,6 +5196,7 @@ if (<?php echo json_encode($page==='patients'); ?>){
           <td class="py-2 hide-tablet">${esc(p.email||'')}</td>
           <td class="py-2 hide-mobile">${esc(p.city||'')}${p.state?', '+esc(p.state):''}</td>
           <td class="py-2">${pill(p.last_status)}</td>
+          <td class="py-2 text-center">${readyDot}</td>
           <td class="py-2 hide-mobile">${p.last_remaining ?? '—'}</td>
           <td class="py-2" style="position: relative;">
             <button class="btn" type="button" data-acc="${p.id}">View / Edit</button>
@@ -7310,6 +7323,18 @@ async function generateApprovalScore(patientId) {
     const j = await r.json();
 
     if (j.ok) {
+      // Update the patient data in the patients list (if on patients page)
+      if (typeof rows !== 'undefined' && Array.isArray(rows)) {
+        const patientIndex = rows.findIndex(patient => patient.id === patientId);
+        if (patientIndex !== -1) {
+          rows[patientIndex].approval_score_color = j.score;
+          // Redraw the patients table if the draw function exists
+          if (typeof draw === 'function') {
+            draw();
+          }
+        }
+      }
+
       // Determine color scheme based on score
       let scoreColor, scoreBg, scoreIcon;
       if (j.score === 'GREEN') {
