@@ -60,7 +60,7 @@ $launchOrder = isset($_GET['new_order']);
         <thead class="border-b">
           <tr class="text-left">
             <th class="py-2">Name</th><th class="py-2">DOB</th><th class="py-2">Phone</th>
-            <th class="py-2">City/State</th><th class="py-2">Status</th><th class="py-2">Auth Status</th><th class="py-2">Product Count</th><th class="py-2">Action</th>
+            <th class="py-2">City/State</th><th class="py-2">Status</th><th class="py-2">Auth Status</th><th class="py-2">AI Score</th><th class="py-2">Product Count</th><th class="py-2">Action</th>
           </tr>
         </thead>
         <tbody id="tb"></tbody>
@@ -84,7 +84,7 @@ async function load(q=''){ const res=await api('action=patients&limit=100&q='+en
 function pill(s){ if(!s) return '<span class="pill">—</span>'; const c={active:'pill pill--active',approved:'pill pill--pending',submitted:'pill pill--pending',pending:'pill pill--pending',stopped:'pill pill--stopped'}[(s||'').toLowerCase()]||'pill'; return `<span class="${c}" style="text-transform:capitalize">${s}</span>`; }
 function draw(){
   const tb=$('#tb'); tb.innerHTML='';
-  if(!rows.length){ tb.innerHTML=`<tr><td colspan="8" class="py-6 text-center text-slate-500">No patients</td></tr>`; return; }
+  if(!rows.length){ tb.innerHTML=`<tr><td colspan="9" class="py-6 text-center text-slate-500">No patients</td></tr>`; return; }
   for(const p of rows){
     const authStatus = p.auth_status || 'pending';
     const hasComment = p.status_comment && p.status_comment.trim() !== '';
@@ -95,6 +95,16 @@ function draw(){
         : authStatus === 'need_info'
           ? '<span class="pill pill--pending">Need Info</span>'
           : '<span class="pill pill--pending">Pending</span>';
+
+    // AI Approval Score
+    let scorePill = '<span class="text-slate-400 text-xs">—</span>';
+    if (p.approval_score_color === 'GREEN') {
+      scorePill = '<span class="pill pill--active" style="background:#dcfce7;color:#166534;border-color:#86efac;">● GREEN</span>';
+    } else if (p.approval_score_color === 'YELLOW') {
+      scorePill = '<span class="pill" style="background:#fef3c7;color:#854d0e;border-color:#fcd34d;">● YELLOW</span>';
+    } else if (p.approval_score_color === 'RED') {
+      scorePill = '<span class="pill pill--stopped" style="background:#fee2e2;color:#991b1b;border-color:#fca5a5;">● RED</span>';
+    }
 
     tb.insertAdjacentHTML('beforeend',`
       <tr class="border-b hover:bg-slate-50">
@@ -109,6 +119,7 @@ function draw(){
             : authPill
           }
         </td>
+        <td class="py-2">${scorePill}</td>
         <td class="py-2">${p.last_remaining ?? '—'}</td>
         <td class="py-2">
           <button type="button" class="btn" data-open="${p.id}">View / Edit</button>

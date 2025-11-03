@@ -3040,7 +3040,6 @@ if ($page==='logout'){
             <th class="py-3 px-2" style="color: var(--ink-light); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Products</th>
             <th class="py-3 px-2 hide-tablet" style="color: var(--ink-light); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Email</th>
             <th class="py-3 px-2" style="color: var(--ink-light); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Status</th>
-            <th class="py-3 px-2 hide-mobile" style="color: var(--ink-light); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; text-align: center;">AI Score</th>
             <th class="py-3 px-2" style="width: 40px;"></th>
           </tr>
         </thead>
@@ -5013,23 +5012,6 @@ if (<?php echo json_encode($page==='dashboard'); ?>){
         ? `<span style="color: var(--brand); font-weight: 500; font-size: 0.875rem;">${esc(productNames)}</span>`
         : `<span style="color: var(--muted);">—</span>`;
 
-      // AI Approval Score indicator
-      let scoreIndicator = '<span style="color: var(--muted); font-size: 0.75rem;">—</span>';
-      if (p.approval_score_color) {
-        const scoreColors = {
-          'GREEN': { bg: '#dcfce7', text: '#166534', icon: '●' },
-          'YELLOW': { bg: '#fef3c7', text: '#854d0e', icon: '●' },
-          'RED': { bg: '#fee2e2', text: '#991b1b', icon: '●' }
-        };
-        const score = scoreColors[p.approval_score_color];
-        if (score) {
-          scoreIndicator = `<div style="display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.5rem; background: ${score.bg}; color: ${score.text}; border-radius: 9999px; font-size: 0.75rem; font-weight: 600;">
-            <span>${score.icon}</span>
-            <span>${p.approval_score_color}</span>
-          </div>`;
-        }
-      }
-
       tb.insertAdjacentHTML('beforeend',`
         <tr style="border-bottom: 1px solid var(--border); transition: background 0.15s;">
           <td class="py-3 px-2 hide-mobile">
@@ -5048,7 +5030,6 @@ if (<?php echo json_encode($page==='dashboard'); ?>){
           <td class="py-3 px-2">${productsDisplay}</td>
           <td class="py-3 px-2 hide-tablet" style="color: var(--ink-light);">${esc(p.email||'-')}</td>
           <td class="py-3 px-2">${statusBadge}</td>
-          <td class="py-3 px-2 hide-mobile text-center">${scoreIndicator}</td>
           <td class="py-3 px-2 text-right">
             <button class="icon-btn" type="button" data-acc="${p.id}" style="width: 32px; height: 32px; position: relative;">
               ${p.has_unread_comment ? '<span style="position: absolute; top: 2px; right: 2px; width: 8px; height: 8px; background: #ef4444; border-radius: 50%; border: 2px solid white;"></span>' : ''}
