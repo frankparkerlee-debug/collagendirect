@@ -14,7 +14,10 @@ echo "<pre>\n";
 echo "=== Adding Wound Photo Upload Tables ===\n\n";
 
 try {
-  // 1. Photo Requests Table
+  // Step 1: Create tables WITHOUT circular foreign key constraints
+  echo "Step 1: Creating base tables...\n\n";
+
+  // 1. Photo Requests Table (no FK to wound_photos yet)
   echo "Creating photo_requests table...\n";
   $pdo->exec("
     CREATE TABLE IF NOT EXISTS photo_requests (
@@ -34,7 +37,7 @@ try {
 
       -- Upload status
       completed BOOLEAN DEFAULT FALSE,
-      photo_id VARCHAR(64) REFERENCES wound_photos(id),
+      photo_id VARCHAR(64),  -- Will add FK constraint later
       uploaded_at TIMESTAMP,
 
       -- Notification tracking
@@ -49,7 +52,49 @@ try {
   ");
   echo "✓ photo_requests table created\n\n";
 
-  // 2. Wound Photos Table
+  // 2. Billable Encounters Table (no FK to wound_photos yet)
+  echo "Creating billable_encounters table...\n";
+  $pdo->exec("
+    CREATE TABLE IF NOT EXISTS billable_encounters (
+      id VARCHAR(64) PRIMARY KEY,
+      patient_id VARCHAR(64) NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+      physician_id VARCHAR(64) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+
+      encounter_date TIMESTAMP DEFAULT NOW(),
+      encounter_type VARCHAR(50) DEFAULT 'telehealth_photo_review',
+
+      -- Related data
+      wound_photo_id VARCHAR(64),  -- Will add FK constraint later
+
+      -- Physician assessment
+      assessment VARCHAR(100), -- 'improving', 'stable', 'concern', 'urgent'
+      physician_notes TEXT,
+      review_duration_seconds INT, -- auto-tracked
+
+      -- Auto-generated billing data
+      cpt_code VARCHAR(10) DEFAULT '99213',
+      modifier VARCHAR(10) DEFAULT '95',
+      icd10_codes TEXT[], -- array of diagnosis codes
+      charge_amount DECIMAL(10,2),
+
+      -- Auto-generated documentation
+      clinical_note TEXT,
+
+      -- Status tracking
+      status VARCHAR(20) DEFAULT 'pending', -- pending, approved, exported, billed
+      approved_at TIMESTAMP,
+      approved_by VARCHAR(64) REFERENCES users(id),
+      exported BOOLEAN DEFAULT FALSE,
+      exported_at TIMESTAMP,
+      billed_at TIMESTAMP,
+
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    )
+  ");
+  echo "✓ billable_encounters table created\n\n";
+
+  // 3. Wound Photos Table (now can reference both tables)
   echo "Creating wound_photos table...\n";
   $pdo->exec("
     CREATE TABLE IF NOT EXISTS wound_photos (
@@ -82,50 +127,43 @@ try {
   ");
   echo "✓ wound_photos table created\n\n";
 
-  // 3. Billable Encounters Table
-  echo "Creating billable_encounters table...\n";
+  // Step 2: Add foreign key constraints now that all tables exist
+  echo "Step 2: Adding foreign key constraints...\n\n";
+
+  // Add FK from photo_requests to wound_photos (if not exists)
+  echo "Adding FK: photo_requests.photo_id -> wound_photos.id...\n";
   $pdo->exec("
-    CREATE TABLE IF NOT EXISTS billable_encounters (
-      id VARCHAR(64) PRIMARY KEY,
-      patient_id VARCHAR(64) NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
-      physician_id VARCHAR(64) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-
-      encounter_date TIMESTAMP DEFAULT NOW(),
-      encounter_type VARCHAR(50) DEFAULT 'telehealth_photo_review',
-
-      -- Related data
-      wound_photo_id VARCHAR(64) REFERENCES wound_photos(id),
-
-      -- Physician assessment
-      assessment VARCHAR(100), -- 'improving', 'stable', 'concern', 'urgent'
-      physician_notes TEXT,
-      review_duration_seconds INT, -- auto-tracked
-
-      -- Auto-generated billing data
-      cpt_code VARCHAR(10) DEFAULT '99213',
-      modifier VARCHAR(10) DEFAULT '95',
-      icd10_codes TEXT[], -- array of diagnosis codes
-      charge_amount DECIMAL(10,2),
-
-      -- Auto-generated documentation
-      clinical_note TEXT,
-
-      -- Status tracking
-      status VARCHAR(20) DEFAULT 'pending', -- pending, approved, exported, billed
-      approved_at TIMESTAMP,
-      approved_by VARCHAR(64) REFERENCES users(id),
-      exported BOOLEAN DEFAULT FALSE,
-      exported_at TIMESTAMP,
-      billed_at TIMESTAMP,
-
-      created_at TIMESTAMP DEFAULT NOW(),
-      updated_at TIMESTAMP DEFAULT NOW()
-    )
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'photo_requests_photo_id_fkey'
+      ) THEN
+        ALTER TABLE photo_requests
+        ADD CONSTRAINT photo_requests_photo_id_fkey
+        FOREIGN KEY (photo_id) REFERENCES wound_photos(id);
+      END IF;
+    END $$;
   ");
-  echo "✓ billable_encounters table created\n\n";
+  echo "✓ FK added\n\n";
 
-  // 4. Add indexes for performance
-  echo "Adding indexes...\n";
+  // Add FK from billable_encounters to wound_photos (if not exists)
+  echo "Adding FK: billable_encounters.wound_photo_id -> wound_photos.id...\n";
+  $pdo->exec("
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'billable_encounters_wound_photo_id_fkey'
+      ) THEN
+        ALTER TABLE billable_encounters
+        ADD CONSTRAINT billable_encounters_wound_photo_id_fkey
+        FOREIGN KEY (wound_photo_id) REFERENCES wound_photos(id);
+      END IF;
+    END $$;
+  ");
+  echo "✓ FK added\n\n";
+
+  // Step 3: Add indexes for performance
+  echo "Step 3: Adding indexes...\n\n";
 
   $indexes = [
     "CREATE INDEX IF NOT EXISTS idx_photo_requests_patient ON photo_requests(patient_id)",
@@ -149,8 +187,8 @@ try {
   }
   echo "✓ Indexes created\n\n";
 
-  // 5. Create uploads directory for wound photos
-  echo "Creating uploads directory...\n";
+  // Step 4: Create uploads directory for wound photos
+  echo "Step 4: Creating uploads directory...\n\n";
   $uploadsDir = __DIR__ . '/../uploads/wound_photos';
   if (!is_dir($uploadsDir)) {
     mkdir($uploadsDir, 0755, true);
