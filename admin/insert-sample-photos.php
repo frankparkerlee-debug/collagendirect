@@ -25,32 +25,15 @@ try {
 
     echo "✓ Found user: parker@senecawest.com (ID: {$user['id']})\n";
 
-    // Get patients for this physician
+    // Get any 5 patients from the database
     $patientsStmt = $pdo->prepare("
-        SELECT p.id, p.first_name, p.last_name, p.phone
-        FROM patients p
-        WHERE p.user_id = (
-            SELECT physician_user_id
-            FROM admin_physicians
-            WHERE admin_id = ?
-            LIMIT 1
-        )
+        SELECT id, first_name, last_name, phone
+        FROM patients
+        ORDER BY created_at DESC
         LIMIT 5
     ");
-    $patientsStmt->execute([$user['id']]);
+    $patientsStmt->execute();
     $patients = $patientsStmt->fetchAll(PDO::FETCH_ASSOC);
-
-    if (empty($patients)) {
-        // If no patients found via admin_physicians, try direct user relationship
-        $patientsStmt = $pdo->prepare("
-            SELECT id, first_name, last_name, phone
-            FROM patients
-            ORDER BY created_at DESC
-            LIMIT 5
-        ");
-        $patientsStmt->execute();
-        $patients = $patientsStmt->fetchAll(PDO::FETCH_ASSOC);
-    }
 
     if (empty($patients)) {
         die("✗ No patients found in database\n");
