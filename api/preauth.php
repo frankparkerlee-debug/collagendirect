@@ -23,6 +23,22 @@ require_once __DIR__ . '/services/PreAuthEligibilityChecker.php';
 
 // Session is already started by db.php
 
+// Helper function to check if user is admin
+function is_admin() {
+    // Check if logged in as admin_user (employees, manufacturer)
+    if (isset($_SESSION['admin'])) {
+        return true;
+    }
+    // Check if logged in as superadmin user
+    if (isset($_SESSION['user_id'])) {
+        global $pdo;
+        $stmt = $pdo->prepare("SELECT role FROM users WHERE id = ? AND role = 'superadmin'");
+        $stmt->execute([$_SESSION['user_id']]);
+        return $stmt->fetchColumn() === 'superadmin';
+    }
+    return false;
+}
+
 // CSRF protection
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $csrfToken = $_POST['csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? null;
@@ -63,7 +79,7 @@ switch ($action) {
         }
 
         // Check authorization - only manufacturer admins can trigger preauth
-        if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['superadmin', 'manufacturer', 'admin'])) {
+        if (!is_admin()) {
             http_response_code(403);
             echo json_encode(['ok' => false, 'error' => 'Unauthorized']);
             exit;
@@ -105,7 +121,7 @@ switch ($action) {
      * Update preauth status manually
      */
     case 'preauth.updateStatus':
-        if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['superadmin', 'manufacturer', 'admin'])) {
+        if (!is_admin()) {
             http_response_code(403);
             echo json_encode(['ok' => false, 'error' => 'Unauthorized']);
             exit;
@@ -129,10 +145,14 @@ switch ($action) {
             exit;
         }
 
+        // Get admin ID
+        $adminId = $_SESSION['admin']['id'] ?? $_SESSION['user_id'] ?? null;
+        $adminEmail = $_SESSION['admin']['email'] ?? $_SESSION['email'] ?? 'Admin';
+
         // Update preauth request
         $updateData = [
             'status' => $status,
-            'updated_by' => $_SESSION['user_id']
+            'updated_by' => $adminId
         ];
 
         if ($preauthNumber) {
@@ -168,8 +188,8 @@ switch ($action) {
             ':preauth_request_id' => $preauthRequestId,
             ':action' => 'manual_status_update',
             ':actor_type' => 'admin',
-            ':actor_id' => $_SESSION['user_id'],
-            ':actor_name' => $_SESSION['email'] ?? 'Admin',
+            ':actor_id' => $adminId,
+            ':actor_name' => $adminEmail,
             ':success' => true,
             ':error_message' => null,
             ':metadata' => json_encode(['new_status' => $status, 'notes' => $notes])
@@ -239,7 +259,7 @@ switch ($action) {
      * Retry failed preauth requests
      */
     case 'preauth.retryFailed':
-        if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['superadmin', 'manufacturer', 'admin'])) {
+        if (!is_admin()) {
             http_response_code(403);
             echo json_encode(['ok' => false, 'error' => 'Unauthorized']);
             exit;
@@ -253,7 +273,7 @@ switch ($action) {
      * Record manual eligibility verification
      */
     case 'preauth.recordEligibility':
-        if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['superadmin', 'manufacturer', 'admin'])) {
+        if (!is_admin()) {
             http_response_code(403);
             echo json_encode(['ok' => false, 'error' => 'Unauthorized']);
             exit;
@@ -270,12 +290,14 @@ switch ($action) {
             exit;
         }
 
+        $adminId = $_SESSION['admin']['id'] ?? $_SESSION['user_id'] ?? null;
+
         $result = $eligibilityChecker->recordManualVerification([
             'member_id' => $memberId,
             'carrier_name' => $carrierName,
             'eligible' => $eligible,
             'notes' => $notes,
-            'verified_by' => $_SESSION['user_id']
+            'verified_by' => $adminId
         ]);
 
         echo json_encode($result);
@@ -311,7 +333,7 @@ switch ($action) {
      * Get preauth statistics for dashboard
      */
     case 'preauth.getStats':
-        if (!isset($_SESSION['user_id'])) {
+        if (!is_admin()) {
             http_response_code(403);
             echo json_encode(['ok' => false, 'error' => 'Unauthorized']);
             exit;

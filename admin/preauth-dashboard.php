@@ -8,15 +8,12 @@
  * @package CollagenDirect
  */
 
-require_once __DIR__ . '/../api/db.php';
+require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/auth.php';
 
-// Session is already started by db.php
-
-// Check authentication
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['superadmin', 'manufacturer', 'admin'])) {
-    header('Location: /admin/login.php');
-    exit;
-}
+// Check authentication using existing admin auth pattern
+require_admin();
+$admin = current_admin();
 
 // Use global $pdo from db.php
 
