@@ -559,6 +559,9 @@ if ($action) {
     if(!validPhone($phone)) jerr('Phone must be 10 digits');
     if(!validEmail($email)) jerr('Invalid email');
 
+    // Track if this is a new patient (for auto-scoring)
+    $isNewPatient = ($pid === '');
+
     if ($pid===''){
       if($mrn===''){ $mrn = 'CD-'.date('Ymd').'-'.strtoupper(substr(bin2hex(random_bytes(2)),0,4)); }
       $pid=bin2hex(random_bytes(16));
@@ -575,6 +578,22 @@ if ($action) {
       $st->execute([$first,$last,$dob,$mrn,$city,$state,$phone,$cell_phone,$email,$address,$zip,
                     $ins_provider,$ins_member_id,$ins_group_id,$ins_payer_phone,$pid,$userId]);
     }
+
+    // Auto-generate AI approval score for NEW patients only (created today or later)
+    // Only auto-score if this is a new patient (not an update to existing patient)
+    if ($isNewPatient) {
+      require_once __DIR__ . '/../api/lib/auto_score.php';
+      $patientData = [
+        'first_name' => $first,
+        'last_name' => $last,
+        'dob' => $dob,
+        'insurance_provider' => $ins_provider
+      ];
+      if (shouldAutoScore($patientData)) {
+        queueApprovalScore($pid, $pdo, true); // true = async
+      }
+    }
+
     jok(['id'=>$pid,'mrn'=>$mrn]);
   }
 
@@ -793,6 +812,19 @@ if ($action) {
           jerr('Failed to update patient record - patient not found or access denied');
         }
       }
+
+      // Auto-generate AI approval score after document upload
+      // Only for patients created today or later (not legacy patients)
+      // Check if patient was created today or after
+      $createdCheck = $pdo->prepare("SELECT created_at FROM patients WHERE id = ?");
+      $createdCheck->execute([$pid]);
+      $createdAt = $createdCheck->fetchColumn();
+
+      if ($createdAt && strtotime($createdAt) >= strtotime('today')) {
+        require_once __DIR__ . '/../api/lib/auto_score.php';
+        queueApprovalScore($pid, $pdo, true); // true = async
+      }
+
       jok(['path'=>$rel,'name'=>$f['name'],'mime'=>$mime,'uploaded'=>true]);
     }
   }
