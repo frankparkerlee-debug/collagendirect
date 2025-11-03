@@ -50,7 +50,7 @@ $stmt = $pdo->prepare("
         p.last_name,
         p.email as patient_email,
         o.wound_type,
-        o.product_name,
+        o.product,
         u.email as physician_email
     FROM preauth_requests pr
     JOIN patients p ON pr.patient_id = p.id
