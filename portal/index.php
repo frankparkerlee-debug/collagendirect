@@ -348,6 +348,84 @@ function generateAIPlan(string $assessment, string $woundLocation, string $patie
   return $plan;
 }
 
+/**
+ * Get appropriate diagnosis codes based on wound assessment and notes
+ */
+function getDiagnosisCodes(string $assessment, string $clinicalNote): array {
+  $note = strtolower($clinicalNote);
+
+  // Primary diagnosis - wound type based on clinical note keywords
+  $primary = 'L97.929'; // Default: Non-pressure chronic ulcer of unspecified part of left lower leg with unspecified severity
+
+  // Diabetic wounds
+  if (strpos($note, 'diabetic') !== false || strpos($note, 'diabetes') !== false) {
+    if (strpos($note, 'foot') !== false || strpos($note, 'heel') !== false) {
+      $primary = 'E11.621'; // Type 2 diabetes mellitus with foot ulcer
+    } else if (strpos($note, 'leg') !== false) {
+      $primary = 'E11.622'; // Type 2 diabetes mellitus with other skin ulcer
+    } else {
+      $primary = 'E11.622'; // Type 2 diabetes mellitus with other skin ulcer
+    }
+  }
+  // Pressure ulcers
+  else if (strpos($note, 'pressure') !== false || strpos($note, 'sacral') !== false || strpos($note, 'coccyx') !== false) {
+    if (strpos($note, 'sacral') !== false) {
+      $primary = 'L89.159'; // Pressure ulcer of sacral region, unspecified stage
+    } else if (strpos($note, 'heel') !== false) {
+      $primary = 'L89.619'; // Pressure ulcer of right heel, unspecified stage
+    } else {
+      $primary = 'L89.90'; // Pressure ulcer of unspecified site, unspecified stage
+    }
+  }
+  // Venous ulcers
+  else if (strpos($note, 'venous') !== false) {
+    $primary = 'I83.019'; // Varicose veins of unspecified lower extremity with ulcer of unspecified site
+  }
+  // Surgical/post-operative wounds
+  else if (strpos($note, 'surgical') !== false || strpos($note, 'post-surgical') !== false || strpos($note, 'incision') !== false) {
+    $primary = 'T81.31XA'; // Disruption of external operation wound, not elsewhere classified, initial encounter
+  }
+  // Traumatic wounds
+  else if (strpos($note, 'traumatic') !== false || strpos($note, 'trauma') !== false) {
+    $primary = 'S91.009A'; // Unspecified open wound of unspecified foot, initial encounter
+  }
+
+  // Secondary diagnosis based on assessment/complications
+  $secondary = null;
+
+  if ($assessment === 'concern' || $assessment === 'urgent') {
+    // Add infection code if concerning or urgent
+    if (strpos($note, 'infection') !== false || strpos($note, 'infected') !== false ||
+        strpos($note, 'purulent') !== false || strpos($note, 'pus') !== false) {
+      $secondary = 'L03.90'; // Cellulitis, unspecified
+    } else if (strpos($note, 'delayed healing') !== false || strpos($note, 'not healing') !== false) {
+      $secondary = 'L89.90'; // Pressure ulcer, unspecified (for delayed healing)
+    }
+  }
+
+  return [
+    'primary' => $primary,
+    'secondary' => $secondary
+  ];
+}
+
+/**
+ * Format phone number for billing export
+ */
+function formatPhone(?string $phone): string {
+  if (empty($phone)) return '';
+
+  // Remove all non-numeric characters
+  $phone = preg_replace('/[^0-9]/', '', $phone);
+
+  // Format as (XXX) XXX-XXXX
+  if (strlen($phone) === 10) {
+    return '(' . substr($phone, 0, 3) . ') ' . substr($phone, 3, 3) . '-' . substr($phone, 6, 4);
+  }
+
+  return $phone;
+}
+
 /* ============================================================
    API
    ============================================================ */
@@ -1064,23 +1142,41 @@ if ($action) {
     $startDate = $month . '-01';
     $endDate = date('Y-m-t', strtotime($startDate));
 
-    // Get encounters for this physician
-    if ($userRole === 'superadmin') {
+    // Get encounters for this physician with complete patient data
+    if ($userRole === 'superadmin' || $userRole === 'practice_admin') {
       $sql = "
         SELECT
           e.encounter_date,
-          p.first_name || ' ' || p.last_name as patient_name,
+          e.id as encounter_id,
+          p.id as patient_id,
+          p.first_name,
+          p.last_name,
           p.mrn,
+          p.dob,
+          p.sex,
+          p.phone,
+          p.email,
+          p.address,
+          p.city,
+          p.state,
+          p.zip,
+          p.insurance_company,
+          p.insurance_id,
+          p.group_number,
           e.cpt_code,
           e.modifier,
           e.charge_amount,
-          e.id,
-          e.clinical_note
+          e.assessment,
+          e.clinical_note,
+          u.first_name as provider_first_name,
+          u.last_name as provider_last_name,
+          u.npi as provider_npi
         FROM billable_encounters e
         JOIN patients p ON p.id = e.patient_id
+        LEFT JOIN users u ON u.id = e.physician_id
         WHERE e.encounter_date >= ? AND e.encounter_date <= ?
           AND e.exported = FALSE
-        ORDER BY e.encounter_date
+        ORDER BY e.encounter_date, p.last_name, p.first_name
       ";
       $stmt = $pdo->prepare($sql);
       $stmt->execute([$startDate, $endDate . ' 23:59:59']);
@@ -1088,19 +1184,37 @@ if ($action) {
       $sql = "
         SELECT
           e.encounter_date,
-          p.first_name || ' ' || p.last_name as patient_name,
+          e.id as encounter_id,
+          p.id as patient_id,
+          p.first_name,
+          p.last_name,
           p.mrn,
+          p.dob,
+          p.sex,
+          p.phone,
+          p.email,
+          p.address,
+          p.city,
+          p.state,
+          p.zip,
+          p.insurance_company,
+          p.insurance_id,
+          p.group_number,
           e.cpt_code,
           e.modifier,
           e.charge_amount,
-          e.id,
-          e.clinical_note
+          e.assessment,
+          e.clinical_note,
+          u.first_name as provider_first_name,
+          u.last_name as provider_last_name,
+          u.npi as provider_npi
         FROM billable_encounters e
         JOIN patients p ON p.id = e.patient_id
+        LEFT JOIN users u ON u.id = e.physician_id
         WHERE e.physician_id = ?
           AND e.encounter_date >= ? AND e.encounter_date <= ?
           AND e.exported = FALSE
-        ORDER BY e.encounter_date
+        ORDER BY e.encounter_date, p.last_name, p.first_name
       ";
       $stmt = $pdo->prepare($sql);
       $stmt->execute([$userId, $startDate, $endDate . ' 23:59:59']);
@@ -1108,35 +1222,88 @@ if ($action) {
 
     $encounters = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Generate CSV
-    header('Content-Type: text/csv');
-    header('Content-Disposition: attachment; filename="telehealth_billing_' . $month . '.csv"');
+    // Generate CSV with comprehensive billing data
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="wound_telehealth_billing_' . $month . '.csv"');
+    header('Pragma: no-cache');
+    header('Expires: 0');
 
     $output = fopen('php://output', 'w');
 
-    // CSV Header
+    // Add UTF-8 BOM for Excel compatibility
+    fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+
+    // Comprehensive CSV Header for billing system import
     fputcsv($output, [
-      'Date',
-      'Patient Name',
+      'Service Date',
+      'Patient Last Name',
+      'Patient First Name',
+      'Patient DOB',
+      'Patient Sex',
       'MRN',
+      'Patient Phone',
+      'Patient Email',
+      'Patient Address',
+      'Patient City',
+      'Patient State',
+      'Patient ZIP',
+      'Insurance Company',
+      'Insurance ID',
+      'Group Number',
+      'Provider Last Name',
+      'Provider First Name',
+      'Provider NPI',
       'CPT Code',
       'Modifier',
-      'Charge',
-      'ICD-10',
-      'Note ID'
+      'Place of Service',
+      'Diagnosis Code 1',
+      'Diagnosis Code 2',
+      'Units',
+      'Charge Amount',
+      'Service Description',
+      'Assessment Level',
+      'Encounter ID',
+      'Notes'
     ]);
 
-    // CSV Rows
+    // CSV Rows with complete billing information
     foreach ($encounters as $e) {
+      // Determine primary and secondary diagnosis codes based on wound type
+      $diagnosisCodes = getDiagnosisCodes($e['assessment'], $e['clinical_note']);
+
+      // Service description
+      $serviceDesc = 'Telehealth Wound Photo Review - E/M ' . substr($e['cpt_code'], -1);
+
       fputcsv($output, [
-        date('Y-m-d', strtotime($e['encounter_date'])),
-        $e['patient_name'],
-        $e['mrn'],
-        $e['cpt_code'],
-        $e['modifier'],
-        number_format($e['charge_amount'], 2),
-        'E11.621', // TODO: Get from patient diagnosis
-        $e['id']
+        date('m/d/Y', strtotime($e['encounter_date'])),  // Service Date
+        $e['last_name'],                                  // Patient Last Name
+        $e['first_name'],                                 // Patient First Name
+        date('m/d/Y', strtotime($e['dob'])),             // Patient DOB
+        strtoupper($e['sex'] ?? 'U'),                    // Patient Sex (M/F/U)
+        $e['mrn'] ?: 'TEMP-' . $e['patient_id'],         // MRN
+        formatPhone($e['phone']),                         // Patient Phone
+        $e['email'] ?: '',                                // Patient Email
+        $e['address'] ?: '',                              // Patient Address
+        $e['city'] ?: '',                                 // Patient City
+        $e['state'] ?: '',                                // Patient State
+        $e['zip'] ?: '',                                  // Patient ZIP
+        $e['insurance_company'] ?: 'Self Pay',            // Insurance Company
+        $e['insurance_id'] ?: '',                         // Insurance ID
+        $e['group_number'] ?: '',                         // Group Number
+        $e['provider_last_name'] ?: '',                   // Provider Last Name
+        $e['provider_first_name'] ?: '',                  // Provider First Name
+        $e['provider_npi'] ?: '',                         // Provider NPI
+        $e['cpt_code'],                                   // CPT Code
+        $e['modifier'],                                   // Modifier (95 for telehealth)
+        '02',                                             // Place of Service (02 = Telehealth)
+        $diagnosisCodes['primary'],                       // Diagnosis Code 1
+        $diagnosisCodes['secondary'] ?: '',               // Diagnosis Code 2
+        '1',                                              // Units
+        number_format($e['charge_amount'], 2, '.', ''),   // Charge Amount
+        $serviceDesc,                                     // Service Description
+        ucfirst($e['assessment']),                        // Assessment Level
+        $e['encounter_id'],                               // Encounter ID
+        substr($e['clinical_note'], 0, 255)               // Notes (truncated for CSV)
       ]);
     }
 
