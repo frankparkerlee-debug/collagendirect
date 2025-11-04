@@ -18,7 +18,9 @@ $migrations = [
     'add-billing-fields-to-patients.php' => 'Add insurance and billing fields to patients table',
     'add-npi-to-users.php' => 'Add NPI field to users table',
     'add-credential-type.php' => 'Add credential type and supervising physician tracking',
-    'add-approval-feedback-table.php' => 'Add table to store AI approval feedback for persistence'
+    'add-approval-feedback-table.php' => 'Add table to store AI approval feedback for persistence',
+    'add-order-lifecycle-fields.php' => 'Add order lifecycle fields for AI-assisted editing workflow',
+    'add-order-revisions-table.php' => 'Create order revisions table for audit trail'
 ];
 
 $success = 0;

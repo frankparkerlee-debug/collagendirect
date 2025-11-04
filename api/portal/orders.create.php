@@ -167,6 +167,7 @@ try {
   }
 
   // 6) Insert order FIRST (no file I/O yet)
+  // Note: Orders start in 'pending_admin_review' status for AI-assisted approval workflow
   $sql = "INSERT INTO orders
     (id, patient_id, user_id, product, product_id, product_price, cpt, status, frequency, delivery_mode,
      shipments_remaining, created_at, updated_at,
@@ -174,14 +175,16 @@ try {
      wound_location, wound_laterality, wound_notes,
      shipping_name, shipping_phone, shipping_address, shipping_city, shipping_state, shipping_zip,
      rx_note_path, rx_note_mime, ins_card_path, ins_card_mime, id_card_path, id_card_mime,
-     e_sign_user_id, e_sign_name, e_sign_title, e_sign_at, e_sign_ip)
+     e_sign_user_id, e_sign_name, e_sign_title, e_sign_at, e_sign_ip,
+     review_status)
     VALUES
     (?,?,?,?,?,?,?,?,?,?,0,NOW(),NOW(),
      ?,?,?,?, ?,?,?,
      ?,?,?,
      ?,?,?,?,?,?,
      NULL,NULL,NULL,NULL,NULL,NULL,
-     ?,?,?,?,?)";
+     ?,?,?,?,?,
+     'pending_admin_review')";
 
   $pdo->prepare($sql)->execute([
     $order_id, $patient_id, $uid,
