@@ -1077,7 +1077,7 @@ if ($action) {
           wp.*,
           p.first_name, p.last_name, p.dob, p.mrn,
           pr.wound_location, pr.requested_at,
-          be.assessment, be.cpt_code, be.charge_amount, be.exported, be.encounter_date
+          be.assessment, be.cpt_code, be.charge_amount, be.exported, be.encounter_date, be.clinical_note
         FROM wound_photos wp
         JOIN patients p ON p.id = wp.patient_id
         LEFT JOIN photo_requests pr ON pr.id = wp.photo_request_id
@@ -1094,7 +1094,7 @@ if ($action) {
           wp.*,
           p.first_name, p.last_name, p.dob, p.mrn,
           pr.wound_location, pr.requested_at,
-          be.assessment, be.cpt_code, be.charge_amount, be.exported, be.encounter_date
+          be.assessment, be.cpt_code, be.charge_amount, be.exported, be.encounter_date, be.clinical_note
         FROM wound_photos wp
         JOIN patients p ON p.id = wp.patient_id
         LEFT JOIN photo_requests pr ON pr.id = wp.photo_request_id
@@ -1140,7 +1140,7 @@ if ($action) {
       SELECT
         wp.*,
         pr.wound_location, pr.requested_at,
-        be.assessment, be.cpt_code, be.charge_amount, be.exported, be.encounter_date
+        be.assessment, be.cpt_code, be.charge_amount, be.exported, be.encounter_date, be.clinical_note
       FROM wound_photos wp
       LEFT JOIN photo_requests pr ON pr.id = wp.photo_request_id
       LEFT JOIN billable_encounters be ON be.wound_photo_id = wp.id
@@ -6082,6 +6082,14 @@ if (<?php echo json_encode($page==='dashboard'); ?>){
             `;
           }
 
+          // Clinical notes
+          const clinicalNotes = photo.clinical_note ? `
+            <div style="margin-top: 0.5rem; padding: 0.5rem; background: #fffbeb; border-left: 2px solid #f59e0b; border-radius: 4px; font-size: 0.75rem;">
+              <div style="font-weight: 600; color: #92400e; margin-bottom: 0.25rem;">Clinical Notes:</div>
+              <div style="color: #78350f;">${photo.clinical_note}</div>
+            </div>
+          ` : '';
+
           html += `
             <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: white;">
               <img src="${photo.photo_path}" alt="Wound photo" style="width: 100%; height: 200px; object-fit: cover; cursor: pointer;" onclick="window.open('${photo.photo_path}', '_blank')" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22><text x=%2250%%22 y=%2250%%22 text-anchor=%22middle%22 fill=%22%23999%22>Image unavailable</text></svg>'">
@@ -6095,6 +6103,7 @@ if (<?php echo json_encode($page==='dashboard'); ?>){
                 ${photo.wound_location ? `<div style="font-size: 0.75rem; color: #334155; margin-bottom: 0.25rem;"><strong>Location:</strong> ${photo.wound_location}</div>` : ''}
                 ${photo.patient_notes ? `<div style="font-size: 0.75rem; color: #475569; font-style: italic; margin-top: 0.5rem;">"${photo.patient_notes}"</div>` : ''}
                 ${billingInfo}
+                ${clinicalNotes}
               </div>
             </div>
           `;

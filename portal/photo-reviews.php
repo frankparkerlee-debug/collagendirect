@@ -537,6 +537,14 @@ function createPhotoCard(photo) {
   } else {
     const charge = photo.charge_amount ? '$' + parseFloat(photo.charge_amount).toFixed(0) : 'N/A';
     const cptCode = photo.cpt_code || 'N/A';
+    // Show clinical notes if available
+    const clinicalNotes = photo.clinical_note ? `
+      <div style="background: #fffbeb; border-left: 3px solid #f59e0b; padding: 0.75rem; border-radius: 6px; margin-top: 1rem; font-size: 0.875rem;">
+        <div style="font-weight: 600; color: #92400e; margin-bottom: 0.5rem;">Clinical Notes:</div>
+        <div style="color: #78350f; white-space: pre-wrap;">${photo.clinical_note}</div>
+      </div>
+    ` : '';
+
     actionButton = `
       <div style="background: #f8fafc; padding: 0.75rem; border-radius: 6px; margin-top: 1rem; font-size: 0.875rem;">
         <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
@@ -548,6 +556,7 @@ function createPhotoCard(photo) {
           <span style="font-weight: 600; color: #059669;">${charge}</span>
         </div>
       </div>
+      ${clinicalNotes}
     `;
   }
 
