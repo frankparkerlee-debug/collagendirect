@@ -622,7 +622,15 @@ PROMPT;
 
     if ($httpCode !== 200) {
       error_log("[AIService] API error (HTTP $httpCode): $response");
-      throw new Exception("API returned HTTP $httpCode");
+      // Try to extract error message from response
+      $errorDetails = '';
+      $responseData = json_decode($response, true);
+      if (isset($responseData['error']['message'])) {
+        $errorDetails = $responseData['error']['message'];
+      } elseif (isset($responseData['error'])) {
+        $errorDetails = is_string($responseData['error']) ? $responseData['error'] : json_encode($responseData['error']);
+      }
+      throw new Exception("API returned HTTP $httpCode" . ($errorDetails ? ": $errorDetails" : ''));
     }
 
     $result = json_decode($response, true);
