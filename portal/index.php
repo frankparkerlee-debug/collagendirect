@@ -8251,38 +8251,18 @@ function renderPatientDetailPage(p, orders, isEditing) {
         <h4 class="font-semibold text-base mb-4">Orders</h4>
 
         ${orders.length > 0 ? `
-          <!-- Upcoming/Active Orders -->
-          <div class="mb-4">
-            <div class="text-xs text-slate-500 mb-3">Upcoming orders</div>
-            <div class="space-y-2">
-              ${orders.filter(o=>o.status==='active' || o.status==='submitted' || o.status==='approved').slice(0, 3).map((o,i)=>{
-                const colors = [
-                  {bg: 'bg-blue-50', border: 'border-l-blue-500'},
-                  {bg: 'bg-green-50', border: 'border-l-green-500'},
-                  {bg: 'bg-purple-50', border: 'border-l-purple-500'}
-                ];
-                const color = colors[i % 3];
-                return `
-                  <div class="${color.bg} border-l-4 ${color.border} p-3 rounded flex items-center justify-between">
-                    <div class="flex-1">
-                      <div class="font-medium text-sm mb-1">${esc(o.product||'Wound Care Product')}</div>
-                      <div class="text-xs text-slate-600">${fmt(o.created_at)} • ${esc(o.frequency||'Weekly')}</div>
-                    </div>
-                    <button class="btn btn-sm" onclick='viewOrderDetailsEnhanced(${JSON.stringify(o)})'>View Details</button>
-                  </div>
-                `;
-              }).join('')}
-            </div>
-            ${orders.filter(o=>o.status==='active' || o.status==='submitted' || o.status==='approved').length > 3 ? `
-              <button class="text-xs text-slate-600 hover:text-slate-900 mt-3 flex items-center gap-1">
-                See more
-                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                </svg>
-              </button>
-            ` : ''}
+          <!-- All Orders (with proper status) -->
+          <div class="space-y-2">
+            ${orders.slice(0, 5).map((o, i) => renderOrderCard(o, i)).join('')}
           </div>
-
+          ${orders.length > 5 ? `
+            <button class="text-xs text-slate-600 hover:text-slate-900 mt-3 flex items-center gap-1">
+              See all orders (${orders.length})
+              <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </button>
+          ` : ''}
         ` : `
           <div class="text-center py-8">
             <p class="text-slate-500 text-sm mb-3">No wound care orders yet</p>
@@ -8291,42 +8271,26 @@ function renderPatientDetailPage(p, orders, isEditing) {
         `}
       </div>
 
-      <!-- History Section -->
+      <!-- Activity Log / History -->
       <div class="card p-6">
-        <h4 class="font-semibold text-base mb-4">History</h4>
+        <h4 class="font-semibold text-base mb-4">Activity Log</h4>
         ${orders.length > 0 ? `
+          <div class="text-xs text-slate-500 mb-3">Recent activity</div>
           <div class="space-y-2">
-            ${orders.slice(0, 5).map((o,i)=>{
-              const colors = [
-                {bg: 'bg-blue-50', border: 'border-l-blue-500'},
-                {bg: 'bg-green-50', border: 'border-l-green-500'},
-                {bg: 'bg-purple-50', border: 'border-l-purple-500'},
-                {bg: 'bg-amber-50', border: 'border-l-amber-500'},
-                {bg: 'bg-pink-50', border: 'border-l-pink-500'}
-              ];
-              const color = colors[i % 5];
+            ${orders.slice(0, 3).map((o) => {
+              const s = getOrderDisplayStatus(o);
               return `
-                <div class="${color.bg} border-l-4 ${color.border} p-3 rounded flex items-center justify-between">
-                  <div class="flex-1">
-                    <div class="font-medium text-sm mb-1">${esc(o.product||'Wound Care Product')}</div>
-                    <div class="text-xs text-slate-600">${fmt(o.created_at)} • ${esc(o.frequency||'Weekly')}</div>
-                  </div>
-                  <button class="btn btn-sm" onclick='viewOrderDetails(${JSON.stringify(o)})'>View Details</button>
+                <div class="text-sm text-slate-700">
+                  <span class="font-medium">${esc(o.product || 'Order')}</span>
+                  <span class="${s.textColor}">${s.status}</span>
+                  <span class="text-slate-500">• ${fmt(o.created_at)}</span>
                 </div>
               `;
             }).join('')}
           </div>
-          ${orders.length > 5 ? `
-            <button class="text-xs text-slate-600 hover:text-slate-900 mt-3 flex items-center gap-1">
-              See more
-              <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-              </svg>
-            </button>
-          ` : ''}
         ` : `
           <div class="text-center py-8">
-            <p class="text-slate-500 text-sm">No order history yet</p>
+            <p class="text-slate-500 text-sm">No activity yet</p>
           </div>
         `}
       </div>
@@ -9419,6 +9383,7 @@ if (<?php echo json_encode($page === 'practice'); ?>) {
 </script>
 
 <!-- Order Workflow Enhancement -->
+<script src="/portal/order-status-helper.js"></script>
 <script src="/portal/order-workflow.js"></script>
 <?php include __DIR__ . '/order-edit-dialog.html'; ?>
 
