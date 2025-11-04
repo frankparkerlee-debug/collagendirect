@@ -2066,6 +2066,11 @@ if ($action) {
     header('Content-Type: '.($o['rx_note_mime']?:'application/octet-stream')); header('Content-Disposition: inline; filename="'.($o['rx_note_name']?:basename($full)).'"'); header('Content-Length: '.filesize($full)); readfile($full); exit;
   }
 
+  if ($action==='order.get'){
+    require __DIR__ . '/../api/portal/order.get.php';
+    exit;
+  }
+
   if ($action==='user.change_password'){
     $cur=(string)($_POST['current']??''); $new=(string)($_POST['new']??''); $confirm=(string)($_POST['confirm']??'');
     if($new===''||$confirm==='') jerr('New password is required');
@@ -8263,7 +8268,7 @@ function renderPatientDetailPage(p, orders, isEditing) {
                       <div class="font-medium text-sm mb-1">${esc(o.product||'Wound Care Product')}</div>
                       <div class="text-xs text-slate-600">${fmt(o.created_at)} • ${esc(o.frequency||'Weekly')}</div>
                     </div>
-                    <button class="btn btn-sm" onclick='viewOrderDetails(${JSON.stringify(o)})'>View Details</button>
+                    <button class="btn btn-sm" onclick='viewOrderDetailsEnhanced(${JSON.stringify(o)})'>View Details</button>
                   </div>
                 `;
               }).join('')}
@@ -9412,6 +9417,10 @@ if (<?php echo json_encode($page === 'practice'); ?>) {
 }
 
 </script>
+
+<!-- Order Workflow Enhancement -->
+<script src="/portal/order-workflow.js"></script>
+<?php include __DIR__ . '/order-edit-dialog.html'; ?>
 
     </main>
   </div>
