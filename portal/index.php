@@ -8440,6 +8440,108 @@ async function requestWoundPhoto(patientId, patientName, phone) {
 
 /* ========== AI APPROVAL SCORE GENERATOR ========== */
 
+// Load stored approval score from database (for persistence)
+async function loadStoredApprovalScore(patientId) {
+  const displayDiv = document.getElementById('approval-score-display-' + patientId);
+  if (!displayDiv) return;
+
+  try {
+    const r = await fetch('/api/portal/get_approval_score.php?patient_id=' + encodeURIComponent(patientId));
+    const j = await r.json();
+
+    if (j.ok && j.has_score) {
+      // Render the stored score using the same display logic as generateApprovalScore
+      renderApprovalScore(patientId, j);
+    }
+  } catch (e) {
+    // Silently fail - user can manually request score if needed
+    console.log('Could not load stored approval score:', e);
+  }
+}
+
+// Render approval score display (shared between generate and load)
+function renderApprovalScore(patientId, scoreData) {
+  const displayDiv = document.getElementById('approval-score-display-' + patientId);
+  const button = document.getElementById('approval-score-btn-' + patientId);
+  if (!displayDiv) return;
+
+  // Determine color scheme based on score
+  let scoreColor, scoreBg, scoreIcon;
+  if (scoreData.score === 'GREEN') {
+    scoreColor = 'text-green-700';
+    scoreBg = 'bg-green-100 border-green-500';
+    scoreIcon = '✓';
+  } else if (scoreData.score === 'YELLOW') {
+    scoreColor = 'text-yellow-700';
+    scoreBg = 'bg-yellow-100 border-yellow-500';
+    scoreIcon = '⚠';
+  } else {
+    scoreColor = 'text-red-700';
+    scoreBg = 'bg-red-100 border-red-500';
+    scoreIcon = '✗';
+  }
+
+  let html = '<div class="' + scoreBg + ' border-l-4 p-3 rounded text-sm">';
+  html += '<div class="flex items-center gap-2">';
+  html += '<span class="text-2xl">' + scoreIcon + '</span>';
+  html += '<div>';
+  html += '<div class="font-semibold ' + scoreColor + '">' + scoreData.score + ' - ';
+  if (scoreData.score === 'GREEN') html += 'High Likelihood of Approval';
+  else if (scoreData.score === 'YELLOW') html += 'Average Likelihood of Approval';
+  else html += 'Low Likelihood of Approval';
+  html += '</div>';
+  html += '<div class="text-xs ' + scoreColor + ' opacity-75">Score: ' + scoreData.score_numeric + '/100</div>';
+  html += '</div>';
+  html += '<button onclick="generateApprovalScore(\'' + patientId + '\')" class="text-xs underline ' + scoreColor + '">Refresh</button>';
+  html += '</div>';
+
+  // Summary
+  if (scoreData.summary) {
+    html += '<div class="text-sm ' + scoreColor + '">' + esc(scoreData.summary) + '</div>';
+  }
+
+  // Missing items (if any)
+  if (scoreData.missing_items && scoreData.missing_items.length > 0) {
+    html += '<div>';
+    html += '<div class="font-semibold text-xs ' + scoreColor + ' mb-1">Missing Information:</div>';
+    html += '<ul class="text-xs ' + scoreColor + ' space-y-1 list-disc list-inside">';
+    scoreData.missing_items.forEach(item => {
+      html += '<li>' + esc(item) + '</li>';
+    });
+    html += '</ul></div>';
+  }
+
+  // Recommendations
+  if (scoreData.recommendations && scoreData.recommendations.length > 0) {
+    html += '<div>';
+    html += '<div class="font-semibold text-xs ' + scoreColor + ' mb-1">Recommendations:</div>';
+    html += '<ul class="text-xs ' + scoreColor + ' space-y-1 list-disc list-inside">';
+    scoreData.recommendations.forEach(rec => {
+      html += '<li>' + esc(rec) + '</li>';
+    });
+    html += '</ul></div>';
+  }
+
+  // Complete items (positive feedback)
+  if (scoreData.complete_items && scoreData.complete_items.length > 0) {
+    html += '<div class="mt-2">';
+    html += '<div class="font-semibold text-xs text-green-700 mb-1">✓ Complete:</div>';
+    html += '<ul class="text-xs text-green-700 space-y-1 list-disc list-inside">';
+    scoreData.complete_items.forEach(item => {
+      html += '<li>' + esc(item) + '</li>';
+    });
+    html += '</ul></div>';
+  }
+
+  html += '</div>';
+  displayDiv.innerHTML = html;
+
+  // Update button text
+  if (button) {
+    button.innerHTML = '<svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg> Refresh Score';
+  }
+}
+
 async function generateApprovalScore(patientId) {
   const displayDiv = document.getElementById('approval-score-display-' + patientId);
   const button = document.getElementById('approval-score-btn-' + patientId);
@@ -8723,6 +8825,9 @@ if (window._patientDetailData) {
       const p = data.patient;
       const orders = data.orders || [];
       renderPatientDetailPage(p, orders, isEditing);
+
+      // Load stored approval score if available (for persistence)
+      setTimeout(() => loadStoredApprovalScore(patientId), 100);
     } catch (e) {
       document.getElementById('patient-detail-container').innerHTML = `
         <div class="lg:col-span-3 card p-6">

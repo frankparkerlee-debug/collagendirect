@@ -59,45 +59,133 @@ try {
     exit;
   }
 
-  // If notes are stored in a file path, try to read them (optional - may fail if file doesn't exist)
+  // Helper function to convert relative path to absolute filesystem path
+  $getAbsolutePath = function($relativePath) {
+    if (empty($relativePath)) return null;
+
+    // If already absolute, return it
+    if ($relativePath[0] === '/') {
+      // Check if it's a relative path starting with /uploads
+      if (strpos($relativePath, '/uploads/') === 0) {
+        // Try persistent disk first (Render production)
+        if (is_dir('/var/data/uploads')) {
+          $absPath = '/var/data' . $relativePath;
+          if (file_exists($absPath)) return $absPath;
+        }
+        // Try document root (local development)
+        $docRoot = $_SERVER['DOCUMENT_ROOT'] ?? '';
+        if ($docRoot) {
+          $absPath = $docRoot . $relativePath;
+          if (file_exists($absPath)) return $absPath;
+        }
+        // Try relative to current directory
+        $absPath = __DIR__ . '/../..' . $relativePath;
+        if (file_exists($absPath)) return realpath($absPath);
+      }
+      return file_exists($relativePath) ? $relativePath : null;
+    }
+    return file_exists($relativePath) ? realpath($relativePath) : null;
+  };
+
+  // Helper function to extract text from PDF
+  $extractPdfText = function($pdfPath) {
+    if (!file_exists($pdfPath)) return '';
+
+    // Try using pdftotext if available
+    $output = '';
+    $textFile = tempnam(sys_get_temp_dir(), 'pdf_');
+    exec("pdftotext " . escapeshellarg($pdfPath) . " " . escapeshellarg($textFile) . " 2>/dev/null", $execOutput, $returnCode);
+
+    if ($returnCode === 0 && file_exists($textFile)) {
+      $output = file_get_contents($textFile);
+      unlink($textFile);
+      return $output;
+    }
+
+    // Fallback: read raw PDF and extract basic text (very limited)
+    $content = file_get_contents($pdfPath);
+    // This is a very basic extraction - it may not work well for all PDFs
+    if (preg_match_all('/\((.*?)\)/s', $content, $matches)) {
+      return implode(' ', $matches[1]);
+    }
+
+    return '[PDF file present but text extraction not available - file exists and is readable]';
+  };
+
+  // Read notes from file if path provided
   $patient['notes_text'] = '';
-  if (!empty($patient['notes_path']) && file_exists($patient['notes_path'])) {
-    $patient['notes_text'] = @file_get_contents($patient['notes_path']) ?: '';
+  if (!empty($patient['notes_path'])) {
+    $notesAbsPath = $getAbsolutePath($patient['notes_path']);
+    if ($notesAbsPath && file_exists($notesAbsPath)) {
+      $mime = $patient['notes_mime'] ?? '';
+      if (strpos($mime, 'pdf') !== false || pathinfo($notesAbsPath, PATHINFO_EXTENSION) === 'pdf') {
+        $patient['notes_text'] = $extractPdfText($notesAbsPath);
+      } else {
+        $patient['notes_text'] = @file_get_contents($notesAbsPath) ?: '';
+      }
+    }
   }
 
-  // Prepare documents array for AI analysis
+  // Prepare documents array for AI analysis with actual file content
   $documents = [];
 
   // Add ID card document
   if (!empty($patient['id_card_path'])) {
+    $idAbsPath = $getAbsolutePath($patient['id_card_path']);
+    $extracted = '';
+    if ($idAbsPath && file_exists($idAbsPath)) {
+      $mime = $patient['id_card_mime'] ?? '';
+      if (strpos($mime, 'pdf') !== false || pathinfo($idAbsPath, PATHINFO_EXTENSION) === 'pdf') {
+        $extracted = $extractPdfText($idAbsPath);
+      } else {
+        $extracted = '[Image file present - ID card uploaded and available]';
+      }
+    }
+
     $documents[] = [
       'type' => 'Photo ID',
       'filename' => basename($patient['id_card_path']),
       'path' => $patient['id_card_path'],
       'mime' => isset($patient['id_card_mime']) ? $patient['id_card_mime'] : 'unknown',
-      'extracted_text' => '' // TODO: Add OCR extraction if needed
+      'extracted_text' => $extracted,
+      'exists' => $idAbsPath && file_exists($idAbsPath)
     ];
   }
 
   // Add insurance card document
   if (!empty($patient['ins_card_path'])) {
+    $insAbsPath = $getAbsolutePath($patient['ins_card_path']);
+    $extracted = '';
+    if ($insAbsPath && file_exists($insAbsPath)) {
+      $mime = $patient['ins_card_mime'] ?? '';
+      if (strpos($mime, 'pdf') !== false || pathinfo($insAbsPath, PATHINFO_EXTENSION) === 'pdf') {
+        $extracted = $extractPdfText($insAbsPath);
+      } else {
+        $extracted = '[Image file present - Insurance card uploaded and available]';
+      }
+    }
+
     $documents[] = [
       'type' => 'Insurance Card',
       'filename' => basename($patient['ins_card_path']),
       'path' => $patient['ins_card_path'],
       'mime' => isset($patient['ins_card_mime']) ? $patient['ins_card_mime'] : 'unknown',
-      'extracted_text' => '' // TODO: Add OCR extraction if needed
+      'extracted_text' => $extracted,
+      'exists' => $insAbsPath && file_exists($insAbsPath)
     ];
   }
 
   // Add clinical notes document
   if (!empty($patient['notes_path'])) {
+    $notesAbsPath = $getAbsolutePath($patient['notes_path']);
+
     $documents[] = [
       'type' => 'Clinical Notes',
       'filename' => basename($patient['notes_path']),
       'path' => $patient['notes_path'],
       'mime' => isset($patient['notes_mime']) ? $patient['notes_mime'] : 'unknown',
-      'extracted_text' => isset($patient['notes_text']) ? $patient['notes_text'] : ''
+      'extracted_text' => isset($patient['notes_text']) ? $patient['notes_text'] : '',
+      'exists' => $notesAbsPath && file_exists($notesAbsPath)
     ];
   }
 
@@ -124,6 +212,41 @@ try {
     $updateStmt->execute([$result['score'], $patientId]);
   } catch (Exception $e) {
     error_log("Failed to save approval score color: " . $e->getMessage());
+    // Don't fail the request, just log the error
+  }
+
+  // Save complete feedback to patient_approval_scores table (for persistence)
+  try {
+    // Check if table exists first
+    $tableCheck = $pdo->query("
+      SELECT COUNT(*) as cnt
+      FROM information_schema.tables
+      WHERE table_name = 'patient_approval_scores'
+    ");
+    $tableExists = (int)$tableCheck->fetchColumn() > 0;
+
+    if ($tableExists) {
+      $insertStmt = $pdo->prepare("
+        INSERT INTO patient_approval_scores
+        (patient_id, score, score_numeric, summary, missing_items, complete_items,
+         recommendations, concerns, document_analysis, created_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ");
+      $insertStmt->execute([
+        $patientId,
+        $result['score'],
+        $result['score_numeric'],
+        $result['summary'],
+        json_encode($result['missing_items']),
+        json_encode($result['complete_items']),
+        json_encode($result['recommendations']),
+        json_encode($result['concerns']),
+        json_encode($result['document_analysis']),
+        $userId
+      ]);
+    }
+  } catch (Exception $e) {
+    error_log("Failed to save complete approval score feedback: " . $e->getMessage());
     // Don't fail the request, just log the error
   }
 
