@@ -166,8 +166,12 @@ try {
     if (!$sign_title && $ud) $sign_title = $ud['sign_title'] ?? 'Physician';
   }
 
-  // 6) Insert order FIRST (no file I/O yet)
-  // Note: Orders start in 'pending_admin_review' status for AI-assisted approval workflow
+  // 6) Determine review status based on save_as_draft parameter
+  $save_as_draft = isset($_POST['save_as_draft']) && $_POST['save_as_draft'] === '1';
+  $review_status = $save_as_draft ? 'draft' : 'pending_admin_review';
+
+  // Insert order FIRST (no file I/O yet)
+  // Note: Orders start in 'pending_admin_review' unless saved as draft
   $sql = "INSERT INTO orders
     (id, patient_id, user_id, product, product_id, product_price, cpt, status, frequency, delivery_mode,
      shipments_remaining, created_at, updated_at,
@@ -184,7 +188,7 @@ try {
      ?,?,?,?,?,?,
      NULL,NULL,NULL,NULL,NULL,NULL,
      ?,?,?,?,?,
-     'pending_admin_review')";
+     ?)";
 
   $pdo->prepare($sql)->execute([
     $order_id, $patient_id, $uid,
@@ -201,7 +205,9 @@ try {
     // shipping
     $shipping_name, $shipping_phone, $shipping_address, $shipping_city, $shipping_state, $shipping_zip,
     // e-sign
-    $uid, $sign_name, $sign_title, date('Y-m-d H:i:s'), $_SERVER['REMOTE_ADDR'] ?? null
+    $uid, $sign_name, $sign_title, date('Y-m-d H:i:s'), $_SERVER['REMOTE_ADDR'] ?? null,
+    // review status
+    $review_status
   ]);
 
   // 7) Respond to client ASAP; then continue with uploads/updates

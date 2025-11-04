@@ -5230,7 +5230,8 @@ if ($page==='logout'){
       </div>
     </div>
 
-    <div class="p-5 border-t flex items-center justify-end">
+    <div class="p-5 border-t flex items-center justify-end gap-3">
+      <button type="button" id="btn-order-draft" class="btn">Save as Draft</button>
       <button type="button" id="btn-order-create" class="btn btn-primary">Submit Order</button>
     </div>
   </form>
@@ -7854,6 +7855,79 @@ async function openOrderDialog(preselectId=null){
       alert('Network or server error: '+e);
     }finally{
       btn.disabled=false; btn.textContent='Submit Order';
+    }
+  };
+
+  // Save as Draft button handler
+  $('#btn-order-draft').onclick=async()=>{
+    const btn=$('#btn-order-draft'); if(btn.disabled) return; btn.disabled=true; btn.textContent='Saving Draft…';
+    try{
+      const pid=$('#chooser-id').value || _currentPatientId;
+      if(!pid){
+        alert('Select or create a patient first');
+        btn.disabled=false; btn.textContent='Save as Draft';
+        return;
+      }
+
+      // Collect wounds data (required even for drafts)
+      const woundsData = collectWoundsData();
+      if (woundsData.length === 0) {
+        alert('Please add at least one wound before saving draft');
+        btn.disabled=false; btn.textContent='Save as Draft';
+        return;
+      }
+
+      // For drafts, we DON'T require:
+      // - Full wound validation
+      // - Required documents (Photo ID, Insurance Card)
+      // - E-signature acknowledgment
+
+      const body=new FormData();
+      body.append('patient_id', pid);
+      body.append('product_id', $('#ord-product').value);
+      body.append('payment_type', document.querySelector('input[name="paytype"]:checked')?.value || 'insurance');
+      body.append('wounds_data', JSON.stringify(woundsData));
+      body.append('last_eval_date', $('#last-eval').value);
+      body.append('start_date', $('#start-date').value);
+      body.append('frequency_per_week', $('#freq-week').value);
+      body.append('qty_per_change', $('#qty-change').value);
+      body.append('duration_days', $('#duration-days').value);
+      body.append('refills_allowed', $('#refills').value);
+      body.append('additional_instructions', $('#addl-instr').value);
+      body.append('secondary_dressing', $('#secondary-dressing').value);
+      body.append('notes_text', $('#ord-notes').value);
+      body.append('delivery_to', document.querySelector('input[name="deliver"]:checked')?.value || 'patient');
+      body.append('shipping_name', $('#ship-name').value);
+      body.append('shipping_phone', $('#ship-phone').value);
+      body.append('shipping_address', $('#ship-addr').value);
+      body.append('shipping_city', $('#ship-city').value);
+      body.append('shipping_state', $('#ship-state').value);
+      body.append('shipping_zip', $('#ship-zip').value);
+      body.append('sign_name', $('#sign-name').value || 'Draft');
+      body.append('sign_title', $('#sign-title').value || 'Draft');
+      body.append('ack_sig', '0'); // Not required for drafts
+
+      // Mark as draft
+      body.append('save_as_draft', '1');
+
+      if($('#file-rx').files[0]) body.append('file_rx_note', $('#file-rx').files[0]);
+
+      const r=await fetch('?action=order.create',{method:'POST',body});
+      const t=await r.text(); let j;
+      try{ j=JSON.parse(t); }catch{ alert('Server returned non-JSON:\n'+t); return; }
+      if(!j.ok){ alert(j.error||'Draft save failed'); return; }
+
+      alert('Draft saved successfully! You can edit and submit it later.');
+      document.getElementById('dlg-order').close();
+
+      // Refresh view
+      const accBtn=document.querySelector(`[data-acc="${pid}"]`);
+      if(accBtn){ const row=accBtn.closest('tr'); toggleAccordion(row,pid,<?php echo json_encode($page); ?>); }
+      if(<?php echo json_encode($page==='orders'); ?>){ const evt=new Event('input'); (document.getElementById('oq')||{dispatchEvent:()=>{}}).dispatchEvent(evt); }
+    }catch(e){
+      alert('Network or server error: '+e);
+    }finally{
+      btn.disabled=false; btn.textContent='Save as Draft';
     }
   };
 
