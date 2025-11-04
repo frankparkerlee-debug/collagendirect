@@ -305,6 +305,10 @@ $trackingSelect = $hasTrackingCol ? "COALESCE(o.tracking_number, '') AS tracking
 $where = [];
 $params = [];
 
+// IMPORTANT: Hide draft orders from all admin users
+// Draft orders are physician-only until submitted
+$where[] = "(o.review_status IS NULL OR o.review_status != 'draft')";
+
 // Role-based access control
 if ($adminRole === 'superadmin' || $adminRole === 'manufacturer' || $adminRole === 'admin') {
   // Superadmin, admin, and manufacturer see all orders - no additional filter

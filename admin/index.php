@@ -49,16 +49,17 @@ function patches_per_week(?string $f): int {
 
 /* ---------- KPIs ---------- */
 // Filter KPIs by role - sales/ops/employees only see assigned physicians
+// IMPORTANT: Exclude draft orders from all admin views
 if ($adminRole === 'superadmin' || $adminRole === 'manufacturer' || $adminRole === 'admin') {
-  // Admin roles see all data
-  $totalOrders      = qCount($pdo, "SELECT COUNT(*) c FROM orders");
-  $pendingApprovals = qCount($pdo, "SELECT COUNT(*) c FROM orders WHERE status IN ('submitted','pending','awaiting_approval')");
-  $activePatients   = qCount($pdo, "SELECT COUNT(DISTINCT patient_id) c FROM orders WHERE status IN ('approved','in_transit','delivered')");
+  // Admin roles see all data (except drafts)
+  $totalOrders      = qCount($pdo, "SELECT COUNT(*) c FROM orders WHERE (review_status IS NULL OR review_status != 'draft')");
+  $pendingApprovals = qCount($pdo, "SELECT COUNT(*) c FROM orders WHERE status IN ('submitted','pending','awaiting_approval') AND (review_status IS NULL OR review_status != 'draft')");
+  $activePatients   = qCount($pdo, "SELECT COUNT(DISTINCT patient_id) c FROM orders WHERE status IN ('approved','in_transit','delivered') AND (review_status IS NULL OR review_status != 'draft')");
 } else {
-  // Sales/ops/employees only see their assigned physicians
-  $totalOrders      = qCount($pdo, "SELECT COUNT(*) c FROM orders o WHERE EXISTS (SELECT 1 FROM admin_physicians ap WHERE ap.admin_id = ? AND ap.physician_user_id = o.user_id)", [$adminId]);
-  $pendingApprovals = qCount($pdo, "SELECT COUNT(*) c FROM orders o WHERE o.status IN ('submitted','pending','awaiting_approval') AND EXISTS (SELECT 1 FROM admin_physicians ap WHERE ap.admin_id = ? AND ap.physician_user_id = o.user_id)", [$adminId]);
-  $activePatients   = qCount($pdo, "SELECT COUNT(DISTINCT patient_id) c FROM orders o WHERE o.status IN ('approved','in_transit','delivered') AND EXISTS (SELECT 1 FROM admin_physicians ap WHERE ap.admin_id = ? AND ap.physician_user_id = o.user_id)", [$adminId]);
+  // Sales/ops/employees only see their assigned physicians (except drafts)
+  $totalOrders      = qCount($pdo, "SELECT COUNT(*) c FROM orders o WHERE (o.review_status IS NULL OR o.review_status != 'draft') AND EXISTS (SELECT 1 FROM admin_physicians ap WHERE ap.admin_id = ? AND ap.physician_user_id = o.user_id)", [$adminId]);
+  $pendingApprovals = qCount($pdo, "SELECT COUNT(*) c FROM orders o WHERE o.status IN ('submitted','pending','awaiting_approval') AND (o.review_status IS NULL OR o.review_status != 'draft') AND EXISTS (SELECT 1 FROM admin_physicians ap WHERE ap.admin_id = ? AND ap.physician_user_id = o.user_id)", [$adminId]);
+  $activePatients   = qCount($pdo, "SELECT COUNT(DISTINCT patient_id) c FROM orders o WHERE o.status IN ('approved','in_transit','delivered') AND (o.review_status IS NULL OR o.review_status != 'draft') AND EXISTS (SELECT 1 FROM admin_physicians ap WHERE ap.admin_id = ? AND ap.physician_user_id = o.user_id)", [$adminId]);
 }
 
 /* ---------- Revenue Calculations ----------
