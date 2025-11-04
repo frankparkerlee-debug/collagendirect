@@ -454,6 +454,15 @@ PROMPT;
   private function buildApprovalScorePrompt(array $patient, array $documents): string {
     $patientAge = !empty($patient['dob']) ? date_diff(date_create($patient['dob']), date_create('today'))->y : 'Unknown';
 
+    // Helper to safely get and truncate patient data
+    $safe = function($key, $default = 'Not provided', $maxLength = 1000) use ($patient) {
+      $value = $patient[$key] ?? $default;
+      if (empty($value) || $value === '') return $default;
+      // Remove any null bytes and limit length
+      $value = str_replace("\0", '', $value);
+      return mb_substr($value, 0, $maxLength);
+    };
+
     // Format document information
     $documentInfo = '';
     if (!empty($documents)) {
@@ -461,7 +470,9 @@ PROMPT;
       foreach ($documents as $doc) {
         $documentInfo .= "- {$doc['type']}: {$doc['filename']}";
         if (!empty($doc['extracted_text'])) {
-          $documentInfo .= "\n  Content Preview: " . substr($doc['extracted_text'], 0, 500) . "...\n";
+          // Limit extracted text to 2000 chars per document to avoid prompt being too long
+          $extractedPreview = mb_substr(str_replace("\0", '', $doc['extracted_text']), 0, 2000);
+          $documentInfo .= "\n  Content Preview: " . $extractedPreview . "...\n";
         }
         $documentInfo .= "\n";
       }
@@ -469,8 +480,8 @@ PROMPT;
       $documentInfo = "\n\nUPLOADED DOCUMENTS: None yet uploaded\n";
     }
 
-    // Format notes
-    $notes = !empty($patient['notes_text']) ? $patient['notes_text'] : 'No clinical notes provided';
+    // Format notes (limit to 5000 characters to avoid excessive prompt length)
+    $notes = !empty($patient['notes_text']) ? mb_substr(str_replace("\0", '', $patient['notes_text']), 0, 5000) : 'No clinical notes provided';
 
     // Pre-format document status strings (PHP 5 compatibility - can't use ternary in string interpolation)
     $idCardStatus = !empty($patient['id_card_path']) ? 'Uploaded' : 'MISSING';
@@ -483,24 +494,39 @@ PROMPT;
       $notesStatus = 'Entered manually';
     }
 
+    // Build safe patient info strings
+    $firstName = $safe('first_name');
+    $lastName = $safe('last_name');
+    $dob = $safe('dob');
+    $sex = $safe('sex', 'U', 1);
+    $phone = $safe('phone', 'Not provided', 20);
+    $address = $safe('address');
+    $city = $safe('city');
+    $state = $safe('address_state', '', 2);
+    $zip = $safe('zip', '', 10);
+    $insProvider = $safe('insurance_provider');
+    $insMemberId = $safe('insurance_member_id');
+    $insGroupId = $safe('insurance_group_id');
+    $insPayerPhone = $safe('insurance_payer_phone', 'Not provided', 20);
+
     return <<<PROMPT
 You are an expert medical billing and insurance authorization specialist reviewing a patient profile for wound care product authorization.
 
 Your task is to analyze ALL available information and provide a comprehensive approval likelihood score.
 
 PATIENT DEMOGRAPHICS:
-- Name: {$patient['first_name']} {$patient['last_name']}
-- DOB: {$patient['dob']}
+- Name: {$firstName} {$lastName}
+- DOB: {$dob}
 - Age: {$patientAge}
-- Sex: {$patient['sex']}
-- Phone: {$patient['phone']}
-- Address: {$patient['address']}, {$patient['city']}, {$patient['address_state']} {$patient['zip']}
+- Sex: {$sex}
+- Phone: {$phone}
+- Address: {$address}, {$city}, {$state} {$zip}
 
 INSURANCE INFORMATION:
-- Provider: {$patient['insurance_provider']}
-- Member ID: {$patient['insurance_member_id']}
-- Group ID: {$patient['insurance_group_id']}
-- Payer Phone: {$patient['insurance_payer_phone']}
+- Provider: {$insProvider}
+- Member ID: {$insMemberId}
+- Group ID: {$insGroupId}
+- Payer Phone: {$insPayerPhone}
 
 DOCUMENTATION STATUS:
 - Photo ID: {$idCardStatus}
