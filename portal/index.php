@@ -1441,7 +1441,7 @@ if ($action) {
     fclose($output);
 
     // Mark as exported
-    $encounterIds = array_column($encounters, 'id');
+    $encounterIds = array_column($encounters, 'encounter_id');
     if (!empty($encounterIds)) {
       $placeholders = implode(',', array_fill(0, count($encounterIds), '?'));
       $pdo->prepare("UPDATE billable_encounters SET exported = TRUE, exported_at = NOW() WHERE id IN ($placeholders)")
@@ -3892,41 +3892,53 @@ if ($page==='logout'){
     <main class="content-area">
 <?php if ($page==='dashboard'): ?>
   <!-- Stat Cards -->
-  <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-    <a href="?page=patients" class="card p-5 no-underline cursor-pointer transition-all hover:shadow-lg hover:scale-105" style="text-decoration: none; border-left: 4px solid #3b82f6;">
-      <div class="flex items-center justify-between mb-3">
-        <div class="text-sm text-muted" style="color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Total Patients</div>
-        <svg style="width: 24px; height: 24px; color: #3b82f6;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+  <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <a href="?page=patients" class="card no-underline cursor-pointer transition-all hover:shadow-2xl hover:scale-105 hover:-translate-y-1" style="text-decoration: none; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: none; padding: 1.5rem; border-radius: 16px; position: relative; overflow: hidden;">
+      <div style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: rgba(59, 130, 246, 0.1); border-radius: 50%;"></div>
+      <div class="flex items-center justify-between mb-4">
+        <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">
+          <svg style="width: 24px; height: 24px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+        </div>
       </div>
-      <div id="m-patients" class="text-3xl font-bold mb-1" style="color: #1e293b;">-</div>
-      <div class="text-xs" style="color: #94a3b8;">Registered in system</div>
+      <div class="text-xs font-semibold mb-1" style="color: #64748b; text-transform: uppercase; letter-spacing: 0.1em;">Total Patients</div>
+      <div id="m-patients" class="text-4xl font-bold mb-2" style="color: #1e293b;">-</div>
+      <div class="text-xs" style="color: #64748b;">Registered in system</div>
     </a>
 
-    <a href="?page=orders&status=active" class="card p-5 no-underline cursor-pointer transition-all hover:shadow-lg hover:scale-105" style="text-decoration: none; border-left: 4px solid #10b981;">
-      <div class="flex items-center justify-between mb-3">
-        <div class="text-sm text-muted" style="color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Active Orders</div>
-        <svg style="width: 24px; height: 24px; color: #10b981;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+    <a href="?page=orders&status=active" class="card no-underline cursor-pointer transition-all hover:shadow-2xl hover:scale-105 hover:-translate-y-1" style="text-decoration: none; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: none; padding: 1.5rem; border-radius: 16px; position: relative; overflow: hidden;">
+      <div style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: rgba(16, 185, 129, 0.1); border-radius: 50%;"></div>
+      <div class="flex items-center justify-between mb-4">
+        <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
+          <svg style="width: 24px; height: 24px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        </div>
       </div>
-      <div id="m-active" class="text-3xl font-bold mb-1" style="color: #1e293b;">-</div>
-      <div class="text-xs" style="color: #94a3b8;">Approved & shipped</div>
+      <div class="text-xs font-semibold mb-1" style="color: #64748b; text-transform: uppercase; letter-spacing: 0.1em;">Active Orders</div>
+      <div id="m-active" class="text-4xl font-bold mb-2" style="color: #1e293b;">-</div>
+      <div class="text-xs" style="color: #64748b;">Approved & shipped</div>
     </a>
 
-    <a href="?page=orders&status=pending" class="card p-5 no-underline cursor-pointer transition-all hover:shadow-lg hover:scale-105" style="text-decoration: none; border-left: 4px solid #f59e0b;">
-      <div class="flex items-center justify-between mb-3">
-        <div class="text-sm text-muted" style="color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Pending Orders</div>
-        <svg style="width: 24px; height: 24px; color: #f59e0b;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+    <a href="?page=orders&status=pending" class="card no-underline cursor-pointer transition-all hover:shadow-2xl hover:scale-105 hover:-translate-y-1" style="text-decoration: none; background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: none; padding: 1.5rem; border-radius: 16px; position: relative; overflow: hidden;">
+      <div style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: rgba(245, 158, 11, 0.1); border-radius: 50%;"></div>
+      <div class="flex items-center justify-between mb-4">
+        <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);">
+          <svg style="width: 24px; height: 24px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        </div>
       </div>
-      <div id="m-pending" class="text-3xl font-bold mb-1" style="color: #1e293b;">-</div>
-      <div class="text-xs" style="color: #94a3b8;">Awaiting approval</div>
+      <div class="text-xs font-semibold mb-1" style="color: #64748b; text-transform: uppercase; letter-spacing: 0.1em;">Pending Orders</div>
+      <div id="m-pending" class="text-4xl font-bold mb-2" style="color: #1e293b;">-</div>
+      <div class="text-xs" style="color: #64748b;">Awaiting approval</div>
     </a>
 
-    <a href="?page=photo-reviews" class="card p-5 no-underline cursor-pointer transition-all hover:shadow-lg hover:scale-105" style="text-decoration: none; background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; border: none;">
-      <div class="flex items-center justify-between mb-3">
-        <div class="text-sm" style="color: rgba(255,255,255,0.95); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Monthly Revenue</div>
-        <svg style="width: 24px; height: 24px; color: rgba(255,255,255,0.9);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+    <a href="?page=photo-reviews" class="card no-underline cursor-pointer transition-all hover:shadow-2xl hover:scale-105 hover:-translate-y-1" style="text-decoration: none; background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; border: none; padding: 1.5rem; border-radius: 16px; position: relative; overflow: hidden; box-shadow: 0 10px 25px rgba(5, 150, 105, 0.3);">
+      <div style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: rgba(255, 255, 255, 0.1); border-radius: 50%;"></div>
+      <div class="flex items-center justify-between mb-4">
+        <div style="width: 48px; height: 48px; background: rgba(255, 255, 255, 0.2); border-radius: 12px; display: flex; align-items: center; justify-center; backdrop-filter: blur(10px);">
+          <svg style="width: 24px; height: 24px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        </div>
       </div>
-      <div id="m-revenue" class="text-3xl font-bold mb-1" style="color: white;">$0</div>
-      <div class="text-xs" style="color: rgba(255,255,255,0.85);"><span id="m-revenue-count">0</span> photo reviews</div>
+      <div class="text-xs font-semibold mb-1" style="color: rgba(255,255,255,0.9); text-transform: uppercase; letter-spacing: 0.1em;">Monthly Revenue</div>
+      <div id="m-revenue" class="text-4xl font-bold mb-2" style="color: white;">$0</div>
+      <div class="text-xs" style="color: rgba(255,255,255,0.8);"><span id="m-revenue-count">0</span> photo reviews</div>
     </a>
   </section>
 
@@ -7172,7 +7184,7 @@ function viewOrderDetails(order) {
         <div>
           <h5 class="font-semibold text-sm mb-2">Clinical Notes</h5>
           <div class="text-sm">
-            <a href="?action=file.download&path=${encodeURIComponent(order.rx_note_path)}" target="_blank" class="text-blue-600 hover:underline">
+            <a href="?action=file.dl&order_id=${esc(order.id)}" target="_blank" class="text-blue-600 hover:underline">
               ${esc(order.rx_note_name || 'View Clinical Note')}
             </a>
           </div>
