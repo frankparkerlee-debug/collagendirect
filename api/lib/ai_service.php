@@ -613,6 +613,11 @@ PROMPT;
    * Call Claude API with the given prompt
    */
   private function callClaudeAPI(string $prompt, int $maxTokens = 2048): string {
+    // Validate prompt is not empty
+    if (empty($prompt) || trim($prompt) === '') {
+      throw new Exception("Prompt cannot be empty");
+    }
+
     $data = [
       'model' => $this->model,
       'max_tokens' => $maxTokens,
@@ -624,11 +629,21 @@ PROMPT;
       ]
     ];
 
+    $jsonData = json_encode($data);
+
+    // Validate JSON encoding succeeded
+    if ($jsonData === false) {
+      throw new Exception("Failed to encode request as JSON: " . json_last_error_msg());
+    }
+
+    // Log request size for debugging
+    error_log("[AIService] Sending request to Claude API - Prompt length: " . strlen($prompt) . " chars, JSON length: " . strlen($jsonData) . " bytes");
+
     $ch = curl_init($this->apiUrl);
     curl_setopt_array($ch, [
       CURLOPT_RETURNTRANSFER => true,
       CURLOPT_POST => true,
-      CURLOPT_POSTFIELDS => json_encode($data),
+      CURLOPT_POSTFIELDS => $jsonData,
       CURLOPT_HTTPHEADER => [
         'Content-Type: application/json',
         'x-api-key: ' . $this->apiKey,

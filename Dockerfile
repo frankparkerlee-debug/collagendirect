@@ -1,6 +1,6 @@
 FROM php:8.3-apache
 
-# Install dependencies including cron
+# Install dependencies including cron and poppler-utils (for pdftotext)
 RUN apt-get update && apt-get install -y \
     libzip-dev \
     libpq-dev \
@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     git \
     curl \
     cron \
+    poppler-utils \
     && docker-php-ext-install pdo pdo_pgsql pgsql zip \
     && a2enmod rewrite \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
