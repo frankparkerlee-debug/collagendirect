@@ -45,7 +45,7 @@ function getOrderDisplayStatus(order) {
 
       case 'pending_admin_review':
         return {
-          status: 'Submitted',
+          status: 'Pending',
           editable: !order.locked_at,
           color: 'blue',
           bgColor: 'bg-blue-50',
@@ -128,9 +128,9 @@ function getOrderDisplayStatus(order) {
     }
   }
 
-  // Default: Submitted
+  // Default: Pending
   return {
-    status: 'Submitted',
+    status: 'Pending',
     editable: true,
     color: 'blue',
     bgColor: 'bg-blue-50',
@@ -138,7 +138,7 @@ function getOrderDisplayStatus(order) {
     borderColor: 'border-l-blue-500',
     badgeBg: 'bg-blue-100',
     badgeText: 'text-blue-800',
-    description: 'Order submitted'
+    description: 'Order pending review'
   };
 }
 

@@ -279,26 +279,12 @@ async function acceptAISuggestions(orderId) {
   }
 }
 
-/**
- * Open order edit dialog
- */
-function openOrderEditDialog(orderId) {
-  // TODO: Implement order edit form
-  // For now, just show a message
-  alert('Order edit form coming soon! Order ID: ' + orderId);
-
-  // This would open a dialog with editable fields for:
-  // - wound_location, wound_laterality, wound_notes
-  // - frequency
-  // - delivery_mode
-  // - shipping details
-  // - insurance details (if payment_type is insurance)
-}
+// Note: openOrderEditDialog is defined in order-edit-dialog.html
+// It will be exported to window.openOrderEditDialog by that file
 
 // Export functions for use in main portal
 if (typeof window !== 'undefined') {
   window.viewOrderDetailsEnhanced = viewOrderDetailsEnhanced;
   window.acceptAISuggestions = acceptAISuggestions;
-  window.openOrderEditDialog = openOrderEditDialog;
   window.REVIEW_STATUS_BADGES = REVIEW_STATUS_BADGES;
 }
