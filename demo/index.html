@@ -453,206 +453,139 @@
     </div>
   </section>
 
-  <!-- ROI Calculator -->
+  <!-- Wound Photo Revenue Calculator -->
   <section id="roi" class="py-20 bg-gradient-to-br from-brand-navy to-slate-900 text-white">
-    <div class="max-w-4xl mx-auto px-6">
+    <div class="max-w-5xl mx-auto px-6">
       <div class="text-center mb-12">
-        <h2 class="text-4xl font-black mb-4">Calculate Your Savings</h2>
-        <p class="text-xl text-slate-300">See exactly how much time and money you'll save by switching to CollagenDirect</p>
+        <div class="inline-flex items-center gap-2 bg-emerald-500/20 backdrop-blur px-6 py-3 rounded-full text-sm font-bold mb-6">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"></path>
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"></path>
+          </svg>
+          REVENUE CALCULATOR
+        </div>
+        <h2 class="text-5xl font-black mb-4">Calculate Your Wound Photo Revenue</h2>
+        <p class="text-xl text-slate-300">See exactly how much revenue you can generate through AI-powered wound photo documentation</p>
       </div>
 
-      <div class="bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/20">
-        <div class="grid md:grid-cols-2 gap-8 mb-8">
+      <div class="bg-white/10 backdrop-blur-xl rounded-3xl p-10 border border-white/20">
+        <!-- Calculator Inputs -->
+        <div class="grid md:grid-cols-2 gap-8 mb-10">
           <div>
-            <label class="block text-sm font-bold mb-2">Collagen Orders Per Week</label>
-            <input type="number" id="ordersPerWeek" value="20" class="w-full px-4 py-3 rounded-xl bg-white/20 border-2 border-white/30 text-white text-lg font-bold focus:outline-none focus:border-brand-teal" onchange="calculateROI()">
+            <label class="block text-sm font-bold mb-3">Number of Wound Care Patients</label>
+            <input type="number" id="patientCount" value="50" min="1" class="w-full px-6 py-4 rounded-xl bg-white/20 border-2 border-white/30 text-white text-2xl font-bold text-center focus:outline-none focus:border-emerald-400 transition" oninput="calculateWoundRevenue()">
+            <p class="text-xs text-slate-400 mt-2 text-center">Patients in your wound care program</p>
           </div>
           <div>
-            <label class="block text-sm font-bold mb-2">Staff Hourly Rate ($)</label>
-            <input type="number" id="hourlyRate" value="25" class="w-full px-4 py-3 rounded-xl bg-white/20 border-2 border-white/30 text-white text-lg font-bold focus:outline-none focus:border-brand-teal" onchange="calculateROI()">
+            <label class="block text-sm font-bold mb-3">Average Wound Complexity</label>
+            <select id="complexity" class="w-full px-6 py-4 rounded-xl bg-white/20 border-2 border-white/30 text-white text-lg font-bold focus:outline-none focus:border-emerald-400 transition" onchange="calculateWoundRevenue()">
+              <option value="92" style="color: #000;">99213 - Simple ($92)</option>
+              <option value="130" selected style="color: #000;">99214 - Moderate ($130)</option>
+              <option value="180" style="color: #000;">99215 - Complex ($180)</option>
+            </select>
+            <p class="text-xs text-slate-400 mt-2 text-center">Typical reimbursement per review</p>
           </div>
         </div>
 
-        <div class="grid md:grid-cols-3 gap-6">
-          <div class="bg-gradient-to-br from-brand-teal to-emerald-500 rounded-2xl p-6 text-center">
-            <div class="text-sm font-bold mb-2 text-teal-100">Time Saved Per Week</div>
-            <div class="text-4xl font-black mb-1"><span id="hoursSaved">13</span> hrs</div>
-            <div class="text-xs text-teal-100">vs traditional ordering</div>
+        <!-- Assumption Display -->
+        <div class="bg-emerald-900/30 border-2 border-emerald-500 rounded-xl p-6 mb-10 text-center">
+          <p class="text-sm font-bold text-emerald-300 mb-2">📋 Calculation Assumption</p>
+          <p class="text-emerald-100">Each patient submits <strong class="text-white">5 wound photos per month</strong> for review</p>
+          <p class="text-xs text-emerald-200 mt-2">(Weekly photos = ~4-5 reviews/month depending on month length)</p>
+        </div>
+
+        <!-- Results -->
+        <div class="grid md:grid-cols-3 gap-6 mb-8">
+          <div class="bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl p-6 text-center">
+            <div class="text-sm font-bold mb-2 text-emerald-100">Monthly Reviews</div>
+            <div class="text-5xl font-black mb-1"><span id="monthlyReviews">250</span></div>
+            <div class="text-xs text-emerald-100">photo assessments</div>
           </div>
-          <div class="bg-gradient-to-br from-yellow-500 to-orange-500 rounded-2xl p-6 text-center">
-            <div class="text-sm font-bold mb-2 text-yellow-100">Money Saved Per Month</div>
-            <div class="text-4xl font-black mb-1">$<span id="moneySaved">1,300</span></div>
-            <div class="text-xs text-yellow-100">in staff costs alone</div>
+          <div class="bg-gradient-to-br from-teal-500 to-green-500 rounded-2xl p-6 text-center">
+            <div class="text-sm font-bold mb-2 text-teal-100">Monthly Revenue</div>
+            <div class="text-5xl font-black mb-1">$<span id="monthlyRevenue">32,500</span></div>
+            <div class="text-xs text-teal-100">E/M billing income</div>
           </div>
-          <div class="bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl p-6 text-center">
-            <div class="text-sm font-bold mb-2 text-green-100">Annual Savings</div>
-            <div class="text-4xl font-black mb-1">$<span id="annualSaved">15,600</span></div>
-            <div class="text-xs text-green-100">year one ROI</div>
+          <div class="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-6 text-center shadow-2xl">
+            <div class="text-sm font-bold mb-2 text-green-100">Annual Revenue</div>
+            <div class="text-5xl font-black mb-1">$<span id="annualRevenue">390,000</span></div>
+            <div class="text-xs text-green-100">projected yearly</div>
           </div>
         </div>
 
-        <div class="mt-8 bg-yellow-900/30 border-2 border-yellow-500 rounded-xl p-6">
-          <p class="text-sm font-bold mb-2">💰 Not Included in This Calculation:</p>
-          <ul class="text-sm text-yellow-100 space-y-1 ml-6 list-disc">
-            <li>Cash flow improvement from zero denied claims (2-5% of revenue)</li>
-            <li>Ability to see more patients (faster treatment = more throughput)</li>
-            <li>Better patient outcomes (40% faster healing = better reviews & referrals)</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Patient Throughput Calculator -->
-  <section class="py-20 bg-white">
-    <div class="max-w-7xl mx-auto px-6">
-      <div class="text-center mb-16">
-        <h2 class="text-4xl font-black text-gray-900 mb-4">See More Patients, Grow Your Practice</h2>
-        <p class="text-xl text-gray-600">Calculate how many additional patients you can treat with faster ordering</p>
-      </div>
-
-      <div class="grid lg:grid-cols-2 gap-12 items-center">
-        <div>
-          <h3 class="text-2xl font-bold text-gray-900 mb-4">The Math Is Simple</h3>
-          <p class="text-lg text-gray-700 mb-6">
-            When your staff spends 20 minutes on the phone per order (vs 2 minutes), that's 18 minutes wasted. Multiply that by 20 orders per week, and you're losing 6+ hours of productive time.
-          </p>
-          <div class="space-y-4">
-            <div class="bg-red-50 border-l-4 border-red-500 p-6 rounded-r-xl">
-              <p class="font-bold text-red-900 mb-2">Traditional Ordering</p>
-              <div class="text-sm text-red-800 space-y-1">
-                <p>• 20 minutes per order (phone calls, hold time, faxing)</p>
-                <p>• 20 orders/week = 400 minutes (6.7 hours)</p>
-                <p>• That's <strong>nearly a full workday lost</strong> every week</p>
-              </div>
-            </div>
-            <div class="bg-green-50 border-l-4 border-green-500 p-6 rounded-r-xl">
-              <p class="font-bold text-green-900 mb-2">CollagenDirect Ordering</p>
-              <div class="text-sm text-green-800 space-y-1">
-                <p>• 2 minutes per order (portal-based, pre-verified coverage)</p>
-                <p>• 20 orders/week = 40 minutes (0.7 hours)</p>
-                <p>• Saves <strong>6 hours per week</strong> for patient care</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-gradient-to-br from-brand-navy to-slate-900 rounded-3xl p-10 text-white">
-          <h3 class="text-3xl font-black mb-8">What Can You Do With 6 Extra Hours?</h3>
-          <div class="space-y-6">
-            <div class="flex items-start gap-4">
-              <div class="w-12 h-12 bg-brand-teal rounded-xl flex items-center justify-center flex-shrink-0">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                </svg>
-              </div>
-              <div>
-                <p class="font-bold text-lg mb-1">See 6-8 More Patients</p>
-                <p class="text-sm text-slate-300">At 45 min/appointment = 8 additional patient visits per week</p>
-              </div>
-            </div>
-
-            <div class="flex items-start gap-4">
-              <div class="w-12 h-12 bg-brand-teal rounded-xl flex items-center justify-center flex-shrink-0">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-              </div>
-              <div>
-                <p class="font-bold text-lg mb-1">$12,000+ Extra Revenue/Month</p>
-                <p class="text-sm text-slate-300">8 patients × $400 avg reimbursement × 4 weeks = $12,800</p>
-              </div>
-            </div>
-
-            <div class="flex items-start gap-4">
-              <div class="w-12 h-12 bg-brand-teal rounded-xl flex items-center justify-center flex-shrink-0">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-              </div>
-              <div>
-                <p class="font-bold text-lg mb-1">Happier Staff</p>
-                <p class="text-sm text-slate-300">Less phone time = more patient interaction and job satisfaction</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Cash Flow Impact -->
-  <section class="py-20 bg-gradient-to-br from-blue-50 to-indigo-50">
-    <div class="max-w-7xl mx-auto px-6">
-      <div class="text-center mb-16">
-        <h2 class="text-4xl font-black text-gray-900 mb-4">Protect Your Cash Flow</h2>
-        <p class="text-xl text-gray-600">Pre-verification eliminates surprise denials that hurt your bottom line</p>
-      </div>
-
-      <div class="max-w-5xl mx-auto">
-        <div class="bg-white rounded-3xl p-10 shadow-xl mb-8">
-          <h3 class="text-2xl font-bold text-gray-900 mb-6">The Hidden Cost of Denied Claims</h3>
-
-          <div class="grid md:grid-cols-3 gap-8 mb-8">
-            <div class="text-center">
-              <div class="text-5xl font-black text-red-600 mb-2">5%</div>
-              <p class="text-sm text-gray-600">Typical denial rate without pre-verification</p>
-            </div>
-            <div class="text-center">
-              <div class="text-5xl font-black text-red-600 mb-2">30</div>
-              <p class="text-sm text-gray-600">Days before you find out about the denial</p>
-            </div>
-            <div class="text-center">
-              <div class="text-5xl font-black text-red-600 mb-2">$3K+</div>
-              <p class="text-sm text-gray-600">Average monthly loss from denials (20 orders × 5% × $300)</p>
-            </div>
-          </div>
-
-          <div class="bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl p-8 text-white">
-            <h4 class="text-2xl font-black mb-4">With CollagenDirect Pre-Verification:</h4>
-            <div class="grid md:grid-cols-2 gap-6">
-              <div>
-                <div class="text-4xl font-black mb-2">Know Before You Order</div>
-                <p class="text-sm text-green-100">We verify coverage before you commit</p>
-              </div>
-              <div>
-                <div class="text-4xl font-black mb-2">~0% Denial Rate</div>
-                <p class="text-sm text-green-100">Only order when we confirm it's covered</p>
-              </div>
-            </div>
-            <div class="mt-6 bg-white/20 backdrop-blur rounded-xl p-6">
-              <p class="font-bold mb-2">Annual Cash Flow Impact:</p>
-              <p class="text-3xl font-black">Save $36,000+ Per Year</p>
-              <p class="text-sm text-green-100 mt-2">$3,000/month × 12 months = money that stays in your practice</p>
-              <p class="text-xs text-green-100 mt-3">+ AI assists with note review to strengthen prior auth requests</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="grid md:grid-cols-2 gap-8">
-          <div class="bg-white rounded-2xl p-8 border-2 border-blue-200">
-            <div class="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center mb-6">
-              <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        <!-- Additional Context -->
+        <div class="grid md:grid-cols-2 gap-6">
+          <div class="bg-white/5 rounded-xl p-6 border border-white/10">
+            <h4 class="font-bold text-lg mb-4 flex items-center gap-2">
+              <svg class="w-5 h-5 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
+                <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
               </svg>
-            </div>
-            <h4 class="text-xl font-bold text-gray-900 mb-3">Predictable Revenue</h4>
-            <p class="text-gray-700">No more surprise $300 denials. Know exactly what you'll collect before you order.</p>
+              AI-Powered Efficiency
+            </h4>
+            <ul class="space-y-2 text-sm text-slate-300">
+              <li class="flex items-center gap-2">
+                <span class="text-emerald-400">✓</span>
+                <span>Review takes 5-10 minutes per photo</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="text-emerald-400">✓</span>
+                <span>AI generates clinical notes automatically</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="text-emerald-400">✓</span>
+                <span>Smart CPT code suggestions</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="text-emerald-400">✓</span>
+                <span>One-click export to PM system</span>
+              </li>
+            </ul>
           </div>
 
-          <div class="bg-white rounded-2xl p-8 border-2 border-blue-200">
-            <div class="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center mb-6">
-              <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+          <div class="bg-white/5 rounded-xl p-6 border border-white/10">
+            <h4 class="font-bold text-lg mb-4 flex items-center gap-2">
+              <svg class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
               </svg>
-            </div>
-            <h4 class="text-xl font-bold text-gray-900 mb-3">Better Forecasting</h4>
-            <p class="text-gray-700">When you know coverage upfront, you can accurately project monthly collections.</p>
+              100% Compliance
+            </h4>
+            <ul class="space-y-2 text-sm text-slate-300">
+              <li class="flex items-center gap-2">
+                <span class="text-blue-400">✓</span>
+                <span>Automatic audit trails for every review</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="text-blue-400">✓</span>
+                <span>Medical necessity documentation</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="text-blue-400">✓</span>
+                <span>Telehealth modifier automation</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="text-blue-400">✓</span>
+                <span>98% reimbursement success rate</span>
+              </li>
+            </ul>
           </div>
         </div>
       </div>
+
+      <div class="mt-8 text-center">
+        <p class="text-slate-300 mb-6">
+          <strong class="text-white">This calculator is based on conservative estimates.</strong> Many practices achieve higher revenue with more frequent reviews or higher complexity cases.
+        </p>
+        <a href="#register" class="inline-flex items-center gap-2 px-10 py-5 bg-gradient-to-r from-emerald-500 to-green-500 text-white text-lg font-bold rounded-xl hover:shadow-2xl hover:scale-105 transition-all">
+          Start Generating Revenue Today
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+          </svg>
+        </a>
+      </div>
     </div>
   </section>
+
 
   <!-- Competitive Comparison -->
   <section class="py-20 bg-white">
@@ -770,24 +703,23 @@
   </footer>
 
   <script>
-    function calculateROI() {
-      const ordersPerWeek = parseFloat(document.getElementById('ordersPerWeek').value) || 20;
-      const hourlyRate = parseFloat(document.getElementById('hourlyRate').value) || 25;
+    function calculateWoundRevenue() {
+      const patients = parseInt(document.getElementById('patientCount').value) || 50;
+      const rate = parseFloat(document.getElementById('complexity').value) || 130;
 
-      // Traditional: 20 min per order = 0.33 hours
-      // CollagenDirect: 2 min per order = 0.03 hours
-      // Savings: 0.30 hours per order
-      const hoursSavedPerWeek = ordersPerWeek * 0.30;
-      const moneySavedPerMonth = hoursSavedPerWeek * hourlyRate * 4;
-      const annualSaved = moneySavedPerMonth * 12;
+      // 5 reviews per patient per month (assumption)
+      const monthlyReviews = patients * 5;
+      const monthlyRevenue = monthlyReviews * rate;
+      const annualRevenue = monthlyRevenue * 12;
 
-      document.getElementById('hoursSaved').textContent = Math.round(hoursSavedPerWeek);
-      document.getElementById('moneySaved').textContent = Math.round(moneySavedPerMonth).toLocaleString();
-      document.getElementById('annualSaved').textContent = Math.round(annualSaved).toLocaleString();
+      // Update display with formatted numbers
+      document.getElementById('monthlyReviews').textContent = monthlyReviews.toLocaleString();
+      document.getElementById('monthlyRevenue').textContent = monthlyRevenue.toLocaleString();
+      document.getElementById('annualRevenue').textContent = annualRevenue.toLocaleString();
     }
 
-    // Initial calculation
-    calculateROI();
+    // Initialize calculator on page load
+    calculateWoundRevenue();
   </script>
 
 </body>
