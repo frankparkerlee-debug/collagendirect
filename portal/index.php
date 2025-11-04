@@ -5406,6 +5406,9 @@ if ($page==='logout'){
   </form>
 </dialog>
 
+<!-- Order Status Helper - Must load before renderPatientDetailPage() -->
+<script src="/portal/order-status-helper.js"></script>
+
 <script>
 const $=s=>document.querySelector(s);
 const fd=o=>{const f=new FormData(); for(const [k,v] of Object.entries(o)) f.append(k,v??''); return f;};
@@ -9383,7 +9386,6 @@ if (<?php echo json_encode($page === 'practice'); ?>) {
 </script>
 
 <!-- Order Workflow Enhancement -->
-<script src="/portal/order-status-helper.js"></script>
 <script src="/portal/order-workflow.js"></script>
 <?php include __DIR__ . '/order-edit-dialog.html'; ?>
 
