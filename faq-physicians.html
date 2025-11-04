@@ -112,34 +112,39 @@
   <nav class="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-100">
     <div class="max-w-7xl mx-auto px-6 lg:px-8">
       <div class="flex items-center justify-between h-20">
-        <a href="/" class="flex items-center gap-3">
-          <img src="/assets/collagendirect.png" alt="CollagenDirect" class="h-8 w-auto">
-          <div class="hidden sm:block">
-            <div class="text-sm font-bold tracking-tight text-gray-900">CollagenDirect</div>
-            <div class="text-xs text-gray-500">Advanced Wound Care</div>
-          </div>
-        </a>
+        <!-- Logo -->
+        <div class="flex items-center">
+          <a href="/"><img src="/assets/collagendirect.png" alt="CollagenDirect" class="h-10 w-auto"></a>
+        </div>
+
+        <!-- Desktop Navigation -->
         <div class="hidden md:flex items-center gap-8">
           <a href="/#products" class="text-sm font-semibold text-gray-700 hover:text-gray-900 transition">Products</a>
           <a href="/for-healthcare-professionals/" class="text-sm font-semibold text-gray-700 hover:text-gray-900 transition">For Professionals</a>
           <a href="/clinical-evidence/" class="text-sm font-semibold text-gray-700 hover:text-gray-900 transition">Clinical Evidence</a>
           <a href="/resources/" class="text-sm font-semibold text-gray-700 hover:text-gray-900 transition">Resources</a>
           <a href="/login" class="text-sm font-semibold text-gray-700 hover:text-gray-900 transition">Sign In</a>
-          <a href="/register" class="px-5 py-2.5 bg-gradient-to-r from-brand-teal to-emerald-500 text-white text-sm font-bold rounded-xl hover:shadow-lg hover:shadow-brand-teal/30 transition-all">Get Started</a>
+          <a href="/register" class="px-5 py-2.5 bg-gradient-to-r from-brand-teal to-emerald-500 text-white text-sm font-bold rounded-xl hover:shadow-lg hover:shadow-brand-teal/30 transition-all duration-200">
+            Get Started
+          </a>
         </div>
-        <button class="md:hidden p-2" onclick="toggleMobileMenu()">
+
+        <!-- Mobile Menu Button -->
+        <button class="md:hidden p-2 rounded-lg hover:bg-gray-100" onclick="toggleMobileMenu()">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
           </svg>
         </button>
       </div>
-      <div id="mobileMenu" class="hidden md:hidden pb-4">
-        <a href="/#products" class="block py-2 text-gray-700">Products</a>
-        <a href="/for-healthcare-professionals/" class="block py-2 text-gray-700">For Professionals</a>
-        <a href="/clinical-evidence/" class="block py-2 text-gray-700">Clinical Evidence</a>
-        <a href="/resources/" class="block py-2 text-gray-700">Resources</a>
-        <a href="/login" class="block py-2 text-gray-700">Sign In</a>
-        <a href="/register" class="block py-2 text-brand-teal font-semibold">Get Started</a>
+
+      <!-- Mobile Menu -->
+      <div id="mobileMenu" class="hidden md:hidden border-t border-gray-100 py-4 space-y-3">
+        <a href="/#products" class="block px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 rounded-lg">Products</a>
+        <a href="/for-healthcare-professionals/" class="block px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 rounded-lg">For Professionals</a>
+        <a href="/clinical-evidence/" class="block px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 rounded-lg">Clinical Evidence</a>
+        <a href="/resources/" class="block px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 rounded-lg">Resources</a>
+        <a href="/login" class="block px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 rounded-lg">Sign In</a>
+        <a href="/register" class="block px-4 py-2 bg-brand-teal text-white text-sm font-bold rounded-lg text-center">Get Started</a>
       </div>
     </div>
   </nav>
@@ -544,10 +549,13 @@
           <ul class="space-y-2 text-sm">
             <li><a href="/for-healthcare-professionals/" class="text-gray-600 hover:text-brand-teal transition">For Professionals</a></li>
             <li><a href="/clinical-evidence/" class="text-gray-600 hover:text-brand-teal transition">Clinical Evidence</a></li>
-            <li><a href="/resources/" class="text-gray-600 hover:text-brand-teal transition">Educational Content</a></li>
+            <li><a href="/insurance-coverage.html" class="text-gray-600 hover:text-brand-teal transition">Insurance Coverage</a></li>
             <li><a href="/faq-physicians.html" class="text-gray-600 hover:text-brand-teal transition">Physician FAQ</a></li>
             <li><a href="/faq-patients.html" class="text-gray-600 hover:text-brand-teal transition">Patient FAQ</a></li>
-            <li><a href="/insurance-coverage.html" class="text-gray-600 hover:text-brand-teal transition">Insurance Coverage</a></li>
+            <li><a href="/portal-guide.php" class="text-gray-600 hover:text-brand-teal transition">Portal Guide</a></li>
+            <li><a href="/resources/" class="text-gray-600 hover:text-brand-teal transition">Educational Content</a></li>
+            <li><a href="/register" class="text-gray-600 hover:text-brand-teal transition">Register</a></li>
+            <li><a href="/login" class="text-gray-600 hover:text-brand-teal transition">Sign In</a></li>
           </ul>
         </div>
 
