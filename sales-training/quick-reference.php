@@ -141,6 +141,66 @@ if (!$authorized) {
         </div>
       </section>
 
+      <!-- NEW: Wound Photo Review & E/M Billing Revenue -->
+      <section class="mb-10">
+        <h2 class="text-2xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-emerald-600">💰 NEW: Revenue-Generating Feature</h2>
+        <div class="bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-emerald-300 rounded-xl p-6 mb-6">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 bg-emerald-600 rounded-xl flex items-center justify-center text-white text-2xl font-bold">$</div>
+            <div>
+              <h3 class="text-xl font-black text-emerald-900">AI-Powered Wound Photo Reviews</h3>
+              <p class="text-sm text-emerald-700">Generate $150k+ annually through telehealth documentation</p>
+            </div>
+          </div>
+          <div class="space-y-3 text-sm">
+            <div class="bg-white rounded-lg p-4">
+              <p class="font-bold text-gray-900 mb-2">How It Works:</p>
+              <ol class="space-y-1 text-gray-700 ml-5 list-decimal">
+                <li>Patients text wound photos via SMS/MMS (Twilio integration)</li>
+                <li>Physician reviews photos in secure portal (5-10 minutes)</li>
+                <li>AI automatically generates comprehensive clinical notes</li>
+                <li>System suggests appropriate E/M code (99213-99215)</li>
+                <li>Export billing data to practice management system</li>
+              </ol>
+            </div>
+            <div class="grid md:grid-cols-3 gap-3">
+              <div class="bg-white rounded-lg p-4 border-2 border-emerald-200">
+                <div class="text-lg font-black text-emerald-700 mb-1">99213</div>
+                <div class="text-xs font-semibold text-gray-700 mb-1">Straightforward</div>
+                <div class="text-2xl font-black text-emerald-600">$92</div>
+                <div class="text-xs text-gray-600">Simple assessment</div>
+              </div>
+              <div class="bg-white rounded-lg p-4 border-2 border-emerald-300">
+                <div class="text-lg font-black text-emerald-700 mb-1">99214</div>
+                <div class="text-xs font-semibold text-gray-700 mb-1">Moderate Complexity</div>
+                <div class="text-2xl font-black text-emerald-600">$130</div>
+                <div class="text-xs text-gray-600">Multiple wounds</div>
+              </div>
+              <div class="bg-white rounded-lg p-4 border-2 border-emerald-400 shadow-lg">
+                <div class="text-lg font-black text-emerald-700 mb-1">99215</div>
+                <div class="text-xs font-semibold text-gray-700 mb-1">High Complexity</div>
+                <div class="text-2xl font-black text-emerald-600">$180</div>
+                <div class="text-xs text-gray-600">Complex cases</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-purple-50 border border-purple-200 rounded-xl p-6">
+          <h4 class="font-bold text-purple-900 mb-3">💡 Sales Positioning</h4>
+          <div class="space-y-2 text-sm text-purple-800">
+            <p><strong>Lead with efficiency:</strong> "Our AI documentation saves physicians 15-20 minutes per patient review."</p>
+            <p><strong>Emphasize technology:</strong> "Automated compliance validation ensures every note meets payer requirements."</p>
+            <p><strong>Show the math:</strong> "50 patients submitting weekly photos = 200 reviews/month × $130 average = $26k monthly revenue."</p>
+            <p><strong>Compliance reassurance:</strong> "100% audit trail - every photo, note, and timestamp automatically stored for compliance."</p>
+          </div>
+        </div>
+
+        <div class="mt-4 bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg">
+          <p class="text-sm text-amber-900"><strong>⚠️ Important:</strong> Don't lead with specific CPT codes on initial calls. Focus on "revenue opportunity through telehealth wound assessments." Save billing methodology for interested practices. Direct them to <strong>/billing-compliance.html</strong> for full details.</p>
+        </div>
+      </section>
+
       <!-- Pricing Guide -->
       <section class="mb-10">
         <h2 class="text-2xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-brand-teal">Typical Patient Cost</h2>
