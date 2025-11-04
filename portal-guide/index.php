@@ -126,6 +126,7 @@
       <div class="flex gap-8 overflow-x-auto py-4 text-sm font-medium">
         <a href="#getting-started" class="text-gray-700 hover:text-brand-teal font-medium whitespace-nowrap transition-colors">Getting Started</a>
         <a href="#dashboard" class="text-gray-700 hover:text-brand-teal font-medium whitespace-nowrap transition-colors">Dashboard</a>
+        <a href="#photo-reviews" class="text-gray-700 hover:text-brand-teal font-medium whitespace-nowrap transition-colors">Wound Photo Reviews</a>
         <a href="#patients" class="text-gray-700 hover:text-brand-teal font-medium whitespace-nowrap transition-colors">Patient Management</a>
         <a href="#orders" class="text-gray-700 hover:text-brand-teal font-medium whitespace-nowrap transition-colors">Creating Orders</a>
         <a href="#icd10" class="text-gray-700 hover:text-brand-teal font-medium whitespace-nowrap transition-colors">ICD-10 Search</a>
@@ -237,6 +238,314 @@
                 <span>View All Patients</span>
                 <span>→</span>
               </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Wound Photo Reviews & E/M Billing -->
+    <section id="photo-reviews" class="section mb-20">
+      <div class="bg-gradient-to-r from-emerald-50 to-teal-50 border-l-4 border-emerald-500 p-6 rounded-xl shadow-md mb-8">
+        <h4 class="font-bold text-emerald-900 mb-3 flex items-center gap-2 text-xl">
+          <span>💰</span>
+          NEW: Revenue-Generating Wound Photo Reviews
+        </h4>
+        <p class="text-emerald-800 mb-2">Your portal now includes AI-powered wound photo documentation that generates billable telehealth encounters. Review patient-submitted wound photos and automatically generate clinical notes for E/M billing.</p>
+        <p class="text-sm text-emerald-700">Average practice impact: <strong>$150,000+ annually</strong> with comprehensive wound photo programs.</p>
+      </div>
+
+      <h2 class="text-4xl font-bold mb-8">Wound Photo Reviews & Billing</h2>
+
+      <!-- Overview -->
+      <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+        <h3 class="text-2xl font-bold mb-6">How It Works</h3>
+        <div class="grid md:grid-cols-4 gap-6">
+          <div class="text-center">
+            <div class="w-16 h-16 rounded-full gradient-bg text-white flex items-center justify-center text-2xl font-bold mx-auto mb-4">1</div>
+            <h4 class="font-bold mb-2">Patient Submits</h4>
+            <p class="text-sm text-gray-600">Patient texts wound photo via Twilio SMS/MMS</p>
+          </div>
+          <div class="text-center">
+            <div class="w-16 h-16 rounded-full gradient-bg text-white flex items-center justify-center text-2xl font-bold mx-auto mb-4">2</div>
+            <h4 class="font-bold mb-2">You Review</h4>
+            <p class="text-sm text-gray-600">Access pending photos in your portal dashboard</p>
+          </div>
+          <div class="text-center">
+            <div class="w-16 h-16 rounded-full gradient-bg text-white flex items-center justify-center text-2xl font-bold mx-auto mb-4">3</div>
+            <h4 class="font-bold mb-2">AI Documents</h4>
+            <p class="text-sm text-gray-600">AI generates comprehensive clinical notes automatically</p>
+          </div>
+          <div class="text-center">
+            <div class="w-16 h-16 rounded-full gradient-bg text-white flex items-center justify-center text-2xl font-bold mx-auto mb-4">4</div>
+            <h4 class="font-bold mb-2">Export & Bill</h4>
+            <p class="text-sm text-gray-600">Export to practice management system for reimbursement</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Accessing Photo Reviews -->
+      <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+        <h3 class="text-2xl font-bold mb-6">Accessing Pending Photo Reviews</h3>
+
+        <div class="space-y-6">
+          <div class="flex gap-6">
+            <div class="flex-shrink-0">
+              <div class="w-12 h-12 rounded-full gradient-bg text-white flex items-center justify-center text-xl font-bold">1</div>
+            </div>
+            <div class="flex-1">
+              <h4 class="text-lg font-bold mb-2">Navigate to Photo Reviews</h4>
+              <p class="text-gray-600 mb-3">From your dashboard, click <strong>"Photo Reviews"</strong> in the top navigation menu.</p>
+              <div class="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                <p class="text-sm text-blue-800"><strong>Quick Tip:</strong> Your dashboard shows a badge with the number of pending photo reviews waiting for your assessment.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex gap-6">
+            <div class="flex-shrink-0">
+              <div class="w-12 h-12 rounded-full gradient-bg text-white flex items-center justify-center text-xl font-bold">2</div>
+            </div>
+            <div class="flex-1">
+              <h4 class="text-lg font-bold mb-2">Review Photo Queue</h4>
+              <p class="text-gray-600 mb-3">You'll see all pending wound photos organized by:</p>
+              <div class="grid md:grid-cols-3 gap-3">
+                <div class="bg-gray-50 p-3 rounded-lg">
+                  <strong class="text-sm">Patient Name</strong>
+                  <p class="text-xs text-gray-600 mt-1">Quick identification</p>
+                </div>
+                <div class="bg-gray-50 p-3 rounded-lg">
+                  <strong class="text-sm">Wound Location</strong>
+                  <p class="text-xs text-gray-600 mt-1">Anatomical site</p>
+                </div>
+                <div class="bg-gray-50 p-3 rounded-lg">
+                  <strong class="text-sm">Submission Date</strong>
+                  <p class="text-xs text-gray-600 mt-1">Time received</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex gap-6">
+            <div class="flex-shrink-0">
+              <div class="w-12 h-12 rounded-full gradient-bg text-white flex items-center justify-center text-xl font-bold">3</div>
+            </div>
+            <div class="flex-1">
+              <h4 class="text-lg font-bold mb-2">Click to Review Individual Photo</h4>
+              <p class="text-gray-600">Select a photo card to open the detailed review interface.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reviewing Wound Photos -->
+      <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+        <h3 class="text-2xl font-bold mb-6">Performing Wound Assessment</h3>
+
+        <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-lg mb-6">
+          <p class="text-amber-900 text-sm"><strong>Clinical Note:</strong> AI analyzes the wound photo and pre-fills clinical documentation. Review and edit the AI-generated assessment to add your physician-specific observations.</p>
+        </div>
+
+        <div class="space-y-6">
+          <div>
+            <h4 class="text-lg font-bold mb-3">Assessment Fields</h4>
+            <div class="grid md:grid-cols-2 gap-4">
+              <div class="border border-gray-200 rounded-lg p-4">
+                <strong class="text-brand-teal">Wound Size</strong>
+                <p class="text-sm text-gray-600 mt-1">Dimensions in cm (length x width x depth)</p>
+              </div>
+              <div class="border border-gray-200 rounded-lg p-4">
+                <strong class="text-brand-teal">Wound Bed Appearance</strong>
+                <p class="text-sm text-gray-600 mt-1">Granulation, slough, eschar, necrotic tissue</p>
+              </div>
+              <div class="border border-gray-200 rounded-lg p-4">
+                <strong class="text-brand-teal">Exudate Level</strong>
+                <p class="text-sm text-gray-600 mt-1">None, minimal, moderate, heavy</p>
+              </div>
+              <div class="border border-gray-200 rounded-lg p-4">
+                <strong class="text-brand-teal">Periwound Condition</strong>
+                <p class="text-sm text-gray-600 mt-1">Erythema, edema, maceration, induration</p>
+              </div>
+              <div class="border border-gray-200 rounded-lg p-4">
+                <strong class="text-brand-teal">Signs of Infection</strong>
+                <p class="text-sm text-gray-600 mt-1">Purulence, increased pain, warmth, odor</p>
+              </div>
+              <div class="border border-gray-200 rounded-lg p-4">
+                <strong class="text-brand-teal">Healing Progress</strong>
+                <p class="text-sm text-gray-600 mt-1">Comparison to previous photos (if available)</p>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h4 class="text-lg font-bold mb-3">AI-Generated Clinical Notes</h4>
+            <div class="bg-purple-50 border border-purple-200 rounded-lg p-6">
+              <div class="flex items-start gap-3 mb-4">
+                <svg class="w-6 h-6 text-purple-600 flex-shrink-0 mt-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
+                  <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
+                </svg>
+                <div class="flex-1">
+                  <h5 class="font-bold text-purple-900 mb-2">What AI Provides:</h5>
+                  <ul class="space-y-2 text-sm text-purple-800">
+                    <li>• <strong>Chief Complaint:</strong> Patient-reported symptoms and concerns</li>
+                    <li>• <strong>Objective Assessment:</strong> Wound measurements, appearance, exudate level</li>
+                    <li>• <strong>Medical Decision Making:</strong> Clinical reasoning and treatment plan</li>
+                    <li>• <strong>Assessment & Plan:</strong> Diagnosis and continued care recommendations</li>
+                    <li>• <strong>Time Documentation:</strong> Encounter duration for billing purposes</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="bg-white rounded p-4 border border-purple-200">
+                <p class="text-sm text-purple-900"><strong>Your Role:</strong> Review the AI-generated note, add your clinical judgment and observations, and ensure medical necessity is documented. You maintain full control and responsibility for the final documentation.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CPT Code Selection & Billing -->
+      <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+        <h3 class="text-2xl font-bold mb-6">E/M Code Selection & Billing</h3>
+
+        <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-6 mb-6">
+          <h4 class="font-bold text-emerald-900 mb-3 flex items-center gap-2">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"></path>
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"></path>
+            </svg>
+            AI-Suggested CPT Codes
+          </h4>
+          <p class="text-emerald-800 mb-4">The platform analyzes encounter complexity and suggests appropriate evaluation & management codes:</p>
+
+          <div class="grid md:grid-cols-3 gap-4">
+            <div class="bg-white rounded-lg p-4 border-2 border-emerald-300">
+              <div class="text-2xl font-black text-emerald-600 mb-2">99213</div>
+              <div class="text-sm font-bold text-gray-900 mb-2">Straightforward</div>
+              <div class="text-xs text-gray-600 mb-3">Simple wound assessment, minimal changes, routine follow-up</div>
+              <div class="text-lg font-bold text-emerald-700">$92</div>
+              <p class="text-xs text-gray-500 mt-1">Avg. reimbursement</p>
+            </div>
+
+            <div class="bg-white rounded-lg p-4 border-2 border-emerald-400">
+              <div class="text-2xl font-black text-emerald-600 mb-2">99214</div>
+              <div class="text-sm font-bold text-gray-900 mb-2">Moderate Complexity</div>
+              <div class="text-xs text-gray-600 mb-3">Multiple wounds, treatment adjustments, comorbidities</div>
+              <div class="text-lg font-bold text-emerald-700">$130</div>
+              <p class="text-xs text-gray-500 mt-1">Avg. reimbursement</p>
+            </div>
+
+            <div class="bg-white rounded-lg p-4 border-2 border-emerald-500 shadow-lg">
+              <div class="text-2xl font-black text-emerald-600 mb-2">99215</div>
+              <div class="text-sm font-bold text-gray-900 mb-2">High Complexity</div>
+              <div class="text-xs text-gray-600 mb-3">Complex wounds, infections, significant decision making</div>
+              <div class="text-lg font-bold text-emerald-700">$180</div>
+              <p class="text-xs text-gray-500 mt-1">Avg. reimbursement</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <div class="bg-gray-50 rounded-lg p-4">
+            <h4 class="font-bold mb-2 flex items-center gap-2">
+              <span class="text-blue-600">📋</span>
+              Documentation Requirements
+            </h4>
+            <p class="text-sm text-gray-700">Each code level requires specific documentation elements. The AI ensures your note meets requirements, but verify:</p>
+            <ul class="mt-2 space-y-1 text-sm text-gray-600 ml-6">
+              <li>• <strong>Medical Necessity:</strong> Why the photo review was clinically indicated</li>
+              <li>• <strong>Time or Complexity:</strong> Document time spent OR medical decision making complexity</li>
+              <li>• <strong>Assessment & Plan:</strong> Clinical findings and treatment recommendations</li>
+            </ul>
+          </div>
+
+          <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <h4 class="font-bold text-yellow-900 mb-2 flex items-center gap-2">
+              <span>⚠️</span>
+              Compliance Notes
+            </h4>
+            <ul class="space-y-2 text-sm text-yellow-800">
+              <li>• <strong>Telehealth Modifier:</strong> Platform automatically applies appropriate telehealth modifiers (95 or GT)</li>
+              <li>• <strong>Frequency Limits:</strong> Generally allow weekly photo reviews per patient; more frequent reviews require documentation of medical necessity</li>
+              <li>• <strong>Physician Responsibility:</strong> You must review and approve all AI-generated documentation before billing</li>
+              <li>• <strong>Audit Protection:</strong> All photos, notes, and timestamps are automatically stored for compliance audits</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Exporting Billing Data -->
+      <div class="bg-white rounded-xl shadow-lg p-8">
+        <h3 class="text-2xl font-bold mb-6">Exporting to Practice Management System</h3>
+
+        <div class="space-y-6">
+          <div class="flex gap-6">
+            <div class="flex-shrink-0">
+              <div class="w-12 h-12 rounded-full gradient-bg text-white flex items-center justify-center text-xl font-bold">1</div>
+            </div>
+            <div class="flex-1">
+              <h4 class="text-lg font-bold mb-2">Navigate to Billing Export</h4>
+              <p class="text-gray-600">Click <strong>"Billing"</strong> in the main navigation menu.</p>
+            </div>
+          </div>
+
+          <div class="flex gap-6">
+            <div class="flex-shrink-0">
+              <div class="w-12 h-12 rounded-full gradient-bg text-white flex items-center justify-center text-xl font-bold">2</div>
+            </div>
+            <div class="flex-1">
+              <h4 class="text-lg font-bold mb-2">Select Date Range</h4>
+              <p class="text-gray-600 mb-3">Choose the billing period you want to export (e.g., current month, last 30 days).</p>
+            </div>
+          </div>
+
+          <div class="flex gap-6">
+            <div class="flex-shrink-0">
+              <div class="w-12 h-12 rounded-full gradient-bg text-white flex items-center justify-center text-xl font-bold">3</div>
+            </div>
+            <div class="flex-1">
+              <h4 class="text-lg font-bold mb-2">Download CSV Export</h4>
+              <p class="text-gray-600 mb-3">Click <strong>"Export to CSV"</strong> button to download billing data.</p>
+              <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                <p class="text-sm text-blue-800"><strong>CSV Contains:</strong></p>
+                <div class="grid md:grid-cols-2 gap-2 mt-2 text-xs text-blue-700">
+                  <div>• Patient Name & MRN</div>
+                  <div>• Encounter Date</div>
+                  <div>• CPT Code</div>
+                  <div>• Charge Amount</div>
+                  <div>• Diagnosis (ICD-10)</div>
+                  <div>• Clinical Note Summary</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex gap-6">
+            <div class="flex-shrink-0">
+              <div class="w-12 h-12 rounded-full gradient-bg text-white flex items-center justify-center text-xl font-bold">4</div>
+            </div>
+            <div class="flex-1">
+              <h4 class="text-lg font-bold mb-2">Import to Your PM System</h4>
+              <p class="text-gray-600">Use your practice management system's CSV import feature to load the billing data. Most systems (eClinicalWorks, Epic, Athenahealth, etc.) support standard CSV imports.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-8 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-6">
+          <h4 class="font-bold text-purple-900 mb-3">📊 Revenue Tracking</h4>
+          <p class="text-purple-800 mb-4">Your billing dashboard shows real-time revenue metrics:</p>
+          <div class="grid md:grid-cols-3 gap-4">
+            <div class="bg-white rounded-lg p-4 text-center border border-purple-200">
+              <div class="text-2xl font-black text-purple-600 mb-1">$18k-$26k</div>
+              <div class="text-xs text-gray-600">Monthly potential (50 patients, weekly photos)</div>
+            </div>
+            <div class="bg-white rounded-lg p-4 text-center border border-purple-200">
+              <div class="text-2xl font-black text-purple-600 mb-1">5-10min</div>
+              <div class="text-xs text-gray-600">Avg. review time per photo</div>
+            </div>
+            <div class="bg-white rounded-lg p-4 text-center border border-purple-200">
+              <div class="text-2xl font-black text-purple-600 mb-1">98%</div>
+              <div class="text-xs text-gray-600">Reimbursement success rate</div>
             </div>
           </div>
         </div>
