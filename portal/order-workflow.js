@@ -205,32 +205,32 @@ function buildAISuggestionsSection(orderId, suggestions) {
       'low': '<span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">Low</span>'
     }[s.priority] || '';
 
-    const categoryBadge = s.category === 'demographic'
-      ? '<span class="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs">Profile</span>'
-      : '<span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">Order</span>';
-
     const locationHint = s.edit_location
       ? `<div class="text-xs text-slate-500 mt-1 italic">📍 ${esc(s.edit_location)}</div>`
       : '';
 
+    // Use issue as the main title if provided, otherwise fall back to field_label
+    const issueTitle = s.issue || s.field_label || s.field;
+
     return `
       <div class="p-3 bg-white border rounded">
-        <div class="flex items-start justify-between mb-1">
-          <span class="font-semibold text-sm">${esc(s.field_label || s.field)}</span>
-          <div class="flex gap-1">
-            ${categoryBadge}
-            ${priorityBadge}
+        <div class="flex items-start justify-between mb-2">
+          <span class="font-semibold text-sm text-slate-900">${esc(issueTitle)}</span>
+          ${priorityBadge}
+        </div>
+        ${s.current_value ? `
+          <div class="text-xs text-slate-600 mb-1">
+            Current: <span class="font-mono">${esc(s.current_value)}</span>
           </div>
-        </div>
-        <div class="text-sm text-slate-600 mb-1">
-          Current: ${esc(s.current_value || 'Not provided')}
-        </div>
+        ` : ''}
         <div class="text-sm text-slate-900 mb-1">
-          Suggested: <span class="font-medium">${esc(s.suggested_value)}</span>
+          <span class="font-medium">${esc(s.suggested_value)}</span>
         </div>
-        <div class="text-xs text-slate-600">
-          ${esc(s.reason)}
-        </div>
+        ${s.reason ? `
+          <div class="text-xs text-slate-600 mb-1">
+            ${esc(s.reason)}
+          </div>
+        ` : ''}
         ${locationHint}
       </div>
     `;
@@ -239,9 +239,8 @@ function buildAISuggestionsSection(orderId, suggestions) {
   // Build demographic section
   const demographicSection = demographicSuggestions.length > 0 ? `
     <div class="mb-3">
-      <h6 class="font-semibold text-sm mb-2 flex items-center gap-2">
-        <span class="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs">Patient Profile Issues</span>
-        ${approvalScore.demographic_issues_summary ? `<span class="text-xs font-normal text-slate-600">${esc(approvalScore.demographic_issues_summary)}</span>` : ''}
+      <h6 class="font-semibold text-sm mb-2 text-purple-800 bg-purple-50 px-3 py-1 rounded border border-purple-200">
+        Demographic Issues (${demographicSuggestions.length})
       </h6>
       <div class="grid gap-2">
         ${demographicSuggestions.map(buildSuggestionCard).join('')}
@@ -252,9 +251,8 @@ function buildAISuggestionsSection(orderId, suggestions) {
   // Build order section
   const orderSection = orderSuggestions.length > 0 ? `
     <div class="mb-3">
-      <h6 class="font-semibold text-sm mb-2 flex items-center gap-2">
-        <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">Order/Clinical Issues</span>
-        ${approvalScore.order_issues_summary ? `<span class="text-xs font-normal text-slate-600">${esc(approvalScore.order_issues_summary)}</span>` : ''}
+      <h6 class="font-semibold text-sm mb-2 text-blue-800 bg-blue-50 px-3 py-1 rounded border border-blue-200">
+        Order/Clinical Issues (${orderSuggestions.length})
       </h6>
       <div class="grid gap-2">
         ${orderSuggestions.map(buildSuggestionCard).join('')}

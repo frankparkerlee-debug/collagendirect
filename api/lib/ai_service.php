@@ -589,17 +589,18 @@ REQUIRED OUTPUT FORMAT (JSON ONLY):
   "suggestions": [
     {
       "category": "demographic|order",
+      "issue": "Concise issue title (e.g., 'ICD-10 mismatch', 'Missing insurance card')",
       "field": "field_name",
       "field_label": "User-friendly field name",
       "current_value": "current value or 'Not provided'",
-      "suggested_value": "specific recommendation",
-      "reason": "why this is needed",
+      "suggested_value": "specific recommendation (e.g., specific ICD-10 code, exact text)",
+      "reason": "brief explanation why this matters",
       "priority": "high|medium|low",
       "edit_location": "Edit in patient profile|Edit in order details"
     }
   ],
-  "demographic_issues_summary": "Concise summary of demographic/patient profile issues",
-  "order_issues_summary": "Concise summary of order/clinical documentation issues",
+  "missing_items": ["Specific item 1", "Specific item 2"],
+  "complete_items": ["What's good item 1", "What's good item 2"],
   "document_analysis": {
     "id_card": "Present/Missing - specific feedback",
     "insurance_card": "Present/Missing - specific feedback",
@@ -609,32 +610,36 @@ REQUIRED OUTPUT FORMAT (JSON ONLY):
 
 CATEGORIZATION GUIDELINES:
 
-**Demographic Issues** (edit_location: "Edit in patient profile"):
-- Patient name, DOB, sex, contact information
-- Insurance provider, member ID, group ID, payer phone
-- Address, city, state, zip
-- Photo ID card upload
-- Insurance card upload
+**Demographic Issues** (category: "demographic", edit_location: "Edit in patient profile"):
+- Patient name, DOB, sex, contact information issues
+- Insurance provider, member ID, group ID, payer phone problems
+- Address, city, state, zip missing or invalid
+- Photo ID card not uploaded
+- Insurance card not uploaded
 
-**Order Issues** (edit_location: "Edit in order details"):
-- Clinical notes quality and detail
-- Wound documentation (location, size, stage)
-- ICD-10 codes
-- Medical necessity justification
-- Failed conservative care documentation
-- Treatment plan details
-- Clinical note document upload
+**Order/Clinical Issues** (category: "order", edit_location: "Edit in order details"):
+- ICD-10 codes missing, invalid, or not matching diagnosis
+  Example: "ICD-10 mismatch: Consider L97.421 (diabetic foot ulcer) instead of L97.9"
+- Clinical notes too vague or lacking detail
+  Example: "Insufficient visit note detail: Add wound measurements, exudate description, periwound condition"
+- Wound documentation incomplete (location, size, stage)
+  Example: "Missing wound depth: Add depth measurement for complete staging"
+- Medical necessity justification weak or absent
+  Example: "Weak medical necessity: Specify failed conservative treatments (e.g., basic gauze, hydrocolloid)"
+- Failed conservative care not documented
+- Treatment plan details missing
+- Clinical note document not uploaded
 
-IMPORTANT:
-- Be specific in your feedback
+IMPORTANT INSTRUCTIONS:
+- Be VERY specific in suggestions - give exact ICD-10 codes, specific measurements needed, etc.
+- Use concise issue titles like "ICD-10 mismatch", "Missing insurance card", "Insufficient wound detail"
+- In suggested_value, provide the EXACT recommendation (specific code, specific text to add, etc.)
+- Keep reason brief but clear (why it matters for approval)
 - Separate demographic issues from clinical/order issues clearly
-- For each suggestion, specify WHERE to edit: "Edit in patient profile" vs "Edit in order details"
-- Make suggestions actionable with specific examples
 - Reference actual patient data in your analysis
-- If clinical notes are vague, say so specifically with examples
-- If documents are missing, list exactly what's needed
-- Be constructive in recommendations
-- Focus on what will help get approval
+- If clinical notes are vague, quote the vague part and suggest specific additions
+- If wrong ICD-10 code is used, suggest the correct specific code
+- Focus on what will help get insurance approval
 
 Return ONLY valid JSON, no additional text.
 PROMPT;
