@@ -3983,6 +3983,32 @@ if ($page==='logout'){
     </a>
   </section>
 
+  <?php if (!$isReferralOnly): ?>
+  <!-- Wholesale Account Balance (for DME practices) -->
+  <section id="wholesale-balance-section" class="card no-underline transition-all hover:shadow-2xl" style="display: none; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: none; padding: 1.5rem; border-radius: 16px; position: relative; overflow: hidden; margin-bottom: 2rem;">
+    <div style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: rgba(245, 158, 11, 0.1); border-radius: 50%;"></div>
+    <div class="flex items-center justify-between mb-4">
+      <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);">
+        <svg style="width: 24px; height: 24px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+        </svg>
+      </div>
+      <a href="?page=billing-settings" style="text-decoration: none; color: #92400e; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 0.25rem;">
+        Manage
+        <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+        </svg>
+      </a>
+    </div>
+    <div class="text-xs font-semibold mb-1" style="color: #92400e; text-transform: uppercase; letter-spacing: 0.1em;">Wholesale Account Balance</div>
+    <div id="wholesale-balance" class="text-4xl font-bold mb-2" style="color: #1e293b;">$0.00</div>
+    <div class="text-xs" style="color: #92400e;">
+      <span id="wholesale-transaction-count">0</span> transactions ·
+      Last updated: <span id="wholesale-last-transaction">Never</span>
+    </div>
+  </section>
+  <?php endif; ?>
+
   <!-- Overview Chart Section -->
   <section class="card p-6 mb-6">
     <div class="flex items-center justify-between mb-4">
@@ -5588,8 +5614,60 @@ if (<?php echo json_encode($page==='dashboard'); ?>) {
       const reviewCount = parseInt(m.metrics.review_count || 0);
       $('#m-revenue').textContent = '$' + revenue.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
       $('#m-revenue-count').textContent = reviewCount;
+
+      // Load wholesale account balance
+      await loadWholesaleBalance();
     } catch(e) {
       console.error('Failed to load metrics:', e);
+    }
+  };
+
+  // Load wholesale account balance
+  loadWholesaleBalance = async function() {
+    try {
+      const response = await fetch('/api/billing-routes.php?action=account_balance.get');
+      const data = await response.json();
+
+      if (data.success && data.balance) {
+        const balance = parseFloat(data.balance.current_balance || 0);
+        const transactionCount = parseInt(data.balance.transaction_count || 0);
+        const lastTransaction = data.balance.last_transaction;
+
+        // Show the balance section if there are transactions or balance
+        if (transactionCount > 0 || balance !== 0) {
+          const section = document.getElementById('wholesale-balance-section');
+          if (section) section.style.display = 'block';
+
+          // Update balance display
+          const balanceEl = document.getElementById('wholesale-balance');
+          if (balanceEl) {
+            const formatted = '$' + Math.abs(balance).toLocaleString('en-US', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            });
+            balanceEl.textContent = balance < 0 ? '-' + formatted : formatted;
+            balanceEl.style.color = balance < 0 ? '#dc2626' : '#059669';
+          }
+
+          // Update transaction count
+          const countEl = document.getElementById('wholesale-transaction-count');
+          if (countEl) countEl.textContent = transactionCount;
+
+          // Update last transaction date
+          const lastTxEl = document.getElementById('wholesale-last-transaction');
+          if (lastTxEl && lastTransaction) {
+            const date = new Date(lastTransaction);
+            lastTxEl.textContent = date.toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric'
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading wholesale balance:', error);
+      // Silently fail - balance section stays hidden
     }
   };
 
