@@ -516,12 +516,14 @@ if ($action) {
     $revenueStart = $revenueMonth . '-01';
     $revenueEnd = date('Y-m-t', strtotime($revenueStart));
 
-    if ($userRole === 'superadmin' || $userRole === 'practice_admin') {
+    if ($userRole === 'superadmin') {
+      // Superadmin sees all revenue
       $sql = "SELECT COUNT(*), COALESCE(SUM(charge_amount), 0) FROM billable_encounters
               WHERE encounter_date >= ? AND encounter_date <= ?";
       $q = $pdo->prepare($sql);
       $q->execute([$revenueStart, $revenueEnd . ' 23:59:59']);
     } else {
+      // Regular physicians and practice_admins only see their own revenue
       $sql = "SELECT COUNT(*), COALESCE(SUM(charge_amount), 0) FROM billable_encounters
               WHERE physician_id = ? AND encounter_date >= ? AND encounter_date <= ?";
       $q = $pdo->prepare($sql);
@@ -1070,8 +1072,8 @@ if ($action) {
   /* ---- Get pending wound photos for review ---- */
   if ($action==='get_pending_photos'){
     // Get ALL photos (both reviewed and pending) with billing status
-    if ($userRole === 'superadmin' || $userRole === 'practice_admin') {
-      // Superadmins and practice admins see all photos
+    if ($userRole === 'superadmin') {
+      // Superadmins see all photos
       $sql = "
         SELECT
           wp.*,
@@ -1088,7 +1090,7 @@ if ($action) {
       $stmt = $pdo->prepare($sql);
       $stmt->execute();
     } else {
-      // Regular physicians see photos from their own patients
+      // Regular physicians and practice_admins see photos from their own patients only
       $sql = "
         SELECT
           wp.*,
@@ -1270,7 +1272,8 @@ if ($action) {
     $endDate = date('Y-m-t', strtotime($startDate));
 
     // Get encounters for this physician with complete patient data
-    if ($userRole === 'superadmin' || $userRole === 'practice_admin') {
+    if ($userRole === 'superadmin') {
+      // Superadmin exports all encounters
       $sql = "
         SELECT
           e.encounter_date,
@@ -1309,6 +1312,7 @@ if ($action) {
       $stmt = $pdo->prepare($sql);
       $stmt->execute([$startDate, $endDate . ' 23:59:59']);
     } else {
+      // Regular physicians and practice_admins export only their own encounters
       $sql = "
         SELECT
           e.encounter_date,
@@ -1458,6 +1462,7 @@ if ($action) {
     $endDate = date('Y-m-t', strtotime($startDate));
 
     if ($userRole === 'superadmin') {
+      // Superadmin sees all billing data
       $sql = "
         SELECT
           COUNT(*) as total_encounters,
@@ -1470,6 +1475,7 @@ if ($action) {
       $stmt = $pdo->prepare($sql);
       $stmt->execute([$startDate, $endDate . ' 23:59:59']);
     } else {
+      // Regular physicians and practice_admins see only their own billing data
       $sql = "
         SELECT
           COUNT(*) as total_encounters,
