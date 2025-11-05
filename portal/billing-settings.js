@@ -36,6 +36,21 @@ async function loadBillingRoutes() {
       fetch('/api/billing-routes.php?action=default_route.get')
     ]);
 
+    // Check if responses are OK
+    if (!routesResp.ok || !defaultResp.ok) {
+      throw new Error('API request failed');
+    }
+
+    // Check content type to ensure we got JSON
+    const routesContentType = routesResp.headers.get('content-type');
+    const defaultContentType = defaultResp.headers.get('content-type');
+
+    if (!routesContentType?.includes('application/json') || !defaultContentType?.includes('application/json')) {
+      console.error('Non-JSON response received. Check API endpoint.');
+      showToast('API error: Please check server logs', 'error');
+      return;
+    }
+
     const routesData = await routesResp.json();
     const defaultData = await defaultResp.json();
 
@@ -50,7 +65,7 @@ async function loadBillingRoutes() {
     renderBillingSettings();
   } catch (error) {
     console.error('Error loading billing routes:', error);
-    showToast('Failed to load billing settings', 'error');
+    showToast('Failed to load billing settings. Check console for details.', 'error');
   }
 }
 
@@ -384,13 +399,7 @@ async function resetAllRoutes() {
  * Show toast notification
  */
 function showToast(message, type = 'info') {
-  // Use existing toast system if available
-  if (window.showToast) {
-    window.showToast(message, type);
-    return;
-  }
-
-  // Fallback simple toast
+  // Fallback simple toast (avoid recursion by not checking window.showToast)
   const toast = document.createElement('div');
   toast.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg text-white z-50 ${
     type === 'success' ? 'bg-green-600' :
