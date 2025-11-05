@@ -61,12 +61,6 @@
         </svg>
         Export Photo Reviews
       </button>
-      <button class="export-btn" onclick="exportDirectBill()" style="background: #059669;">
-        <svg style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 0.5rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-        </svg>
-        Export Direct Bill Orders
-      </button>
     </div>
   </div>
 
@@ -719,83 +713,6 @@ function exportBilling() {
   window.location.href = `?action=export_billing&month=${month}`;
 }
 
-// Export direct bill orders
-function exportDirectBill() {
-  // Get date range (default to current month)
-  const now = new Date();
-  const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-  const endDate = now;
-
-  const startStr = startDate.toISOString().substring(0, 10); // YYYY-MM-DD
-  const endStr = endDate.toISOString().substring(0, 10); // YYYY-MM-DD
-
-  // Create modal for date range selection
-  const modal = document.createElement('div');
-  modal.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0,0,0,0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000;
-  `;
-
-  modal.innerHTML = `
-    <div style="background: white; padding: 2rem; border-radius: 8px; max-width: 500px; width: 90%;">
-      <h3 style="margin-top: 0;">Export Direct Bill Orders</h3>
-      <p style="color: #64748b; font-size: 0.875rem;">
-        Select date range for direct bill orders export.
-      </p>
-
-      <div style="margin-bottom: 1rem;">
-        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Start Date</label>
-        <input type="date" id="export-start-date" value="${startStr}" style="width: 100%; padding: 0.5rem; border: 1px solid #cbd5e0; border-radius: 4px;">
-      </div>
-
-      <div style="margin-bottom: 1.5rem;">
-        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">End Date</label>
-        <input type="date" id="export-end-date" value="${endStr}" style="width: 100%; padding: 0.5rem; border: 1px solid #cbd5e0; border-radius: 4px;">
-      </div>
-
-      <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
-        <button onclick="this.closest('div').parentElement.remove()" style="padding: 0.5rem 1rem; background: #e2e8f0; border: none; border-radius: 4px; cursor: pointer;">
-          Cancel
-        </button>
-        <button onclick="confirmDirectBillExport()" style="padding: 0.5rem 1rem; background: #059669; color: white; border: none; border-radius: 4px; cursor: pointer;">
-          Export CSV
-        </button>
-      </div>
-    </div>
-  `;
-
-  document.body.appendChild(modal);
-}
-
-// Confirm and execute direct bill export
-function confirmDirectBillExport() {
-  const startDate = document.getElementById('export-start-date').value;
-  const endDate = document.getElementById('export-end-date').value;
-
-  if (!startDate || !endDate) {
-    alert('Please select both start and end dates.');
-    return;
-  }
-
-  if (new Date(startDate) > new Date(endDate)) {
-    alert('Start date must be before end date.');
-    return;
-  }
-
-  // Close modal
-  document.querySelector('div[style*="z-index: 10000"]').remove();
-
-  // Open export URL
-  window.location.href = `/api/export-direct-bill.php?start_date=${startDate}&end_date=${endDate}&billing_route=practice_dme`;
-}
 
 // Format date helper
 function formatDate(dateStr) {
