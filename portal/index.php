@@ -1123,11 +1123,11 @@ if ($action) {
     }
 
     // Verify access to this patient
-    if ($userRole === 'superadmin' || $userRole === 'practice_admin') {
-      // Admins can view all patients
+    if ($userRole === 'superadmin') {
+      // Superadmin can view all patients
       $accessCheck = true;
     } else {
-      // Regular physicians must own the patient
+      // Regular physicians and practice_admins must own the patient
       $accessStmt = $pdo->prepare("SELECT 1 FROM patients WHERE id = ? AND user_id = ?");
       $accessStmt->execute([$patientId, $userId]);
       $accessCheck = $accessStmt->fetch();
