@@ -586,10 +586,20 @@ REQUIRED OUTPUT FORMAT (JSON ONLY):
   "score": "RED|YELLOW|GREEN",
   "score_numeric": 0-100,
   "summary": "2-3 sentence overall assessment",
-  "missing_items": ["Specific item 1", "Specific item 2"],
-  "complete_items": ["What's good item 1", "What's good item 2"],
-  "recommendations": ["Specific action 1", "Specific action 2"],
-  "concerns": ["Specific concern 1", "Specific concern 2"],
+  "suggestions": [
+    {
+      "category": "demographic|order",
+      "field": "field_name",
+      "field_label": "User-friendly field name",
+      "current_value": "current value or 'Not provided'",
+      "suggested_value": "specific recommendation",
+      "reason": "why this is needed",
+      "priority": "high|medium|low",
+      "edit_location": "Edit in patient profile|Edit in order details"
+    }
+  ],
+  "demographic_issues_summary": "Concise summary of demographic/patient profile issues",
+  "order_issues_summary": "Concise summary of order/clinical documentation issues",
   "document_analysis": {
     "id_card": "Present/Missing - specific feedback",
     "insurance_card": "Present/Missing - specific feedback",
@@ -597,10 +607,31 @@ REQUIRED OUTPUT FORMAT (JSON ONLY):
   }
 }
 
+CATEGORIZATION GUIDELINES:
+
+**Demographic Issues** (edit_location: "Edit in patient profile"):
+- Patient name, DOB, sex, contact information
+- Insurance provider, member ID, group ID, payer phone
+- Address, city, state, zip
+- Photo ID card upload
+- Insurance card upload
+
+**Order Issues** (edit_location: "Edit in order details"):
+- Clinical notes quality and detail
+- Wound documentation (location, size, stage)
+- ICD-10 codes
+- Medical necessity justification
+- Failed conservative care documentation
+- Treatment plan details
+- Clinical note document upload
+
 IMPORTANT:
 - Be specific in your feedback
+- Separate demographic issues from clinical/order issues clearly
+- For each suggestion, specify WHERE to edit: "Edit in patient profile" vs "Edit in order details"
+- Make suggestions actionable with specific examples
 - Reference actual patient data in your analysis
-- If clinical notes are vague, say so specifically
+- If clinical notes are vague, say so specifically with examples
 - If documents are missing, list exactly what's needed
 - Be constructive in recommendations
 - Focus on what will help get approval

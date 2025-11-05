@@ -193,18 +193,34 @@ function buildAISuggestionsSection(orderId, suggestions) {
     'RED': 'bg-red-50 border-red-200 text-red-900'
   }[approvalScore.score] || 'bg-blue-50 border-blue-200 text-blue-900';
 
-  const suggestionsHtml = suggestionsList.map(s => {
+  // Separate suggestions by category
+  const demographicSuggestions = suggestionsList.filter(s => s.category === 'demographic');
+  const orderSuggestions = suggestionsList.filter(s => s.category === 'order');
+
+  // Build suggestion card HTML
+  const buildSuggestionCard = (s) => {
     const priorityBadge = {
       'high': '<span class="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs">High</span>',
       'medium': '<span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded text-xs">Medium</span>',
       'low': '<span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">Low</span>'
     }[s.priority] || '';
 
+    const categoryBadge = s.category === 'demographic'
+      ? '<span class="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs">Profile</span>'
+      : '<span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">Order</span>';
+
+    const locationHint = s.edit_location
+      ? `<div class="text-xs text-slate-500 mt-1 italic">📍 ${esc(s.edit_location)}</div>`
+      : '';
+
     return `
       <div class="p-3 bg-white border rounded">
         <div class="flex items-start justify-between mb-1">
           <span class="font-semibold text-sm">${esc(s.field_label || s.field)}</span>
-          ${priorityBadge}
+          <div class="flex gap-1">
+            ${categoryBadge}
+            ${priorityBadge}
+          </div>
         </div>
         <div class="text-sm text-slate-600 mb-1">
           Current: ${esc(s.current_value || 'Not provided')}
@@ -215,9 +231,36 @@ function buildAISuggestionsSection(orderId, suggestions) {
         <div class="text-xs text-slate-600">
           ${esc(s.reason)}
         </div>
+        ${locationHint}
       </div>
     `;
-  }).join('');
+  };
+
+  // Build demographic section
+  const demographicSection = demographicSuggestions.length > 0 ? `
+    <div class="mb-3">
+      <h6 class="font-semibold text-sm mb-2 flex items-center gap-2">
+        <span class="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs">Patient Profile Issues</span>
+        ${approvalScore.demographic_issues_summary ? `<span class="text-xs font-normal text-slate-600">${esc(approvalScore.demographic_issues_summary)}</span>` : ''}
+      </h6>
+      <div class="grid gap-2">
+        ${demographicSuggestions.map(buildSuggestionCard).join('')}
+      </div>
+    </div>
+  ` : '';
+
+  // Build order section
+  const orderSection = orderSuggestions.length > 0 ? `
+    <div class="mb-3">
+      <h6 class="font-semibold text-sm mb-2 flex items-center gap-2">
+        <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">Order/Clinical Issues</span>
+        ${approvalScore.order_issues_summary ? `<span class="text-xs font-normal text-slate-600">${esc(approvalScore.order_issues_summary)}</span>` : ''}
+      </h6>
+      <div class="grid gap-2">
+        ${orderSuggestions.map(buildSuggestionCard).join('')}
+      </div>
+    </div>
+  ` : '';
 
   return `
     <div class="${scoreColor} border rounded-lg p-4">
@@ -228,9 +271,10 @@ function buildAISuggestionsSection(orderId, suggestions) {
       ${approvalScore.summary ? `
         <p class="text-sm mb-3">${esc(approvalScore.summary)}</p>
       ` : ''}
-      <div class="grid gap-2 mb-3">
-        ${suggestionsHtml}
-      </div>
+
+      ${demographicSection}
+      ${orderSection}
+
       <button
         type="button"
         class="btn btn-sm btn-primary"
