@@ -1799,17 +1799,53 @@ if ($action) {
       // Superadmins can create orders for any patient, others only their own
       if ($userRole === 'superadmin') {
         $own=$pdo->prepare("SELECT id,first_name,last_name,address,city,state,zip,phone,email,
-                                   id_card_path,ins_card_path,aob_path,user_id
+                                   id_card_path,ins_card_path,aob_path,user_id,insurance_company
                             FROM patients WHERE id=? FOR UPDATE");
         $own->execute([$pid]);
       } else {
         $own=$pdo->prepare("SELECT id,first_name,last_name,address,city,state,zip,phone,email,
-                                   id_card_path,ins_card_path,aob_path,user_id
+                                   id_card_path,ins_card_path,aob_path,user_id,insurance_company
                             FROM patients WHERE id=? AND user_id=? FOR UPDATE");
         $own->execute([$pid,$userId]);
       }
       $p=$own->fetch(PDO::FETCH_ASSOC);
       if(!$p){ $pdo->rollBack(); jerr('Patient not found',404); }
+
+      // Use patient's actual owner user_id, not current logged-in user (for superadmin compatibility)
+      $patientOwnerId = $p['user_id'] ?? $userId;
+
+      // Determine billing route based on insurance company and practice routing configuration
+      $billed_by = 'collagen_direct'; // Default
+      $insuranceCompany = trim($p['insurance_company'] ?? '');
+
+      if ($insuranceCompany !== '') {
+        // Check if practice has a specific route configured for this insurer
+        $routeStmt = $pdo->prepare("
+          SELECT billing_route
+          FROM practice_billing_routes
+          WHERE user_id = ? AND insurer_name = ?
+          LIMIT 1
+        ");
+        $routeStmt->execute([$patientOwnerId, $insuranceCompany]);
+        $routeConfig = $routeStmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($routeConfig) {
+          $billed_by = $routeConfig['billing_route'];
+        } else {
+          // Fall back to user's default billing route
+          $defaultRouteStmt = $pdo->prepare("
+            SELECT default_billing_route
+            FROM users
+            WHERE id = ?
+          ");
+          $defaultRouteStmt->execute([$patientOwnerId]);
+          $userDefault = $defaultRouteStmt->fetch(PDO::FETCH_ASSOC);
+
+          if ($userDefault && !empty($userDefault['default_billing_route'])) {
+            $billed_by = $userDefault['default_billing_route'];
+          }
+        }
+      }
 
       $payment_type=$_POST['payment_type'] ?? 'insurance';
 
@@ -1933,9 +1969,6 @@ if ($action) {
       $total_products = $products_per_fill * (1 + $refills_allowed);
       $shipments_remaining = (int)ceil($total_products);
 
-      // Use patient's actual owner user_id, not current logged-in user (for superadmin compatibility)
-      $patientOwnerId = $p['user_id'] ?? $userId;
-
       $oid=bin2hex(random_bytes(16));
       // Calculate expiration date: start_date + duration_days (including refills if needed)
       // For now, just calculate based on initial duration
@@ -1954,7 +1987,7 @@ if ($action) {
          icd10_primary,icd10_secondary,wound_length_cm,wound_width_cm,wound_depth_cm,
          wound_type,wound_stage,last_eval_date,start_date,frequency_per_week,qty_per_change,duration_days,refills_allowed,additional_instructions,secondary_dressing,
          wounds_data,
-         cpt)
+         cpt,billed_by)
         VALUES (?,?,?,?,?,?,?,?,?,?,
                 ?,?,?,
                 ?,?,?,?,?,?,
@@ -1962,7 +1995,7 @@ if ($action) {
                 ?,?,?,?,?,
                 ?,?,?,?,?,?,?,?,?,?,
                 ?::jsonb,
-                ?)");
+                ?,?)");
       $ins->execute([
         $oid,$pid,$patientOwnerId,$prod['name'],$prod['id'],$prod['price_admin'],'pending',$shipments_remaining,$delivery_mode,$payment_type,
         $wound_location,$wound_laterality,$wound_notes,
@@ -1971,7 +2004,8 @@ if ($action) {
         $icd10_primary,$icd10_secondary,$wlen,$wwid,$wdep,
         $wtype,$wstage,$last_eval,$start_date,$freq_per_week,$qty_per_change,$duration_days,$refills_allowed,$additional_instructions,$secondary_dressing,
         $wounds_json,
-        $prod['hcpcs_code'] ?? null
+        $prod['hcpcs_code'] ?? null,
+        $billed_by
       ]);
 
       // Visit note (optional)
@@ -2001,7 +2035,7 @@ if ($action) {
           ->execute([$sign_name,$sign_title,$userId]);
 
       $pdo->commit();
-      jok(['order_id'=>$oid,'status'=>'pending']);
+      jok(['order_id'=>$oid,'status'=>'pending','billed_by'=>$billed_by]);
     } catch (Throwable $e) {
       if ($pdo->inTransaction()) $pdo->rollBack();
       jerr('Order create failed: '.$e->getMessage(), 500);
@@ -3827,7 +3861,10 @@ if ($page==='logout'){
         <span>Messages</span>
       </a>
       <?php if (!$isReferralOnly): ?>
-      <!-- Billing/Transactions tabs hidden - using Photo Reviews for actual billing -->
+      <a class="<?php echo $page==='billing-settings'?'active':''; ?>" href="?page=billing-settings">
+        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+        <span>Billing Settings</span>
+      </a>
       <?php endif; ?>
       <a class="<?php echo $page==='profile'?'active':''; ?>" href="?page=profile">
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
@@ -5014,6 +5051,22 @@ if ($page==='logout'){
 
 <?php elseif ($page==='photo-reviews'): ?>
   <?php include __DIR__ . '/photo-reviews.php'; ?>
+
+<?php elseif ($page==='billing-settings'): ?>
+  <div class="container mx-auto py-6 px-4">
+    <div id="billing-settings-content">
+      <!-- Content loaded by billing-settings.js -->
+      <div class="flex items-center justify-center py-12">
+        <div class="text-center">
+          <svg class="w-8 h-8 mx-auto mb-2 text-slate-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+          <p class="text-sm text-slate-600">Loading billing settings...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="/portal/billing-settings.js"></script>
 
 <?php endif; ?>
 </main>
