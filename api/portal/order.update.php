@@ -59,7 +59,7 @@ try {
       id, user_id, review_status, locked_at, locked_by,
       ai_suggestions, ai_suggestions_accepted,
       patient_id, product, product_id, frequency,
-      wound_location, wound_laterality, wound_notes,
+      wound_location, wound_laterality, wound_notes, wounds_data,
       delivery_mode, shipping_name, shipping_phone,
       shipping_address, shipping_city, shipping_state, shipping_zip,
       insurer_name, member_id, group_id, payer_phone,
@@ -102,7 +102,7 @@ try {
 
   // Build update query dynamically
   $allowedFields = [
-    'frequency', 'wound_location', 'wound_laterality', 'wound_notes',
+    'frequency', 'wound_location', 'wound_laterality', 'wound_notes', 'wounds_data',
     'delivery_mode', 'shipping_name', 'shipping_phone',
     'shipping_address', 'shipping_city', 'shipping_state', 'shipping_zip',
     'insurer_name', 'member_id', 'group_id', 'payer_phone',

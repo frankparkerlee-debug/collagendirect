@@ -12,43 +12,21 @@
       <!-- Wound Details Section -->
       <div class="mb-6">
         <h4 class="font-semibold text-md mb-3 pb-2 border-b">Wound Details</h4>
-        <div class="grid md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium mb-1">Wound Location *</label>
-            <input
-              type="text"
-              id="edit-wound-location"
-              name="wound_location"
-              class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
-              placeholder="e.g., Left Foot, Plantar Surface"
-              required
-            >
-          </div>
 
-          <div>
-            <label class="block text-sm font-medium mb-1">Wound Laterality</label>
-            <select
-              id="edit-wound-laterality"
-              name="wound_laterality"
-              class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Select laterality</option>
-              <option value="Left">Left</option>
-              <option value="Right">Right</option>
-              <option value="Bilateral">Bilateral</option>
-              <option value="N/A">N/A</option>
-            </select>
-          </div>
+        <div id="edit-wounds-container" class="space-y-4">
+          <!-- Wounds will be dynamically populated here -->
         </div>
 
+        <button type="button" onclick="addEditWound()" class="btn btn-sm mt-3">+ Add Wound</button>
+
         <div class="mt-4">
-          <label class="block text-sm font-medium mb-1">Clinical Notes</label>
+          <label class="block text-sm font-medium mb-1">Additional Clinical Notes</label>
           <textarea
             id="edit-wound-notes"
             name="wound_notes"
             rows="3"
             class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
-            placeholder="Additional wound description, measurements, or clinical observations..."
+            placeholder="Additional wound description or clinical observations..."
           ></textarea>
         </div>
       </div>
@@ -296,6 +274,31 @@ document.getElementById('form-order-edit')?.addEventListener('submit', async fun
 
   const reason = formData.get('reason') || null;
 
+  // Collect wound data from dynamic fields
+  const woundsContainer = document.getElementById('edit-wounds-container');
+  const woundElements = woundsContainer.querySelectorAll('[data-wound-index]');
+  const woundsData = [];
+
+  woundElements.forEach((woundEl, idx) => {
+    const getField = (name) => formData.get(`wound_${idx}_${name}`) || '';
+
+    woundsData.push({
+      location: getField('location'),
+      laterality: getField('laterality'),
+      length_cm: parseFloat(getField('length_cm')) || 0,
+      width_cm: parseFloat(getField('width_cm')) || 0,
+      depth_cm: parseFloat(getField('depth_cm')) || 0,
+      icd10_primary: getField('icd10_primary'),
+      icd10_secondary: getField('icd10_secondary'),
+      description: getField('description')
+    });
+  });
+
+  // Add wounds_data to updates
+  if (woundsData.length > 0) {
+    updates.wounds_data = JSON.stringify(woundsData);
+  }
+
   // Submit update
   try {
     document.getElementById('btn-order-edit-save').disabled = true;
@@ -380,6 +383,9 @@ function openOrderEditDialog(orderId) {
         insuranceSection.style.display = 'none';
       }
 
+      // Populate wounds data
+      populateEditWounds(order.wounds_data || []);
+
       // Open dialog
       document.getElementById('dlg-order-edit').showModal();
     })
@@ -389,8 +395,129 @@ function openOrderEditDialog(orderId) {
     });
 }
 
+/**
+ * Populate wounds for editing
+ */
+function populateEditWounds(woundsData) {
+  const container = document.getElementById('edit-wounds-container');
+  container.innerHTML = '';
+
+  if (!woundsData || woundsData.length === 0) {
+    addEditWound();
+    return;
+  }
+
+  woundsData.forEach((wound, index) => {
+    addEditWound(wound, index);
+  });
+}
+
+/**
+ * Add wound edit form
+ */
+function addEditWound(woundData = null, index = null) {
+  const container = document.getElementById('edit-wounds-container');
+  const woundIndex = index !== null ? index : container.children.length;
+
+  const woundHtml = `
+    <div class="p-4 border rounded bg-slate-50" data-wound-index="${woundIndex}">
+      <div class="flex items-center justify-between mb-3">
+        <h5 class="font-medium text-sm">Wound #${woundIndex + 1}</h5>
+        ${woundIndex > 0 ? `<button type="button" onclick="removeEditWound(${woundIndex})" class="text-red-600 text-sm">Remove</button>` : ''}
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-medium mb-1">Location *</label>
+          <input type="text" class="w-full px-2 py-1 border rounded text-sm"
+            name="wound_${woundIndex}_location"
+            value="${woundData?.location || ''}"
+            placeholder="e.g., Left Foot" required>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium mb-1">Laterality</label>
+          <select class="w-full px-2 py-1 border rounded text-sm" name="wound_${woundIndex}_laterality">
+            <option value="">Select</option>
+            <option value="Left" ${woundData?.laterality === 'Left' ? 'selected' : ''}>Left</option>
+            <option value="Right" ${woundData?.laterality === 'Right' ? 'selected' : ''}>Right</option>
+            <option value="Bilateral" ${woundData?.laterality === 'Bilateral' ? 'selected' : ''}>Bilateral</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium mb-1">Length (cm) *</label>
+          <input type="number" step="0.1" class="w-full px-2 py-1 border rounded text-sm"
+            name="wound_${woundIndex}_length_cm"
+            value="${woundData?.length_cm || ''}"
+            placeholder="0.0" required>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium mb-1">Width (cm) *</label>
+          <input type="number" step="0.1" class="w-full px-2 py-1 border rounded text-sm"
+            name="wound_${woundIndex}_width_cm"
+            value="${woundData?.width_cm || ''}"
+            placeholder="0.0" required>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium mb-1">Depth (cm)</label>
+          <input type="number" step="0.1" class="w-full px-2 py-1 border rounded text-sm"
+            name="wound_${woundIndex}_depth_cm"
+            value="${woundData?.depth_cm || ''}"
+            placeholder="0.0">
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium mb-1">Primary ICD-10 *</label>
+          <input type="text" class="w-full px-2 py-1 border rounded text-sm"
+            name="wound_${woundIndex}_icd10_primary"
+            value="${woundData?.icd10_primary || ''}"
+            placeholder="e.g., L97.421" required>
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="block text-xs font-medium mb-1">Secondary ICD-10 Codes (comma-separated)</label>
+          <input type="text" class="w-full px-2 py-1 border rounded text-sm"
+            name="wound_${woundIndex}_icd10_secondary"
+            value="${woundData?.icd10_secondary || ''}"
+            placeholder="e.g., E11.621, I70.233">
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="block text-xs font-medium mb-1">Wound Description</label>
+          <textarea class="w-full px-2 py-1 border rounded text-sm" rows="2"
+            name="wound_${woundIndex}_description"
+            placeholder="Additional wound details...">${woundData?.description || ''}</textarea>
+        </div>
+      </div>
+    </div>
+  `;
+
+  container.insertAdjacentHTML('beforeend', woundHtml);
+}
+
+/**
+ * Remove wound from edit form
+ */
+function removeEditWound(index) {
+  const container = document.getElementById('edit-wounds-container');
+  const wound = container.querySelector(`[data-wound-index="${index}"]`);
+  if (wound) {
+    wound.remove();
+    // Renumber remaining wounds
+    Array.from(container.children).forEach((el, newIndex) => {
+      el.setAttribute('data-wound-index', newIndex);
+      el.querySelector('h5').textContent = `Wound #${newIndex + 1}`;
+    });
+  }
+}
+
 // Export to global scope
 if (typeof window !== 'undefined') {
   window.openOrderEditDialog = openOrderEditDialog;
+  window.addEditWound = addEditWound;
+  window.removeEditWound = removeEditWound;
 }
 </script>

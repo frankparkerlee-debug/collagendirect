@@ -62,6 +62,9 @@ try {
   if (!empty($order['ai_suggestions'])) {
     $order['ai_suggestions'] = json_decode($order['ai_suggestions'], true);
   }
+  if (!empty($order['wounds_data'])) {
+    $order['wounds_data'] = json_decode($order['wounds_data'], true);
+  }
 
   echo json_encode([
     'ok' => true,
