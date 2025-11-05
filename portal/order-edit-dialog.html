@@ -357,8 +357,10 @@ function openOrderEditDialog(orderId) {
 
       // Populate form fields
       document.getElementById('edit-order-id').value = order.id;
-      document.getElementById('edit-wound-location').value = order.wound_location || '';
-      document.getElementById('edit-wound-laterality').value = order.wound_laterality || '';
+
+      // Populate dynamic wounds
+      populateEditWounds(order.wounds_data || []);
+
       document.getElementById('edit-wound-notes').value = order.wound_notes || '';
       document.getElementById('edit-frequency').value = order.frequency || '';
       document.getElementById('edit-delivery-mode').value = order.delivery_mode || 'standard';
