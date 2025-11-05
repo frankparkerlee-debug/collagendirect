@@ -3827,14 +3827,7 @@ if ($page==='logout'){
         <span>Messages</span>
       </a>
       <?php if (!$isReferralOnly): ?>
-      <a class="<?php echo $page==='billing'?'active':''; ?>" href="?page=billing">
-        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-        <span>Billing</span>
-      </a>
-      <a class="<?php echo $page==='transactions'?'active':''; ?>" href="?page=transactions">
-        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
-        <span>Transactions</span>
-      </a>
+      <!-- Billing/Transactions tabs hidden - using Photo Reviews for actual billing -->
       <?php endif; ?>
       <a class="<?php echo $page==='profile'?'active':''; ?>" href="?page=profile">
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
@@ -4159,6 +4152,13 @@ if ($page==='logout'){
   </dialog>
 
 <?php elseif ($page==='billing'): ?>
+  <?php
+    // Redirect to photo-reviews for actual billing functionality
+    header('Location: ?page=photo-reviews');
+    exit;
+  ?>
+
+<?php elseif ($page==='billing-old-demo'): ?>
   <?php if ($isReferralOnly): header('Location: ?page=dashboard'); exit; endif; ?>
   <!-- Top-level actions -->
   <div class="flex items-center gap-3 mb-4">
@@ -4270,6 +4270,13 @@ if ($page==='logout'){
   </section>
 
 <?php elseif ($page==='transactions'): ?>
+  <?php
+    // Redirect to photo-reviews for actual billing functionality
+    header('Location: ?page=photo-reviews');
+    exit;
+  ?>
+
+<?php elseif ($page==='transactions-old-demo'): ?>
   <?php if ($isReferralOnly): header('Location: ?page=dashboard'); exit; endif; ?>
   <!-- Top-level actions -->
   <div class="flex items-center gap-3 mb-4">
