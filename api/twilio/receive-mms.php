@@ -219,71 +219,23 @@ try {
 
   error_log('[Twilio Webhook] Photo saved: ' . $fullPath . ' (' . $savedBytes . ' bytes)');
 
-  // Check if there's a pending photo request for this patient
-  $photoRequestStmt = $pdo->prepare("
-    SELECT id, order_id, photo_request_id
-    FROM photo_requests
-    WHERE patient_id = ? AND completed = FALSE
-    ORDER BY requested_at DESC
-    LIMIT 1
-  ");
-  $photoRequestStmt->execute([$patient['id']]);
-  $photoRequest = $photoRequestStmt->fetch(PDO::FETCH_ASSOC);
-
-  $linkedOrderId = $photoRequest['order_id'] ?? null;
-  $photoRequestId = $photoRequest['id'] ?? null;
-
-  error_log('[Twilio Webhook] Linked to order_id: ' . ($linkedOrderId ?: 'none'));
-
   // Save to database
   $photoId = bin2hex(random_bytes(16));
 
   $stmt = $pdo->prepare("
     INSERT INTO wound_photos (
-      id, patient_id, photo_path, photo_mime, photo_size_bytes,
-      patient_notes, uploaded_via, from_phone, uploaded_at, order_id, photo_request_id
-    ) VALUES (?, ?, ?, ?, ?, ?, 'sms', ?, NOW(), ?, ?)
+      id, patient_id, photo_path, patient_notes, uploaded_via, uploaded_at
+    ) VALUES (?, ?, ?, ?, 'sms', NOW())
   ");
 
   $stmt->execute([
     $photoId,
     $patient['id'],
     $photoPath,
-    $mimeType,
-    $savedBytes,
-    $body, // SMS message body becomes patient notes
-    $fromPhone,
-    $linkedOrderId,
-    $photoRequestId
+    $body // SMS message body becomes patient notes
   ]);
 
   error_log('[Twilio Webhook] Photo saved to database: ' . $photoId);
-
-  // Mark the photo request as completed
-  if ($photoRequestId) {
-    $stmt = $pdo->prepare("
-      UPDATE photo_requests
-      SET completed = TRUE, photo_id = ?, uploaded_at = NOW()
-      WHERE id = ?
-    ");
-    $stmt->execute([$photoId, $photoRequestId]);
-    error_log('[Twilio Webhook] Marked photo request as completed: ' . $photoRequestId);
-
-    // Update photo count in prompt schedule
-    if ($linkedOrderId) {
-      $updateSchedule = $pdo->prepare("
-        UPDATE photo_prompt_schedule
-        SET total_photos_received = total_photos_received + 1,
-            updated_at = NOW()
-        WHERE order_id = ?
-      ");
-      $updateSchedule->execute([$linkedOrderId]);
-      error_log('[Twilio Webhook] Updated photo count for order: ' . $linkedOrderId);
-    }
-  }
-
-  // TODO: Notify physician (implement later with push notifications or email)
-  // notifyPhysician($patient['user_id'], $photoId);
 
   // Send confirmation to patient
   $twilioHelper->sendPhotoConfirmation($fromPhone, $patient['first_name']);

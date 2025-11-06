@@ -90,18 +90,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $photoRequest && isset($_FILES['pho
         $photoId = bin2hex(random_bytes(16));
         $stmt = $pdo->prepare("
             INSERT INTO wound_photos
-            (id, patient_id, physician_id, order_id, filename, file_size, mime_type, source, photo_request_id, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 'web_upload', ?, NOW(), NOW())
+            (id, patient_id, photo_path, uploaded_via, uploaded_at)
+            VALUES (?, ?, ?, 'portal', NOW())
         ");
         $stmt->execute([
             $photoId,
             $photoRequest['patient_id'],
-            $photoRequest['physician_id'],
-            $photoRequest['order_id'],
-            $filename,
-            $file['size'],
-            $mimeType,
-            $photoRequest['id']
+            $photoPath
         ]);
 
         error_log('[Upload] Photo uploaded successfully: ' . $filename . ' for patient: ' . $photoRequest['patient_id']);

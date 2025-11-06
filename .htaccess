@@ -14,6 +14,7 @@ RewriteRule ^ - [L]
 RewriteRule ^login/?$    login/index.php   [L,QSA]
 RewriteRule ^logout/?$   logout/index.php  [L,QSA]
 RewriteRule ^portal/?$   portal/index.php  [L,QSA]
+RewriteRule ^upload/(.+)$ upload.php       [L,QSA]
 
 # API endpoints your JS calls
 RewriteRule ^api/csrf\.php$   api/csrf.php   [L,QSA]
