@@ -93,7 +93,13 @@ function getFullPath(string $relativePath): string {
   }
 }
 $__DIR__ = __DIR__;  // Store for use in helper function
-function validPhone(?string $p){ return $p===null||$p===''||preg_match('/^\d{10}$/',$p); }
+function validPhone(?string $p){
+  if ($p===null || $p==='') return true;
+  // Accept any format that can be normalized to E.164 (US/Canada)
+  // Examples: 5551234567, (555) 123-4567, 555-123-4567, +15551234567
+  $digits = preg_replace('/\D/', '', $p);
+  return strlen($digits) === 10 || (strlen($digits) === 11 && $digits[0] === '1');
+}
 function validEmail(?string $e){ return $e===null||$e===''||filter_var($e,FILTER_VALIDATE_EMAIL); }
 function usStates(): array {
   return ['AL','AK','AZ','AR','CA','CO','CT','DE','DC','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'];
@@ -942,8 +948,16 @@ if ($action) {
     $ins_group_id=$_POST['insurance_group_id']??null; $ins_payer_phone=$_POST['insurance_payer_phone']??null;
 
     if($first===''||$last==='') jerr('First and last name are required');
-    if(!validPhone($phone)) jerr('Phone must be 10 digits');
+    if(!validPhone($phone)) jerr('Invalid phone number format');
+    if(!validPhone($cell_phone)) jerr('Invalid cell phone number format');
+    if(!validPhone($ins_payer_phone)) jerr('Invalid insurance phone number format');
     if(!validEmail($email)) jerr('Invalid email');
+
+    // Normalize phone numbers to E.164 format for consistent storage and Twilio compatibility
+    require_once __DIR__ . '/../api/lib/twilio_sms.php';
+    if ($phone) $phone = normalize_phone_number($phone);
+    if ($cell_phone) $cell_phone = normalize_phone_number($cell_phone);
+    if ($ins_payer_phone) $ins_payer_phone = normalize_phone_number($ins_payer_phone);
 
     // Track if this is a new patient (for auto-scoring)
     $isNewPatient = ($pid === '');
