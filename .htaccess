@@ -5,6 +5,9 @@
 RewriteEngine On
 RewriteBase /
 
+# Photo upload with token (must come before file check)
+RewriteRule ^upload/([a-f0-9]+)$ upload.php [L,QSA]
+
 # Serve real files/dirs as-is
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
@@ -14,7 +17,6 @@ RewriteRule ^ - [L]
 RewriteRule ^login/?$    login/index.php   [L,QSA]
 RewriteRule ^logout/?$   logout/index.php  [L,QSA]
 RewriteRule ^portal/?$   portal/index.php  [L,QSA]
-RewriteRule ^upload/(.+)$ upload.php       [L,QSA]
 
 # API endpoints your JS calls
 RewriteRule ^api/csrf\.php$   api/csrf.php   [L,QSA]
