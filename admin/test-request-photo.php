@@ -43,7 +43,7 @@ try {
     echo "--------------------\n";
     $accountSid = env('TWILIO_ACCOUNT_SID');
     $authToken = env('TWILIO_AUTH_TOKEN');
-    $fromPhone = env('TWILIO_FROM_PHONE');
+    $fromPhone = env('TWILIO_PHONE_NUMBER');
 
     echo "Account SID: " . ($accountSid ? substr($accountSid, 0, 10) . "..." : "✗ NOT SET") . "\n";
     echo "Auth Token: " . ($authToken ? "✓ SET" : "✗ NOT SET") . "\n";
