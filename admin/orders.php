@@ -360,9 +360,15 @@ $sql = "
          p.insurance_provider, p.insurance_member_id, p.insurance_group_id, p.insurance_payer_phone,
          $carrierSelect,
          $trackingSelect,
+         dc.id AS dc_id,
          dc.confirmed_at AS delivery_confirmed_at,
+         dc.confirmation_method AS delivery_confirmation_method,
+         dc.confirmed_ip AS delivery_confirmed_ip,
+         dc.confirmed_user_agent AS delivery_confirmed_user_agent,
          dc.sms_sent_at AS delivery_sms_sent_at,
-         dc.sms_status AS delivery_sms_status
+         dc.sms_sid AS delivery_sms_sid,
+         dc.sms_status AS delivery_sms_status,
+         dc.patient_phone AS delivery_patient_phone
   FROM orders o
   LEFT JOIN patients p ON p.id=o.patient_id
   LEFT JOIN delivery_confirmations dc ON dc.order_id=o.id
@@ -488,10 +494,21 @@ if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"
         </td>
         <td class="py-3">
           <?php
-          // Display delivery confirmation status with color-coded bubbles
+          // Display delivery confirmation status with clickable details
           if (!empty($r['delivery_confirmed_at'])) {
-            // GREEN: Patient confirmed delivery
-            echo '<span class="inline-block w-3 h-3 rounded-full bg-green-500" title="Confirmed: '.e(date('m/d/Y g:i A', strtotime($r['delivery_confirmed_at']))).'"></span>';
+            // GREEN: Patient confirmed delivery - CLICKABLE for audit details
+            $dcData = json_encode([
+              'order_id' => substr($r['id'], 0, 8),
+              'patient_name' => $r['first_name'] . ' ' . $r['last_name'],
+              'confirmed_at' => date('m/d/Y g:i A', strtotime($r['delivery_confirmed_at'])),
+              'confirmation_method' => $r['delivery_confirmation_method'] ?: 'web_link',
+              'confirmed_ip' => $r['delivery_confirmed_ip'] ?: 'N/A',
+              'confirmed_user_agent' => $r['delivery_confirmed_user_agent'] ?: 'N/A',
+              'sms_sent_at' => $r['delivery_sms_sent_at'] ? date('m/d/Y g:i A', strtotime($r['delivery_sms_sent_at'])) : 'N/A',
+              'sms_sid' => $r['delivery_sms_sid'] ?: 'N/A',
+              'patient_phone' => $r['delivery_patient_phone'] ?: 'N/A'
+            ], JSON_HEX_APOS | JSON_HEX_QUOT);
+            echo '<button onclick=\'showDeliveryDetails('.htmlspecialchars($dcData, ENT_QUOTES).\')\' class="inline-block w-3 h-3 rounded-full bg-green-500 cursor-pointer hover:ring-2 hover:ring-green-300" title="Click for audit details"></button>';
           } elseif (!empty($r['delivery_sms_sent_at'])) {
             // Check how many days since SMS was sent
             $daysSinceSMS = (time() - strtotime($r['delivery_sms_sent_at'])) / 86400;
@@ -604,4 +621,114 @@ if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"
     </tbody>
   </table>
 </div>
+
+<!-- Delivery Confirmation Details Modal -->
+<dialog id="deliveryDetailsModal" class="rounded-lg shadow-2xl p-0 backdrop:bg-black backdrop:bg-opacity-50" style="max-width: 600px; width: 90%;">
+  <div class="bg-white rounded-lg">
+    <div class="bg-gradient-to-r from-teal-600 to-teal-700 text-white px-6 py-4 flex justify-between items-center rounded-t-lg">
+      <h2 class="text-xl font-semibold">📋 Delivery Confirmation Details</h2>
+      <button onclick="document.getElementById('deliveryDetailsModal').close()" class="text-white hover:text-gray-200 text-2xl">&times;</button>
+    </div>
+
+    <div class="p-6">
+      <div class="space-y-4">
+        <div class="bg-gray-50 rounded-lg p-4">
+          <h3 class="font-semibold text-gray-700 mb-3 flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
+              <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
+            </svg>
+            Order Information
+          </h3>
+          <div class="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <span class="text-gray-500">Order ID:</span>
+              <span class="ml-2 font-mono font-semibold" id="dc_order_id"></span>
+            </div>
+            <div>
+              <span class="text-gray-500">Patient:</span>
+              <span class="ml-2 font-semibold" id="dc_patient_name"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-green-50 rounded-lg p-4 border border-green-200">
+          <h3 class="font-semibold text-green-800 mb-3 flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+            </svg>
+            Confirmation Details (Insurance Audit)
+          </h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between">
+              <span class="text-gray-600">Confirmed At:</span>
+              <span class="font-semibold text-green-800" id="dc_confirmed_at"></span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Method:</span>
+              <span class="font-semibold" id="dc_confirmation_method"></span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Patient IP Address:</span>
+              <span class="font-mono text-xs" id="dc_confirmed_ip"></span>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-gray-600 mb-1">User Agent (Device/Browser):</span>
+              <span class="font-mono text-xs bg-white p-2 rounded border" id="dc_confirmed_user_agent"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+          <h3 class="font-semibold text-blue-800 mb-3 flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path>
+              <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path>
+            </svg>
+            SMS Details
+          </h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between">
+              <span class="text-gray-600">SMS Sent At:</span>
+              <span class="font-semibold" id="dc_sms_sent_at"></span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Recipient Phone:</span>
+              <span class="font-mono" id="dc_patient_phone"></span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Twilio Message SID:</span>
+              <span class="font-mono text-xs" id="dc_sms_sid"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-xs text-gray-500 bg-gray-50 p-3 rounded border">
+          <strong>For Insurance Compliance:</strong> This record shows when the patient confirmed delivery of wound care supplies by clicking the confirmation link in the SMS. The IP address and user agent verify the confirmation came from the patient's device.
+        </div>
+      </div>
+
+      <div class="mt-6 flex justify-end">
+        <button onclick="document.getElementById('deliveryDetailsModal').close()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">Close</button>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<script>
+function showDeliveryDetails(data) {
+  document.getElementById('dc_order_id').textContent = data.order_id;
+  document.getElementById('dc_patient_name').textContent = data.patient_name;
+  document.getElementById('dc_confirmed_at').textContent = data.confirmed_at;
+  document.getElementById('dc_confirmation_method').textContent = data.confirmation_method === 'web_link' ? '🔗 Web Link' : '💬 SMS Reply';
+  document.getElementById('dc_confirmed_ip').textContent = data.confirmed_ip;
+  document.getElementById('dc_confirmed_user_agent').textContent = data.confirmed_user_agent;
+  document.getElementById('dc_sms_sent_at').textContent = data.sms_sent_at;
+  document.getElementById('dc_patient_phone').textContent = data.patient_phone;
+  document.getElementById('dc_sms_sid').textContent = data.sms_sid;
+
+  document.getElementById('deliveryDetailsModal').showModal();
+}
+</script>
+
 <?php if ($hasLayout) include $footer; else echo '</div>'; ?>
