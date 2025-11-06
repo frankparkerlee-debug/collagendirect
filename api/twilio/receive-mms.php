@@ -208,6 +208,18 @@ try {
     ");
     $stmt->execute([$photoId, $photoRequestId]);
     error_log('[Twilio Webhook] Marked photo request as completed: ' . $photoRequestId);
+
+    // Update photo count in prompt schedule
+    if ($linkedOrderId) {
+      $updateSchedule = $pdo->prepare("
+        UPDATE photo_prompt_schedule
+        SET total_photos_received = total_photos_received + 1,
+            updated_at = NOW()
+        WHERE order_id = ?
+      ");
+      $updateSchedule->execute([$linkedOrderId]);
+      error_log('[Twilio Webhook] Updated photo count for order: ' . $linkedOrderId);
+    }
   }
 
   // TODO: Notify physician (implement later with push notifications or email)

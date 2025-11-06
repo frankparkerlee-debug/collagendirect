@@ -97,8 +97,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
       // Get order and patient details including physician name
       $orderData = $pdo->prepare("
-        SELECT o.id, o.product,
-               p.first_name, p.last_name, p.phone, p.email,
+        SELECT o.id, o.product, o.frequency, o.delivered_at,
+               p.id as patient_id, p.first_name, p.last_name, p.phone, p.email,
                u.first_name AS phys_first, u.last_name AS phys_last, u.practice_name
         FROM orders o
         LEFT JOIN patients p ON p.id = o.patient_id
@@ -193,6 +193,18 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             error_log("[orders.php] Delivery confirmation SMS failed for order {$id}: " . ($smsResult['error'] ?? 'Unknown error'));
           }
         }
+
+        // Create photo prompt schedule for wound photo updates
+        require_once __DIR__ . '/../api/lib/photo_prompt_helpers.php';
+        $deliveryDate = date('Y-m-d', strtotime($order['delivered_at'] ?? 'now'));
+        create_photo_prompt_schedule(
+          $pdo,
+          $order['id'],
+          $order['patient_id'],
+          $order['frequency'],
+          $order['product'],
+          $deliveryDate
+        );
       }
     } catch (Throwable $smsErr) {
       error_log('[orders.php] Delivery confirmation SMS error: ' . $smsErr->getMessage());
