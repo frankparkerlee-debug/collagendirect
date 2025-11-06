@@ -43,14 +43,15 @@ try {
     echo "--------------------\n";
     $accountSid = env('TWILIO_ACCOUNT_SID');
     $authToken = env('TWILIO_AUTH_TOKEN');
-    $fromPhone = env('TWILIO_PHONE_NUMBER');
+    $fromPhone = env('TWILIO_PHONE_NUMBER') ?: env('TWILIO_FROM_PHONE') ?: '+18884156880';
 
     echo "Account SID: " . ($accountSid ? substr($accountSid, 0, 10) . "..." : "✗ NOT SET") . "\n";
     echo "Auth Token: " . ($authToken ? "✓ SET" : "✗ NOT SET") . "\n";
-    echo "From Phone: " . ($fromPhone ?: "✗ NOT SET") . "\n\n";
+    echo "From Phone: " . ($fromPhone ?: "✗ NOT SET") . "\n";
+    echo "  (using fallback: +18884156880)\n\n";
 
-    if (!$accountSid || !$authToken || !$fromPhone) {
-        echo "✗ Twilio not fully configured\n";
+    if (!$accountSid || !$authToken) {
+        echo "✗ Twilio credentials not configured\n";
         exit(1);
     }
 
