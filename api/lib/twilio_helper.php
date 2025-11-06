@@ -3,26 +3,21 @@
  * Twilio SMS/MMS Helper Functions
  *
  * Handles sending photo requests and receiving photos via SMS/MMS
+ * Uses direct Twilio API calls (no SDK required)
  */
 
-require_once __DIR__ . '/../vendor/autoload.php';
-
-use Twilio\Rest\Client;
+require_once __DIR__ . '/env.php';
+require_once __DIR__ . '/twilio_sms.php';
 
 class TwilioHelper {
-  private $client;
   private $fromNumber;
 
   public function __construct() {
-    $sid = getenv('TWILIO_SID');
-    $token = getenv('TWILIO_TOKEN');
-    $this->fromNumber = getenv('TWILIO_PHONE');
+    $this->fromNumber = env('TWILIO_FROM_PHONE');
 
-    if (!$sid || !$token || !$this->fromNumber) {
-      throw new Exception('Twilio credentials not configured. Please set TWILIO_SID, TWILIO_TOKEN, and TWILIO_PHONE environment variables.');
+    if (!$this->fromNumber) {
+      throw new Exception('Twilio FROM phone not configured. Please set TWILIO_FROM_PHONE in .env');
     }
-
-    $this->client = new Client($sid, $token);
   }
 
   /**
@@ -48,20 +43,10 @@ class TwilioHelper {
 
       $message .= "\n\nReply STOP to opt out.";
 
-      // Send SMS
-      $messageObj = $this->client->messages->create(
-        $toPhone,
-        [
-          'from' => $this->fromNumber,
-          'body' => $message
-        ]
-      );
+      // Send SMS using our existing function
+      $result = twilio_send_sms($toPhone, $message);
 
-      return [
-        'success' => true,
-        'sid' => $messageObj->sid,
-        'error' => null
-      ];
+      return $result;
 
     } catch (Exception $e) {
       error_log('[TwilioHelper] Failed to send SMS: ' . $e->getMessage());
@@ -86,15 +71,9 @@ class TwilioHelper {
 
       $message = "✓ Photo received, {$patientName}! Your doctor will review it shortly. Thank you!";
 
-      $this->client->messages->create(
-        $toPhone,
-        [
-          'from' => $this->fromNumber,
-          'body' => $message
-        ]
-      );
+      $result = twilio_send_sms($toPhone, $message);
 
-      return ['success' => true, 'error' => null];
+      return ['success' => $result['success'], 'error' => $result['error'] ?? null];
 
     } catch (Exception $e) {
       error_log('[TwilioHelper] Failed to send confirmation: ' . $e->getMessage());
@@ -113,15 +92,9 @@ class TwilioHelper {
     try {
       $toPhone = $this->formatPhoneNumber($toPhone);
 
-      $this->client->messages->create(
-        $toPhone,
-        [
-          'from' => $this->fromNumber,
-          'body' => $errorMessage
-        ]
-      );
+      $result = twilio_send_sms($toPhone, $errorMessage);
 
-      return ['success' => true, 'error' => null];
+      return ['success' => $result['success'], 'error' => $result['error'] ?? null];
 
     } catch (Exception $e) {
       error_log('[TwilioHelper] Failed to send error message: ' . $e->getMessage());
@@ -136,18 +109,8 @@ class TwilioHelper {
    * @return string Formatted phone number
    */
   private function formatPhoneNumber($phone) {
-    // Remove all non-numeric characters
-    $digits = preg_replace('/[^0-9]/', '', $phone);
-
-    // Add +1 if not present (assuming US numbers)
-    if (strlen($digits) === 10) {
-      return '+1' . $digits;
-    } elseif (strlen($digits) === 11 && substr($digits, 0, 1) === '1') {
-      return '+' . $digits;
-    }
-
-    // Return as-is if already formatted
-    return $phone;
+    // Use the existing normalize function
+    return normalize_phone_number($phone) ?: $phone;
   }
 
   /**
@@ -159,19 +122,30 @@ class TwilioHelper {
   public function downloadMedia($mediaUrl) {
     try {
       // Twilio media URLs require authentication
-      $sid = getenv('TWILIO_SID');
-      $token = getenv('TWILIO_TOKEN');
+      $accountSid = env('TWILIO_ACCOUNT_SID');
+      $authToken = env('TWILIO_AUTH_TOKEN');
+
+      if (!$accountSid || !$authToken) {
+        throw new Exception('Twilio credentials not configured');
+      }
 
       $ch = curl_init($mediaUrl);
       curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-      curl_setopt($ch, CURLOPT_USERPWD, "$sid:$token");
+      curl_setopt($ch, CURLOPT_USERPWD, "$accountSid:$authToken");
       curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+      curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+      curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
 
       $data = curl_exec($ch);
       $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
       $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+      $curlError = curl_error($ch);
 
       curl_close($ch);
+
+      if ($curlError) {
+        throw new Exception("cURL error: $curlError");
+      }
 
       if ($httpCode !== 200 || !$data) {
         throw new Exception("Failed to download media. HTTP code: $httpCode");
