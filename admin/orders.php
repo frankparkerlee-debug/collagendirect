@@ -520,7 +520,7 @@ if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"
               'sms_sid' => $r['delivery_sms_sid'] ?: 'N/A',
               'patient_phone' => $r['delivery_patient_phone'] ?: 'N/A'
             ], JSON_HEX_APOS | JSON_HEX_QUOT);
-            echo '<button onclick=\'showDeliveryDetails('.htmlspecialchars($dcData, ENT_QUOTES).\')\' class="inline-block w-3 h-3 rounded-full bg-green-500 cursor-pointer hover:ring-2 hover:ring-green-300" title="Click for audit details"></button>';
+            echo '<button onclick="showDeliveryDetails(' . htmlspecialchars($dcData, ENT_QUOTES) . ')" class="inline-block w-3 h-3 rounded-full bg-green-500 cursor-pointer hover:ring-2 hover:ring-green-300" title="Click for audit details"></button>';
           } elseif (!empty($r['delivery_sms_sent_at'])) {
             // Check how many days since SMS was sent
             $daysSinceSMS = (time() - strtotime($r['delivery_sms_sent_at'])) / 86400;
