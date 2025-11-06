@@ -122,13 +122,18 @@ class TwilioHelper {
    */
   public function downloadMedia($mediaUrl) {
     try {
+      error_log('[TwilioHelper] Starting media download from: ' . $mediaUrl);
+
       // Twilio media URLs require authentication
       $accountSid = env('TWILIO_ACCOUNT_SID');
       $authToken = env('TWILIO_AUTH_TOKEN');
 
       if (!$accountSid || !$authToken) {
+        error_log('[TwilioHelper] Missing credentials - SID: ' . ($accountSid ? 'present' : 'missing') . ', Token: ' . ($authToken ? 'present' : 'missing'));
         throw new Exception('Twilio credentials not configured');
       }
+
+      error_log('[TwilioHelper] Using Account SID: ' . substr($accountSid, 0, 10) . '...');
 
       $ch = curl_init($mediaUrl);
       curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -136,6 +141,7 @@ class TwilioHelper {
       curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
       curl_setopt($ch, CURLOPT_TIMEOUT, 30);
       curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+      curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
 
       $data = curl_exec($ch);
       $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
@@ -144,13 +150,19 @@ class TwilioHelper {
 
       curl_close($ch);
 
+      error_log('[TwilioHelper] Download response - HTTP: ' . $httpCode . ', Content-Type: ' . $contentType . ', Data size: ' . strlen($data ?: ''));
+
       if ($curlError) {
+        error_log('[TwilioHelper] cURL error: ' . $curlError);
         throw new Exception("cURL error: $curlError");
       }
 
       if ($httpCode !== 200 || !$data) {
+        error_log('[TwilioHelper] Download failed - HTTP: ' . $httpCode . ', Data length: ' . strlen($data ?: '0'));
         throw new Exception("Failed to download media. HTTP code: $httpCode");
       }
+
+      error_log('[TwilioHelper] Media downloaded successfully - ' . strlen($data) . ' bytes');
 
       return [
         'success' => true,
