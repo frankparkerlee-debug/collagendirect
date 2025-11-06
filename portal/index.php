@@ -867,7 +867,17 @@ if ($action) {
     }
     $orders=$o->fetchAll(PDO::FETCH_ASSOC);
 
-    jok(['patient'=>$p,'orders'=>$orders]);
+    // Get wound photos for this patient
+    $photosStmt = $pdo->prepare("
+      SELECT id, photo_path, uploaded_via, uploaded_at, reviewed, reviewed_at, patient_notes
+      FROM wound_photos
+      WHERE patient_id = ?
+      ORDER BY uploaded_at DESC
+    ");
+    $photosStmt->execute([$pid]);
+    $photos = $photosStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    jok(['patient'=>$p,'orders'=>$orders,'photos'=>$photos]);
   }
 
   if ($action==='file.download'){
@@ -1081,6 +1091,65 @@ if ($action) {
       error_log('[request_wound_photo] Error: ' . $e->getMessage());
       jerr('SMS service unavailable: ' . $e->getMessage());
     }
+  }
+
+  /* ---- Assign photo to order ---- */
+  if ($action==='photo.assign_order'){
+    $photoId = (string)($_POST['photo_id'] ?? '');
+    $orderId = (string)($_POST['order_id'] ?? '');
+
+    if (!$photoId || !$orderId) {
+      jerr('Missing photo_id or order_id');
+    }
+
+    // Verify photo exists and belongs to physician's patient (if not superadmin)
+    if ($userRole === 'superadmin') {
+      $stmt = $pdo->prepare("
+        SELECT wp.id, wp.patient_id
+        FROM wound_photos wp
+        WHERE wp.id = ?
+      ");
+      $stmt->execute([$photoId]);
+    } else {
+      $stmt = $pdo->prepare("
+        SELECT wp.id, wp.patient_id
+        FROM wound_photos wp
+        JOIN patients p ON p.id = wp.patient_id
+        WHERE wp.id = ? AND p.user_id = ?
+      ");
+      $stmt->execute([$photoId, $userId]);
+    }
+
+    $photo = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$photo) {
+      jerr('Photo not found');
+    }
+
+    // Verify order exists and belongs to the same patient
+    $orderStmt = $pdo->prepare("
+      SELECT id FROM orders
+      WHERE id = ? AND patient_id = ?
+    ");
+    $orderStmt->execute([$orderId, $photo['patient_id']]);
+
+    if (!$orderStmt->fetch()) {
+      jerr('Order not found or does not belong to this patient');
+    }
+
+    // Note: wound_photos table doesn't have order_id column based on schema
+    // We'll need to add a junction table or modify the schema later
+    // For now, we'll store it in patient_notes as a reference
+    $updateStmt = $pdo->prepare("
+      UPDATE wound_photos
+      SET patient_notes = CONCAT(COALESCE(patient_notes, ''), '\n[Assigned to Order: ', ?, ']'),
+          updated_at = NOW()
+      WHERE id = ?
+    ");
+    $updateStmt->execute([$orderId, $photoId]);
+
+    error_log('[photo.assign_order] Photo ' . $photoId . ' assigned to order ' . $orderId);
+
+    jok(['message' => 'Photo assigned to order successfully']);
   }
 
   /* ---- Get pending wound photos for review ---- */
@@ -8819,6 +8888,58 @@ function renderPatientDetailPage(p, orders, isEditing) {
         </div>
       ` : ''}
 
+      <!-- Wound Photos Section -->
+      <div class="card p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h4 class="font-semibold text-base">Wound Photos</h4>
+          <button class="btn btn-sm btn-primary" type="button" onclick="requestWoundPhoto('${esc(p.id)}', '${esc(p.first_name)}', '${esc(p.phone)}')">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: inline; margin-right: 4px;">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+            Request Photo
+          </button>
+        </div>
+
+        ${window.patientPhotos && window.patientPhotos.length > 0 ? `
+          <div class="grid grid-cols-2 gap-3">
+            ${window.patientPhotos.slice(0, 6).map(photo => `
+              <div class="relative group cursor-pointer rounded-lg overflow-hidden border hover:border-blue-500 transition" onclick="viewWoundPhoto('${esc(photo.id)}', '${esc(photo.photo_path)}')">
+                <img src="${esc(photo.photo_path)}" alt="Wound photo" class="w-full h-32 object-cover">
+                <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition flex items-center justify-center">
+                  <svg class="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                  </svg>
+                </div>
+                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-2">
+                  <div class="text-white text-xs">${fmt(photo.uploaded_at)}</div>
+                  <div class="text-white text-xs opacity-75">${photo.uploaded_via === 'sms' ? 'Via SMS' : 'Web Upload'}</div>
+                  ${photo.reviewed ? '<div class="text-green-400 text-xs">✓ Reviewed</div>' : '<div class="text-yellow-400 text-xs">Pending Review</div>'}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          ${window.patientPhotos.length > 6 ? `
+            <button class="text-xs text-slate-600 hover:text-slate-900 mt-3 flex items-center gap-1">
+              View all photos (${window.patientPhotos.length})
+              <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </button>
+          ` : ''}
+        ` : `
+          <div class="text-center py-8">
+            <svg class="w-16 h-16 mx-auto text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+            <p class="text-slate-500 text-sm mb-3">No wound photos yet</p>
+            <button class="btn btn-primary btn-sm" type="button" onclick="requestWoundPhoto('${esc(p.id)}', '${esc(p.first_name)}', '${esc(p.phone)}')">Request First Photo</button>
+          </div>
+        `}
+      </div>
+
       <!-- Activity Log / History -->
       <div class="card p-6">
         <h4 class="font-semibold text-base mb-4">Activity Log</h4>
@@ -9339,6 +9460,106 @@ document.addEventListener('click', (e) => {
   }
 });
 
+// View wound photo with order assignment option
+function viewWoundPhoto(photoId, photoPath) {
+  const photos = window.patientPhotos || [];
+  const photo = photos.find(p => p.id === photoId);
+  if (!photo) return;
+
+  const orders = window.currentPatientOrders || [];
+
+  const modalHtml = `
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onclick="if(event.target===this) this.remove()">
+      <div class="bg-white rounded-lg max-w-4xl w-full m-4 max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold">Wound Photo</h3>
+            <button onclick="this.closest('.fixed').remove()" class="text-slate-400 hover:text-slate-600">
+              <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+
+          <div class="mb-4">
+            <img src="${esc(photoPath)}" alt="Wound photo" class="w-full rounded-lg">
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 mb-4 text-sm">
+            <div>
+              <div class="text-slate-500 text-xs">Uploaded</div>
+              <div class="font-medium">${fmt(photo.uploaded_at)}</div>
+            </div>
+            <div>
+              <div class="text-slate-500 text-xs">Method</div>
+              <div class="font-medium">${photo.uploaded_via === 'sms' ? 'SMS/MMS' : 'Web Upload'}</div>
+            </div>
+            <div class="col-span-2">
+              <div class="text-slate-500 text-xs">Patient Notes</div>
+              <div class="font-medium">${photo.patient_notes || 'None'}</div>
+            </div>
+            <div>
+              <div class="text-slate-500 text-xs">Status</div>
+              <div class="font-medium">${photo.reviewed ? `✓ Reviewed on ${fmt(photo.reviewed_at)}` : 'Pending Review'}</div>
+            </div>
+          </div>
+
+          ${orders.length > 0 ? `
+            <div class="border-t pt-4">
+              <label class="block text-sm font-medium mb-2">Assign to Order (Optional)</label>
+              <select id="assign-order-${esc(photoId)}" class="w-full border rounded px-3 py-2 text-sm">
+                <option value="">-- Select Order --</option>
+                ${orders.map(o => `
+                  <option value="${esc(o.id)}">${esc(o.product || 'Order')} - ${esc(o.order_number || o.id.substring(0, 8))}</option>
+                `).join('')}
+              </select>
+              <button onclick="assignPhotoToOrder('${esc(photoId)}')" class="mt-3 btn btn-primary btn-sm">
+                Assign to Selected Order
+              </button>
+            </div>
+          ` : ''}
+
+          <div class="mt-4 flex gap-2">
+            <a href="/photo-reviews" class="btn btn-primary flex-1">Go to Photo Reviews</a>
+            <button onclick="this.closest('.fixed').remove()" class="btn flex-1">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+// Assign photo to order
+async function assignPhotoToOrder(photoId) {
+  const selectEl = document.getElementById(`assign-order-${photoId}`);
+  if (!selectEl) return;
+
+  const orderId = selectEl.value;
+  if (!orderId) {
+    alert('Please select an order');
+    return;
+  }
+
+  try {
+    const res = await api('action=photo.assign_order', {
+      method: 'POST',
+      body: fd({ photo_id: photoId, order_id: orderId })
+    });
+
+    if (res.ok) {
+      alert('Photo assigned to order successfully');
+      // Reload patient detail to reflect changes
+      window.location.reload();
+    } else {
+      alert('Error: ' + (res.error || 'Failed to assign photo'));
+    }
+  } catch (e) {
+    alert('Error assigning photo: ' + e.message);
+  }
+}
+
 // Load patient detail if on patient-detail or patient-edit page
 if (window._patientDetailData) {
   (async () => {
@@ -9347,6 +9568,12 @@ if (window._patientDetailData) {
       const data = await api('action=patient.get&id=' + encodeURIComponent(patientId));
       const p = data.patient;
       const orders = data.orders || [];
+      const photos = data.photos || [];
+
+      // Store photos and orders globally for use in render and photo assignment
+      window.patientPhotos = photos;
+      window.currentPatientOrders = orders;
+
       renderPatientDetailPage(p, orders, isEditing);
 
       // Load stored approval score if available (for persistence)
