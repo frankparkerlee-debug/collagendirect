@@ -8940,9 +8940,15 @@ async function requestWoundPhoto(patientId, patientName, phone) {
   }
 
   try {
+    const formData = new FormData();
+    formData.append('patient_id', patientId);
+    if (orderId) {
+      formData.append('order_id', orderId);
+    }
+
     const response = await api('action=request_wound_photo', {
-      patient_id: patientId,
-      order_id: orderId || null
+      method: 'POST',
+      body: formData
     });
 
     if (response.ok) {
