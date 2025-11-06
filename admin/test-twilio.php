@@ -11,6 +11,7 @@ require_once __DIR__ . '/auth.php';
 require_admin(); // Only admins can access
 
 require_once __DIR__ . '/../api/lib/env.php';
+require_once __DIR__ . '/../api/lib/timezone.php';
 require_once __DIR__ . '/../api/lib/twilio_sms.php';
 
 header('Content-Type: text/plain; charset=utf-8');
@@ -100,9 +101,11 @@ if (empty($testPhone)) {
     echo "Normalized: {$normalizedPhone}\n\n";
 
     // Send test SMS
+    $timestamp = format_time_central();
+    $timezone = get_timezone_abbr();
     $result = twilio_send_sms(
         $normalizedPhone,
-        "Test message from CollagenDirect. If you receive this, Twilio SMS is working correctly! " . date('H:i:s')
+        "Test message from CollagenDirect. If you receive this, Twilio SMS is working correctly! Sent at: {$timestamp} {$timezone}"
     );
 
     if ($result['success']) {

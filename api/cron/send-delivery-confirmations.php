@@ -14,10 +14,11 @@ declare(strict_types=1);
 
 // Load dependencies
 require_once __DIR__ . '/../../admin/db.php';
+require_once __DIR__ . '/../lib/timezone.php';
 require_once __DIR__ . '/../lib/twilio_sms.php';
 
 echo "=== Delivery Confirmation SMS Sender (Backup) ===\n";
-echo "Timestamp: " . date('Y-m-d H:i:s') . "\n\n";
+echo "Timestamp: " . now_central('Y-m-d H:i:s T') . "\n\n";
 
 try {
   // Find orders that are delivered but haven't been sent confirmations yet

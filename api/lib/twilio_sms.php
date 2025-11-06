@@ -7,6 +7,7 @@ declare(strict_types=1);
  */
 
 require_once __DIR__ . '/env.php';
+require_once __DIR__ . '/timezone.php';
 
 /**
  * Send SMS via Twilio API

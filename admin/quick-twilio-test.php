@@ -9,6 +9,7 @@
 
 // Load environment
 require_once __DIR__ . '/../api/lib/env.php';
+require_once __DIR__ . '/../api/lib/timezone.php';
 require_once __DIR__ . '/../api/lib/twilio_sms.php';
 
 // CLI colors for better output
@@ -99,10 +100,11 @@ if (!$normalizedPhone) {
 echo "Normalized: {$normalizedPhone}\n";
 echo "From: {$fromPhone}\n\n";
 
-$timestamp = date('g:i A');
+$timestamp = format_time_central();
+$timezone = get_timezone_abbr();
 $message = "✅ Test message from CollagenDirect\n\n"
     . "If you receive this, your Twilio number is working correctly!\n\n"
-    . "Sent at: {$timestamp}";
+    . "Sent at: {$timestamp} {$timezone}";
 
 echo "Sending...\n";
 $result = twilio_send_sms($normalizedPhone, $message);
