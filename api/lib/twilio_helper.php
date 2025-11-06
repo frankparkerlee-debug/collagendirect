@@ -13,10 +13,10 @@ class TwilioHelper {
   private $fromNumber;
 
   public function __construct() {
-    $this->fromNumber = env('TWILIO_FROM_PHONE');
+    $this->fromNumber = env('TWILIO_PHONE_NUMBER');
 
     if (!$this->fromNumber) {
-      throw new Exception('Twilio FROM phone not configured. Please set TWILIO_FROM_PHONE in .env');
+      throw new Exception('Twilio phone number not configured. Please set TWILIO_PHONE_NUMBER in .env');
     }
   }
 
