@@ -18,7 +18,8 @@ echo "---------------------\n";
 $vars = [
     'TWILIO_ACCOUNT_SID',
     'TWILIO_AUTH_TOKEN',
-    'TWILIO_FROM_PHONE'
+    'TWILIO_PHONE_NUMBER',
+    'TWILIO_FROM_PHONE'  // Legacy check
 ];
 
 foreach ($vars as $var) {
