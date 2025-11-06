@@ -12,12 +12,12 @@ echo "Time: " . date('Y-m-d H:i:s') . "\n\n";
 echo "RECENT WOUND PHOTOS (Last 24 hours):\n";
 echo "-------------------------------------\n";
 $stmt = $pdo->query("
-    SELECT wp.id, wp.filename, wp.source, wp.created_at,
+    SELECT wp.id, wp.photo_path, wp.uploaded_via, wp.uploaded_at,
            p.first_name, p.last_name, p.phone
     FROM wound_photos wp
     JOIN patients p ON p.id = wp.patient_id
-    WHERE wp.created_at > NOW() - INTERVAL '24 hours'
-    ORDER BY wp.created_at DESC
+    WHERE wp.uploaded_at > NOW() - INTERVAL '24 hours'
+    ORDER BY wp.uploaded_at DESC
     LIMIT 10
 ");
 $photos = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -26,10 +26,11 @@ if (empty($photos)) {
     echo "✗ No photos received in last 24 hours\n\n";
 } else {
     foreach ($photos as $photo) {
-        echo "Photo: {$photo['filename']}\n";
+        $filename = basename($photo['photo_path']);
+        echo "Photo: {$filename}\n";
         echo "  Patient: {$photo['first_name']} {$photo['last_name']} ({$photo['phone']})\n";
-        echo "  Source: {$photo['source']}\n";
-        echo "  Time: {$photo['created_at']}\n\n";
+        echo "  Source: {$photo['uploaded_via']}\n";
+        echo "  Time: {$photo['uploaded_at']}\n\n";
     }
 }
 

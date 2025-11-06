@@ -869,7 +869,7 @@ if ($action) {
 
     // Get wound photos for this patient
     $photosStmt = $pdo->prepare("
-      SELECT id, photo_path, uploaded_via, uploaded_at, reviewed, reviewed_at, patient_notes
+      SELECT id, photo_path, uploaded_via, uploaded_at, reviewed, reviewed_at, patient_notes, order_id
       FROM wound_photos
       WHERE patient_id = ?
       ORDER BY uploaded_at DESC
@@ -1125,23 +1125,22 @@ if ($action) {
       jerr('Photo not found');
     }
 
-    // Verify order exists and belongs to the same patient
+    // Verify order exists, belongs to the same patient, and is not archived/rejected
     $orderStmt = $pdo->prepare("
       SELECT id FROM orders
       WHERE id = ? AND patient_id = ?
+        AND status NOT IN ('archived', 'rejected', 'cancelled')
     ");
     $orderStmt->execute([$orderId, $photo['patient_id']]);
 
     if (!$orderStmt->fetch()) {
-      jerr('Order not found or does not belong to this patient');
+      jerr('Order not found, does not belong to this patient, or is archived/rejected');
     }
 
-    // Note: wound_photos table doesn't have order_id column based on schema
-    // We'll need to add a junction table or modify the schema later
-    // For now, we'll store it in patient_notes as a reference
+    // Store order_id in wound_photos table
     $updateStmt = $pdo->prepare("
       UPDATE wound_photos
-      SET patient_notes = CONCAT(COALESCE(patient_notes, ''), '\n[Assigned to Order: ', ?, ']'),
+      SET order_id = ?,
           updated_at = NOW()
       WHERE id = ?
     ");
@@ -9466,7 +9465,13 @@ function viewWoundPhoto(photoId, photoPath) {
   const photo = photos.find(p => p.id === photoId);
   if (!photo) return;
 
-  const orders = window.currentPatientOrders || [];
+  // Filter out archived, rejected, and cancelled orders
+  const orders = (window.currentPatientOrders || []).filter(o =>
+    !['archived', 'rejected', 'cancelled'].includes(o.status)
+  );
+
+  // Find the assigned order if any
+  const assignedOrder = photo.order_id ? orders.find(o => o.id === photo.order_id) : null;
 
   const modalHtml = `
     <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onclick="if(event.target===this) this.remove()">
@@ -9502,19 +9507,25 @@ function viewWoundPhoto(photoId, photoPath) {
               <div class="text-slate-500 text-xs">Status</div>
               <div class="font-medium">${photo.reviewed ? `✓ Reviewed on ${fmt(photo.reviewed_at)}` : 'Pending Review'}</div>
             </div>
+            ${assignedOrder ? `
+              <div class="col-span-2">
+                <div class="text-slate-500 text-xs">Assigned to Order</div>
+                <div class="font-medium text-blue-600">${esc(assignedOrder.product || 'Order')} - ${esc(assignedOrder.order_number || assignedOrder.id.substring(0, 8))}</div>
+              </div>
+            ` : ''}
           </div>
 
           ${orders.length > 0 ? `
             <div class="border-t pt-4">
-              <label class="block text-sm font-medium mb-2">Assign to Order (Optional)</label>
+              <label class="block text-sm font-medium mb-2">${photo.order_id ? 'Reassign to Different Order' : 'Assign to Order'} (Optional)</label>
               <select id="assign-order-${esc(photoId)}" class="w-full border rounded px-3 py-2 text-sm">
                 <option value="">-- Select Order --</option>
                 ${orders.map(o => `
-                  <option value="${esc(o.id)}">${esc(o.product || 'Order')} - ${esc(o.order_number || o.id.substring(0, 8))}</option>
+                  <option value="${esc(o.id)}" ${o.id === photo.order_id ? 'selected' : ''}>${esc(o.product || 'Order')} - ${esc(o.order_number || o.id.substring(0, 8))}</option>
                 `).join('')}
               </select>
               <button onclick="assignPhotoToOrder('${esc(photoId)}')" class="mt-3 btn btn-primary btn-sm">
-                Assign to Selected Order
+                ${photo.order_id ? 'Update Assignment' : 'Assign to Selected Order'}
               </button>
             </div>
           ` : ''}
