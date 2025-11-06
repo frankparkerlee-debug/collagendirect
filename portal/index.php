@@ -8591,10 +8591,87 @@ function renderPatientDetailPage(p, orders, isEditing) {
         </div>
       </div>
 
+      <!-- Required Documents Section -->
+      <div class="mb-6 pb-6 border-t pt-6">
+        <h5 class="font-semibold text-sm mb-3">Required Documents</h5>
+        <div class="space-y-3">
+          <div>
+            <label class="text-xs">ID Card ${p.id_card_path ? '<span class="text-green-600">✓</span>' : '<span class="text-red-600">*</span>'}</label>
+            ${p.id_card_path ? `<div class="text-xs text-slate-600 mb-1"><a href="?action=file.download&path=${encodeURIComponent(esc(p.id_card_path))}" target="_blank" class="underline">View current file</a></div>` : '<div class="text-xs text-slate-400 mb-1">Not uploaded</div>'}
+            ${isEditing ? `<input type="file" class="w-full text-sm" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic" onchange="uploadPatientFile('${esc(p.id)}', 'id', this.files[0])">` : ''}
+          </div>
+          <div>
+            <label class="text-xs">Insurance Card ${p.ins_card_path ? '<span class="text-green-600">✓</span>' : '<span class="text-red-600">*</span>'}</label>
+            ${p.ins_card_path ? `<div class="text-xs text-slate-600 mb-1"><a href="?action=file.download&path=${encodeURIComponent(esc(p.ins_card_path))}" target="_blank" class="underline">View current file</a></div>` : '<div class="text-xs text-slate-400 mb-1">Not uploaded</div>'}
+            ${isEditing ? `<input type="file" class="w-full text-sm" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic" onchange="uploadPatientFile('${esc(p.id)}', 'ins', this.files[0])">` : ''}
+          </div>
+          <div>
+            <label class="text-xs">Clinical Notes ${p.notes_path ? '<span class="text-green-600">✓</span>' : ''}</label>
+            ${p.notes_path ? `<div class="text-xs text-slate-600 mb-1"><a href="?action=file.download&path=${encodeURIComponent(esc(p.notes_path))}" target="_blank" class="underline">View current file</a></div>` : '<div class="text-xs text-slate-400 mb-1">Not uploaded</div>'}
+            ${isEditing ? `<input type="file" class="w-full text-sm" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.txt" onchange="uploadPatientFile('${esc(p.id)}', 'notes', this.files[0])">` : ''}
+          </div>
+          <div>
+            <label class="text-xs">AOB ${p.aob_path ? '<span class="text-green-600">✓</span>' : '<span class="text-red-600">*</span>'}</label>
+            ${p.aob_path ? `<div class="text-xs text-slate-600 mb-1">Signed: ${fmt(p.aob_signed_at)}</div>` : '<div class="text-xs text-slate-400 mb-1">Not signed</div>'}
+            ${isEditing ? `<button type="button" class="btn text-sm mt-1" onclick="generateAOB('${esc(p.id)}')">${p.aob_path ? 'Re-generate' : 'Generate & Sign'} AOB</button>` : ''}
+          </div>
+        </div>
+      </div>
+
+      ${isEditing ? `
+        <!-- Save/Cancel Actions -->
+        <div class="flex gap-2">
+          <button class="btn flex-1 text-white" type="button" onclick="savePatientFromDetail('${esc(p.id)}')" style="background: var(--brand);">Save Changes</button>
+          <a href="?page=patient-detail&id=${esc(p.id)}" class="btn">Cancel</a>
+        </div>
+      ` : `
+        <div class="flex gap-2">
+          <a href="?page=patient-edit&id=${esc(p.id)}" class="btn flex-1 text-white" style="background: var(--brand);">Edit Patient</a>
+          <button class="btn" type="button" onclick="if(confirm('Delete this patient?')) deletePatient('${esc(p.id)}')">Delete</button>
+        </div>
+      `}
+    </div>
+  `;
+
+  // Wire up the top-level New Order button
+  const topBtn = document.getElementById('patient-detail-new-order-btn');
+  if (topBtn) {
+    topBtn.style.display = 'inline-flex';
+    topBtn.onclick = () => openOrderDialog(p.id);
+  }
+
+  // Right column - Orders and History (matching screenshot layout)
+  const rightColumn = `
+    <div class="lg:col-span-2 space-y-6">
+      <!-- Orders Section -->
+      <div class="card p-6">
+        <h4 class="font-semibold text-base mb-4">Orders</h4>
+
+        ${orders.length > 0 ? `
+          <!-- All Orders (with proper status) -->
+          <div class="space-y-2">
+            ${orders.slice(0, 5).map((o, i) => renderOrderCard(o, i)).join('')}
+          </div>
+          ${orders.length > 5 ? `
+            <button class="text-xs text-slate-600 hover:text-slate-900 mt-3 flex items-center gap-1">
+              See all orders (${orders.length})
+              <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </button>
+          ` : ''}
+        ` : `
+          <div class="text-center py-8">
+            <p class="text-slate-500 text-sm mb-3">No wound care orders yet</p>
+            <button class="btn btn-primary btn-sm" type="button" onclick="openOrderDialog('${esc(p.id)}')">Create First Order</button>
+          </div>
+        `}
+      </div>
+
       <!-- AI Approval Score Section -->
-      <div class="mb-4 pb-4 border-t pt-4">
+      <div class="card p-6">
         <div class="flex justify-between items-center mb-3">
-          <h4 class="font-semibold text-sm">AI Approval Readiness Score</h4>
+          <h4 class="font-semibold text-base">AI Approval Readiness Score</h4>
           <button
             onclick="generateApprovalScore('${esc(p.id)}')"
             class="px-3 py-1.5 text-xs bg-purple-600 text-white rounded hover:bg-purple-700 transition flex items-center gap-1"
@@ -8615,8 +8692,8 @@ function renderPatientDetailPage(p, orders, isEditing) {
 
       <!-- Authorization Status Section -->
       ${p.auth_state ? `
-        <div class="mb-4 pb-4 border-t pt-4">
-          <h4 class="font-semibold text-sm mb-3">Authorization Status</h4>
+        <div class="card p-6">
+          <h4 class="font-semibold text-base mb-3">Authorization Status</h4>
           <div class="space-y-3 text-sm">
             <div>
               <div class="text-slate-500 text-xs mb-1">Current Status</div>
@@ -8741,83 +8818,6 @@ function renderPatientDetailPage(p, orders, isEditing) {
           </div>
         </div>
       ` : ''}
-
-      <!-- Required Documents Section -->
-      <div class="mb-6 pb-6 border-t pt-6">
-        <h5 class="font-semibold text-sm mb-3">Required Documents</h5>
-        <div class="space-y-3">
-          <div>
-            <label class="text-xs">ID Card ${p.id_card_path ? '<span class="text-green-600">✓</span>' : '<span class="text-red-600">*</span>'}</label>
-            ${p.id_card_path ? `<div class="text-xs text-slate-600 mb-1"><a href="?action=file.download&path=${encodeURIComponent(esc(p.id_card_path))}" target="_blank" class="underline">View current file</a></div>` : '<div class="text-xs text-slate-400 mb-1">Not uploaded</div>'}
-            ${isEditing ? `<input type="file" class="w-full text-sm" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic" onchange="uploadPatientFile('${esc(p.id)}', 'id', this.files[0])">` : ''}
-          </div>
-          <div>
-            <label class="text-xs">Insurance Card ${p.ins_card_path ? '<span class="text-green-600">✓</span>' : '<span class="text-red-600">*</span>'}</label>
-            ${p.ins_card_path ? `<div class="text-xs text-slate-600 mb-1"><a href="?action=file.download&path=${encodeURIComponent(esc(p.ins_card_path))}" target="_blank" class="underline">View current file</a></div>` : '<div class="text-xs text-slate-400 mb-1">Not uploaded</div>'}
-            ${isEditing ? `<input type="file" class="w-full text-sm" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic" onchange="uploadPatientFile('${esc(p.id)}', 'ins', this.files[0])">` : ''}
-          </div>
-          <div>
-            <label class="text-xs">Clinical Notes ${p.notes_path ? '<span class="text-green-600">✓</span>' : ''}</label>
-            ${p.notes_path ? `<div class="text-xs text-slate-600 mb-1"><a href="?action=file.download&path=${encodeURIComponent(esc(p.notes_path))}" target="_blank" class="underline">View current file</a></div>` : '<div class="text-xs text-slate-400 mb-1">Not uploaded</div>'}
-            ${isEditing ? `<input type="file" class="w-full text-sm" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.txt" onchange="uploadPatientFile('${esc(p.id)}', 'notes', this.files[0])">` : ''}
-          </div>
-          <div>
-            <label class="text-xs">AOB ${p.aob_path ? '<span class="text-green-600">✓</span>' : '<span class="text-red-600">*</span>'}</label>
-            ${p.aob_path ? `<div class="text-xs text-slate-600 mb-1">Signed: ${fmt(p.aob_signed_at)}</div>` : '<div class="text-xs text-slate-400 mb-1">Not signed</div>'}
-            ${isEditing ? `<button type="button" class="btn text-sm mt-1" onclick="generateAOB('${esc(p.id)}')">${p.aob_path ? 'Re-generate' : 'Generate & Sign'} AOB</button>` : ''}
-          </div>
-        </div>
-      </div>
-
-      ${isEditing ? `
-        <!-- Save/Cancel Actions -->
-        <div class="flex gap-2">
-          <button class="btn flex-1 text-white" type="button" onclick="savePatientFromDetail('${esc(p.id)}')" style="background: var(--brand);">Save Changes</button>
-          <a href="?page=patient-detail&id=${esc(p.id)}" class="btn">Cancel</a>
-        </div>
-      ` : `
-        <div class="flex gap-2">
-          <a href="?page=patient-edit&id=${esc(p.id)}" class="btn flex-1 text-white" style="background: var(--brand);">Edit Patient</a>
-          <button class="btn" type="button" onclick="if(confirm('Delete this patient?')) deletePatient('${esc(p.id)}')">Delete</button>
-        </div>
-      `}
-    </div>
-  `;
-
-  // Wire up the top-level New Order button
-  const topBtn = document.getElementById('patient-detail-new-order-btn');
-  if (topBtn) {
-    topBtn.style.display = 'inline-flex';
-    topBtn.onclick = () => openOrderDialog(p.id);
-  }
-
-  // Right column - Orders and History (matching screenshot layout)
-  const rightColumn = `
-    <div class="lg:col-span-2 space-y-6">
-      <!-- Orders Section -->
-      <div class="card p-6">
-        <h4 class="font-semibold text-base mb-4">Orders</h4>
-
-        ${orders.length > 0 ? `
-          <!-- All Orders (with proper status) -->
-          <div class="space-y-2">
-            ${orders.slice(0, 5).map((o, i) => renderOrderCard(o, i)).join('')}
-          </div>
-          ${orders.length > 5 ? `
-            <button class="text-xs text-slate-600 hover:text-slate-900 mt-3 flex items-center gap-1">
-              See all orders (${orders.length})
-              <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-              </svg>
-            </button>
-          ` : ''}
-        ` : `
-          <div class="text-center py-8">
-            <p class="text-slate-500 text-sm mb-3">No wound care orders yet</p>
-            <button class="btn btn-primary btn-sm" type="button" onclick="openOrderDialog('${esc(p.id)}')">Create First Order</button>
-          </div>
-        `}
-      </div>
 
       <!-- Activity Log / History -->
       <div class="card p-6">
