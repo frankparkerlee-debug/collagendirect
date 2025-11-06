@@ -108,7 +108,11 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
       $orderData->execute([$id]);
       $order = $orderData->fetch(PDO::FETCH_ASSOC);
 
-      if ($order && !empty($order['phone'])) {
+      if (!$order) {
+        error_log("[orders.php] Cannot send delivery SMS - order {$id} not found");
+      } elseif (empty($order['phone'])) {
+        error_log("[orders.php] Cannot send delivery SMS for order {$id} - patient has no phone number");
+      } else {
         $patientName = trim(($order['first_name'] ?? '') . ' ' . ($order['last_name'] ?? ''));
         $physicianName = trim(($order['phys_last'] ?? '') . ($order['phys_first'] ? ', ' . $order['phys_first'] : ''));
         if (empty($physicianName) && !empty($order['practice_name'])) {

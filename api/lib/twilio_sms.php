@@ -162,7 +162,7 @@ function send_delivery_confirmation_sms(
   string $confirmationToken,
   string $physicianName = ''
 ): array {
-  $confirmUrl = "https://collagendirect.health/confirm-delivery?token=" . urlencode($confirmationToken);
+  $confirmUrl = "https://collagendirect.health/api/confirm-delivery.php?token=" . urlencode($confirmationToken);
 
   // Reference physician if available, otherwise use generic message
   if (!empty($physicianName)) {
