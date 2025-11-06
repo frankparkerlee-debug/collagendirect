@@ -1,0 +1,14 @@
+# CollagenDirect - Automated Wound Photo Prompts
+# Runs daily at 10 AM Central Time (15:00 UTC during CDT, 16:00 UTC during CST)
+#
+# Installation:
+# 1. SSH into your server
+# 2. Run: crontab -e
+# 3. Copy the line below and paste it at the end
+# 4. Save and exit
+
+# Send wound photo prompts (10 AM Central)
+0 15 * * * curl -s 'https://collagendirect.health/api/cron/send-wound-photo-prompts.php' > /dev/null 2>&1
+
+# Alternative: If you have PHP CLI access, use this instead for better logging:
+# 0 15 * * * cd /var/www/html && /usr/bin/php api/cron/send-wound-photo-prompts.php >> /var/log/photo-prompts.log 2>&1
