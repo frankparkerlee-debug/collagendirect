@@ -70,9 +70,69 @@ try {
 
   // Check if message has media (photo)
   if ($numMedia === 0) {
-    error_log('[Twilio Webhook] No media attached');
+    error_log('[Twilio Webhook] No media attached - checking if delivery confirmation reply');
 
-    // Send reminder to attach photo
+    // Check if this is a delivery confirmation reply
+    $confirmStmt = $pdo->prepare("
+      SELECT dc.id, dc.order_id
+      FROM delivery_confirmations dc
+      JOIN orders o ON o.id = dc.order_id
+      WHERE o.patient_id = ?
+        AND dc.confirmed_at IS NULL
+        AND dc.sms_sent_at IS NOT NULL
+        AND dc.sms_sent_at > NOW() - INTERVAL '7 days'
+      ORDER BY dc.sms_sent_at DESC
+      LIMIT 1
+    ");
+    $confirmStmt->execute([$patient['id']]);
+    $pendingConfirmation = $confirmStmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($pendingConfirmation) {
+      // Check if message contains confirmation keywords
+      $bodyLower = strtolower(trim($body));
+      $confirmKeywords = ['yes', 'delivered', 'confirm', 'confirmed', 'received', 'got it', 'got them'];
+
+      $isConfirmation = false;
+      foreach ($confirmKeywords as $keyword) {
+        if (strpos($bodyLower, $keyword) !== false) {
+          $isConfirmation = true;
+          break;
+        }
+      }
+
+      if ($isConfirmation) {
+        // Record delivery confirmation
+        $updateStmt = $pdo->prepare("
+          UPDATE delivery_confirmations
+          SET confirmed_at = NOW(),
+              confirmation_method = 'sms_reply',
+              sms_reply_text = ?,
+              updated_at = NOW()
+          WHERE id = ?
+        ");
+        $updateStmt->execute([$body, $pendingConfirmation['id']]);
+
+        error_log('[Twilio Webhook] Delivery confirmed via SMS reply for order: ' . $pendingConfirmation['order_id']);
+
+        // Send confirmation reply
+        header('Content-Type: text/xml');
+        echo '<?xml version="1.0" encoding="UTF-8"?>';
+        echo '<Response>';
+        echo '<Message>Thank you ' . htmlspecialchars($patient['first_name']) . '! Your delivery confirmation has been recorded.</Message>';
+        echo '</Response>';
+        exit;
+      } else {
+        // Ask for clearer confirmation
+        header('Content-Type: text/xml');
+        echo '<?xml version="1.0" encoding="UTF-8"?>';
+        echo '<Response>';
+        echo '<Message>To confirm delivery, please reply with "YES" or "DELIVERED". To send a wound photo, attach an image to your message.</Message>';
+        echo '</Response>';
+        exit;
+      }
+    }
+
+    // No pending confirmation - must be trying to send a photo
     $twilioHelper = new TwilioHelper();
     $twilioHelper->sendErrorMessage(
       $fromPhone,
