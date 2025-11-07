@@ -1235,6 +1235,12 @@ if ($action) {
     $stmt->execute([$patientId]);
 
     $photos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Add proper photo URLs using proxy script for secure serving
+    foreach ($photos as &$photo) {
+      $photo['photo_url'] = '/admin/serve-wound-photo.php?id=' . urlencode($photo['id']);
+    }
+
     jok(['photos' => $photos, 'count' => count($photos)]);
   }
 
@@ -6435,9 +6441,10 @@ if (<?php echo json_encode($page==='dashboard'); ?>){
             </div>
           ` : '';
 
+          const photoUrl = photo.photo_url || photo.photo_path;
           html += `
             <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: white;">
-              <img src="${photo.photo_path}" alt="Wound photo" style="width: 100%; height: 200px; object-fit: cover; cursor: pointer;" onclick="window.open('${photo.photo_path}', '_blank')" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22><text x=%2250%%22 y=%2250%%22 text-anchor=%22middle%22 fill=%22%23999%22>Image unavailable</text></svg>'">
+              <img src="${photoUrl}" alt="Wound photo" style="width: 100%; height: 200px; object-fit: cover; cursor: pointer;" onclick="window.open('${photoUrl}', '_blank')" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22><text x=%2250%%22 y=%2250%%22 text-anchor=%22middle%22 fill=%22%23999%22>Image unavailable</text></svg>'">
               <div style="padding: 0.75rem;">
                 <div style="margin-bottom: 0.5rem;">
                   ${statusBadge}
