@@ -1161,7 +1161,7 @@ if ($action) {
           wp.*,
           p.first_name, p.last_name, p.dob, p.mrn,
           pr.wound_location, pr.requested_at,
-          be.assessment, be.cpt_code, be.charge_amount, be.exported, be.encounter_date, be.clinical_note
+          be.id as encounter_id, be.assessment, be.cpt_code, be.charge_amount, be.exported, be.encounter_date, be.clinical_note
         FROM wound_photos wp
         JOIN patients p ON p.id = wp.patient_id
         LEFT JOIN photo_requests pr ON pr.id = wp.photo_request_id
@@ -1178,7 +1178,7 @@ if ($action) {
           wp.*,
           p.first_name, p.last_name, p.dob, p.mrn,
           pr.wound_location, pr.requested_at,
-          be.assessment, be.cpt_code, be.charge_amount, be.exported, be.encounter_date, be.clinical_note
+          be.id as encounter_id, be.assessment, be.cpt_code, be.charge_amount, be.exported, be.encounter_date, be.clinical_note
         FROM wound_photos wp
         JOIN patients p ON p.id = wp.patient_id
         LEFT JOIN photo_requests pr ON pr.id = wp.photo_request_id
@@ -1224,7 +1224,7 @@ if ($action) {
       SELECT
         wp.*,
         pr.wound_location, pr.requested_at,
-        be.assessment, be.cpt_code, be.charge_amount, be.exported, be.encounter_date, be.clinical_note
+        be.id as encounter_id, be.assessment, be.cpt_code, be.charge_amount, be.exported, be.encounter_date, be.clinical_note
       FROM wound_photos wp
       LEFT JOIN photo_requests pr ON pr.id = wp.photo_request_id
       LEFT JOIN billable_encounters be ON be.wound_photo_id = wp.id
@@ -1351,6 +1351,61 @@ if ($action) {
       'cpt_code' => $billing['cpt_code'],
       'encounter_id' => $encounterId
     ]);
+  }
+
+  /* ---- Update clinical notes for already-reviewed photo ---- */
+  if ($action === 'update_clinical_notes') {
+    $photoId = (string)($_POST['photo_id'] ?? '');
+    $encounterId = (string)($_POST['encounter_id'] ?? '');
+    $clinicalNote = trim((string)($_POST['clinical_note'] ?? ''));
+
+    if ($photoId === '') jerr('Missing photo ID');
+    if ($clinicalNote === '') jerr('Clinical note cannot be empty');
+
+    // Get photo and verify access
+    $stmt = $pdo->prepare("
+      SELECT wp.*, p.user_id, p.id as patient_id
+      FROM wound_photos wp
+      JOIN patients p ON p.id = wp.patient_id
+      WHERE wp.id = ?
+    ");
+    $stmt->execute([$photoId]);
+    $photo = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$photo) jerr('Photo not found', 404);
+
+    // Check access
+    if ($userRole !== 'superadmin' && $userRole !== 'practice_admin') {
+      if ($photo['user_id'] !== $userId) {
+        jerr('Access denied', 403);
+      }
+    }
+
+    // Check if photo has been reviewed
+    if (!$photo['reviewed']) {
+      jerr('Photo has not been reviewed yet. Use the review action instead.');
+    }
+
+    // Update the billable encounter's clinical note
+    if ($photo['billable_encounter_id']) {
+      $updateStmt = $pdo->prepare("
+        UPDATE billable_encounters
+        SET clinical_note = ?, updated_at = NOW()
+        WHERE id = ? AND physician_id = ?
+      ");
+      $result = $updateStmt->execute([$clinicalNote, $photo['billable_encounter_id'], $userId]);
+
+      if (!$result || $updateStmt->rowCount() === 0) {
+        jerr('Failed to update clinical note. You may not have permission to edit this encounter.');
+      }
+
+      jok([
+        'message' => 'Clinical notes updated successfully',
+        'encounter_id' => $photo['billable_encounter_id']
+      ]);
+    } else {
+      jerr('No billable encounter found for this photo');
+    }
   }
 
   /* ---- Export billing encounters to CSV ---- */

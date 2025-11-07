@@ -155,6 +155,44 @@
   </div>
 </div>
 
+<!-- Edit Review Modal -->
+<div class="review-modal" id="edit-review-modal">
+  <div class="review-modal-content">
+    <div class="review-modal-header">
+      <h2>Edit Clinical Notes</h2>
+      <button class="review-modal-close" onclick="closeEditReviewModal()">&times;</button>
+    </div>
+    <div class="review-modal-body">
+      <img id="edit-modal-photo" class="review-image-large" src="" alt="Wound photo">
+
+      <div style="background: #f8fafc; padding: 1rem; border-radius: 6px; margin-bottom: 1.5rem;">
+        <div style="font-size: 0.875rem; color: #64748b;">
+          <strong>Patient:</strong> <span id="edit-modal-patient-info"></span><br>
+          <strong>CPT Code:</strong> <span id="edit-modal-cpt"></span><br>
+          <strong>Charge:</strong> <span id="edit-modal-charge" style="color: #059669; font-weight: 600;"></span>
+        </div>
+      </div>
+
+      <form onsubmit="submitEditReview(event)">
+        <input type="hidden" id="edit-modal-photo-id" value="">
+        <input type="hidden" id="edit-modal-encounter-id" value="">
+
+        <label style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Clinical Notes</label>
+        <textarea id="edit-review-notes" style="width: 100%; min-height: 150px; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 6px; font-family: inherit; font-size: 0.875rem; resize: vertical;" placeholder="Enter clinical observations for this wound photo..."></textarea>
+
+        <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
+          <button type="submit" style="flex: 1; padding: 0.75rem; background: #059669; color: white; border: none; border-radius: 6px; font-size: 0.875rem; font-weight: 500; cursor: pointer;">
+            Save Changes
+          </button>
+          <button type="button" onclick="closeEditReviewModal()" style="flex: 1; padding: 0.75rem; background: #94a3b8; color: white; border: none; border-radius: 6px; font-size: 0.875rem; font-weight: 500; cursor: pointer;">
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <style>
 .photo-grid {
   display: grid;
@@ -559,6 +597,9 @@ function createPhotoCard(photo) {
         </div>
       </div>
       ${clinicalNotes}
+      <button onclick="openEditReviewModal(${photo.id}); event.stopPropagation();" style="width: 100%; margin-top: 1rem; padding: 0.5rem; background: #3b82f6; color: white; border: none; border-radius: 6px; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: background 0.2s;">
+        Edit Review
+      </button>
     `;
   }
 
@@ -821,6 +862,86 @@ document.addEventListener('DOMContentLoaded', function() {
         applyFilters();
       }
     });
+  }
+});
+
+// Open edit review modal for already-reviewed photos
+function openEditReviewModal(photoId) {
+  const photo = allPhotos.find(p => p.id === photoId);
+  if (!photo) {
+    alert('Photo not found');
+    return;
+  }
+
+  // Populate modal with photo data
+  document.getElementById('edit-modal-photo-id').value = photo.id;
+  document.getElementById('edit-modal-encounter-id').value = photo.encounter_id || '';
+  document.getElementById('edit-modal-photo').src = photo.photo_path;
+  document.getElementById('edit-modal-patient-info').textContent = `${photo.first_name} ${photo.last_name} (DOB: ${formatDate(photo.dob)}, MRN: ${photo.mrn || 'N/A'})`;
+  document.getElementById('edit-modal-cpt').textContent = photo.cpt_code || 'N/A';
+  document.getElementById('edit-modal-charge').textContent = photo.charge_amount ? '$' + parseFloat(photo.charge_amount).toFixed(2) : 'N/A';
+  document.getElementById('edit-review-notes').value = photo.clinical_note || '';
+
+  // Show modal
+  document.getElementById('edit-review-modal').classList.add('active');
+}
+
+// Close edit review modal
+function closeEditReviewModal() {
+  document.getElementById('edit-review-modal').classList.remove('active');
+}
+
+// Submit edited review
+async function submitEditReview(event) {
+  event.preventDefault();
+
+  const photoId = document.getElementById('edit-modal-photo-id').value;
+  const encounterId = document.getElementById('edit-modal-encounter-id').value;
+  const notes = document.getElementById('edit-review-notes').value.trim();
+
+  if (!notes) {
+    alert('Please enter clinical notes');
+    return;
+  }
+
+  try {
+    const response = await api('action=update_clinical_notes', {
+      method: 'POST',
+      body: fd({
+        photo_id: photoId,
+        encounter_id: encounterId,
+        clinical_note: notes
+      })
+    });
+
+    if (response.ok) {
+      alert('Clinical notes updated successfully');
+
+      // Update the photo in our local data
+      const photo = allPhotos.find(p => p.id === photoId);
+      if (photo) {
+        photo.clinical_note = notes;
+      }
+
+      // Re-render the grid to show updated notes
+      renderPhotoGrid();
+
+      // Close modal
+      closeEditReviewModal();
+    } else {
+      alert('Error: ' + response.error);
+    }
+  } catch (error) {
+    console.error('Error updating notes:', error);
+    alert('Failed to update notes. Please try again.');
+  }
+}
+
+// Close edit modal when clicking outside
+document.addEventListener('click', function(event) {
+  const editModal = document.getElementById('edit-review-modal');
+  if (event.target === editModal) {
+    closeEditReviewModal();
   }
 });
 </script>
