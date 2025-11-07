@@ -197,16 +197,29 @@ try {
   $photoPath = '/uploads/wound_photos/' . $filename;
   $fullPath = __DIR__ . '/../../uploads/wound_photos/' . $filename;
 
+  error_log('[Twilio Webhook] Preparing to save photo: ' . $filename);
+  error_log('[Twilio Webhook] Full path: ' . $fullPath);
+  error_log('[Twilio Webhook] Photo data size: ' . strlen($photoData) . ' bytes');
+
   // Ensure directory exists
   $uploadDir = dirname($fullPath);
+  error_log('[Twilio Webhook] Upload directory: ' . $uploadDir);
+
   if (!is_dir($uploadDir)) {
-    mkdir($uploadDir, 0755, true);
+    error_log('[Twilio Webhook] Directory does not exist, creating...');
+    $created = mkdir($uploadDir, 0755, true);
+    error_log('[Twilio Webhook] Directory creation: ' . ($created ? 'SUCCESS' : 'FAILED'));
+  } else {
+    error_log('[Twilio Webhook] Directory exists');
+    error_log('[Twilio Webhook] Directory writable: ' . (is_writable($uploadDir) ? 'YES' : 'NO'));
   }
 
   $savedBytes = file_put_contents($fullPath, $photoData);
 
   if (!$savedBytes) {
-    error_log('[Twilio Webhook] Failed to save photo to: ' . $fullPath);
+    error_log('[Twilio Webhook] CRITICAL: Failed to save photo to: ' . $fullPath);
+    error_log('[Twilio Webhook] file_put_contents returned: ' . var_export($savedBytes, true));
+    error_log('[Twilio Webhook] Last error: ' . error_get_last()['message'] ?? 'none');
 
     $twilioHelper->sendErrorMessage(
       $fromPhone,
@@ -217,7 +230,8 @@ try {
     exit;
   }
 
-  error_log('[Twilio Webhook] Photo saved: ' . $fullPath . ' (' . $savedBytes . ' bytes)');
+  error_log('[Twilio Webhook] Photo saved successfully: ' . $fullPath . ' (' . $savedBytes . ' bytes)');
+  error_log('[Twilio Webhook] File exists after save: ' . (file_exists($fullPath) ? 'YES' : 'NO'));
 
   // Save to database
   $photoId = bin2hex(random_bytes(16));
