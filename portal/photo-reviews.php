@@ -626,7 +626,7 @@ function createPhotoCard(photo) {
         <div style="color: #92400e; font-weight: 500; margin-bottom: 0.25rem;">Note Preview:</div>
         <div style="color: #78350f; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${notePreview}</div>
       </div>
-      <button onclick="openEditReviewModal(${photo.id}); event.stopPropagation();" style="width: 100%; margin-top: 0.5rem; padding: 0.4rem; background: #3b82f6; color: white; border: none; border-radius: 4px; font-size: 0.75rem; font-weight: 500; cursor: pointer; transition: background 0.2s;">
+      <button onclick="event.stopPropagation(); openEditReviewModal(${photo.id});" style="width: 100%; margin-top: 0.5rem; padding: 0.4rem; background: #3b82f6; color: white; border: none; border-radius: 4px; font-size: 0.75rem; font-weight: 500; cursor: pointer; transition: background 0.2s;">
         Edit Full Review
       </button>
     `;

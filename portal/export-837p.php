@@ -6,7 +6,6 @@
 
 declare(strict_types=1);
 require_once __DIR__ . '/../api/db.php';
-session_start();
 
 if (empty($_SESSION['user_id'])) {
     http_response_code(401);
@@ -164,7 +163,34 @@ if ($userRole === 'superadmin') {
 $encounters = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 if (empty($encounters)) {
-    die('No encounters to export for the selected period.');
+    // Show debug info if no encounters found
+    echo "No encounters to export for the selected period.\n\n";
+    echo "Debug Information:\n";
+    echo "- Month: $month\n";
+    echo "- Start Date: $startDate\n";
+    echo "- End Date: $endDate\n";
+    echo "- User Role: $userRole\n";
+    echo "- User ID: $userId\n";
+
+    // Check if there are ANY encounters in the system
+    $totalStmt = $pdo->query("SELECT COUNT(*) as total FROM billable_encounters");
+    $total = $totalStmt->fetch(PDO::FETCH_ASSOC);
+    echo "- Total encounters in system: " . $total['total'] . "\n";
+
+    // Check encounters for this user
+    if ($userRole !== 'superadmin') {
+        $userStmt = $pdo->prepare("SELECT COUNT(*) as user_total FROM billable_encounters WHERE physician_id = ?");
+        $userStmt->execute([$userId]);
+        $userTotal = $userStmt->fetch(PDO::FETCH_ASSOC);
+        echo "- Your encounters: " . $userTotal['user_total'] . "\n";
+    }
+
+    // Check unexported encounters
+    $unexportedStmt = $pdo->query("SELECT COUNT(*) as unexported FROM billable_encounters WHERE exported = FALSE");
+    $unexported = $unexportedStmt->fetch(PDO::FETCH_ASSOC);
+    echo "- Unexported encounters: " . $unexported['unexported'] . "\n";
+
+    exit;
 }
 
 // Generate 837P EDI file
