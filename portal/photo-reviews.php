@@ -163,38 +163,59 @@
 
 <!-- Edit Review Modal -->
 <div class="review-modal" id="edit-review-modal">
-  <div class="review-modal-content">
+  <div class="review-modal-content" style="max-width: 1000px;">
     <div class="review-modal-header">
-      <h2>Edit Clinical Notes</h2>
+      <h2>Edit Clinical Review</h2>
       <button class="review-modal-close" onclick="closeEditReviewModal()">&times;</button>
     </div>
     <div class="review-modal-body">
-      <img id="edit-modal-photo" class="review-image-large" src="" alt="Wound photo">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+        <!-- Left Column: Image -->
+        <div>
+          <img id="edit-modal-photo" style="width: 100%; border-radius: 8px; margin-bottom: 1rem;" src="" alt="Wound photo">
 
-      <div style="background: #f8fafc; padding: 1rem; border-radius: 6px; margin-bottom: 1.5rem;">
-        <div style="font-size: 0.875rem; color: #64748b;">
-          <strong>Patient:</strong> <span id="edit-modal-patient-info"></span><br>
-          <strong>CPT Code:</strong> <span id="edit-modal-cpt"></span><br>
-          <strong>Charge:</strong> <span id="edit-modal-charge" style="color: #059669; font-weight: 600;"></span>
+          <div style="background: #f8fafc; padding: 1rem; border-radius: 6px; font-size: 0.875rem;">
+            <div style="margin-bottom: 0.5rem;"><strong>Patient:</strong> <span id="edit-modal-patient-info"></span></div>
+            <div style="margin-bottom: 0.5rem;"><strong>DOB:</strong> <span id="edit-modal-dob"></span></div>
+            <div style="margin-bottom: 0.5rem;"><strong>MRN:</strong> <span id="edit-modal-mrn"></span></div>
+            <div style="margin-bottom: 0.5rem;"><strong>Uploaded:</strong> <span id="edit-modal-upload-date"></span></div>
+            <div style="margin-bottom: 0.5rem;"><strong>Location:</strong> <span id="edit-modal-location"></span></div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 1rem;">
+            <div style="background: #f0fdf4; border: 1px solid #059669; padding: 0.75rem; border-radius: 6px; text-align: center;">
+              <div style="color: #64748b; font-size: 0.75rem; font-weight: 500;">CPT Code</div>
+              <div style="font-weight: 600; color: #059669; font-size: 1.1rem;" id="edit-modal-cpt"></div>
+            </div>
+            <div style="background: #f0fdf4; border: 1px solid #059669; padding: 0.75rem; border-radius: 6px; text-align: center;">
+              <div style="color: #64748b; font-size: 0.75rem; font-weight: 500;">Charge</div>
+              <div style="font-weight: 600; color: #059669; font-size: 1.1rem;" id="edit-modal-charge"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Edit Form -->
+        <div>
+          <form onsubmit="submitEditReview(event)">
+            <input type="hidden" id="edit-modal-photo-id" value="">
+            <input type="hidden" id="edit-modal-encounter-id" value="">
+
+            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #0f172a;">Clinical Notes</label>
+            <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.5rem;">Edit the clinical documentation for this wound assessment. Notes must be individualized and support medical necessity.</div>
+
+            <textarea id="edit-review-notes" style="width: 100%; min-height: 400px; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 6px; font-family: inherit; font-size: 0.875rem; resize: vertical; line-height: 1.6;" placeholder="Enter detailed clinical observations..."></textarea>
+
+            <div style="display: flex; gap: 0.75rem; margin-top: 1rem;">
+              <button type="submit" style="flex: 1; padding: 0.75rem; background: #059669; color: white; border: none; border-radius: 6px; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: background 0.2s;">
+                💾 Save Changes
+              </button>
+              <button type="button" onclick="closeEditReviewModal()" style="flex: 1; padding: 0.75rem; background: #94a3b8; color: white; border: none; border-radius: 6px; font-size: 0.875rem; font-weight: 500; cursor: pointer;">
+                Cancel
+              </button>
+            </div>
+          </form>
         </div>
       </div>
-
-      <form onsubmit="submitEditReview(event)">
-        <input type="hidden" id="edit-modal-photo-id" value="">
-        <input type="hidden" id="edit-modal-encounter-id" value="">
-
-        <label style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Clinical Notes</label>
-        <textarea id="edit-review-notes" style="width: 100%; min-height: 150px; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 6px; font-family: inherit; font-size: 0.875rem; resize: vertical;" placeholder="Enter clinical observations for this wound photo..."></textarea>
-
-        <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
-          <button type="submit" style="flex: 1; padding: 0.75rem; background: #059669; color: white; border: none; border-radius: 6px; font-size: 0.875rem; font-weight: 500; cursor: pointer;">
-            Save Changes
-          </button>
-          <button type="button" onclick="closeEditReviewModal()" style="flex: 1; padding: 0.75rem; background: #94a3b8; color: white; border: none; border-radius: 6px; font-size: 0.875rem; font-weight: 500; cursor: pointer;">
-            Cancel
-          </button>
-        </div>
-      </form>
     </div>
   </div>
 </div>
@@ -202,8 +223,8 @@
 <style>
 .photo-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
   margin-top: 1.5rem;
 }
 
@@ -222,26 +243,27 @@
 
 .photo-image {
   width: 100%;
-  height: 250px;
+  height: 160px;
   object-fit: cover;
   background: #f5f5f5;
+  cursor: pointer;
 }
 
 .photo-details {
-  padding: 1rem;
+  padding: 0.75rem;
 }
 
 .photo-patient-name {
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   font-weight: 600;
   color: #059669;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
 }
 
 .photo-meta {
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   color: #64748b;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
 }
 
 .photo-notes {
@@ -572,39 +594,40 @@ function createPhotoCard(photo) {
     `;
   }
 
-  // Build action button
-  let actionButton = '';
+  // Build compact summary view
+  let summaryContent = '';
   if (!photo.reviewed) {
-    actionButton = `
-      <div style="text-align: center; padding: 0.75rem; background: #f0fdf4; border-radius: 6px; margin-top: 1rem; font-size: 0.875rem; color: #059669; font-weight: 500;">
+    summaryContent = `
+      <div style="text-align: center; padding: 0.5rem; background: #f0fdf4; border-radius: 6px; margin-top: 0.5rem; font-size: 0.75rem; color: #059669; font-weight: 500;">
         Click to Review & Bill
       </div>
     `;
   } else {
     const charge = photo.charge_amount ? '$' + parseFloat(photo.charge_amount).toFixed(0) : 'N/A';
     const cptCode = photo.cpt_code || 'N/A';
-    // Show clinical notes if available
-    const clinicalNotes = photo.clinical_note ? `
-      <div style="background: #fffbeb; border-left: 3px solid #f59e0b; padding: 0.75rem; border-radius: 6px; margin-top: 1rem; font-size: 0.875rem;">
-        <div style="font-weight: 600; color: #92400e; margin-bottom: 0.5rem;">Clinical Notes:</div>
-        <div style="color: #78350f; white-space: pre-wrap;">${photo.clinical_note}</div>
-      </div>
-    ` : '';
 
-    actionButton = `
-      <div style="background: #f8fafc; padding: 0.75rem; border-radius: 6px; margin-top: 1rem; font-size: 0.875rem;">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
-          <span style="color: #64748b; font-weight: 500;">CPT:</span>
-          <span style="font-weight: 600;">${cptCode}</span>
+    // Truncate clinical note to 100 characters for preview
+    const notePreview = photo.clinical_note
+      ? (photo.clinical_note.substring(0, 100) + (photo.clinical_note.length > 100 ? '...' : ''))
+      : 'No notes';
+
+    summaryContent = `
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.5rem; font-size: 0.75rem;">
+        <div style="background: #f8fafc; padding: 0.5rem; border-radius: 4px;">
+          <div style="color: #64748b; font-weight: 500;">CPT</div>
+          <div style="font-weight: 600; color: #0f172a;">${cptCode}</div>
         </div>
-        <div style="display: flex; justify-content: space-between;">
-          <span style="color: #64748b; font-weight: 500;">Charge:</span>
-          <span style="font-weight: 600; color: #059669;">${charge}</span>
+        <div style="background: #f8fafc; padding: 0.5rem; border-radius: 4px;">
+          <div style="color: #64748b; font-weight: 500;">Charge</div>
+          <div style="font-weight: 600; color: #059669;">${charge}</div>
         </div>
       </div>
-      ${clinicalNotes}
-      <button onclick="openEditReviewModal(${photo.id}); event.stopPropagation();" style="width: 100%; margin-top: 1rem; padding: 0.5rem; background: #3b82f6; color: white; border: none; border-radius: 6px; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: background 0.2s;">
-        Edit Review
+      <div style="background: #fffbeb; padding: 0.5rem; border-radius: 4px; margin-top: 0.5rem; font-size: 0.75rem;">
+        <div style="color: #92400e; font-weight: 500; margin-bottom: 0.25rem;">Note Preview:</div>
+        <div style="color: #78350f; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${notePreview}</div>
+      </div>
+      <button onclick="openEditReviewModal(${photo.id}); event.stopPropagation();" style="width: 100%; margin-top: 0.5rem; padding: 0.4rem; background: #3b82f6; color: white; border: none; border-radius: 4px; font-size: 0.75rem; font-weight: 500; cursor: pointer; transition: background 0.2s;">
+        Edit Full Review
       </button>
     `;
   }
@@ -614,15 +637,12 @@ function createPhotoCard(photo) {
     <div class="photo-details">
       ${statusBadge}
       <div class="photo-patient-name">${photo.first_name} ${photo.last_name}</div>
-      <div class="photo-meta">
-        <strong>DOB:</strong> ${formatDate(photo.dob)}<br>
-        <strong>MRN:</strong> ${photo.mrn || 'N/A'}<br>
-        <strong>Uploaded:</strong> ${dateStr}<br>
-        ${photo.wound_location ? `<strong>Location:</strong> ${photo.wound_location}<br>` : ''}
-        <strong>Via:</strong> ${photo.uploaded_via || 'SMS'}
+      <div class="photo-meta" style="font-size: 0.75rem; line-height: 1.4;">
+        <strong>DOB:</strong> ${formatDate(photo.dob)} | <strong>MRN:</strong> ${photo.mrn || 'N/A'}<br>
+        <strong>Uploaded:</strong> ${dateStr.split(',')[0]}<br>
+        ${photo.wound_location ? `<strong>Location:</strong> ${photo.wound_location}` : ''}
       </div>
-      ${photo.patient_notes ? `<div class="photo-notes">"${photo.patient_notes}"</div>` : ''}
-      ${actionButton}
+      ${summaryContent}
     </div>
   `;
 
@@ -891,7 +911,22 @@ function openEditReviewModal(photoId) {
   document.getElementById('edit-modal-photo-id').value = photo.id;
   document.getElementById('edit-modal-encounter-id').value = photo.encounter_id || '';
   document.getElementById('edit-modal-photo').src = photo.photo_path;
-  document.getElementById('edit-modal-patient-info').textContent = `${photo.first_name} ${photo.last_name} (DOB: ${formatDate(photo.dob)}, MRN: ${photo.mrn || 'N/A'})`;
+  document.getElementById('edit-modal-patient-info').textContent = `${photo.first_name} ${photo.last_name}`;
+  document.getElementById('edit-modal-dob').textContent = formatDate(photo.dob);
+  document.getElementById('edit-modal-mrn').textContent = photo.mrn || 'N/A';
+
+  // Format upload date
+  const uploadDate = new Date(photo.uploaded_at);
+  const uploadDateStr = uploadDate.toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  });
+  document.getElementById('edit-modal-upload-date').textContent = uploadDateStr;
+  document.getElementById('edit-modal-location').textContent = photo.wound_location || 'Not specified';
+
   document.getElementById('edit-modal-cpt').textContent = photo.cpt_code || 'N/A';
   document.getElementById('edit-modal-charge').textContent = photo.charge_amount ? '$' + parseFloat(photo.charge_amount).toFixed(2) : 'N/A';
   document.getElementById('edit-review-notes').value = photo.clinical_note || '';
