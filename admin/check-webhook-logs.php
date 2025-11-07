@@ -77,6 +77,55 @@ foreach ($patients as $p) {
 
 echo "\n=== Check Complete ===\n\n";
 
+// FILE SYSTEM CHECK
+echo "FILE SYSTEM DIAGNOSTIC:\n";
+echo "-----------------------\n";
+
+$uploadDirs = [
+    __DIR__ . '/../uploads/wound_photos',
+    '/var/www/html/uploads/wound_photos',
+];
+
+foreach ($uploadDirs as $dir) {
+    $realPath = realpath($dir);
+    echo "\nDirectory: $dir\n";
+    echo "  Real path: " . ($realPath ?: 'NOT RESOLVED') . "\n";
+
+    if (is_dir($dir)) {
+        echo "  ✓ EXISTS\n";
+        echo "  Writable: " . (is_writable($dir) ? "✓ YES" : "✗ NO") . "\n";
+
+        $files = scandir($dir);
+        $imageFiles = array_filter($files, function($f) {
+            return preg_match('/\.(jpg|png|heic)$/i', $f);
+        });
+
+        echo "  Files: " . count($imageFiles) . " images\n";
+        if (count($imageFiles) > 0) {
+            echo "  Recent: " . implode(", ", array_slice($imageFiles, 0, 3)) . "\n";
+        }
+    } else {
+        echo "  ✗ DOES NOT EXIST\n";
+    }
+}
+
+// Test write
+echo "\nWRITE TEST:\n";
+$testFile = '/var/www/html/uploads/wound_photos/test-' . time() . '.txt';
+try {
+    $bytes = @file_put_contents($testFile, 'Test ' . date('Y-m-d H:i:s'));
+    if ($bytes) {
+        echo "✓ Can write to uploads directory ($bytes bytes)\n";
+        @unlink($testFile);
+    } else {
+        echo "✗ Cannot write to uploads directory\n";
+    }
+} catch (Exception $e) {
+    echo "✗ Error writing: " . $e->getMessage() . "\n";
+}
+
+echo "\n=== End Diagnostic ===\n\n";
+
 echo "TROUBLESHOOTING:\n";
 echo "----------------\n";
 echo "1. Verify Twilio webhook is set to: https://collagendirect.health/api/twilio/receive-mms.php\n";
