@@ -52,8 +52,14 @@
 
 <!-- Billing Summary -->
 <div class="billing-summary">
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-    <h2 style="margin: 0;">Billing Summary - <span id="summary-month"></span></h2>
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <h2 style="margin: 0;">Billing Summary</h2>
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <label for="export-month-selector" style="font-size: 0.875rem; color: #64748b;">Month:</label>
+        <input type="month" id="export-month-selector" style="padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.875rem;" onchange="loadBillingSummary()">
+      </div>
+    </div>
     <div style="display: flex; gap: 0.5rem;">
       <button class="export-btn" onclick="exportBilling()" style="background: #059669;">
         <svg style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 0.5rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -486,10 +492,10 @@ document.addEventListener('DOMContentLoaded', function() {
   loadPendingPhotos();
   loadBillingSummary();
 
-  // Update month display
+  // Initialize month selector to current month
   const now = new Date();
-  const monthName = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-  document.getElementById('summary-month').textContent = monthName;
+  const currentMonth = now.toISOString().substring(0, 7); // YYYY-MM format
+  document.getElementById('export-month-selector').value = currentMonth;
 });
 
 // Load pending photos from API
@@ -773,8 +779,8 @@ async function loadBillingSummary() {
 
 // Export billing CSV
 function exportBilling() {
-  const now = new Date();
-  const month = now.toISOString().substring(0, 7); // YYYY-MM format
+  const monthSelector = document.getElementById('export-month-selector');
+  const month = monthSelector.value || new Date().toISOString().substring(0, 7);
 
   // Open export URL to trigger CSV download
   window.location.href = `?action=export_billing&month=${month}`;
@@ -782,8 +788,8 @@ function exportBilling() {
 
 // Export 837P EDI format
 function export837P() {
-  const now = new Date();
-  const month = now.toISOString().substring(0, 7); // YYYY-MM format
+  const monthSelector = document.getElementById('export-month-selector');
+  const month = monthSelector.value || new Date().toISOString().substring(0, 7);
 
   // Open 837P export URL to trigger EDI file download
   window.location.href = `/portal/export-837p.php?month=${month}`;
