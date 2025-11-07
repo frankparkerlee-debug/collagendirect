@@ -113,7 +113,6 @@ if ($userRole === 'superadmin') {
         JOIN patients p ON p.id = e.patient_id
         LEFT JOIN users u ON u.id = e.physician_id
         WHERE e.encounter_date >= ? AND e.encounter_date <= ?
-          AND e.exported = FALSE
         ORDER BY e.encounter_date, p.last_name, p.first_name
     ";
     $stmt = $pdo->prepare($sql);
@@ -153,7 +152,6 @@ if ($userRole === 'superadmin') {
         LEFT JOIN users u ON u.id = e.physician_id
         WHERE e.physician_id = ?
           AND e.encounter_date >= ? AND e.encounter_date <= ?
-          AND e.exported = FALSE
         ORDER BY e.encounter_date, p.last_name, p.first_name
     ";
     $stmt = $pdo->prepare($sql);
@@ -327,12 +325,7 @@ $output .= 'IEA*1*' . str_pad((string)$interchangeControlNumber, 9, '0', STR_PAD
 
 echo $output;
 
-// Mark encounters as exported
-$encounterIds = array_column($encounters, 'encounter_id');
-if (!empty($encounterIds)) {
-    $placeholders = implode(',', array_fill(0, count($encounterIds), '?'));
-    $pdo->prepare("UPDATE billable_encounters SET exported = TRUE, exported_at = NOW() WHERE id IN ($placeholders)")
-        ->execute($encounterIds);
-}
+// Note: We don't mark encounters as exported for 837P since this format
+// may need to be exported multiple times (resubmissions, corrections, etc.)
 
 exit;
