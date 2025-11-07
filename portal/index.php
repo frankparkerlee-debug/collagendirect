@@ -1669,42 +1669,48 @@ if ($action) {
     // CSV Rows with complete billing information
     foreach ($encounters as $e) {
       // Determine primary and secondary diagnosis codes based on wound type
-      $diagnosisCodes = getDiagnosisCodes($e['assessment'], $e['clinical_note']);
+      $clinicalNote = $e['clinical_note'] ?? '';
+      $diagnosisCodes = getDiagnosisCodes($e['assessment'] ?? 'stable', $clinicalNote);
 
       // Service description
-      $serviceDesc = 'Telehealth Wound Photo Review - E/M ' . substr($e['cpt_code'], -1);
+      $cptCode = $e['cpt_code'] ?? '99091';
+      $serviceDesc = 'Telehealth Wound Photo Review - E/M ' . substr($cptCode, -1);
+
+      // Clean clinical note for CSV (remove line breaks, tabs, and limit length)
+      $cleanNote = str_replace(["\r", "\n", "\t"], ' ', $clinicalNote);
+      $cleanNote = substr($cleanNote, 0, 255);
 
       fputcsv($output, [
         date('m/d/Y', strtotime($e['encounter_date'])),  // Service Date
-        $e['last_name'],                                  // Patient Last Name
-        $e['first_name'],                                 // Patient First Name
-        date('m/d/Y', strtotime($e['dob'])),             // Patient DOB
+        $e['last_name'] ?? '',                            // Patient Last Name
+        $e['first_name'] ?? '',                           // Patient First Name
+        !empty($e['dob']) ? date('m/d/Y', strtotime($e['dob'])) : '',  // Patient DOB
         strtoupper($e['sex'] ?? 'U'),                    // Patient Sex (M/F/U)
         $e['mrn'] ?: 'TEMP-' . $e['patient_id'],         // MRN
-        formatPhone($e['phone']),                         // Patient Phone
-        $e['email'] ?: '',                                // Patient Email
-        $e['address'] ?: '',                              // Patient Address
-        $e['city'] ?: '',                                 // Patient City
-        $e['state'] ?: '',                                // Patient State
-        $e['zip'] ?: '',                                  // Patient ZIP
-        $e['insurance_company'] ?: 'Self Pay',            // Insurance Company
-        $e['insurance_id'] ?: '',                         // Insurance ID
-        $e['group_number'] ?: '',                         // Group Number
-        $e['provider_last_name'] ?: '',                   // Provider Last Name
-        $e['provider_first_name'] ?: '',                  // Provider First Name
-        $e['provider_credential'] ?: 'MD',                // Provider Credential (MD/DO/NP/PA)
-        $e['provider_npi'] ?: '',                         // Provider NPI
-        $e['cpt_code'],                                   // CPT Code
-        $e['modifier'],                                   // Modifier (95 for telehealth)
+        formatPhone($e['phone'] ?? null),                 // Patient Phone
+        $e['email'] ?? '',                                // Patient Email
+        $e['address'] ?? '',                              // Patient Address
+        $e['city'] ?? '',                                 // Patient City
+        $e['state'] ?? '',                                // Patient State
+        $e['zip'] ?? '',                                  // Patient ZIP
+        $e['insurance_company'] ?? 'Self Pay',            // Insurance Company
+        $e['insurance_id'] ?? '',                         // Insurance ID
+        $e['group_number'] ?? '',                         // Group Number
+        $e['provider_last_name'] ?? '',                   // Provider Last Name
+        $e['provider_first_name'] ?? '',                  // Provider First Name
+        $e['provider_credential'] ?? 'MD',                // Provider Credential (MD/DO/NP/PA)
+        $e['provider_npi'] ?? '',                         // Provider NPI
+        $cptCode,                                         // CPT Code
+        $e['modifier'] ?? '',                             // Modifier (95 for telehealth)
         '02',                                             // Place of Service (02 = Telehealth)
         $diagnosisCodes['primary'],                       // Diagnosis Code 1
-        $diagnosisCodes['secondary'] ?: '',               // Diagnosis Code 2
+        $diagnosisCodes['secondary'] ?? '',               // Diagnosis Code 2
         '1',                                              // Units
-        number_format($e['charge_amount'], 2, '.', ''),   // Charge Amount
+        number_format((float)($e['charge_amount'] ?? 0), 2, '.', ''),   // Charge Amount
         $serviceDesc,                                     // Service Description
-        ucfirst($e['assessment']),                        // Assessment Level
-        $e['encounter_id'],                               // Encounter ID
-        substr($e['clinical_note'], 0, 255)               // Notes (truncated for CSV)
+        ucfirst($e['assessment'] ?? 'stable'),            // Assessment Level
+        $e['encounter_id'] ?? '',                         // Encounter ID
+        $cleanNote                                        // Notes (cleaned and truncated)
       ]);
     }
 
