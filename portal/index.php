@@ -8910,7 +8910,7 @@ function renderPatientDetailPage(p, orders, isEditing) {
         ${window.patientPhotos && window.patientPhotos.length > 0 ? `
           <div class="grid grid-cols-2 gap-3">
             ${window.patientPhotos.slice(0, 6).map(photo => `
-              <div class="relative group cursor-pointer rounded-lg overflow-hidden border hover:border-blue-500 transition" onclick="viewWoundPhoto('${esc(photo.id)}', '${esc(photo.photo_path)}')">
+              <div class="relative group cursor-pointer rounded-lg overflow-hidden border hover:border-blue-500 transition" onclick="viewWoundPhoto('${esc(photo.id)}', '${esc(photo.photo_path)}', '${esc(p.id)}')">
                 <img src="${esc(photo.photo_path)}" alt="Wound photo" class="w-full h-32 object-cover">
                 <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition flex items-center justify-center">
                   <svg class="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -9467,7 +9467,7 @@ document.addEventListener('click', (e) => {
 });
 
 // View wound photo with order assignment option
-function viewWoundPhoto(photoId, photoPath) {
+function viewWoundPhoto(photoId, photoPath, patientId) {
   const photos = window.patientPhotos || [];
   const photo = photos.find(p => p.id === photoId);
   if (!photo) return;
@@ -9494,7 +9494,7 @@ function viewWoundPhoto(photoId, photoPath) {
           </div>
 
           <div class="mb-4">
-            <img src="${esc(photoPath)}" alt="Wound photo" class="w-full rounded-lg">
+            <img src="${esc(photoPath)}" alt="Wound photo" class="w-full rounded-lg" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22><rect width=%22400%22 height=%22300%22 fill=%22%23f0f0f0%22/><text x=%2250%%22 y=%2250%%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2218%22>Image not available</text></svg>'">
           </div>
 
           <div class="grid grid-cols-2 gap-4 mb-4 text-sm">
@@ -9506,14 +9506,32 @@ function viewWoundPhoto(photoId, photoPath) {
               <div class="text-slate-500 text-xs">Method</div>
               <div class="font-medium">${photo.uploaded_via === 'sms' ? 'SMS/MMS' : 'Web Upload'}</div>
             </div>
-            <div class="col-span-2">
-              <div class="text-slate-500 text-xs">Patient Notes</div>
-              <div class="font-medium">${photo.patient_notes || 'None'}</div>
-            </div>
             <div>
               <div class="text-slate-500 text-xs">Status</div>
               <div class="font-medium">${photo.reviewed ? `✓ Reviewed on ${fmt(photo.reviewed_at)}` : 'Pending Review'}</div>
             </div>
+            ${photo.cpt_code ? `
+              <div>
+                <div class="text-slate-500 text-xs">CPT Code</div>
+                <div class="font-medium text-green-600">${esc(photo.cpt_code)}</div>
+              </div>
+            ` : ''}
+            ${photo.charge_amount ? `
+              <div>
+                <div class="text-slate-500 text-xs">Charge Amount</div>
+                <div class="font-medium text-green-600">$${parseFloat(photo.charge_amount).toFixed(2)}</div>
+              </div>
+            ` : ''}
+            <div class="col-span-2">
+              <div class="text-slate-500 text-xs">Patient Notes</div>
+              <div class="font-medium">${photo.patient_notes || 'None'}</div>
+            </div>
+            ${photo.clinical_note ? `
+              <div class="col-span-2">
+                <div class="text-slate-500 text-xs">Clinical Notes</div>
+                <div class="font-medium bg-amber-50 p-3 rounded border-l-2 border-amber-400">${esc(photo.clinical_note)}</div>
+              </div>
+            ` : ''}
             ${assignedOrder ? `
               <div class="col-span-2">
                 <div class="text-slate-500 text-xs">Assigned to Order</div>
@@ -9538,7 +9556,7 @@ function viewWoundPhoto(photoId, photoPath) {
           ` : ''}
 
           <div class="mt-4 flex gap-2">
-            <a href="/photo-reviews" class="btn btn-primary flex-1">Go to Photo Reviews</a>
+            <a href="?page=photo-reviews&patient_id=${encodeURIComponent(patientId)}" class="btn btn-primary flex-1">Go to Photo Reviews</a>
             <button onclick="this.closest('.fixed').remove()" class="btn flex-1">Close</button>
           </div>
         </div>
