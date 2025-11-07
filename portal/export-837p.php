@@ -5,8 +5,8 @@
  */
 
 declare(strict_types=1);
-require_once __DIR__ . '/../db.php';
-require_once __DIR__ . '/_session.php';
+require_once __DIR__ . '/../api/db.php';
+session_start();
 
 if (empty($_SESSION['user_id'])) {
     http_response_code(401);
@@ -15,6 +15,65 @@ if (empty($_SESSION['user_id'])) {
 
 $userId = $_SESSION['user_id'];
 $userRole = $_SESSION['role'] ?? 'physician';
+
+/**
+ * Get appropriate diagnosis codes based on wound assessment and notes
+ */
+function getDiagnosisCodes(string $assessment, string $clinicalNote): array {
+  $note = strtolower($clinicalNote);
+
+  // Primary diagnosis - wound type based on clinical note keywords
+  $primary = 'L97.929'; // Default: Non-pressure chronic ulcer
+
+  // Diabetic wounds
+  if (strpos($note, 'diabetic') !== false || strpos($note, 'diabetes') !== false) {
+    if (strpos($note, 'foot') !== false || strpos($note, 'heel') !== false) {
+      $primary = 'E11.621'; // Type 2 diabetes mellitus with foot ulcer
+    } else if (strpos($note, 'leg') !== false) {
+      $primary = 'E11.622'; // Type 2 diabetes mellitus with other skin ulcer
+    } else {
+      $primary = 'E11.622'; // Type 2 diabetes mellitus with other skin ulcer
+    }
+  }
+  // Pressure ulcers
+  else if (strpos($note, 'pressure') !== false || strpos($note, 'sacral') !== false || strpos($note, 'coccyx') !== false) {
+    if (strpos($note, 'sacral') !== false) {
+      $primary = 'L89.159'; // Pressure ulcer of sacral region
+    } else if (strpos($note, 'heel') !== false) {
+      $primary = 'L89.619'; // Pressure ulcer of right heel
+    } else {
+      $primary = 'L89.90'; // Pressure ulcer of unspecified site
+    }
+  }
+  // Venous ulcers
+  else if (strpos($note, 'venous') !== false) {
+    $primary = 'I83.019'; // Varicose veins with ulcer
+  }
+  // Surgical/post-operative wounds
+  else if (strpos($note, 'surgical') !== false || strpos($note, 'post-surgical') !== false || strpos($note, 'incision') !== false) {
+    $primary = 'T81.31XA'; // Disruption of external operation wound
+  }
+  // Traumatic wounds
+  else if (strpos($note, 'traumatic') !== false || strpos($note, 'trauma') !== false) {
+    $primary = 'S91.009A'; // Unspecified open wound of foot
+  }
+
+  // Secondary diagnosis based on assessment/complications
+  $secondary = null;
+
+  if ($assessment === 'concern' || $assessment === 'urgent') {
+    // Add infection code if concerning or urgent
+    if (strpos($note, 'infection') !== false || strpos($note, 'infected') !== false ||
+        strpos($note, 'purulent') !== false || strpos($note, 'pus') !== false) {
+      $secondary = 'L03.90'; // Cellulitis, unspecified
+    }
+  }
+
+  return [
+    'primary' => $primary,
+    'secondary' => $secondary
+  ];
+}
 
 $month = $_GET['month'] ?? date('Y-m');
 $startDate = $month . '-01';
@@ -156,7 +215,6 @@ foreach ($encounters as $e) {
     $claimCounter++;
 
     // Get diagnosis codes
-    require_once __DIR__ . '/index.php'; // For getDiagnosisCodes function
     $diagCodes = getDiagnosisCodes($e['assessment'] ?? 'stable', $e['clinical_note'] ?? '');
 
     // Loop 2000A - Billing Provider Hierarchical Level
