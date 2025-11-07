@@ -1572,7 +1572,6 @@ if ($action) {
         JOIN patients p ON p.id = e.patient_id
         LEFT JOIN users u ON u.id = e.physician_id
         WHERE e.encounter_date >= ? AND e.encounter_date <= ?
-          AND e.exported = FALSE
         ORDER BY e.encounter_date, p.last_name, p.first_name
       ";
       $stmt = $pdo->prepare($sql);
@@ -1612,7 +1611,6 @@ if ($action) {
         LEFT JOIN users u ON u.id = e.physician_id
         WHERE e.physician_id = ?
           AND e.encounter_date >= ? AND e.encounter_date <= ?
-          AND e.exported = FALSE
         ORDER BY e.encounter_date, p.last_name, p.first_name
       ";
       $stmt = $pdo->prepare($sql);
@@ -7739,7 +7737,7 @@ async function toggleAccordion(rowEl, patientId, page){
                         <div class="font-medium text-sm">${esc(o.product||'Wound Care Order')}</div>
                         <div class="text-xs text-slate-600">${fmt(o.created_at)} • ${pill(o.status||'')}</div>
                       </div>
-                      <button class="btn text-xs" style="background: var(--brand); color: white;">View Details</button>
+                      <button class="btn text-xs" style="background: var(--brand); color: white;" onclick="viewOrderDetails(${JSON.stringify(o).replace(/"/g, '&quot;')})">View Details</button>
                     </div>
                   </div>
                 `;
@@ -7754,11 +7752,11 @@ async function toggleAccordion(rowEl, patientId, page){
                 <table class="w-full text-sm">
                   <thead class="border-b"><tr class="text-left">
                     <th class="py-2">Created</th><th class="py-2">Product</th><th class="py-2">Status</th>
-                    <th class="py-2">Product Cnt</th><th class="py-2">Deliver To</th><th class="py-2">Expires</th><th class="py-2">Notes</th><th class="py-2">Actions</th>
+                    <th class="py-2">Product Cnt</th><th class="py-2">Deliver To</th><th class="py-2">Expires</th><th class="py-2">View</th><th class="py-2">Actions</th>
                   </tr></thead>
                   <tbody>
                     ${orders.map(o=>{
-                      const notesBtn = o.rx_note_path ? `<a class="underline" href="?action=file.dl&order_id=${esc(o.id)}" target="_blank">${esc(o.rx_note_name||'Open')}</a>` : '—';
+                      const viewBtn = `<button class="btn text-xs" onclick="viewOrderDetails(${JSON.stringify(o).replace(/"/g, '&quot;')})">View Order</button>`;
                       const actions = (o.status==='stopped')
                         ? `<button class="btn" data-restart="${esc(o.id)}">Restart</button>`
                         : `<button class="btn" data-stop="${esc(o.id)}">Stop</button>`;
@@ -7769,7 +7767,7 @@ async function toggleAccordion(rowEl, patientId, page){
                         <td class="py-2">${o.shipments_remaining ?? 0}</td>
                         <td class="py-2">${o.delivery_mode==='office'?'Office':'Patient'}</td>
                         <td class="py-2">${fmt(o.expires_at)}</td>
-                        <td class="py-2">${notesBtn}</td>
+                        <td class="py-2">${viewBtn}</td>
                         <td class="py-2 flex gap-2">${actions}</td>
                       </tr>`;
                     }).join('') || `<tr><td colspan="8" class="py-6 text-center text-slate-500">No orders</td></tr>`}
