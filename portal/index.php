@@ -5903,6 +5903,9 @@ if ($page==='logout'){
 <script src="/portal/order-status-helper.js"></script>
 
 <script>
+// User data from PHP session
+const currentUserLastName = <?= json_encode($user['last_name'] ?? '') ?>;
+
 const $=s=>document.querySelector(s);
 const fd=o=>{const f=new FormData(); for(const [k,v] of Object.entries(o)) f.append(k,v??''); return f;};
 async function api(q,opts={}){
@@ -7726,7 +7729,7 @@ async function toggleAccordion(rowEl, patientId, page){
                     <div class="${colors[i%2]} p-3 rounded">
                       <div class="flex items-center justify-between">
                         <div>
-                          <div class="font-medium text-sm">Dr. ${esc($user['last_name']||'')}</div>
+                          <div class="font-medium text-sm">Dr. ${esc(currentUserLastName||'')}</div>
                           <div class="text-xs text-slate-600">${fmt(o.created_at)} • 10:00 AM</div>
                         </div>
                         <button class="btn text-xs" style="background: var(--brand); color: white;">Join Meeting</button>
@@ -7745,7 +7748,7 @@ async function toggleAccordion(rowEl, patientId, page){
                     <div class="${colors[i%3]} p-3 rounded">
                       <div class="flex items-center justify-between">
                         <div>
-                          <div class="font-medium text-sm">Dr. ${esc($user['last_name']||'')}</div>
+                          <div class="font-medium text-sm">Dr. ${esc(currentUserLastName||'')}</div>
                           <div class="text-xs text-slate-600">${fmt(o.created_at)} • 10:00 AM</div>
                         </div>
                         <button class="btn text-xs">Join Meeting</button>
