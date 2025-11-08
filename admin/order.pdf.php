@@ -127,6 +127,30 @@ $sec_order = '
   </table></div>
 ';
 
+// Patient Instructions Section
+$patientInstructions = $o['additional_instructions'] ?? '';
+$sec_instructions = '';
+if (!empty($patientInstructions)) {
+  $sec_instructions = '
+  <h2>Patient Instructions</h2>
+  <div class="box" style="background:#f0f9ff;border-color:#3b82f6">
+    <div style="padding:8px;white-space:pre-wrap;">'.h($patientInstructions).'</div>
+  </div>
+';
+}
+
+// Secondary Dressing Section
+$secondaryDressing = $o['secondary_dressing'] ?? '';
+$sec_secondary = '';
+if (!empty($secondaryDressing)) {
+  $sec_secondary = '
+  <h2>Secondary Dressing</h2>
+  <div class="box"><table class="kv">
+    <tr><td class="key">Item</td><td>'.h($secondaryDressing).'</td></tr>
+  </table></div>
+';
+}
+
 $sec_shipping = '
   <h2>Shipping</h2>
   <div class="box"><table class="kv">
@@ -152,7 +176,7 @@ $html = '
 </style></head><body>
   <h1>CollagenDirect — Physician Order</h1>
   <div style="color:#666;font-size:11px;margin-bottom:8px">Generated: '.h($today).' | Order #'.h($o['id']).'</div>
-  '.$sec_patient.$sec_insurance.$sec_physician.$sec_esignature.$sec_wound.$sec_order.$sec_shipping.'
+  '.$sec_patient.$sec_insurance.$sec_physician.$sec_esignature.$sec_wound.$sec_order.$sec_instructions.$sec_secondary.$sec_shipping.'
   <div class="footer">
     <strong>CONFIDENTIAL:</strong> This document contains Protected Health Information (PHI).
     Handle per HIPAA guidelines. Unauthorized disclosure is prohibited.<br>
