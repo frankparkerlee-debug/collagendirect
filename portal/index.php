@@ -5597,22 +5597,12 @@ if ($page==='logout'){
         <div class="md:col-span-2">
           <div class="flex items-center justify-between mb-3">
             <label class="text-sm font-medium">Wounds <span class="text-red-600">*</span></label>
-            <button type="button" id="btn-add-wound" class="text-sm px-3 py-1 rounded" style="background:var(--primary);color:white" onclick="addWound(); return false;">+ Add Wound</button>
+            <button type="button" id="btn-add-wound" class="text-sm px-3 py-2 rounded font-medium" style="background:#10b981;color:white;border:none;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.1);" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'" onclick="addWound(); return false;">+ Add Wound</button>
           </div>
           <div id="wounds-container" class="space-y-4">
             <!-- Wounds will be added here dynamically -->
           </div>
-        </div>
-
-        <div class="md:col-span-2">
-          <label class="text-sm">Exudate Level <span class="text-red-600">*</span></label>
-          <select id="exudate-level" class="w-full" onchange="validateCollagenRestriction()">
-            <option value="">Select exudate level</option>
-            <option value="minimal">Minimal</option>
-            <option value="moderate">Moderate</option>
-            <option value="heavy">Heavy (collagen contraindicated)</option>
-          </select>
-          <div id="exudate-warning" class="text-xs mt-1 p-2 bg-yellow-50 border border-yellow-300 rounded hidden">
+          <div id="exudate-warning" class="text-xs mt-2 p-2 bg-yellow-50 border border-yellow-300 rounded hidden">
             ⚠️ <strong>Heavy exudate:</strong> Collagen products are contraindicated. Please select alginate or foam-based products.
           </div>
         </div>
@@ -8332,6 +8322,15 @@ function addWound() {
         </select>
       </div>
       <div>
+        <label class="text-sm">Exudate Level <span class="text-red-600">*</span></label>
+        <select class="wound-exudate w-full" onchange="validateCollagenRestriction()">
+          <option value="">Select exudate level</option>
+          <option value="minimal">Minimal</option>
+          <option value="moderate">Moderate</option>
+          <option value="heavy">Heavy (collagen contraindicated)</option>
+        </select>
+      </div>
+      <div>
         <label class="text-sm">Primary ICD-10 <span class="text-red-600">*</span></label>
         <input class="wound-icd10-primary icd10-autocomplete w-full" placeholder="Type to search ICD-10 codes..." autocomplete="off">
       </div>
@@ -8387,6 +8386,7 @@ function collectWoundsData() {
       depth_cm: parseFloat(el.querySelector('.wound-depth').value) || null,
       type: el.querySelector('.wound-type').value,
       stage: el.querySelector('.wound-stage').value,
+      exudate_level: el.querySelector('.wound-exudate').value,
       icd10_primary: el.querySelector('.wound-icd10-primary').value,
       icd10_secondary: el.querySelector('.wound-icd10-secondary').value,
       notes: el.querySelector('.wound-notes').value
@@ -8699,8 +8699,8 @@ async function openOrderDialog(preselectId=null){
       // Validate wounds
       for (let i = 0; i < woundsData.length; i++) {
         const w = woundsData[i];
-        if (!w.location || !w.length_cm || !w.width_cm || !w.icd10_primary) {
-          alert(`Wound #${i + 1}: Please fill in required fields (Location, Length, Width, Primary ICD-10)`);
+        if (!w.location || !w.length_cm || !w.width_cm || !w.icd10_primary || !w.exudate_level) {
+          alert(`Wound #${i + 1}: Please fill in required fields (Location, Length, Width, Exudate Level, Primary ICD-10)`);
           btn.disabled=false; btn.textContent='Submit Order';
           return;
         }
@@ -8910,13 +8910,22 @@ async function openOrderDialog(preselectId=null){
 
 // Validate collagen restriction based on exudate level
 function validateCollagenRestriction() {
-  const exudateLevel = document.getElementById('exudate-level')?.value;
   const productSelect = document.getElementById('ord-product');
   const warning = document.getElementById('exudate-warning');
 
-  if (!exudateLevel || !productSelect || !warning) return;
+  if (!productSelect || !warning) return;
 
-  if (exudateLevel === 'heavy') {
+  // Check if ANY wound has heavy exudate
+  const woundExudates = document.querySelectorAll('.wound-exudate');
+  let hasHeavyExudate = false;
+
+  woundExudates.forEach(select => {
+    if (select.value === 'heavy') {
+      hasHeavyExudate = true;
+    }
+  });
+
+  if (hasHeavyExudate) {
     // Show warning
     warning.classList.remove('hidden');
 
@@ -8926,7 +8935,7 @@ function validateCollagenRestriction() {
 
     // Check if collagen product is selected
     if (productName.includes('collagen')) {
-      alert('⚠️ Collagen products cannot be used with heavy exudate. Please select an alginate or foam-based product.');
+      alert('⚠️ Collagen products cannot be used when any wound has heavy exudate. Please select an alginate or foam-based product.');
       productSelect.value = ''; // Clear selection
     }
   } else {
