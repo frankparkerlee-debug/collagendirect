@@ -8834,21 +8834,30 @@ async function openOrderDialog(preselectId=null){
     }
   };
 
-  // AOB events
-  $('#btn-aob').onclick = ()=>{
-    if(!_currentPatientId && !$('#chooser-id').value){ alert('Select a patient first'); return; }
-    $('#aob-msg').textContent = '';
-    document.getElementById('dlg-aob').showModal();
-  };
-  $('#btn-aob-sign').onclick = async ()=>{
-    const pid = _currentPatientId || $('#chooser-id').value;
-    if(!pid){ return; }
-    const r = await fetch('?action=patient.upload',{method:'POST', body: fd({ patient_id: pid, type:'aob' })});
-    const j = await r.json();
-    if(!j.ok){ alert(j.error||'Failed to sign AOB'); return; }
-    $('#aob-msg').textContent = 'AOB signed and saved.';
-    $('#aob-hint').textContent = 'AOB on file ✓';
-  };
+  // AOB events (Note: AOB button removed from order form, but kept for patient profile)
+  const btnAob = $('#btn-aob');
+  if (btnAob) {
+    btnAob.onclick = ()=>{
+      if(!_currentPatientId && !$('#chooser-id').value){ alert('Select a patient first'); return; }
+      const aobMsg = $('#aob-msg');
+      if (aobMsg) aobMsg.textContent = '';
+      document.getElementById('dlg-aob').showModal();
+    };
+  }
+  const btnAobSign = $('#btn-aob-sign');
+  if (btnAobSign) {
+    btnAobSign.onclick = async ()=>{
+      const pid = _currentPatientId || $('#chooser-id').value;
+      if(!pid){ return; }
+      const r = await fetch('?action=patient.upload',{method:'POST', body: fd({ patient_id: pid, type:'aob' })});
+      const j = await r.json();
+      if(!j.ok){ alert(j.error||'Failed to sign AOB'); return; }
+      const aobMsg = $('#aob-msg');
+      const aobHint = $('#aob-hint');
+      if (aobMsg) aobMsg.textContent = 'AOB signed and saved.';
+      if (aobHint) aobHint.textContent = 'AOB on file ✓';
+    };
+  }
 
   // Initialize wounds manager
   initWoundsManager();
