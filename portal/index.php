@@ -8032,6 +8032,22 @@ function viewOrderDetails(order) {
         </div>
       ` : ''}
 
+      <!-- Clinical Notes -->
+      ${order.rx_note_name ? `
+        <div>
+          <h5 class="font-semibold text-sm mb-2">Clinical Notes</h5>
+          <div class="text-sm">
+            <a href="/admin/order.pdf.php?id=${esc(order.id)}&csrf=${esc(window.CSRF_TOKEN || '')}" target="_blank" class="inline-flex items-center gap-2 px-3 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200 transition-colors border border-slate-300">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              ${esc(order.rx_note_name)}
+            </a>
+            <p class="text-xs text-slate-500 mt-1">Included in Order PDF</p>
+          </div>
+        </div>
+      ` : ''}
+
       <!-- Order PDF -->
       <div>
         <h5 class="font-semibold text-sm mb-2">Order Document</h5>
@@ -8482,8 +8498,8 @@ function addWound() {
         <input class="wound-icd10-secondary icd10-autocomplete w-full" placeholder="Type to search ICD-10 codes..." autocomplete="off">
       </div>
       <div class="md:col-span-2">
-        <label class="text-sm">Wound Notes</label>
-        <textarea class="wound-notes w-full" rows="2" placeholder="Additional notes for this wound"></textarea>
+        <label class="text-sm">Patient Instructions</label>
+        <textarea class="wound-notes w-full" rows="2" placeholder="Additional instructions for the patient"></textarea>
       </div>
     </div>
   `;
