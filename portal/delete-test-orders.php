@@ -13,8 +13,19 @@ if ($confirm !== 'yes') {
 
 header('Content-Type: text/plain; charset=utf-8');
 
-// Load database connection
-require_once __DIR__ . '/../api/db.php';
+// Direct database connection (bypass session requirements)
+$DB_HOST = getenv('DB_HOST') ?: '127.0.0.1';
+$DB_NAME = getenv('DB_NAME') ?: 'collagen_db';
+$DB_USER = getenv('DB_USER') ?: 'postgres';
+$DB_PASS = getenv('DB_PASS') ?: '';
+$DB_PORT = getenv('DB_PORT') ?: '5432';
+
+$pdo = new PDO(
+    "pgsql:host={$DB_HOST};port={$DB_PORT};dbname={$DB_NAME}",
+    $DB_USER,
+    $DB_PASS,
+    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+);
 
 // Order IDs to delete
 $orderIds = [
