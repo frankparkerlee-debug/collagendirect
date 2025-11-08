@@ -513,7 +513,9 @@ document.getElementById('form-order-edit')?.addEventListener('submit', async fun
  */
 function openOrderEditDialog(orderId) {
   // First, fetch the order data
-  fetch(`?action=order.get&order_id=${encodeURIComponent(orderId)}`, {
+  // Use absolute path to avoid query parameter conflicts on pages with existing params
+  const baseUrl = window.location.pathname;
+  fetch(`${baseUrl}?action=order.get&order_id=${encodeURIComponent(orderId)}`, {
     headers: { 'Accept': 'application/json', 'X-Requested-With': 'fetch' }
   })
     .then(r => r.json())
