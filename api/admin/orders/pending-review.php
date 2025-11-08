@@ -20,29 +20,32 @@ if (!$user || $user['role'] !== 'superadmin') {
 
 try {
     // Get all orders awaiting review
+    // Note: Using review_status to filter pending orders (set by orders.create.php)
     $stmt = $pdo->query("
         SELECT
             o.id,
             o.created_at,
             o.updated_at,
             o.status,
+            o.review_status,
             o.product,
             o.is_complete,
             o.missing_fields,
-            o.payment_method,
-            o.delivery_location,
+            o.payment_type as payment_method,
+            o.delivery_mode as delivery_location,
             p.first_name as patient_first_name,
             p.last_name as patient_last_name,
             p.dob as patient_dob,
             u.first_name as physician_first_name,
             u.last_name as physician_last_name,
             u.practice_name,
-            u.has_dme_license
+            u.npi as has_dme_license
         FROM orders o
         JOIN patients p ON o.patient_id = p.id
         JOIN users u ON o.user_id = u.id
-        WHERE o.status IN ('submitted', 'under_review')
-        ORDER BY o.created_at ASC
+        WHERE o.review_status IN ('pending_admin_review', 'under_review')
+           OR (o.status IN ('submitted', 'under_review') AND o.review_status IS NULL)
+        ORDER BY o.created_at DESC
     ");
 
     $orders = [];
