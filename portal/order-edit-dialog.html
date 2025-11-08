@@ -431,10 +431,34 @@ function addEditWound(woundData = null, index = null) {
       <div class="grid md:grid-cols-2 gap-3">
         <div>
           <label class="block text-xs font-medium mb-1">Location *</label>
-          <input type="text" class="w-full px-2 py-1 border rounded text-sm"
-            name="wound_${woundIndex}_location"
-            value="${woundData?.location || ''}"
-            placeholder="e.g., Left Foot" required>
+          <select class="w-full px-2 py-1 border rounded text-sm"
+            name="wound_${woundIndex}_location" required>
+            <option value="">Select…</option>
+            <option ${woundData?.location === 'Foot — Plantar' ? 'selected' : ''}>Foot — Plantar</option>
+            <option ${woundData?.location === 'Foot — Dorsal' ? 'selected' : ''}>Foot — Dorsal</option>
+            <option ${woundData?.location === 'Heel' ? 'selected' : ''}>Heel</option>
+            <option ${woundData?.location === 'Ankle' ? 'selected' : ''}>Ankle</option>
+            <option ${woundData?.location === 'Lower Leg — Medial' ? 'selected' : ''}>Lower Leg — Medial</option>
+            <option ${woundData?.location === 'Lower Leg — Lateral' ? 'selected' : ''}>Lower Leg — Lateral</option>
+            <option ${woundData?.location === 'Knee' ? 'selected' : ''}>Knee</option>
+            <option ${woundData?.location === 'Thigh' ? 'selected' : ''}>Thigh</option>
+            <option ${woundData?.location === 'Hip' ? 'selected' : ''}>Hip</option>
+            <option ${woundData?.location === 'Buttock' ? 'selected' : ''}>Buttock</option>
+            <option ${woundData?.location === 'Sacrum/Coccyx' ? 'selected' : ''}>Sacrum/Coccyx</option>
+            <option ${woundData?.location === 'Abdomen' ? 'selected' : ''}>Abdomen</option>
+            <option ${woundData?.location === 'Groin' ? 'selected' : ''}>Groin</option>
+            <option ${woundData?.location === 'Upper Arm' ? 'selected' : ''}>Upper Arm</option>
+            <option ${woundData?.location === 'Forearm' ? 'selected' : ''}>Forearm</option>
+            <option ${woundData?.location === 'Hand — Dorsal' ? 'selected' : ''}>Hand — Dorsal</option>
+            <option ${woundData?.location === 'Hand — Palmar' ? 'selected' : ''}>Hand — Palmar</option>
+            <option ${woundData?.location === 'Elbow' ? 'selected' : ''}>Elbow</option>
+            <option ${woundData?.location === 'Shoulder' ? 'selected' : ''}>Shoulder</option>
+            <option ${woundData?.location === 'Back — Upper' ? 'selected' : ''}>Back — Upper</option>
+            <option ${woundData?.location === 'Back — Lower' ? 'selected' : ''}>Back — Lower</option>
+            <option ${woundData?.location === 'Neck' ? 'selected' : ''}>Neck</option>
+            <option ${woundData?.location === 'Face/Scalp' ? 'selected' : ''}>Face/Scalp</option>
+            <option ${woundData?.location === 'Other' ? 'selected' : ''}>Other</option>
+          </select>
         </div>
 
         <div>
@@ -473,18 +497,20 @@ function addEditWound(woundData = null, index = null) {
 
         <div>
           <label class="block text-xs font-medium mb-1">Primary ICD-10 *</label>
-          <input type="text" class="w-full px-2 py-1 border rounded text-sm"
+          <input type="text" class="icd10-autocomplete w-full px-2 py-1 border rounded text-sm"
             name="wound_${woundIndex}_icd10_primary"
             value="${woundData?.icd10_primary || ''}"
-            placeholder="e.g., L97.421" required>
+            placeholder="Type to search ICD-10 codes..."
+            autocomplete="off" required>
         </div>
 
         <div class="md:col-span-2">
-          <label class="block text-xs font-medium mb-1">Secondary ICD-10 Codes (comma-separated)</label>
-          <input type="text" class="w-full px-2 py-1 border rounded text-sm"
+          <label class="block text-xs font-medium mb-1">Secondary ICD-10 Codes</label>
+          <input type="text" class="icd10-autocomplete w-full px-2 py-1 border rounded text-sm"
             name="wound_${woundIndex}_icd10_secondary"
             value="${woundData?.icd10_secondary || ''}"
-            placeholder="e.g., E11.621, I70.233">
+            placeholder="Type to search ICD-10 codes..."
+            autocomplete="off">
         </div>
 
         <div class="md:col-span-2">
@@ -498,6 +524,17 @@ function addEditWound(woundData = null, index = null) {
   `;
 
   container.insertAdjacentHTML('beforeend', woundHtml);
+
+  // Attach ICD-10 autocomplete to newly added inputs
+  if (typeof window.attachIcd10Autocomplete === 'function') {
+    const woundElement = container.querySelector(`[data-wound-index="${woundIndex}"]`);
+    if (woundElement) {
+      const icd10Inputs = woundElement.querySelectorAll('.icd10-autocomplete');
+      icd10Inputs.forEach(input => {
+        window.attachIcd10Autocomplete(input);
+      });
+    }
+  }
 }
 
 /**
