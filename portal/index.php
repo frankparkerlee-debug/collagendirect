@@ -8795,7 +8795,7 @@ async function openOrderDialog(preselectId=null){
       body.append('frequency_per_week', $('#freq-week').value);
       body.append('qty_per_change', $('#qty-change').value);
       body.append('duration_days', $('#duration-days').value);
-      body.append('refills_allowed', $('#refills').value);
+      // Note: refills field removed - no longer needed
       body.append('additional_instructions', $('#addl-instr').value);
       body.append('secondary_dressing', $('#secondary-dressing').value);
       body.append('notes_text', $('#ord-notes').value);
