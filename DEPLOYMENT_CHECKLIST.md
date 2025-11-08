@@ -353,7 +353,76 @@ Refills field removal now complete across all code paths:
 
 ---
 
+### Issue #4: AOB Button Null Reference - CRITICAL (FIXED)
+
+**Date**: 2025-11-08
+**Commit**: 08add83
+
+**Symptoms**:
+- Order form opened but wound fields completely missing
+- No wound location, ICD-10, dimensions, type, or stage visible
+- Console error: "Cannot set properties of null (setting 'onclick')" at line 4465
+- Form appeared blank/incomplete
+
+**Root Cause**:
+The AOB button (`#btn-aob`) was removed from the order form in an earlier commit, but the code at line 8838 tried to set `.onclick` on the null element without checking. This caused JavaScript execution to halt, preventing `initWoundsManager()` from running at line 8863.
+
+**Critical Impact**:
+This was a **blocking bug** that prevented the entire wounds management system from initializing:
+- `initWoundsManager()` never executed
+- `addWound()` never called
+- No wound fields rendered in DOM
+- Multi-wound UI completely invisible to users
+
+**Error Message**:
+```
+Uncaught (in promise) TypeError: Cannot set properties of null (setting 'onclick')
+at openOrderDialog (index.php?page=patient-detail&id=xxx:4465:25)
+```
+
+**The Fix**:
+Added comprehensive null checks for all AOB-related elements:
+```javascript
+// BEFORE (unsafe - crashed here):
+$('#btn-aob').onclick = ()=>{ ... };
+$('#btn-aob-sign').onclick = async ()=>{ ... };
+
+// AFTER (safe):
+const btnAob = $('#btn-aob');
+if (btnAob) {
+  btnAob.onclick = ()=>{ ... };
+}
+const btnAobSign = $('#btn-aob-sign');
+if (btnAobSign) {
+  btnAobSign.onclick = async ()=>{ ... };
+}
+```
+
+**Verification**:
+After this fix, you should see these console messages when opening order form:
+```
+Initializing wounds manager - adding first wound
+addWound() called, woundCounter: 0
+Wound #1 added to container. Total wounds: 1
+Add wound button element: <button>
+Wounds manager initialized successfully
+```
+
+And these wound fields should be visible in the UI:
+- ✅ Wound Location dropdown (20+ anatomical options)
+- ✅ Length (cm) input
+- ✅ Width (cm) input
+- ✅ Depth (cm) input
+- ✅ Wound Type dropdown (diabetic ulcer, venous stasis, etc.)
+- ✅ Wound Stage dropdown (I, II, III, IV)
+- ✅ Primary ICD-10 autocomplete
+- ✅ Secondary ICD-10 autocomplete
+- ✅ "Add Wound" button for multi-wound orders
+
+---
+
 **Deployed By**: Claude Code
-**Latest Commit**: 1da0418
-**Next Steps**: User testing of complete order form workflow
+**Latest Commit**: 08add83
+**Status**: CRITICAL BUG FIXED - All wound fields should now be visible
+**Next Steps**: Hard refresh (Ctrl+Shift+R) and verify all wound fields appear
 
