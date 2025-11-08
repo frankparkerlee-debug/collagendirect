@@ -8631,8 +8631,7 @@ async function openOrderDialog(preselectId=null){
   const durationDays = $('#duration-days');
   if (durationDays) durationDays.value='30';
 
-  const refills = $('#refills');
-  if (refills) refills.value='0';
+  // Note: refills field removed - no longer needed
 
   const addlInstr = $('#addl-instr');
   if (addlInstr) addlInstr.value='';
