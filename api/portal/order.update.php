@@ -214,7 +214,11 @@ function canEditOrder(array $order, string $userId, string $userRole): array {
   }
 
   // Check review status
-  $editableStatuses = ['draft', 'needs_revision'];
+  // Orders can be edited if they are:
+  // - draft: Not yet submitted
+  // - needs_revision: Admin requested changes
+  // - pending_admin_review: Submitted but not yet reviewed/approved by admin
+  $editableStatuses = ['draft', 'needs_revision', 'pending_admin_review'];
   if (!in_array($order['review_status'], $editableStatuses)) {
     return [
       'allowed' => false,
