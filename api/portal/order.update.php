@@ -104,6 +104,8 @@ try {
   // Build update query dynamically
   $allowedFields = [
     'frequency', 'wound_location', 'wound_laterality', 'wound_notes', 'wounds_data',
+    'last_eval_date', 'start_date', 'frequency_per_week', 'qty_per_change', 'duration_days',
+    'additional_instructions', 'secondary_dressing',
     'delivery_mode', 'shipping_name', 'shipping_phone',
     'shipping_address', 'shipping_city', 'shipping_state', 'shipping_zip',
     'insurer_name', 'member_id', 'group_id', 'payer_phone',

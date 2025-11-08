@@ -2397,6 +2397,11 @@ if ($action) {
     exit;
   }
 
+  if ($action==='order.update'){
+    require __DIR__ . '/../api/portal/order.update.php';
+    exit;
+  }
+
   if ($action==='user.change_password'){
     $cur=(string)($_POST['current']??''); $new=(string)($_POST['new']??''); $confirm=(string)($_POST['confirm']??'');
     if($new===''||$confirm==='') jerr('New password is required');
