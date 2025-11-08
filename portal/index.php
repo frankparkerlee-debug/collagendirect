@@ -8409,6 +8409,17 @@ async function openOrderDialog(preselectId=null){
     }
   }
 
+  // IMPORTANT: Open dialog FIRST so querySelector can find elements inside it
+  console.log('Opening order dialog...');
+  const dialog = document.getElementById('dlg-order');
+  if (!dialog) {
+    console.error('Dialog element #dlg-order not found!');
+    alert('Error: Order form dialog not found on page');
+    return;
+  }
+  dialog.showModal();
+  console.log('Dialog opened successfully');
+
   try {
     console.log('Fetching products...');
     const prods=(await api('action=products')).rows||[];
@@ -8422,11 +8433,18 @@ async function openOrderDialog(preselectId=null){
   } catch(e) {
     console.error('Error fetching products:', e);
     alert('Error loading products: ' + e.message);
+    dialog.close();
     return;
   }
 
-  // chooser
+  // chooser (now that dialog is open, these elements are accessible)
   const box=$('#chooser-input'), list=$('#chooser-list'), hidden=$('#chooser-id'), hint=$('#chooser-hint'), create=$('#create-section');
+  if (!box || !list || !hidden || !hint || !create) {
+    console.error('Missing dialog elements:', {box, list, hidden, hint, create});
+    alert('Error: Order form elements not found');
+    dialog.close();
+    return;
+  }
   box.value=''; hidden.value=''; create.classList.add('hidden'); list.classList.add('hidden'); $('#np-hint').textContent='';
   _currentPatientId = preselectId || null;
 
@@ -8764,15 +8782,8 @@ async function openOrderDialog(preselectId=null){
     productSelect.addEventListener('change', validateCollagenRestriction);
   }
 
-  console.log('Opening order dialog...');
-  const dialog = document.getElementById('dlg-order');
-  if (!dialog) {
-    console.error('Dialog element #dlg-order not found!');
-    alert('Error: Order form dialog not found on page');
-    return;
-  }
-  dialog.showModal();
-  console.log('Dialog opened successfully');
+  // Dialog was already opened at the beginning of this function
+  console.log('Order dialog setup complete');
 }
 
 // Validate collagen restriction based on exudate level
