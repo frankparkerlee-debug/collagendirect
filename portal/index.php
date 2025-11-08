@@ -7886,12 +7886,9 @@ async function toggleAccordion(rowEl, patientId, page){
 
   // Handle Edit Draft button
   acc.querySelectorAll('[data-edit-draft]').forEach(b => {
-    b.onclick = () => {
+    b.onclick = async () => {
       const orderId = b.dataset.editDraft;
-      // TODO: Implement full order edit dialog
-      // For now, alert user that feature is coming
-      alert('Order editing is being implemented. For now, please create a new order or contact support to modify this draft.');
-      console.warn('Order edit not yet implemented. Order ID:', orderId);
+      await loadAndOpenOrderEditDialog(orderId);
     };
   });
 
@@ -8054,6 +8051,45 @@ function openRestartDialog(orderId, onDone){
     if(!j.ok){ alert(j.error||'Error'); return; }
     $('#dlg-restart').close(); onDone&&onDone();
   };
+}
+
+/**
+ * Load the order edit dialog component and open it for the given order
+ * This is a wrapper that loads the order-edit-dialog.html file which contains
+ * the full implementation of openOrderEditDialog()
+ */
+async function loadAndOpenOrderEditDialog(orderId) {
+  try {
+    // Load the order edit dialog if not already loaded
+    let editDialogContainer = document.getElementById('order-edit-dialog-container');
+    if (!editDialogContainer) {
+      editDialogContainer = document.createElement('div');
+      editDialogContainer.id = 'order-edit-dialog-container';
+      document.body.appendChild(editDialogContainer);
+
+      // Fetch the order edit dialog HTML
+      const dialogHtml = await fetch('order-edit-dialog.html');
+      if (!dialogHtml.ok) {
+        throw new Error('Failed to load order edit dialog');
+      }
+      editDialogContainer.innerHTML = await dialogHtml.text();
+
+      // Wait for scripts to execute
+      await new Promise(resolve => setTimeout(resolve, 150));
+    }
+
+    // The dialog file defines its own openOrderEditDialog function on window
+    // Call it now that the dialog is loaded
+    if (typeof window.openOrderEditDialog === 'function') {
+      window.openOrderEditDialog(orderId);
+    } else {
+      throw new Error('Order edit dialog function not available');
+    }
+
+  } catch (error) {
+    console.error('Error loading order edit dialog:', error);
+    alert(`Error loading order editor: ${error.message}\n\nPlease try refreshing the page.`);
+  }
 }
 
 async function submitDraftOrder(orderId){
