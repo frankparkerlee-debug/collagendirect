@@ -8748,44 +8748,57 @@ async function openOrderDialog(preselectId=null){
         }
       }
 
+      // Validate required form elements exist
+      const productSelect = $('#ord-product');
+      if (!productSelect) {
+        alert('Error: Product selector not found. Please refresh the page.');
+        btn.disabled=false; btn.textContent='Submit Order';
+        return;
+      }
+
+      const paymentRadio = document.querySelector('input[name="paytype"]:checked');
+      if (!paymentRadio) {
+        alert('Error: Payment type not selected. Please refresh the page.');
+        btn.disabled=false; btn.textContent='Submit Order';
+        return;
+      }
+
       const body=new FormData();
       body.append('patient_id', pid);
-      body.append('product_id', $('#ord-product').value);
-      body.append('payment_type', document.querySelector('input[name="paytype"]:checked').value);
+      body.append('product_id', productSelect.value);
+      body.append('payment_type', paymentRadio.value);
 
       // Send wounds as JSON
       body.append('wounds_data', JSON.stringify(woundsData));
 
-      body.append('last_eval_date', $('#last-eval').value);
-      body.append('start_date', $('#start-date').value);
-      body.append('frequency_per_week', $('#freq-week').value);
-      body.append('qty_per_change', $('#qty-change').value);
-      body.append('duration_days', $('#duration-days').value);
-      body.append('additional_instructions', $('#addl-instr').value);
-      body.append('secondary_dressing', $('#secondary-dressing').value);
+      body.append('last_eval_date', $('#last-eval')?.value || '');
+      body.append('start_date', $('#start-date')?.value || '');
+      body.append('frequency_per_week', $('#freq-week')?.value || '3');
+      body.append('qty_per_change', $('#qty-change')?.value || '1');
+      body.append('duration_days', $('#duration-days')?.value || '30');
+      body.append('additional_instructions', $('#addl-instr')?.value || '');
+      body.append('secondary_dressing', $('#secondary-dressing')?.value || '');
 
-      // Add exudate level
-      const exudateLevel = $('#exudate-level')?.value;
-      if (exudateLevel) {
-        body.append('exudate_level', exudateLevel);
-      }
+      body.append('notes_text', $('#ord-notes')?.value || '');
 
-      body.append('notes_text', $('#ord-notes').value);
+      const deliverRadio = document.querySelector('input[name="deliver"]:checked');
+      body.append('delivery_to', deliverRadio?.value || 'patient');
+      body.append('shipping_name', $('#ship-name')?.value || '');
+      body.append('shipping_phone', $('#ship-phone')?.value || '');
+      body.append('shipping_address', $('#ship-addr')?.value || '');
+      body.append('shipping_city', $('#ship-city')?.value || '');
+      body.append('shipping_state', $('#ship-state')?.value || '');
+      body.append('shipping_zip', $('#ship-zip')?.value || '');
 
-      body.append('delivery_to', document.querySelector('input[name="deliver"]:checked').value);
-      body.append('shipping_name', $('#ship-name').value);
-      body.append('shipping_phone', $('#ship-phone').value);
-      body.append('shipping_address', $('#ship-addr').value);
-      body.append('shipping_city', $('#ship-city').value);
-      body.append('shipping_state', $('#ship-state').value);
-      body.append('shipping_zip', $('#ship-zip').value);
-
-      body.append('sign_name', $('#sign-name').value);
-      body.append('sign_title', $('#sign-title').value);
+      body.append('sign_name', $('#sign-name')?.value || '');
+      body.append('sign_title', $('#sign-title')?.value || '');
       body.append('ack_sig', '1');
 
-      if($('#file-rx').files[0])  body.append('file_rx_note', $('#file-rx').files[0]);
-      if($('#file-wound-photo')?.files[0])  body.append('baseline_wound_photo', $('#file-wound-photo').files[0]);
+      const fileRxInput = $('#file-rx');
+      if(fileRxInput?.files[0])  body.append('file_rx_note', fileRxInput.files[0]);
+
+      const fileWoundPhoto = $('#file-wound-photo');
+      if(fileWoundPhoto?.files[0])  body.append('baseline_wound_photo', fileWoundPhoto.files[0]);
 
       const r=await fetch('?action=order.create',{method:'POST',body});
       const t=await r.text(); let j;
