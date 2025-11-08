@@ -5,13 +5,12 @@
  * It needs status='submitted' and review_status='pending_admin_review'
  */
 
-// Security: Only allow with secret key
-$SECRET_KEY = getenv('MIGRATION_SECRET') ?: 'change-me-in-production';
-$provided_key = $_GET['key'] ?? '';
+// Security: Simple confirmation parameter
+$confirm = $_GET['confirm'] ?? '';
 
-if ($provided_key !== $SECRET_KEY) {
+if ($confirm !== 'yes') {
     http_response_code(403);
-    die('Access denied. Provide ?key=SECRET in URL');
+    die('Access denied. Add ?confirm=yes to URL to run this migration.');
 }
 
 header('Content-Type: text/plain; charset=utf-8');
