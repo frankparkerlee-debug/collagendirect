@@ -192,24 +192,27 @@ $displayTotalRevenue = $totalRevenue * $revenueMultiplier;
 $recent = [];
 try {
   // Filter recent activity by role
+  // IMPORTANT: Hide draft orders from admin users (same as orders.php)
   if ($adminRole === 'superadmin' || $adminRole === 'manufacturer' || $adminRole === 'admin') {
-    // Admin roles see all recent activity
+    // Admin roles see all recent activity (except drafts)
     $recent = $pdo->query("
       SELECT o.id, o.status, o.product, COALESCE(o.updated_at, o.created_at) AS ts,
              p.first_name, p.last_name
       FROM orders o
       LEFT JOIN patients p ON p.id = o.patient_id
+      WHERE (o.review_status IS NULL OR o.review_status != 'draft')
       ORDER BY ts DESC
       LIMIT 8
     ")->fetchAll();
   } else {
-    // Sales/ops/employees only see activity from assigned physicians
+    // Sales/ops/employees only see activity from assigned physicians (except drafts)
     $stmt = $pdo->prepare("
       SELECT o.id, o.status, o.product, COALESCE(o.updated_at, o.created_at) AS ts,
              p.first_name, p.last_name
       FROM orders o
       LEFT JOIN patients p ON p.id = o.patient_id
-      WHERE EXISTS (SELECT 1 FROM admin_physicians ap WHERE ap.admin_id = ? AND ap.physician_user_id = o.user_id)
+      WHERE (o.review_status IS NULL OR o.review_status != 'draft')
+        AND EXISTS (SELECT 1 FROM admin_physicians ap WHERE ap.admin_id = ? AND ap.physician_user_id = o.user_id)
       ORDER BY ts DESC
       LIMIT 8
     ");
