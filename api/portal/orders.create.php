@@ -150,13 +150,48 @@ try {
   // 5) Order meta
   $order_id       = guid();
   $delivery_mode  = safe($_POST['delivery_mode'] ?? 'standard');
-  $frequency      = safe($_POST['frequency'] ?? null);
-  $wound_location = safe($_POST['wound_location'] ?? null);
-  $wound_laterality = safe($_POST['wound_laterality'] ?? null);
-  $wound_notes    = safe($_POST['wound_notes'] ?? null);
+  $frequency      = safe($_POST['frequency_per_week'] ?? null);
   $payment_type   = safe($_POST['payment_type'] ?? 'insurance');
   $prior_auth     = safe($_POST['prior_auth'] ?? null);
-  $exudate_level  = safe($_POST['exudate_level'] ?? null);
+
+  // New order form fields
+  $last_eval_date = safe($_POST['last_eval_date'] ?? null);
+  $start_date     = safe($_POST['start_date'] ?? null);
+  $qty_per_change = safe($_POST['qty_per_change'] ?? null);
+  $duration_days  = safe($_POST['duration_days'] ?? null);
+  $additional_instructions = safe($_POST['additional_instructions'] ?? null);
+  $secondary_dressing = safe($_POST['secondary_dressing'] ?? null);
+  $notes_text     = safe($_POST['notes_text'] ?? null);
+
+  // Parse wounds_data JSON (multi-wound support)
+  $wounds_data = null;
+  $wound_location = null;
+  $wound_laterality = null;
+  $wound_notes    = null;
+  $exudate_level  = null;
+
+  if (!empty($_POST['wounds_data'])) {
+    $wounds_json = $_POST['wounds_data'];
+    $wounds_array = json_decode($wounds_json, true);
+
+    if (is_array($wounds_array) && count($wounds_array) > 0) {
+      // Store full wounds data as JSONB
+      $wounds_data = $wounds_json;
+
+      // For backward compatibility, populate legacy columns from first wound
+      $first_wound = $wounds_array[0];
+      $wound_location = safe($first_wound['location'] ?? null);
+      $wound_laterality = safe($first_wound['laterality'] ?? null);
+      $wound_notes = safe($first_wound['notes'] ?? null);
+      $exudate_level = safe($first_wound['exudate_level'] ?? null);
+    }
+  } else {
+    // Fallback to individual wound fields (old format)
+    $wound_location = safe($_POST['wound_location'] ?? null);
+    $wound_laterality = safe($_POST['wound_laterality'] ?? null);
+    $wound_notes    = safe($_POST['wound_notes'] ?? null);
+    $exudate_level  = safe($_POST['exudate_level'] ?? null);
+  }
 
   // Signer
   $sign_name  = safe($_POST['sign_name']  ?? null);
@@ -180,7 +215,9 @@ try {
     (id, patient_id, user_id, product, product_id, product_price, cpt, status, frequency, delivery_mode,
      shipments_remaining, created_at, updated_at,
      insurer_name, member_id, group_id, payer_phone, prior_auth, payment_type,
-     wound_location, wound_laterality, wound_notes, exudate_level,
+     wound_location, wound_laterality, wound_notes, exudate_level, wounds_data,
+     last_eval_date, start_date, qty_per_change, duration_days,
+     additional_instructions, secondary_dressing, notes_text,
      shipping_name, shipping_phone, shipping_address, shipping_city, shipping_state, shipping_zip,
      rx_note_path, rx_note_mime, ins_card_path, ins_card_mime, id_card_path, id_card_mime,
      e_sign_user_id, e_sign_name, e_sign_title, e_sign_at, e_sign_ip,
@@ -188,7 +225,9 @@ try {
     VALUES
     (?,?,?,?,?,?,?,?,?,?,0,NOW(),NOW(),
      ?,?,?,?, ?,?,?,
+     ?,?,?,?,?,
      ?,?,?,?,
+     ?,?,?,
      ?,?,?,?,?,?,
      NULL,NULL,NULL,NULL,NULL,NULL,
      ?,?,?,?,?,
@@ -204,8 +243,11 @@ try {
     safe($_POST['insurance_group_id'] ?? null),
     safe($_POST['insurance_payer_phone'] ?? null),
     $prior_auth, $payment_type,
-    // wound
-    $wound_location, $wound_laterality, $wound_notes, $exudate_level,
+    // wound (legacy columns + new wounds_data JSONB)
+    $wound_location, $wound_laterality, $wound_notes, $exudate_level, $wounds_data,
+    // new order form fields
+    $last_eval_date, $start_date, $qty_per_change, $duration_days,
+    $additional_instructions, $secondary_dressing, $notes_text,
     // shipping
     $shipping_name, $shipping_phone, $shipping_address, $shipping_city, $shipping_state, $shipping_zip,
     // e-sign
