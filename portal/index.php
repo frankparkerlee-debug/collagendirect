@@ -8846,24 +8846,24 @@ async function openOrderDialog(preselectId=null){
       body.append('product_id', $('#ord-product').value);
       body.append('payment_type', document.querySelector('input[name="paytype"]:checked')?.value || 'insurance');
       body.append('wounds_data', JSON.stringify(woundsData));
-      body.append('last_eval_date', $('#last-eval').value);
-      body.append('start_date', $('#start-date').value);
-      body.append('frequency_per_week', $('#freq-week').value);
-      body.append('qty_per_change', $('#qty-change').value);
-      body.append('duration_days', $('#duration-days').value);
+      body.append('last_eval_date', $('#last-eval')?.value || '');
+      body.append('start_date', $('#start-date')?.value || '');
+      body.append('frequency_per_week', $('#freq-week')?.value || '3');
+      body.append('qty_per_change', $('#qty-change')?.value || '1');
+      body.append('duration_days', $('#duration-days')?.value || '30');
       // Note: refills field removed - no longer needed
-      body.append('additional_instructions', $('#addl-instr').value);
-      body.append('secondary_dressing', $('#secondary-dressing').value);
-      body.append('notes_text', $('#ord-notes').value);
+      body.append('additional_instructions', $('#addl-instr')?.value || '');
+      body.append('secondary_dressing', $('#secondary-dressing')?.value || '');
+      body.append('notes_text', $('#ord-notes')?.value || '');
       body.append('delivery_to', document.querySelector('input[name="deliver"]:checked')?.value || 'patient');
-      body.append('shipping_name', $('#ship-name').value);
-      body.append('shipping_phone', $('#ship-phone').value);
-      body.append('shipping_address', $('#ship-addr').value);
-      body.append('shipping_city', $('#ship-city').value);
-      body.append('shipping_state', $('#ship-state').value);
-      body.append('shipping_zip', $('#ship-zip').value);
-      body.append('sign_name', $('#sign-name').value || 'Draft');
-      body.append('sign_title', $('#sign-title').value || 'Draft');
+      body.append('shipping_name', $('#ship-name')?.value || '');
+      body.append('shipping_phone', $('#ship-phone')?.value || '');
+      body.append('shipping_address', $('#ship-addr')?.value || '');
+      body.append('shipping_city', $('#ship-city')?.value || '');
+      body.append('shipping_state', $('#ship-state')?.value || '');
+      body.append('shipping_zip', $('#ship-zip')?.value || '');
+      body.append('sign_name', $('#sign-name')?.value || 'Draft');
+      body.append('sign_title', $('#sign-title')?.value || 'Draft');
       body.append('esign_confirm', '0'); // Not required for drafts (backend checks save_as_draft flag)
 
       // Mark as draft
