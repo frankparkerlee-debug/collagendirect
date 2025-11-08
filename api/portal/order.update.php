@@ -5,15 +5,16 @@
  * Implements edit lock checks and revision tracking
  */
 
-header('Content-Type: application/json');
-session_start();
-
+// Load database connection (includes session handling)
 try {
   require_once __DIR__ . '/../db.php';
 } catch (Exception $e) {
+  header('Content-Type: application/json');
   echo json_encode(['ok' => false, 'error' => 'Failed to load database: ' . $e->getMessage()]);
   exit;
 }
+
+header('Content-Type: application/json');
 
 // Check authentication
 if (empty($_SESSION['user_id'])) {
