@@ -8750,6 +8750,7 @@ async function openOrderDialog(preselectId=null){
       try{ j=JSON.parse(t); }catch{ alert('Server returned non-JSON:\n'+t); return; }
       if(!j.ok){ alert(j.error||'Order creation failed'); return; }
 
+      alert('Order submitted successfully! Admin staff will review and approve your order.');
       document.getElementById('dlg-order').close();
       const accBtn=document.querySelector(`[data-acc="${pid}"]`);
       if(accBtn){ const row=accBtn.closest('tr'); toggleAccordion(row,pid,<?php echo json_encode($page); ?>); }
