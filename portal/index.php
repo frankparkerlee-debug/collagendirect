@@ -2249,8 +2249,13 @@ if ($action) {
         $expires_at = $start->format('Y-m-d');
       }
 
+      // Determine order status based on save_as_draft flag
+      $saveAsDraft = (int)($_POST['save_as_draft'] ?? 0);
+      $orderStatus = $saveAsDraft ? 'draft' : 'submitted';
+      $reviewStatus = $saveAsDraft ? 'draft' : 'pending_admin_review';
+
       $ins=$pdo->prepare("INSERT INTO orders
-        (id,patient_id,user_id,product,product_id,product_price,status,shipments_remaining,delivery_mode,payment_type,
+        (id,patient_id,user_id,product,product_id,product_price,status,review_status,shipments_remaining,delivery_mode,payment_type,
          wound_location,wound_laterality,wound_notes,
          shipping_name,shipping_phone,shipping_address,shipping_city,shipping_state,shipping_zip,
          sign_name,sign_title,signed_at,created_at,updated_at,expires_at,
@@ -2258,7 +2263,7 @@ if ($action) {
          wound_type,wound_stage,last_eval_date,start_date,frequency_per_week,qty_per_change,duration_days,refills_allowed,additional_instructions,secondary_dressing,
          wounds_data,
          cpt,billed_by)
-        VALUES (?,?,?,?,?,?,?,?,?,?,
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,
                 ?,?,?,
                 ?,?,?,?,?,?,
                 ?,?,NOW(),NOW(),NOW(),?,
@@ -2267,7 +2272,7 @@ if ($action) {
                 ?::jsonb,
                 ?,?)");
       $ins->execute([
-        $oid,$pid,$patientOwnerId,$prod['name'],$prod['id'],$prod['price_admin'],'pending',$shipments_remaining,$delivery_mode,$payment_type,
+        $oid,$pid,$patientOwnerId,$prod['name'],$prod['id'],$prod['price_admin'],$orderStatus,$reviewStatus,$shipments_remaining,$delivery_mode,$payment_type,
         $wound_location,$wound_laterality,$wound_notes,
         (string)$ship_name,(string)$ship_phone,(string)$ship_addr,(string)$ship_city,(string)$ship_state,(string)$ship_zip,
         $sign_name,$sign_title,$expires_at,
@@ -2305,7 +2310,7 @@ if ($action) {
           ->execute([$sign_name,$sign_title,$userId]);
 
       $pdo->commit();
-      jok(['order_id'=>$oid,'status'=>'pending','billed_by'=>$billed_by]);
+      jok(['order_id'=>$oid,'status'=>$orderStatus,'review_status'=>$reviewStatus,'billed_by'=>$billed_by]);
     } catch (Throwable $e) {
       if ($pdo->inTransaction()) $pdo->rollBack();
       jerr('Order create failed: '.$e->getMessage(), 500);
