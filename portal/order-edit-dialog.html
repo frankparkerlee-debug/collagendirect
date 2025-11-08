@@ -1,251 +1,498 @@
-<!-- Order Edit Dialog -->
+<!-- Order Edit Dialog - Matches New Order Form Structure -->
 <dialog id="dlg-order-edit" class="rounded-2xl w-full max-w-4xl">
-  <form class="p-0" id="form-order-edit">
-    <div class="p-5 border-b flex items-center justify-between bg-slate-50">
+  <form method="dialog" class="p-0">
+    <div class="p-5 border-b flex items-center justify-between">
       <h3 class="text-lg font-semibold">Edit Order</h3>
-      <button class="btn" type="button" onclick="document.getElementById('dlg-order-edit').close()">Cancel</button>
+      <button class="btn" type="button" onclick="document.getElementById('dlg-order-edit').close()">Close</button>
     </div>
 
-    <div class="p-6 max-h-[70vh] overflow-y-auto">
-      <input type="hidden" id="edit-order-id" name="order_id">
+    <div class="p-5 grid gap-5 max-h-[70vh] overflow-y-auto">
+      <input type="hidden" id="edit-order-id">
 
-      <!-- Wound Details Section -->
-      <div class="mb-6">
-        <h4 class="font-semibold text-md mb-3 pb-2 border-b">Wound Details</h4>
-
-        <div id="edit-wounds-container" class="space-y-4">
-          <!-- Wounds will be dynamically populated here -->
+      <!-- Product + Clinical completeness -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="text-sm">Product</label>
+          <select id="edit-product" class="w-full" disabled>
+            <option value="">Loading...</option>
+          </select>
+          <div class="text-xs text-slate-500 mt-1">Product cannot be changed after order creation</div>
         </div>
 
-        <button type="button" onclick="addEditWound()" class="btn btn-sm mt-3">+ Add Wound</button>
+        <div>
+          <label class="text-sm block mb-1">Payment</label>
+          <div class="flex items-center gap-4">
+            <label class="flex items-center gap-2 text-sm"><input type="radio" name="edit-paytype" value="insurance" disabled> Insurance</label>
+            <label class="flex items-center gap-2 text-sm"><input type="radio" name="edit-paytype" value="self_pay" disabled> Cash</label>
+          </div>
+          <div class="text-xs text-slate-500 mt-1">Payment type cannot be changed</div>
+        </div>
 
-        <div class="mt-4">
-          <label class="block text-sm font-medium mb-1">Additional Clinical Notes</label>
-          <textarea
-            id="edit-wound-notes"
-            name="wound_notes"
-            rows="3"
-            class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
-            placeholder="Additional wound description or clinical observations..."
-          ></textarea>
+        <!-- Wounds Section (Multiple wounds supported) -->
+        <div class="md:col-span-2">
+          <div class="flex items-center justify-between mb-3">
+            <label class="text-sm font-medium">Wounds <span class="text-red-600">*</span></label>
+            <button type="button" id="btn-edit-add-wound" class="text-sm px-3 py-2 rounded font-medium" style="background:#10b981;color:white;border:none;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.1);" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'" onclick="addEditWound(); return false;">+ Add Wound</button>
+          </div>
+          <div id="edit-wounds-container" class="space-y-4">
+            <!-- Wounds will be added here dynamically -->
+          </div>
+        </div>
+
+        <div>
+          <label class="text-sm">Date of Last Evaluation <span class="text-red-600">*</span></label>
+          <input id="edit-last-eval" type="date" class="w-full">
+        </div>
+
+        <div>
+          <label class="text-sm">Start Date</label>
+          <input id="edit-start-date" type="date" class="w-full">
+          <div id="edit-date-validation-hint" class="text-xs mt-1" style="display:none;"></div>
+        </div>
+
+        <div>
+          <label class="text-sm">Frequency (changes per week) <span class="text-red-600">*</span></label>
+          <input id="edit-freq-week" type="number" min="1" max="21" value="3" class="w-full">
+        </div>
+
+        <div>
+          <label class="text-sm">Quantity per Change <span class="text-red-600">*</span></label>
+          <input id="edit-qty-change" type="number" min="1" value="1" class="w-full">
+        </div>
+
+        <div>
+          <label class="text-sm">Duration (days) <span class="text-red-600">*</span></label>
+          <input id="edit-duration-days" type="number" min="1" value="30" class="w-full">
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="text-sm">Patient Instructions</label>
+          <input id="edit-addl-instr" class="w-full" placeholder="e.g., Saline cleanse, apply before dressing">
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="text-sm">Secondary Dressing</label>
+          <select id="edit-secondary-dressing" class="w-full">
+            <option value="">None</option>
+            <option value="Dermal Wound Cleaner 8oz">Dermal Wound Cleaner 8oz bottle</option>
+            <option value="Gauze - 2x2">Gauze - 2x2</option>
+            <option value="Gauze - 4x4">Gauze - 4x4</option>
+            <option value="Sterile Gauze 4x4">Sterile Gauze 4x4</option>
+            <option value="Gauze - 6x6">Gauze - 6x6</option>
+            <option value="Sterile Gauze roll">Sterile Gauze roll</option>
+            <option value="Non-adherent pad">Non-adherent pad</option>
+            <option value="Foam dressing">Foam dressing</option>
+            <option value="Transparent film">Transparent film</option>
+            <option value="Compression wrap">Compression wrap</option>
+            <option value="Tubular bandage">Tubular bandage</option>
+            <option value="Other">Other (specify in instructions)</option>
+          </select>
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="text-sm">Clinical Notes</label>
+          <textarea id="edit-ord-notes" class="w-full" rows="3" placeholder="Clinical notes" disabled></textarea>
+          <div class="text-xs text-slate-500 mt-1">Clinical notes cannot be changed after creation</div>
         </div>
       </div>
 
-      <!-- Treatment Frequency Section -->
-      <div class="mb-6">
-        <h4 class="font-semibold text-md mb-3 pb-2 border-b">Treatment Information</h4>
-        <div class="grid md:grid-cols-2 gap-4">
+      <!-- Delivery & shipping -->
+      <div class="grid grid-cols-1 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium mb-1">Treatment Frequency *</label>
-            <select
-              id="edit-frequency"
-              name="frequency"
-              class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
-              required
-            >
-              <option value="">Select frequency</option>
-              <option value="1x per week">1x per week</option>
-              <option value="2x per week">2x per week</option>
-              <option value="3x per week">3x per week</option>
-              <option value="Daily">Daily</option>
-              <option value="Every other day">Every other day</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium mb-1">Delivery Mode</label>
-            <select
-              id="edit-delivery-mode"
-              name="delivery_mode"
-              class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="standard">Ship to Patient</option>
-              <option value="office">Deliver to Office</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <!-- Shipping Information Section -->
-      <div class="mb-6" id="edit-shipping-section">
-        <h4 class="font-semibold text-md mb-3 pb-2 border-b">Shipping Address</h4>
-        <div class="grid gap-4">
-          <div>
-            <label class="block text-sm font-medium mb-1">Recipient Name *</label>
-            <input
-              type="text"
-              id="edit-shipping-name"
-              name="shipping_name"
-              class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
-              placeholder="Full name"
-            >
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium mb-1">Street Address *</label>
-            <input
-              type="text"
-              id="edit-shipping-address"
-              name="shipping_address"
-              class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
-              placeholder="Street address"
-            >
-          </div>
-
-          <div class="grid md:grid-cols-3 gap-4">
-            <div class="md:col-span-1">
-              <label class="block text-sm font-medium mb-1">City *</label>
-              <input
-                type="text"
-                id="edit-shipping-city"
-                name="shipping_city"
-                class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
-                placeholder="City"
-              >
+            <label class="text-sm block mb-1">Deliver To</label>
+            <div class="flex items-center gap-4 mb-2">
+              <label class="flex items-center gap-2 text-sm"><input type="radio" name="edit-deliver" value="patient" checked> Patient</label>
+              <label class="flex items-center gap-2 text-sm"><input type="radio" name="edit-deliver" value="office"> Office</label>
             </div>
-
-            <div>
-              <label class="block text-sm font-medium mb-1">State *</label>
-              <select
-                id="edit-shipping-state"
-                name="shipping_state"
-                class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select state</option>
-                <!-- States will be populated by JavaScript -->
-              </select>
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium mb-1">ZIP Code *</label>
-              <input
-                type="text"
-                id="edit-shipping-zip"
-                name="shipping_zip"
-                pattern="\d{5}"
-                class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
-                placeholder="12345"
-              >
+            <div id="edit-office-addr" class="grid grid-cols-1 md:grid-cols-2 gap-3 hidden">
+              <div class="md:col-span-2"><input id="edit-ship-name" class="w-full" placeholder="Recipient / Attn"></div>
+              <div><input id="edit-ship-phone" class="w-full" placeholder="Phone (10 digits)"></div>
+              <div class="md:col-span-2"><input id="edit-ship-addr" class="w-full" placeholder="Street address"></div>
+              <div><input id="edit-ship-city" class="w-full" placeholder="City"></div>
+              <div>
+                <select id="edit-ship-state" class="w-full">
+                  <option value="">State</option>
+                  <!-- States populated by JavaScript -->
+                </select>
+              </div>
+              <div><input id="edit-ship-zip" class="w-full" placeholder="ZIP"></div>
             </div>
           </div>
-
-          <div>
-            <label class="block text-sm font-medium mb-1">Phone Number</label>
-            <input
-              type="tel"
-              id="edit-shipping-phone"
-              name="shipping_phone"
-              pattern="\d{10}"
-              class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
-              placeholder="1234567890 (10 digits)"
-            >
-          </div>
         </div>
       </div>
 
-      <!-- Insurance Information Section -->
-      <div class="mb-6" id="edit-insurance-section">
-        <h4 class="font-semibold text-md mb-3 pb-2 border-b">Insurance Information</h4>
-        <div class="grid md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium mb-1">Insurance Provider</label>
-            <input
-              type="text"
-              id="edit-insurer-name"
-              name="insurer_name"
-              class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
-              placeholder="Insurance company name"
-            >
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium mb-1">Member ID</label>
-            <input
-              type="text"
-              id="edit-member-id"
-              name="member_id"
-              class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
-              placeholder="Member/Policy ID"
-            >
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium mb-1">Group Number</label>
-            <input
-              type="text"
-              id="edit-group-id"
-              name="group_id"
-              class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
-              placeholder="Group number"
-            >
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium mb-1">Payer Phone</label>
-            <input
-              type="tel"
-              id="edit-payer-phone"
-              name="payer_phone"
-              class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
-              placeholder="Insurance contact number"
-            >
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium mb-1">Prior Authorization Number</label>
-            <input
-              type="text"
-              id="edit-prior-auth"
-              name="prior_auth"
-              class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
-              placeholder="Prior auth # (if applicable)"
-            >
-          </div>
-        </div>
-      </div>
-
-      <!-- Revision Reason -->
-      <div class="mb-4">
-        <label class="block text-sm font-medium mb-1">Reason for Changes (Optional)</label>
-        <textarea
-          id="edit-reason"
-          name="reason"
-          rows="2"
-          class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
-          placeholder="Brief explanation of why you're updating this order..."
-        ></textarea>
+      <!-- Reason for changes -->
+      <div>
+        <label class="text-sm">Reason for Changes (Optional)</label>
+        <textarea id="edit-reason" class="w-full" rows="2" placeholder="Explain why you're updating this order..."></textarea>
       </div>
     </div>
 
-    <div class="p-5 border-t bg-slate-50 flex justify-end gap-3">
-      <button
-        type="button"
-        class="btn"
-        onclick="document.getElementById('dlg-order-edit').close()"
-      >
-        Cancel
-      </button>
-      <button
-        type="submit"
-        class="btn btn-primary"
-        id="btn-order-edit-save"
-      >
-        Save Changes
-      </button>
+    <div class="p-5 border-t flex items-center justify-between">
+      <button type="button" class="btn" onclick="document.getElementById('dlg-order-edit').close()">Cancel</button>
+      <button type="button" id="btn-save-order-edit" class="btn btn-primary">Save Changes</button>
     </div>
   </form>
 </dialog>
 
 <script>
-// ICD-10 Autocomplete Function
-window.attachIcd10Autocomplete = function(inputElement) {
+// Populate states dropdown
+(function() {
+  const states = ['AL','AK','AZ','AR','CA','CO','CT','DE','DC','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'];
+  const select = document.getElementById('edit-ship-state');
+  if (select) {
+    states.forEach(state => {
+      const option = document.createElement('option');
+      option.value = state;
+      option.textContent = state;
+      select.appendChild(option);
+    });
+  }
+})();
+
+// Toggle office address fields
+document.querySelectorAll('input[name="edit-deliver"]').forEach(radio => {
+  radio.addEventListener('change', function() {
+    const officeAddr = document.getElementById('edit-office-addr');
+    if (this.value === 'office') {
+      officeAddr.classList.remove('hidden');
+    } else {
+      officeAddr.classList.add('hidden');
+    }
+  });
+});
+
+let editWoundCounter = 0;
+
+/**
+ * Add wound to edit form
+ */
+function addEditWound(woundData = null) {
+  const container = document.getElementById('edit-wounds-container');
+  const woundNum = ++editWoundCounter;
+
+  const woundHtml = `
+    <div class="p-4 border rounded bg-slate-50" id="edit-wound-${woundNum}" data-wound-num="${woundNum}">
+      <div class="flex items-center justify-between mb-3">
+        <h5 class="font-medium text-sm">Wound #${woundNum}</h5>
+        ${container.children.length > 0 ? `<button type="button" onclick="removeEditWound(${woundNum})" class="text-red-600 text-sm hover:underline">Remove</button>` : ''}
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-medium mb-1">Location *</label>
+          <select class="w-full px-2 py-1 border rounded text-sm" id="edit-wound-${woundNum}-location" required>
+            <option value="">Select location</option>
+            <option>Foot — Plantar</option>
+            <option>Foot — Dorsal</option>
+            <option>Heel</option>
+            <option>Ankle</option>
+            <option>Lower Leg — Medial</option>
+            <option>Lower Leg — Lateral</option>
+            <option>Knee</option>
+            <option>Thigh</option>
+            <option>Hip</option>
+            <option>Buttock</option>
+            <option>Sacrum/Coccyx</option>
+            <option>Abdomen</option>
+            <option>Groin</option>
+            <option>Upper Arm</option>
+            <option>Forearm</option>
+            <option>Hand — Dorsal</option>
+            <option>Hand — Palmar</option>
+            <option>Elbow</option>
+            <option>Shoulder</option>
+            <option>Back — Upper</option>
+            <option>Back — Lower</option>
+            <option>Neck</option>
+            <option>Face/Scalp</option>
+            <option>Other</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium mb-1">Laterality</label>
+          <select class="w-full px-2 py-1 border rounded text-sm" id="edit-wound-${woundNum}-laterality">
+            <option value="">N/A</option>
+            <option>Left</option>
+            <option>Right</option>
+            <option>Bilateral</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium mb-1">Length (cm) *</label>
+          <input type="number" step="0.1" min="0" class="w-full px-2 py-1 border rounded text-sm"
+            id="edit-wound-${woundNum}-length" placeholder="0.0" required>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium mb-1">Width (cm) *</label>
+          <input type="number" step="0.1" min="0" class="w-full px-2 py-1 border rounded text-sm"
+            id="edit-wound-${woundNum}-width" placeholder="0.0" required>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium mb-1">Depth (cm)</label>
+          <input type="number" step="0.1" min="0" class="w-full px-2 py-1 border rounded text-sm"
+            id="edit-wound-${woundNum}-depth" placeholder="0.0">
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium mb-1">Type</label>
+          <select class="w-full px-2 py-1 border rounded text-sm" id="edit-wound-${woundNum}-type">
+            <option value="">Select type</option>
+            <option>Arterial ulcer</option>
+            <option>Venous ulcer</option>
+            <option>Diabetic ulcer</option>
+            <option>Pressure ulcer</option>
+            <option>Surgical wound</option>
+            <option>Traumatic wound</option>
+            <option>Burns</option>
+            <option>Other</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium mb-1">Stage (if pressure ulcer)</label>
+          <select class="w-full px-2 py-1 border rounded text-sm" id="edit-wound-${woundNum}-stage">
+            <option value="">N/A</option>
+            <option>Stage 1</option>
+            <option>Stage 2</option>
+            <option>Stage 3</option>
+            <option>Stage 4</option>
+            <option>Unstageable</option>
+            <option>Deep Tissue Injury</option>
+          </select>
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="block text-xs font-medium mb-1">Primary ICD-10 *</label>
+          <input type="text" class="icd10-autocomplete w-full px-2 py-1 border rounded text-sm"
+            id="edit-wound-${woundNum}-icd10-primary"
+            placeholder="Type to search ICD-10 codes..." autocomplete="off" required>
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="block text-xs font-medium mb-1">Secondary ICD-10</label>
+          <input type="text" class="icd10-autocomplete w-full px-2 py-1 border rounded text-sm"
+            id="edit-wound-${woundNum}-icd10-secondary"
+            placeholder="Additional ICD-10 codes (comma separated)" autocomplete="off">
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="block text-xs font-medium mb-1">Wound Notes</label>
+          <textarea class="w-full px-2 py-1 border rounded text-sm" rows="2"
+            id="edit-wound-${woundNum}-notes"
+            placeholder="Additional wound details..."></textarea>
+        </div>
+      </div>
+    </div>
+  `;
+
+  container.insertAdjacentHTML('beforeend', woundHtml);
+
+  // Attach ICD-10 autocomplete
+  if (typeof window.attachIcd10Autocomplete === 'function') {
+    const primaryInput = document.getElementById(`edit-wound-${woundNum}-icd10-primary`);
+    const secondaryInput = document.getElementById(`edit-wound-${woundNum}-icd10-secondary`);
+    if (primaryInput) window.attachIcd10Autocomplete(primaryInput);
+    if (secondaryInput) window.attachIcd10Autocomplete(secondaryInput);
+  }
+
+  // Populate data if provided
+  if (woundData) {
+    document.getElementById(`edit-wound-${woundNum}-location`).value = woundData.location || '';
+    document.getElementById(`edit-wound-${woundNum}-laterality`).value = woundData.laterality || '';
+    document.getElementById(`edit-wound-${woundNum}-length`).value = woundData.length_cm || '';
+    document.getElementById(`edit-wound-${woundNum}-width`).value = woundData.width_cm || '';
+    document.getElementById(`edit-wound-${woundNum}-depth`).value = woundData.depth_cm || '';
+    document.getElementById(`edit-wound-${woundNum}-type`).value = woundData.type || '';
+    document.getElementById(`edit-wound-${woundNum}-stage`).value = woundData.stage || '';
+    document.getElementById(`edit-wound-${woundNum}-icd10-primary`).value = woundData.icd10_primary || '';
+    document.getElementById(`edit-wound-${woundNum}-icd10-secondary`).value = woundData.icd10_secondary || '';
+    document.getElementById(`edit-wound-${woundNum}-notes`).value = woundData.notes || '';
+  }
+}
+
+function removeEditWound(woundNum) {
+  const wound = document.getElementById(`edit-wound-${woundNum}`);
+  if (wound) wound.remove();
+}
+
+/**
+ * Open order edit dialog
+ */
+async function openOrderEditDialog(orderId) {
+  try {
+    const baseUrl = window.location.pathname;
+    const response = await fetch(`${baseUrl}?action=order.get&order_id=${encodeURIComponent(orderId)}`, {
+      headers: { 'Accept': 'application/json', 'X-Requested-With': 'fetch' }
+    });
+
+    const data = await response.json();
+
+    if (!data.ok || !data.order) {
+      alert('Failed to load order data');
+      return;
+    }
+
+    const order = data.order;
+
+    // Populate fields
+    document.getElementById('edit-order-id').value = order.id;
+
+    // Product (disabled, for reference only)
+    const productSelect = document.getElementById('edit-product');
+    productSelect.innerHTML = `<option value="${order.product_id}">${order.product || 'Unknown'}</option>`;
+    productSelect.value = order.product_id;
+
+    // Payment type (disabled)
+    const paymentRadio = document.querySelector(`input[name="edit-paytype"][value="${order.payment_type || 'insurance'}"]`);
+    if (paymentRadio) paymentRadio.checked = true;
+
+    // Populate wounds
+    editWoundCounter = 0;
+    document.getElementById('edit-wounds-container').innerHTML = '';
+    const wounds = order.wounds_data || [];
+    if (wounds.length > 0) {
+      wounds.forEach(wound => addEditWound(wound));
+    } else {
+      addEditWound();
+    }
+
+    // Clinical fields
+    document.getElementById('edit-last-eval').value = order.last_eval_date || '';
+    document.getElementById('edit-start-date').value = order.start_date || '';
+    document.getElementById('edit-freq-week').value = order.frequency_per_week || 3;
+    document.getElementById('edit-qty-change').value = order.qty_per_change || 1;
+    document.getElementById('edit-duration-days').value = order.duration_days || 30;
+    document.getElementById('edit-addl-instr').value = order.additional_instructions || '';
+    document.getElementById('edit-secondary-dressing').value = order.secondary_dressing || '';
+    document.getElementById('edit-ord-notes').value = order.wound_notes || '';
+
+    // Delivery
+    const deliverRadio = document.querySelector(`input[name="edit-deliver"][value="${order.delivery_mode || 'patient'}"]`);
+    if (deliverRadio) {
+      deliverRadio.checked = true;
+      deliverRadio.dispatchEvent(new Event('change'));
+    }
+
+    document.getElementById('edit-ship-name').value = order.shipping_name || '';
+    document.getElementById('edit-ship-phone').value = order.shipping_phone || '';
+    document.getElementById('edit-ship-addr').value = order.shipping_address || '';
+    document.getElementById('edit-ship-city').value = order.shipping_city || '';
+    document.getElementById('edit-ship-state').value = order.shipping_state || '';
+    document.getElementById('edit-ship-zip').value = order.shipping_zip || '';
+
+    document.getElementById('edit-reason').value = '';
+
+    // Open dialog
+    document.getElementById('dlg-order-edit').showModal();
+
+  } catch (error) {
+    alert('Error loading order: ' + error.message);
+    console.error(error);
+  }
+}
+
+/**
+ * Save order changes
+ */
+document.getElementById('btn-save-order-edit')?.addEventListener('click', async function() {
+  const orderId = document.getElementById('edit-order-id').value;
+  if (!orderId) {
+    alert('Order ID missing');
+    return;
+  }
+
+  // Collect wounds data
+  const woundsContainer = document.getElementById('edit-wounds-container');
+  const woundElements = woundsContainer.querySelectorAll('[data-wound-num]');
+  const woundsData = [];
+
+  for (const woundEl of woundElements) {
+    const num = woundEl.dataset.woundNum;
+    woundsData.push({
+      location: document.getElementById(`edit-wound-${num}-location`)?.value || '',
+      laterality: document.getElementById(`edit-wound-${num}-laterality`)?.value || '',
+      length_cm: parseFloat(document.getElementById(`edit-wound-${num}-length`)?.value) || 0,
+      width_cm: parseFloat(document.getElementById(`edit-wound-${num}-width`)?.value) || 0,
+      depth_cm: parseFloat(document.getElementById(`edit-wound-${num}-depth`)?.value) || 0,
+      type: document.getElementById(`edit-wound-${num}-type`)?.value || '',
+      stage: document.getElementById(`edit-wound-${num}-stage`)?.value || '',
+      icd10_primary: document.getElementById(`edit-wound-${num}-icd10-primary`)?.value || '',
+      icd10_secondary: document.getElementById(`edit-wound-${num}-icd10-secondary`)?.value || '',
+      notes: document.getElementById(`edit-wound-${num}-notes`)?.value || ''
+    });
+  }
+
+  const updates = {
+    wounds_data: JSON.stringify(woundsData),
+    last_eval_date: document.getElementById('edit-last-eval').value,
+    start_date: document.getElementById('edit-start-date').value,
+    frequency_per_week: parseInt(document.getElementById('edit-freq-week').value),
+    qty_per_change: parseInt(document.getElementById('edit-qty-change').value),
+    duration_days: parseInt(document.getElementById('edit-duration-days').value),
+    additional_instructions: document.getElementById('edit-addl-instr').value,
+    secondary_dressing: document.getElementById('edit-secondary-dressing').value,
+    delivery_mode: document.querySelector('input[name="edit-deliver"]:checked')?.value || 'patient',
+    shipping_name: document.getElementById('edit-ship-name').value,
+    shipping_phone: document.getElementById('edit-ship-phone').value,
+    shipping_address: document.getElementById('edit-ship-addr').value,
+    shipping_city: document.getElementById('edit-ship-city').value,
+    shipping_state: document.getElementById('edit-ship-state').value,
+    shipping_zip: document.getElementById('edit-ship-zip').value
+  };
+
+  const reason = document.getElementById('edit-reason').value.trim() || null;
+
+  try {
+    this.disabled = true;
+    this.textContent = 'Saving...';
+
+    const response = await fetch('?action=order.update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        order_id: orderId,
+        updates: updates,
+        reason: reason
+      })
+    });
+
+    const result = await response.json();
+
+    if (result.ok) {
+      alert('Order updated successfully!');
+      document.getElementById('dlg-order-edit').close();
+      // Refresh page
+      if (typeof loadPage === 'function' && typeof currentPage !== 'undefined') {
+        loadPage(currentPage);
+      } else {
+        location.reload();
+      }
+    } else {
+      alert('Failed to update order: ' + (result.error || 'Unknown error'));
+    }
+  } catch (error) {
+    alert('Error updating order: ' + error.message);
+    console.error(error);
+  } finally {
+    this.disabled = false;
+    this.textContent = 'Save Changes';
+  }
+});
+
+// ICD-10 Autocomplete Function (reuse from main form)
+window.attachIcd10Autocomplete = window.attachIcd10Autocomplete || function(inputElement) {
   if (!inputElement) return;
 
   let autocompleteList = null;
   let currentFocus = -1;
   let abortController = null;
 
-  // Create autocomplete list container
   function createAutocompleteList() {
     if (autocompleteList) return autocompleteList;
 
@@ -269,7 +516,6 @@ window.attachIcd10Autocomplete = function(inputElement) {
     return autocompleteList;
   }
 
-  // Close autocomplete list
   function closeAutocomplete() {
     if (autocompleteList) {
       autocompleteList.style.display = 'none';
@@ -278,37 +524,15 @@ window.attachIcd10Autocomplete = function(inputElement) {
     currentFocus = -1;
   }
 
-  // Highlight active item
-  function setActive(items) {
-    if (!items || items.length === 0) return;
-    items.forEach((item, index) => {
-      if (index === currentFocus) {
-        item.classList.add('autocomplete-active');
-        item.style.background = '#3b82f6';
-        item.style.color = 'white';
-      } else {
-        item.classList.remove('autocomplete-active');
-        item.style.background = '';
-        item.style.color = '';
-      }
-    });
-  }
-
-  // Handle input event
   inputElement.addEventListener('input', async function() {
     const value = this.value.trim();
 
-    // Close if less than 2 characters
     if (value.length < 2) {
       closeAutocomplete();
       return;
     }
 
-    // Abort previous request
-    if (abortController) {
-      abortController.abort();
-    }
-
+    if (abortController) abortController.abort();
     abortController = new AbortController();
 
     try {
@@ -323,7 +547,6 @@ window.attachIcd10Autocomplete = function(inputElement) {
         list.innerHTML = '';
         list.style.display = 'block';
 
-        // Position list below input
         const rect = inputElement.getBoundingClientRect();
         const parentRect = inputElement.parentNode.getBoundingClientRect();
         list.style.top = (rect.bottom - parentRect.top) + 'px';
@@ -355,10 +578,8 @@ window.attachIcd10Autocomplete = function(inputElement) {
           });
 
           item.addEventListener('mouseleave', function() {
-            if (!this.classList.contains('autocomplete-active')) {
-              this.style.background = '';
-              this.style.color = '';
-            }
+            this.style.background = '';
+            this.style.color = '';
           });
 
           list.appendChild(item);
@@ -373,357 +594,12 @@ window.attachIcd10Autocomplete = function(inputElement) {
     }
   });
 
-  // Handle keyboard navigation
-  inputElement.addEventListener('keydown', function(e) {
-    if (!autocompleteList || autocompleteList.style.display === 'none') return;
-
-    const items = autocompleteList.querySelectorAll('div[style*="cursor: pointer"]');
-
-    if (e.keyCode === 40) { // Down arrow
-      e.preventDefault();
-      currentFocus++;
-      if (currentFocus >= items.length) currentFocus = 0;
-      setActive(items);
-    } else if (e.keyCode === 38) { // Up arrow
-      e.preventDefault();
-      currentFocus--;
-      if (currentFocus < 0) currentFocus = items.length - 1;
-      setActive(items);
-    } else if (e.keyCode === 13) { // Enter
-      e.preventDefault();
-      if (currentFocus > -1 && items[currentFocus]) {
-        items[currentFocus].click();
-      }
-    } else if (e.keyCode === 27) { // Escape
-      closeAutocomplete();
-    }
-  });
-
-  // Close on click outside
   document.addEventListener('click', function(e) {
     if (e.target !== inputElement) {
       closeAutocomplete();
     }
   });
 };
-
-// Populate US states dropdown in edit dialog
-(function() {
-  const states = ['AL','AK','AZ','AR','CA','CO','CT','DE','DC','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'];
-  const select = document.getElementById('edit-shipping-state');
-  if (select) {
-    states.forEach(state => {
-      const option = document.createElement('option');
-      option.value = state;
-      option.textContent = state;
-      select.appendChild(option);
-    });
-  }
-})();
-
-// Handle order edit form submission
-document.getElementById('form-order-edit')?.addEventListener('submit', async function(e) {
-  e.preventDefault();
-
-  const orderId = document.getElementById('edit-order-id').value;
-  if (!orderId) {
-    alert('Order ID missing');
-    return;
-  }
-
-  // Collect form data
-  const formData = new FormData(this);
-  const updates = {};
-
-  // Only include fields that have values
-  for (const [key, value] of formData.entries()) {
-    if (key !== 'order_id' && key !== 'reason' && value) {
-      updates[key] = value;
-    }
-  }
-
-  const reason = formData.get('reason') || null;
-
-  // Collect wound data from dynamic fields
-  const woundsContainer = document.getElementById('edit-wounds-container');
-  const woundElements = woundsContainer.querySelectorAll('[data-wound-index]');
-  const woundsData = [];
-
-  woundElements.forEach((woundEl, idx) => {
-    const getField = (name) => formData.get(`wound_${idx}_${name}`) || '';
-
-    woundsData.push({
-      location: getField('location'),
-      laterality: getField('laterality'),
-      length_cm: parseFloat(getField('length_cm')) || 0,
-      width_cm: parseFloat(getField('width_cm')) || 0,
-      depth_cm: parseFloat(getField('depth_cm')) || 0,
-      icd10_primary: getField('icd10_primary'),
-      icd10_secondary: getField('icd10_secondary'),
-      description: getField('description')
-    });
-  });
-
-  // Add wounds_data to updates
-  if (woundsData.length > 0) {
-    updates.wounds_data = JSON.stringify(woundsData);
-  }
-
-  // Submit update
-  try {
-    document.getElementById('btn-order-edit-save').disabled = true;
-    document.getElementById('btn-order-edit-save').textContent = 'Saving...';
-
-    const response = await fetch('/api/portal/order.update.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        order_id: orderId,
-        updates: updates,
-        reason: reason
-      })
-    });
-
-    const result = await response.json();
-
-    if (result.ok) {
-      alert('Order updated successfully!');
-      document.getElementById('dlg-order-edit').close();
-      document.getElementById('dlg-order-details')?.close();
-      // Refresh current view
-      if (typeof loadPage === 'function' && typeof currentPage !== 'undefined') {
-        loadPage(currentPage);
-      } else {
-        location.reload();
-      }
-    } else {
-      alert('Failed to update order: ' + (result.error || 'Unknown error'));
-    }
-  } catch (error) {
-    alert('Error updating order: ' + error.message);
-    console.error('Full error:', error);
-  } finally {
-    document.getElementById('btn-order-edit-save').disabled = false;
-    document.getElementById('btn-order-edit-save').textContent = 'Save Changes';
-  }
-});
-
-/**
- * Open order edit dialog with pre-filled data
- */
-function openOrderEditDialog(orderId) {
-  // First, fetch the order data
-  // Use absolute path to avoid query parameter conflicts on pages with existing params
-  const baseUrl = window.location.pathname;
-  fetch(`${baseUrl}?action=order.get&order_id=${encodeURIComponent(orderId)}`, {
-    headers: { 'Accept': 'application/json', 'X-Requested-With': 'fetch' }
-  })
-    .then(r => r.json())
-    .then(data => {
-      if (!data.ok || !data.order) {
-        alert('Failed to load order data');
-        return;
-      }
-
-      const order = data.order;
-
-      // Populate form fields
-      document.getElementById('edit-order-id').value = order.id;
-
-      // Populate dynamic wounds
-      populateEditWounds(order.wounds_data || []);
-
-      document.getElementById('edit-wound-notes').value = order.wound_notes || '';
-      document.getElementById('edit-frequency').value = order.frequency || '';
-      document.getElementById('edit-delivery-mode').value = order.delivery_mode || 'standard';
-      document.getElementById('edit-shipping-name').value = order.shipping_name || '';
-      document.getElementById('edit-shipping-address').value = order.shipping_address || '';
-      document.getElementById('edit-shipping-city').value = order.shipping_city || '';
-      document.getElementById('edit-shipping-state').value = order.shipping_state || '';
-      document.getElementById('edit-shipping-zip').value = order.shipping_zip || '';
-      document.getElementById('edit-shipping-phone').value = order.shipping_phone || '';
-      document.getElementById('edit-insurer-name').value = order.insurer_name || '';
-      document.getElementById('edit-member-id').value = order.member_id || '';
-      document.getElementById('edit-group-id').value = order.group_id || '';
-      document.getElementById('edit-payer-phone').value = order.payer_phone || '';
-      document.getElementById('edit-prior-auth').value = order.prior_auth || '';
-      document.getElementById('edit-reason').value = '';
-
-      // Show/hide insurance section based on payment type
-      const insuranceSection = document.getElementById('edit-insurance-section');
-      if (order.payment_type === 'insurance') {
-        insuranceSection.style.display = 'block';
-      } else {
-        insuranceSection.style.display = 'none';
-      }
-
-      // Populate wounds data
-      populateEditWounds(order.wounds_data || []);
-
-      // Open dialog
-      document.getElementById('dlg-order-edit').showModal();
-    })
-    .catch(error => {
-      alert('Error loading order: ' + error.message);
-      console.error('Full error:', error);
-    });
-}
-
-/**
- * Populate wounds for editing
- */
-function populateEditWounds(woundsData) {
-  const container = document.getElementById('edit-wounds-container');
-  container.innerHTML = '';
-
-  if (!woundsData || woundsData.length === 0) {
-    addEditWound();
-    return;
-  }
-
-  woundsData.forEach((wound, index) => {
-    addEditWound(wound, index);
-  });
-}
-
-/**
- * Add wound edit form
- */
-function addEditWound(woundData = null, index = null) {
-  const container = document.getElementById('edit-wounds-container');
-  const woundIndex = index !== null ? index : container.children.length;
-
-  const woundHtml = `
-    <div class="p-4 border rounded bg-slate-50" data-wound-index="${woundIndex}">
-      <div class="flex items-center justify-between mb-3">
-        <h5 class="font-medium text-sm">Wound #${woundIndex + 1}</h5>
-        ${woundIndex > 0 ? `<button type="button" onclick="removeEditWound(${woundIndex})" class="text-red-600 text-sm">Remove</button>` : ''}
-      </div>
-
-      <div class="grid md:grid-cols-2 gap-3">
-        <div>
-          <label class="block text-xs font-medium mb-1">Location *</label>
-          <select class="w-full px-2 py-1 border rounded text-sm"
-            name="wound_${woundIndex}_location" required>
-            <option value="">Select…</option>
-            <option ${woundData?.location === 'Foot — Plantar' ? 'selected' : ''}>Foot — Plantar</option>
-            <option ${woundData?.location === 'Foot — Dorsal' ? 'selected' : ''}>Foot — Dorsal</option>
-            <option ${woundData?.location === 'Heel' ? 'selected' : ''}>Heel</option>
-            <option ${woundData?.location === 'Ankle' ? 'selected' : ''}>Ankle</option>
-            <option ${woundData?.location === 'Lower Leg — Medial' ? 'selected' : ''}>Lower Leg — Medial</option>
-            <option ${woundData?.location === 'Lower Leg — Lateral' ? 'selected' : ''}>Lower Leg — Lateral</option>
-            <option ${woundData?.location === 'Knee' ? 'selected' : ''}>Knee</option>
-            <option ${woundData?.location === 'Thigh' ? 'selected' : ''}>Thigh</option>
-            <option ${woundData?.location === 'Hip' ? 'selected' : ''}>Hip</option>
-            <option ${woundData?.location === 'Buttock' ? 'selected' : ''}>Buttock</option>
-            <option ${woundData?.location === 'Sacrum/Coccyx' ? 'selected' : ''}>Sacrum/Coccyx</option>
-            <option ${woundData?.location === 'Abdomen' ? 'selected' : ''}>Abdomen</option>
-            <option ${woundData?.location === 'Groin' ? 'selected' : ''}>Groin</option>
-            <option ${woundData?.location === 'Upper Arm' ? 'selected' : ''}>Upper Arm</option>
-            <option ${woundData?.location === 'Forearm' ? 'selected' : ''}>Forearm</option>
-            <option ${woundData?.location === 'Hand — Dorsal' ? 'selected' : ''}>Hand — Dorsal</option>
-            <option ${woundData?.location === 'Hand — Palmar' ? 'selected' : ''}>Hand — Palmar</option>
-            <option ${woundData?.location === 'Elbow' ? 'selected' : ''}>Elbow</option>
-            <option ${woundData?.location === 'Shoulder' ? 'selected' : ''}>Shoulder</option>
-            <option ${woundData?.location === 'Back — Upper' ? 'selected' : ''}>Back — Upper</option>
-            <option ${woundData?.location === 'Back — Lower' ? 'selected' : ''}>Back — Lower</option>
-            <option ${woundData?.location === 'Neck' ? 'selected' : ''}>Neck</option>
-            <option ${woundData?.location === 'Face/Scalp' ? 'selected' : ''}>Face/Scalp</option>
-            <option ${woundData?.location === 'Other' ? 'selected' : ''}>Other</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="block text-xs font-medium mb-1">Laterality</label>
-          <select class="w-full px-2 py-1 border rounded text-sm" name="wound_${woundIndex}_laterality">
-            <option value="">Select</option>
-            <option value="Left" ${woundData?.laterality === 'Left' ? 'selected' : ''}>Left</option>
-            <option value="Right" ${woundData?.laterality === 'Right' ? 'selected' : ''}>Right</option>
-            <option value="Bilateral" ${woundData?.laterality === 'Bilateral' ? 'selected' : ''}>Bilateral</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="block text-xs font-medium mb-1">Length (cm) *</label>
-          <input type="number" step="0.1" class="w-full px-2 py-1 border rounded text-sm"
-            name="wound_${woundIndex}_length_cm"
-            value="${woundData?.length_cm || ''}"
-            placeholder="0.0" required>
-        </div>
-
-        <div>
-          <label class="block text-xs font-medium mb-1">Width (cm) *</label>
-          <input type="number" step="0.1" class="w-full px-2 py-1 border rounded text-sm"
-            name="wound_${woundIndex}_width_cm"
-            value="${woundData?.width_cm || ''}"
-            placeholder="0.0" required>
-        </div>
-
-        <div>
-          <label class="block text-xs font-medium mb-1">Depth (cm)</label>
-          <input type="number" step="0.1" class="w-full px-2 py-1 border rounded text-sm"
-            name="wound_${woundIndex}_depth_cm"
-            value="${woundData?.depth_cm || ''}"
-            placeholder="0.0">
-        </div>
-
-        <div>
-          <label class="block text-xs font-medium mb-1">Primary ICD-10 *</label>
-          <input type="text" class="icd10-autocomplete w-full px-2 py-1 border rounded text-sm"
-            name="wound_${woundIndex}_icd10_primary"
-            value="${woundData?.icd10_primary || ''}"
-            placeholder="Type to search ICD-10 codes..."
-            autocomplete="off" required>
-        </div>
-
-        <div class="md:col-span-2">
-          <label class="block text-xs font-medium mb-1">Secondary ICD-10 Codes</label>
-          <input type="text" class="icd10-autocomplete w-full px-2 py-1 border rounded text-sm"
-            name="wound_${woundIndex}_icd10_secondary"
-            value="${woundData?.icd10_secondary || ''}"
-            placeholder="Type to search ICD-10 codes..."
-            autocomplete="off">
-        </div>
-
-        <div class="md:col-span-2">
-          <label class="block text-xs font-medium mb-1">Wound Description</label>
-          <textarea class="w-full px-2 py-1 border rounded text-sm" rows="2"
-            name="wound_${woundIndex}_description"
-            placeholder="Additional wound details...">${woundData?.description || ''}</textarea>
-        </div>
-      </div>
-    </div>
-  `;
-
-  container.insertAdjacentHTML('beforeend', woundHtml);
-
-  // Attach ICD-10 autocomplete to newly added inputs
-  if (typeof window.attachIcd10Autocomplete === 'function') {
-    const woundElement = container.querySelector(`[data-wound-index="${woundIndex}"]`);
-    if (woundElement) {
-      const icd10Inputs = woundElement.querySelectorAll('.icd10-autocomplete');
-      icd10Inputs.forEach(input => {
-        window.attachIcd10Autocomplete(input);
-      });
-    }
-  }
-}
-
-/**
- * Remove wound from edit form
- */
-function removeEditWound(index) {
-  const container = document.getElementById('edit-wounds-container');
-  const wound = container.querySelector(`[data-wound-index="${index}"]`);
-  if (wound) {
-    wound.remove();
-    // Renumber remaining wounds
-    Array.from(container.children).forEach((el, newIndex) => {
-      el.setAttribute('data-wound-index', newIndex);
-      el.querySelector('h5').textContent = `Wound #${newIndex + 1}`;
-    });
-  }
-}
 
 // Export to global scope
 if (typeof window !== 'undefined') {
