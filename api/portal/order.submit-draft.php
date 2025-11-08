@@ -1,6 +1,7 @@
 <?php
 /**
  * Submit a draft order for admin review
+ * Changes status from 'draft' to 'submitted'
  * Changes review_status from 'draft' to 'pending_admin_review'
  */
 declare(strict_types=1);
@@ -47,10 +48,11 @@ try {
     exit;
   }
 
-  // Update review_status to pending_admin_review
+  // Update status and review_status when submitting draft
   $stmt = $pdo->prepare("
     UPDATE orders
-    SET review_status = 'pending_admin_review',
+    SET status = 'submitted',
+        review_status = 'pending_admin_review',
         updated_at = NOW()
     WHERE id = ? AND user_id = ?
   ");
