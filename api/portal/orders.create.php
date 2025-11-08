@@ -149,7 +149,9 @@ try {
 
   // 5) Order meta
   $order_id       = guid();
-  $delivery_mode  = safe($_POST['delivery_mode'] ?? 'standard');
+  // Frontend sends 'delivery_to' (patient/office), map to delivery_mode
+  $delivery_to    = safe($_POST['delivery_to'] ?? 'patient');
+  $delivery_mode  = ($delivery_to === 'office') ? 'office' : 'patient';
   $frequency      = safe($_POST['frequency_per_week'] ?? null);
   $payment_type   = safe($_POST['payment_type'] ?? 'insurance');
   $prior_auth     = safe($_POST['prior_auth'] ?? null);
@@ -262,8 +264,10 @@ try {
   /* -------------------- POST-RESPONSE: uploads & attachments -------------------- */
   // Files (optional). Keep your existing subdirectories.
   // These are WEB paths; filesystem destination is resolved from DOCUMENT_ROOT.
+  // Note: Frontend sends 'file_rx_note' but we check both 'file_rx_note' and 'rx_note' for compatibility
   try {
-    [$rx_path,  $rx_mime]  = save_upload('rx_note',  '/uploads/notes');
+    [$rx_path,  $rx_mime]  = save_upload('file_rx_note',  '/uploads/notes');
+    if (!$rx_path) [$rx_path,  $rx_mime]  = save_upload('rx_note',  '/uploads/notes'); // fallback
     [$ins_path, $ins_mime] = save_upload('ins_card','/uploads/insurance');
     [$id_path,  $id_mime]  = save_upload('id_card',  '/uploads/ids');
     [$wound_photo_path, $wound_photo_mime] = save_upload('baseline_wound_photo', '/uploads/wounds');
