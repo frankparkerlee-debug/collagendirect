@@ -2283,7 +2283,7 @@ if ($action) {
         $billed_by
       ]);
 
-      // Visit note (optional)
+      // Visit note (optional) - file upload takes precedence over text
       $allowed=['application/pdf'=>'pdf','image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp','image/heic'=>'heic','text/plain'=>'txt'];
       $fi=new finfo(FILEINFO_MIME_TYPE);
       if(!empty($_FILES['file_rx_note']) && $_FILES['file_rx_note']['error']===UPLOAD_ERR_OK){
@@ -2299,7 +2299,12 @@ if ($action) {
         $notes_text=trim((string)($_POST['notes_text']??''));
         if($notes_text!==''){
           $safe='clinical-note-'.date('Ymd-His').'-'.substr($oid,0,6).'.txt';
-          file_put_contents($DIRS['notes'].'/'.$safe, $notes_text);
+          $written = @file_put_contents($DIRS['notes'].'/'.$safe, $notes_text);
+          if ($written === false) {
+            error_log("Failed to write notes file: {$DIRS['notes']}/{$safe}");
+            $pdo->rollBack();
+            jerr('Failed to save clinical notes. Please try again or attach as a file instead.');
+          }
           $pdo->prepare("UPDATE orders SET rx_note_name=?,rx_note_mime=?,rx_note_path=?,updated_at=NOW() WHERE id=? AND user_id=?")
               ->execute(['clinical-note.txt','text/plain','/uploads/notes/'.$safe,$oid,$patientOwnerId]);
         }
