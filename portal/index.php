@@ -8376,12 +8376,10 @@ async function openOrderDialog(preselectId=null){
       const p=d.patient;
       const hasId = p.id_card_path && p.id_card_path.trim() !== '';
       const hasIns = p.ins_card_path && p.ins_card_path.trim() !== '';
-      const hasAOB = p.aob_path && p.aob_path.trim() !== '';
 
       const missing = [];
       if (!hasId) missing.push('Photo ID');
       if (!hasIns) missing.push('Insurance Card');
-      if (!hasAOB) missing.push('Assignment of Benefits (AOB)');
 
       if (missing.length > 0) {
         const message = `Before creating an order for ${p.first_name} ${p.last_name}, please upload the following required documents:\n\n` +
@@ -8574,9 +8572,14 @@ async function openOrderDialog(preselectId=null){
       body.append('frequency_per_week', $('#freq-week').value);
       body.append('qty_per_change', $('#qty-change').value);
       body.append('duration_days', $('#duration-days').value);
-      body.append('refills_allowed', $('#refills').value);
       body.append('additional_instructions', $('#addl-instr').value);
       body.append('secondary_dressing', $('#secondary-dressing').value);
+
+      // Add exudate level
+      const exudateLevel = $('#exudate-level')?.value;
+      if (exudateLevel) {
+        body.append('exudate_level', exudateLevel);
+      }
 
       body.append('notes_text', $('#ord-notes').value);
 
@@ -8593,6 +8596,7 @@ async function openOrderDialog(preselectId=null){
       body.append('ack_sig', '1');
 
       if($('#file-rx').files[0])  body.append('file_rx_note', $('#file-rx').files[0]);
+      if($('#file-wound-photo')?.files[0])  body.append('baseline_wound_photo', $('#file-wound-photo').files[0]);
 
       const r=await fetch('?action=order.create',{method:'POST',body});
       const t=await r.text(); let j;
