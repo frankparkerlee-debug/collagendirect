@@ -2358,8 +2358,9 @@ if ($action) {
     }
 
     if($q!==''){ $where.=" AND (o.product LIKE ? OR o.shipping_name LIKE ? OR p.first_name LIKE ? OR p.last_name LIKE ?)"; $like="%$q%"; array_push($args,$like,$like,$like,$like); }
-    if($status!==''){ $where.=" AND o.status=?"; $args[]=$status; }
-    $st=$pdo->prepare("SELECT o.id,o.patient_id,o.product,o.shipments_remaining,o.status,o.delivery_mode,o.created_at,o.expires_at,
+    if($status==='draft'){ $where.=" AND o.review_status='draft'"; }
+    elseif($status!==''){ $where.=" AND o.status=?"; $args[]=$status; }
+    $st=$pdo->prepare("SELECT o.id,o.patient_id,o.product,o.shipments_remaining,o.status,o.review_status,o.delivery_mode,o.created_at,o.expires_at,
                               p.first_name,p.last_name
                        FROM orders o
                        LEFT JOIN patients p ON p.id = o.patient_id
@@ -2378,6 +2379,11 @@ if ($action) {
 
   if ($action==='order.get'){
     require __DIR__ . '/../api/portal/order.get.php';
+    exit;
+  }
+
+  if ($action==='order.submit_draft'){
+    require __DIR__ . '/../api/portal/order.submit-draft.php';
     exit;
   }
 
@@ -4380,6 +4386,7 @@ if ($page==='logout'){
     <input id="oq" class="ml-auto w-full sm:w-80" placeholder="Search product or recipient…">
     <select id="of">
         <option value="">All Status</option>
+        <option value="draft">Draft</option>
         <option value="submitted">Submitted</option>
         <option value="pending">Pending</option>
         <option value="approved">Approved</option>
@@ -7010,22 +7017,38 @@ if (<?php echo json_encode($page==='orders'); ?>){
   async function loadOrders(){
     const q=$('#oq').value.trim(); const s=$('#of').value;
     const res=await api('action=orders&q='+encodeURIComponent(q)+'&status='+encodeURIComponent(s)); const rows=res.rows||[];
-    tb.innerHTML = rows.map(o=>`
-      <tr class="border-b hover:bg-slate-50">
-        <td class="py-2">${fmt(o.created_at)}</td>
-        <td class="py-2">${esc(o.first_name||'')} ${esc(o.last_name||'')}</td>
-        <td class="py-2">${esc(o.product||'')}</td>
-        <td class="py-2">${pill(o.status)}</td>
-        <td class="py-2">${o.shipments_remaining??0}</td>
-        <td class="py-2">${o.delivery_mode==='office'?'Office':'Patient'}</td>
-        <td class="py-2">${fmt(o.expires_at)}</td>
-        <td class="py-2 flex gap-2">
-          ${o.status==='stopped'
-            ? `<button class="btn" data-restart="${esc(o.id)}">Restart</button>`
-            : `<button class="btn" data-stop="${esc(o.id)}">Stop</button>`}
-        </td>
-      </tr>
-    `).join('') || `<tr><td colspan="7" class="py-6 text-center text-slate-500">No orders</td></tr>`;
+    tb.innerHTML = rows.map(o=>{
+      const isDraft = o.review_status === 'draft';
+      const statusDisplay = isDraft
+        ? '<span class="px-2 py-1 bg-slate-100 text-slate-700 rounded text-xs font-medium">Draft</span>'
+        : pill(o.status);
+
+      let actions = '';
+      if (isDraft) {
+        // Draft orders: Edit and Submit buttons
+        actions = `
+          <button class="btn text-xs" style="background:#3b82f6;color:white;" data-edit-draft="${esc(o.id)}">Edit</button>
+          <button class="btn text-xs" style="background:#10b981;color:white;" data-submit-draft="${esc(o.id)}">Submit</button>
+        `;
+      } else if (o.status==='stopped') {
+        actions = `<button class="btn" data-restart="${esc(o.id)}">Restart</button>`;
+      } else {
+        actions = `<button class="btn" data-stop="${esc(o.id)}">Stop</button>`;
+      }
+
+      return `
+        <tr class="border-b hover:bg-slate-50">
+          <td class="py-2">${fmt(o.created_at)}</td>
+          <td class="py-2">${esc(o.first_name||'')} ${esc(o.last_name||'')}</td>
+          <td class="py-2">${esc(o.product||'')}</td>
+          <td class="py-2">${statusDisplay}</td>
+          <td class="py-2">${o.shipments_remaining??0}</td>
+          <td class="py-2">${o.delivery_mode==='office'?'Office':'Patient'}</td>
+          <td class="py-2">${fmt(o.expires_at)}</td>
+          <td class="py-2"><div class="flex gap-2">${actions}</div></td>
+        </tr>
+      `;
+    }).join('') || `<tr><td colspan="8" class="py-6 text-center text-slate-500">No orders</td></tr>`;
   }
   $('#oq').addEventListener('input',loadOrders);
   $('#of').addEventListener('change',loadOrders);
@@ -7034,6 +7057,8 @@ if (<?php echo json_encode($page==='orders'); ?>){
     const b=e.target.closest('button'); if(!b) return;
     if(b.dataset.stop){ openStopDialog(b.dataset.stop, loadOrders); }
     if(b.dataset.restart){ openRestartDialog(b.dataset.restart, loadOrders); }
+    if(b.dataset.editDraft){ openOrderEditDialog(b.dataset.editDraft); }
+    if(b.dataset.submitDraft){ submitDraftOrder(b.dataset.submitDraft); }
   });
   loadOrders();
 }
@@ -7982,6 +8007,23 @@ function openRestartDialog(orderId, onDone){
     if(!j.ok){ alert(j.error||'Error'); return; }
     $('#dlg-restart').close(); onDone&&onDone();
   };
+}
+
+async function submitDraftOrder(orderId){
+  if(!confirm('Submit this draft order for admin review?\n\nOnce submitted, the order will be reviewed by admin staff and you will not be able to edit it further.')) return;
+
+  try {
+    const r=await fetch('?action=order.submit_draft',{method:'POST',body:fd({order_id:orderId})});
+    const j=await r.json();
+    if(!j.ok){ alert(j.error||'Error submitting draft'); return; }
+
+    alert('Draft order submitted successfully!\n\nAdmin staff will review and approve your order.');
+
+    // Reload orders list on current page
+    if(typeof loadOrders === 'function') loadOrders();
+  } catch(e) {
+    alert('Network error: '+e.message);
+  }
 }
 
 /* Wound location -> "Other" box & Deliver toggle */
