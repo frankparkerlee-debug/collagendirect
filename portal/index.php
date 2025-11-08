@@ -8076,28 +8076,52 @@ async function updatePatientDocStatus(patientId) {
     const p = data.patient;
 
     const statusDiv = $('#patient-doc-status');
+    if (!statusDiv) {
+      console.error('patient-doc-status element not found');
+      return;
+    }
+
     const hasId = p.id_card_path && p.id_card_path.trim() !== '';
     const hasIns = p.ins_card_path && p.ins_card_path.trim() !== '';
     const hasAOB = p.aob_path && p.aob_path.trim() !== '';
 
-    // Update status text
-    $('#doc-status-id-text').textContent = hasId ? 'Uploaded ✓' : 'Not uploaded';
-    $('#doc-status-id-text').style.color = hasId ? 'green' : 'red';
-    $('#doc-status-ins-text').textContent = hasIns ? 'Uploaded ✓' : 'Not uploaded';
-    $('#doc-status-ins-text').style.color = hasIns ? 'green' : 'red';
+    // Update status text (with null checks)
+    const idText = $('#doc-status-id-text');
+    if (idText) {
+      idText.textContent = hasId ? 'Uploaded ✓' : 'Not uploaded';
+      idText.style.color = hasId ? 'green' : 'red';
+    }
+
+    const insText = $('#doc-status-ins-text');
+    if (insText) {
+      insText.textContent = hasIns ? 'Uploaded ✓' : 'Not uploaded';
+      insText.style.color = hasIns ? 'green' : 'red';
+    }
 
     // Show upload section if missing documents
     if (!hasId || !hasIns) {
-      $('#doc-upload-section').classList.remove('hidden');
-      if (!hasId) $('#upload-id-container').classList.remove('hidden');
-      if (!hasIns) $('#upload-ins-container').classList.remove('hidden');
-      $('#btn-upload-docs').classList.remove('hidden');
+      const uploadSection = $('#doc-upload-section');
+      if (uploadSection) uploadSection.classList.remove('hidden');
 
-      // Handle document upload for existing patient
-      $('#btn-upload-docs').onclick = async () => {
-        const btn = $('#btn-upload-docs');
-        btn.disabled = true;
-        btn.textContent = 'Uploading...';
+      if (!hasId) {
+        const uploadIdContainer = $('#upload-id-container');
+        if (uploadIdContainer) uploadIdContainer.classList.remove('hidden');
+      }
+
+      if (!hasIns) {
+        const uploadInsContainer = $('#upload-ins-container');
+        if (uploadInsContainer) uploadInsContainer.classList.remove('hidden');
+      }
+
+      const uploadBtn = $('#btn-upload-docs');
+      if (uploadBtn) {
+        uploadBtn.classList.remove('hidden');
+
+        // Handle document upload for existing patient
+        uploadBtn.onclick = async () => {
+          const btn = uploadBtn;
+          btn.disabled = true;
+          btn.textContent = 'Uploading...';
 
         try {
           if (!hasId) {
@@ -8135,20 +8159,24 @@ async function updatePatientDocStatus(patientId) {
           btn.textContent = 'Upload Documents';
         }
       };
+      }
     } else {
-      $('#doc-upload-section').classList.add('hidden');
+      const uploadSection = $('#doc-upload-section');
+      if (uploadSection) uploadSection.classList.add('hidden');
     }
 
-    // Update AOB hint in order dialog
+    // Update AOB hint in order dialog (if elements exist - they may have been removed)
     const aobHint = $('#aob-hint');
     const aobBtn = $('#btn-aob');
-    if (hasAOB) {
-      aobHint.textContent = 'AOB on file ✓';
-      aobHint.style.color = 'green';
-      aobBtn.textContent = 'Re-generate AOB';
-    } else {
-      aobHint.textContent = '';
-      aobBtn.textContent = 'Generate & Sign AOB';
+    if (aobHint && aobBtn) {
+      if (hasAOB) {
+        aobHint.textContent = 'AOB on file ✓';
+        aobHint.style.color = 'green';
+        aobBtn.textContent = 'Re-generate AOB';
+      } else {
+        aobHint.textContent = '';
+        aobBtn.textContent = 'Generate & Sign AOB';
+      }
     }
 
     statusDiv.classList.remove('hidden');
@@ -8449,10 +8477,14 @@ async function openOrderDialog(preselectId=null){
   _currentPatientId = preselectId || null;
 
   // hide office address by default
-  document.getElementById('office-addr').classList.add('hidden');
+  const officeAddr = document.getElementById('office-addr');
+  if (officeAddr) officeAddr.classList.add('hidden');
 
-  // clear office shipping
-  ['ship-name','ship-phone','ship-addr','ship-city','ship-state','ship-zip'].forEach(id=>$('#'+id).value='');
+  // clear office shipping (with null checks)
+  ['ship-name','ship-phone','ship-addr','ship-city','ship-state','ship-zip'].forEach(id=>{
+    const el = $('#'+id);
+    if (el) el.value = '';
+  });
 
   if(preselectId && patientData){
     // Reuse already-fetched data
