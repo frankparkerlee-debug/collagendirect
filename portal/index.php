@@ -8473,7 +8473,9 @@ async function openOrderDialog(preselectId=null){
     dialog.close();
     return;
   }
-  box.value=''; hidden.value=''; create.classList.add('hidden'); list.classList.add('hidden'); $('#np-hint').textContent='';
+  box.value=''; hidden.value=''; create.classList.add('hidden'); list.classList.add('hidden');
+  const npHintInit = $('#np-hint');
+  if (npHintInit) npHintInit.textContent='';
   _currentPatientId = preselectId || null;
 
   // hide office address by default
@@ -8543,10 +8545,17 @@ async function openOrderDialog(preselectId=null){
     const idFile = $('#np-id-card').files[0];
     const insFile = $('#np-ins-card').files[0];
 
-    if(!idFile){ $('#np-hint').textContent='Photo ID is required.'; $('#np-hint').style.color='red'; return; }
-    if(!insFile){ $('#np-hint').textContent='Insurance card is required.'; $('#np-hint').style.color='red'; return; }
+    const npHintElem = $('#np-hint');
+    if(!idFile){
+      if (npHintElem) { npHintElem.textContent='Photo ID is required.'; npHintElem.style.color='red'; }
+      return;
+    }
+    if(!insFile){
+      if (npHintElem) { npHintElem.textContent='Insurance card is required.'; npHintElem.style.color='red'; }
+      return;
+    }
 
-    $('#np-hint').textContent='Creating patient...'; $('#np-hint').style.color='';
+    if (npHintElem) { npHintElem.textContent='Creating patient...'; npHintElem.style.color=''; }
 
     // Create patient first
     const r=await fetch('?action=patient.save',{method:'POST',body:fd({
@@ -8557,10 +8566,13 @@ async function openOrderDialog(preselectId=null){
       insurance_group_id:$('#np-ins-group-id').value,insurance_payer_phone:$('#np-ins-payer-phone').value
     })});
     const j=await r.json();
-    if(!j.ok){ $('#np-hint').textContent=j.error||'Failed to create'; $('#np-hint').style.color='red'; return; }
+    if(!j.ok){
+      if (npHintElem) { npHintElem.textContent=j.error||'Failed to create'; npHintElem.style.color='red'; }
+      return;
+    }
 
     const patientId = j.id;
-    $('#np-hint').textContent='Uploading documents...';
+    if (npHintElem) npHintElem.textContent='Uploading documents...';
 
     // Upload ID card
     try {
