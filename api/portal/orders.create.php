@@ -146,7 +146,6 @@ try {
 
   // 5) Order meta
   $order_id       = guid();
-  $status         = 'submitted';
   $delivery_mode  = safe($_POST['delivery_mode'] ?? 'standard');
   $frequency      = safe($_POST['frequency'] ?? null);
   $wound_location = safe($_POST['wound_location'] ?? null);
@@ -167,12 +166,13 @@ try {
     if (!$sign_title && $ud) $sign_title = $ud['sign_title'] ?? 'Physician';
   }
 
-  // 6) Determine review status based on save_as_draft parameter
+  // 6) Determine status and review_status based on save_as_draft parameter
   $save_as_draft = isset($_POST['save_as_draft']) && $_POST['save_as_draft'] === '1';
+  $status = $save_as_draft ? 'draft' : 'submitted';
   $review_status = $save_as_draft ? 'draft' : 'pending_admin_review';
 
   // Insert order FIRST (no file I/O yet)
-  // Note: Orders start in 'pending_admin_review' unless saved as draft
+  // Note: Draft orders have status='draft', submitted orders have status='submitted'
   $sql = "INSERT INTO orders
     (id, patient_id, user_id, product, product_id, product_price, cpt, status, frequency, delivery_mode,
      shipments_remaining, created_at, updated_at,
