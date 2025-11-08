@@ -7883,6 +7883,53 @@ async function toggleAccordion(rowEl, patientId, page){
 
   acc.querySelectorAll('[data-stop]').forEach(b=>b.onclick=()=> openStopDialog(b.dataset.stop, ()=>toggleAccordion(rowEl,p.id,page)));
   acc.querySelectorAll('[data-restart]').forEach(b=>b.onclick=()=> openRestartDialog(b.dataset.restart, ()=>toggleAccordion(rowEl,p.id,page)));
+
+  // Handle Edit Draft button
+  acc.querySelectorAll('[data-edit-draft]').forEach(b => {
+    b.onclick = () => {
+      const orderId = b.dataset.editDraft;
+      // TODO: Implement full order edit dialog
+      // For now, alert user that feature is coming
+      alert('Order editing is being implemented. For now, please create a new order or contact support to modify this draft.');
+      console.warn('Order edit not yet implemented. Order ID:', orderId);
+    };
+  });
+
+  // Handle Submit Draft button
+  acc.querySelectorAll('[data-submit-draft]').forEach(b => {
+    b.onclick = async () => {
+      const orderId = b.dataset.submitDraft;
+      if (!confirm('Submit this draft order for admin review?')) return;
+
+      const originalText = b.textContent;
+      b.disabled = true;
+      b.textContent = 'Submitting...';
+
+      try {
+        const formData = new FormData();
+        formData.append('order_id', orderId);
+
+        const r = await fetch('?action=order.submit_draft', {
+          method: 'POST',
+          body: formData
+        });
+
+        const j = await r.json();
+
+        if (j.ok) {
+          alert('Draft submitted successfully for admin review!');
+          toggleAccordion(rowEl, p.id, page); // Refresh accordion
+        } else {
+          alert(j.error || 'Failed to submit draft');
+        }
+      } catch (e) {
+        alert('Network error: ' + e.message);
+      } finally {
+        b.disabled = false;
+        b.textContent = originalText;
+      }
+    };
+  });
 }
 
 /* ORDER DETAILS VIEWER */
