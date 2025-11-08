@@ -178,8 +178,14 @@ try {
     $pdo->rollBack();
   }
   error_log("Order update error: " . $e->getMessage());
+  error_log("Stack trace: " . $e->getTraceAsString());
   http_response_code(500);
-  echo json_encode(['ok' => false, 'error' => 'Failed to update order']);
+  echo json_encode([
+    'ok' => false,
+    'error' => 'Failed to update order',
+    'debug' => $e->getMessage(), // Show actual error for debugging
+    'trace' => $e->getTraceAsString()
+  ]);
 }
 
 /**
