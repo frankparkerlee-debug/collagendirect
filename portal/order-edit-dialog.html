@@ -237,6 +237,176 @@
 </dialog>
 
 <script>
+// ICD-10 Autocomplete Function
+window.attachIcd10Autocomplete = function(inputElement) {
+  if (!inputElement) return;
+
+  let autocompleteList = null;
+  let currentFocus = -1;
+  let abortController = null;
+
+  // Create autocomplete list container
+  function createAutocompleteList() {
+    if (autocompleteList) return autocompleteList;
+
+    autocompleteList = document.createElement('div');
+    autocompleteList.className = 'icd10-autocomplete-list';
+    autocompleteList.style.cssText = `
+      position: absolute;
+      z-index: 9999;
+      background: white;
+      border: 1px solid #d1d5db;
+      border-radius: 0.375rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      max-height: 200px;
+      overflow-y: auto;
+      display: none;
+    `;
+
+    inputElement.parentNode.style.position = 'relative';
+    inputElement.parentNode.appendChild(autocompleteList);
+
+    return autocompleteList;
+  }
+
+  // Close autocomplete list
+  function closeAutocomplete() {
+    if (autocompleteList) {
+      autocompleteList.style.display = 'none';
+      autocompleteList.innerHTML = '';
+    }
+    currentFocus = -1;
+  }
+
+  // Highlight active item
+  function setActive(items) {
+    if (!items || items.length === 0) return;
+    items.forEach((item, index) => {
+      if (index === currentFocus) {
+        item.classList.add('autocomplete-active');
+        item.style.background = '#3b82f6';
+        item.style.color = 'white';
+      } else {
+        item.classList.remove('autocomplete-active');
+        item.style.background = '';
+        item.style.color = '';
+      }
+    });
+  }
+
+  // Handle input event
+  inputElement.addEventListener('input', async function() {
+    const value = this.value.trim();
+
+    // Close if less than 2 characters
+    if (value.length < 2) {
+      closeAutocomplete();
+      return;
+    }
+
+    // Abort previous request
+    if (abortController) {
+      abortController.abort();
+    }
+
+    abortController = new AbortController();
+
+    try {
+      const response = await fetch(`/api/icd10_search.php?term=${encodeURIComponent(value)}`, {
+        signal: abortController.signal
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.results && data.results.length > 0) {
+        const list = createAutocompleteList();
+        list.innerHTML = '';
+        list.style.display = 'block';
+
+        // Position list below input
+        const rect = inputElement.getBoundingClientRect();
+        const parentRect = inputElement.parentNode.getBoundingClientRect();
+        list.style.top = (rect.bottom - parentRect.top) + 'px';
+        list.style.left = (rect.left - parentRect.left) + 'px';
+        list.style.width = rect.width + 'px';
+
+        data.results.forEach((result) => {
+          const item = document.createElement('div');
+          item.style.cssText = `
+            padding: 0.5rem 0.75rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            border-bottom: 1px solid #f3f4f6;
+          `;
+
+          item.innerHTML = `
+            <div style="font-weight: 500;">${result.code}</div>
+            <div style="color: #6b7280; font-size: 0.75rem;">${result.description}</div>
+          `;
+
+          item.addEventListener('click', function() {
+            inputElement.value = `${result.code} - ${result.description}`;
+            closeAutocomplete();
+          });
+
+          item.addEventListener('mouseenter', function() {
+            this.style.background = '#3b82f6';
+            this.style.color = 'white';
+          });
+
+          item.addEventListener('mouseleave', function() {
+            if (!this.classList.contains('autocomplete-active')) {
+              this.style.background = '';
+              this.style.color = '';
+            }
+          });
+
+          list.appendChild(item);
+        });
+      } else {
+        closeAutocomplete();
+      }
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        console.error('ICD-10 search error:', error);
+      }
+    }
+  });
+
+  // Handle keyboard navigation
+  inputElement.addEventListener('keydown', function(e) {
+    if (!autocompleteList || autocompleteList.style.display === 'none') return;
+
+    const items = autocompleteList.querySelectorAll('div[style*="cursor: pointer"]');
+
+    if (e.keyCode === 40) { // Down arrow
+      e.preventDefault();
+      currentFocus++;
+      if (currentFocus >= items.length) currentFocus = 0;
+      setActive(items);
+    } else if (e.keyCode === 38) { // Up arrow
+      e.preventDefault();
+      currentFocus--;
+      if (currentFocus < 0) currentFocus = items.length - 1;
+      setActive(items);
+    } else if (e.keyCode === 13) { // Enter
+      e.preventDefault();
+      if (currentFocus > -1 && items[currentFocus]) {
+        items[currentFocus].click();
+      }
+    } else if (e.keyCode === 27) { // Escape
+      closeAutocomplete();
+    }
+  });
+
+  // Close on click outside
+  document.addEventListener('click', function(e) {
+    if (e.target !== inputElement) {
+      closeAutocomplete();
+    }
+  });
+};
+
 // Populate US states dropdown in edit dialog
 (function() {
   const states = ['AL','AK','AZ','AR','CA','CO','CT','DE','DC','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'];
