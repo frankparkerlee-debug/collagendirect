@@ -87,8 +87,11 @@ function respond_now(array $payload): void {
 
 /* -------------------- Main -------------------- */
 try {
-  // 1) Required: e-sign confirmation
-  if (($_POST['esign_confirm'] ?? '') !== '1') {
+  // 1) Check if this is a draft (drafts don't require e-signature)
+  $is_draft = isset($_POST['save_as_draft']) && $_POST['save_as_draft'] === '1';
+
+  // Required: e-sign confirmation (except for drafts)
+  if (!$is_draft && ($_POST['esign_confirm'] ?? '') !== '1') {
     http_response_code(400);
     echo json_encode(['ok'=>false,'error'=>'esign_required']); exit;
   }

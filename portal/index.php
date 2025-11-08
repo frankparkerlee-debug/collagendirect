@@ -8792,7 +8792,7 @@ async function openOrderDialog(preselectId=null){
 
       body.append('sign_name', $('#sign-name')?.value || '');
       body.append('sign_title', $('#sign-title')?.value || '');
-      body.append('ack_sig', '1');
+      body.append('esign_confirm', '1');  // Backend expects 'esign_confirm' not 'ack_sig'
 
       const fileRxInput = $('#file-rx');
       if(fileRxInput?.files[0])  body.append('file_rx_note', fileRxInput.files[0]);
@@ -8864,7 +8864,7 @@ async function openOrderDialog(preselectId=null){
       body.append('shipping_zip', $('#ship-zip').value);
       body.append('sign_name', $('#sign-name').value || 'Draft');
       body.append('sign_title', $('#sign-title').value || 'Draft');
-      body.append('ack_sig', '0'); // Not required for drafts
+      body.append('esign_confirm', '0'); // Not required for drafts (backend checks save_as_draft flag)
 
       // Mark as draft
       body.append('save_as_draft', '1');
