@@ -6229,6 +6229,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const notificationsBtn = document.getElementById('notifications-btn');
   const notificationsMenu = document.getElementById('notifications-menu');
   const profileBtn = document.getElementById('profile-btn');
+  // Version marker for debugging
+  console.log('Portal JS loaded - Version: 2025-11-07-fix2 (AOB removed, exudate added)');
+
   const profileMenu = document.getElementById('profile-menu');
   const globalNewOrderBtn = document.getElementById('global-new-order-btn');
   const sidebarProfileTrigger = document.getElementById('sidebar-profile-trigger');
@@ -6257,9 +6260,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Global New Order button - opens patient selector
   if (globalNewOrderBtn) {
+    console.log('New Order button found, attaching click handler');
     globalNewOrderBtn.addEventListener('click', () => {
+      console.log('New Order button clicked!');
       openOrderDialog();
     });
+  } else {
+    console.error('Global New Order button not found in DOM!');
   }
 
   // Toggle notifications dropdown
@@ -8366,6 +8373,7 @@ function collectWoundsData() {
 let _currentPatientId = null;
 
 async function openOrderDialog(preselectId=null){
+  console.log('openOrderDialog called with preselectId:', preselectId);
   let patientData = null;
 
   // If opening for specific patient, check for required documents FIRST
@@ -8401,13 +8409,21 @@ async function openOrderDialog(preselectId=null){
     }
   }
 
-  const prods=(await api('action=products')).rows||[];
-  $('#ord-product').innerHTML=prods.map(p=>{
-    let label = esc(p.name);
-    if (p.size) label += ` (${esc(p.size)})`;
-    if (p.hcpcs) label += ` — ${esc(p.hcpcs)}`;
-    return `<option value="${p.id}">${label}</option>`;
-  }).join('');
+  try {
+    console.log('Fetching products...');
+    const prods=(await api('action=products')).rows||[];
+    console.log('Products fetched:', prods.length);
+    $('#ord-product').innerHTML=prods.map(p=>{
+      let label = esc(p.name);
+      if (p.size) label += ` (${esc(p.size)})`;
+      if (p.hcpcs) label += ` — ${esc(p.hcpcs)}`;
+      return `<option value="${p.id}">${label}</option>`;
+    }).join('');
+  } catch(e) {
+    console.error('Error fetching products:', e);
+    alert('Error loading products: ' + e.message);
+    return;
+  }
 
   // chooser
   const box=$('#chooser-input'), list=$('#chooser-list'), hidden=$('#chooser-id'), hint=$('#chooser-hint'), create=$('#create-section');
@@ -8748,7 +8764,15 @@ async function openOrderDialog(preselectId=null){
     productSelect.addEventListener('change', validateCollagenRestriction);
   }
 
-  document.getElementById('dlg-order').showModal();
+  console.log('Opening order dialog...');
+  const dialog = document.getElementById('dlg-order');
+  if (!dialog) {
+    console.error('Dialog element #dlg-order not found!');
+    alert('Error: Order form dialog not found on page');
+    return;
+  }
+  dialog.showModal();
+  console.log('Dialog opened successfully');
 }
 
 // Validate collagen restriction based on exudate level
