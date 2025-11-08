@@ -8495,7 +8495,8 @@ async function openOrderDialog(preselectId=null){
 
   box.oninput=async()=>{
     const q=box.value.trim(); hidden.value=''; _currentPatientId=null;
-    $('#patient-doc-status').classList.add('hidden');
+    const docStatus = $('#patient-doc-status');
+    if (docStatus) docStatus.classList.add('hidden');
     if(q.length<2){ list.classList.add('hidden'); return; }
     const r=await api('action=patients&limit=8&q='+encodeURIComponent(q)); const rows=r.rows||[];
     list.innerHTML = (rows.map(p=>`<button type="button" class="w-full text-left px-3 py-2 hover:bg-slate-50" data-p="${p.id}">${esc(p.first_name)} ${esc(p.last_name)} — ${fmt(p.dob)} • ${esc(p.phone||'')}</button>`).join(''))
@@ -8510,13 +8511,34 @@ async function openOrderDialog(preselectId=null){
       // Fetch patient details to check document status
       await updatePatientDocStatus(b.dataset.p);
     });
-    const add=list.querySelector('#opt-create'); if(add) add.onclick=()=>{ list.classList.add('hidden'); create.classList.remove('hidden'); $('#np-first').focus(); };
+    const add=list.querySelector('#opt-create');
+    if(add) add.onclick=()=>{
+      list.classList.add('hidden');
+      create.classList.remove('hidden');
+      const npFirst = $('#np-first');
+      if (npFirst) npFirst.focus();
+    };
   };
 
-  $('#btn-create-patient').onclick=async()=>{
-    if(hidden.value){ $('#np-hint').textContent='A patient is already selected.'; return; }
-    const first=$('#np-first').value.trim(), last=$('#np-last').value.trim();
-    if(!first||!last){ $('#np-hint').textContent='First and last name required.'; return; }
+  const btnCreatePatient = $('#btn-create-patient');
+  if (btnCreatePatient) {
+    btnCreatePatient.onclick=async()=>{
+      const npHint = $('#np-hint');
+      if(hidden.value){
+        if (npHint) npHint.textContent='A patient is already selected.';
+        return;
+      }
+      const npFirst = $('#np-first');
+      const npLast = $('#np-last');
+      if (!npFirst || !npLast) {
+        console.error('Create patient form fields not found');
+        return;
+      }
+      const first=npFirst.value.trim(), last=npLast.value.trim();
+      if(!first||!last){
+        if (npHint) npHint.textContent='First and last name required.';
+        return;
+      }
 
     const idFile = $('#np-id-card').files[0];
     const insFile = $('#np-ins-card').files[0];
@@ -8561,23 +8583,71 @@ async function openOrderDialog(preselectId=null){
 
       hidden.value=patientId; _currentPatientId=patientId;
       box.value=`${first} ${last} (MRN ${j.mrn})`;
-      $('#np-hint').textContent='Patient created with documents ✓'; $('#np-hint').style.color='green';
+      const npHintSuccess = $('#np-hint');
+      if (npHintSuccess) {
+        npHintSuccess.textContent='Patient created with documents ✓';
+        npHintSuccess.style.color='green';
+      }
       create.classList.add('hidden');
       await updatePatientDocStatus(patientId);
     } catch(e) {
-      $('#np-hint').textContent='Error: ' + e.message; $('#np-hint').style.color='red';
+      const npHint = $('#np-hint');
+      if (npHint) {
+        npHint.textContent='Error: ' + e.message;
+        npHint.style.color='red';
+      }
     }
-  };
+    };
+  }
 
-  // reset e-sign & clinical fields
-  document.querySelector('input[name="deliver"][value="patient"]').checked=true;
-  document.getElementById('office-addr').classList.add('hidden');
-  $('#ack-sig').checked=false; $('#sign-name').value=''; $('#sign-title').value='';
-  $('#last-eval').value=''; $('#start-date').value='';
-  $('#freq-week').value='3'; $('#qty-change').value='1'; $('#duration-days').value='30'; $('#refills').value='0';
-  $('#addl-instr').value=''; $('#secondary-dressing').value='';
-  $('#ord-notes').value='';
-  $('#file-rx').value=''; $('#aob-hint').textContent='';
+  // reset e-sign & clinical fields (with null checks)
+  const deliverPatient = document.querySelector('input[name="deliver"][value="patient"]');
+  if (deliverPatient) deliverPatient.checked=true;
+
+  const officeAddrReset = document.getElementById('office-addr');
+  if (officeAddrReset) officeAddrReset.classList.add('hidden');
+
+  const ackSig = $('#ack-sig');
+  if (ackSig) ackSig.checked=false;
+
+  const signName = $('#sign-name');
+  if (signName) signName.value='';
+
+  const signTitle = $('#sign-title');
+  if (signTitle) signTitle.value='';
+
+  const lastEval = $('#last-eval');
+  if (lastEval) lastEval.value='';
+
+  const startDate = $('#start-date');
+  if (startDate) startDate.value='';
+
+  const freqWeek = $('#freq-week');
+  if (freqWeek) freqWeek.value='3';
+
+  const qtyChange = $('#qty-change');
+  if (qtyChange) qtyChange.value='1';
+
+  const durationDays = $('#duration-days');
+  if (durationDays) durationDays.value='30';
+
+  const refills = $('#refills');
+  if (refills) refills.value='0';
+
+  const addlInstr = $('#addl-instr');
+  if (addlInstr) addlInstr.value='';
+
+  const secondaryDressing = $('#secondary-dressing');
+  if (secondaryDressing) secondaryDressing.value='';
+
+  const ordNotes = $('#ord-notes');
+  if (ordNotes) ordNotes.value='';
+
+  const fileRx = $('#file-rx');
+  if (fileRx) fileRx.value='';
+
+  const aobHintReset = $('#aob-hint');
+  if (aobHintReset) aobHintReset.textContent='';
 
   // Submit
   $('#btn-order-create').onclick=async()=>{
