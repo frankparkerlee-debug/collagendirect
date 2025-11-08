@@ -5604,6 +5604,19 @@ if ($page==='logout'){
           </div>
         </div>
 
+        <div class="md:col-span-2">
+          <label class="text-sm">Exudate Level <span class="text-red-600">*</span></label>
+          <select id="exudate-level" class="w-full" onchange="validateCollagenRestriction()">
+            <option value="">Select exudate level</option>
+            <option value="minimal">Minimal</option>
+            <option value="moderate">Moderate</option>
+            <option value="heavy">Heavy (collagen contraindicated)</option>
+          </select>
+          <div id="exudate-warning" class="text-xs mt-1 p-2 bg-yellow-50 border border-yellow-300 rounded hidden">
+            ⚠️ <strong>Heavy exudate:</strong> Collagen products are contraindicated. Please select alginate or foam-based products.
+          </div>
+        </div>
+
         <div>
           <label class="text-sm">Date of Last Evaluation <span class="text-red-600">*</span></label>
           <input id="last-eval" type="date" class="w-full">
@@ -5626,12 +5639,8 @@ if ($page==='logout'){
           <label class="text-sm">Duration (days) <span class="text-red-600">*</span></label>
           <input id="duration-days" type="number" min="1" value="30" class="w-full">
         </div>
-        <div>
-          <label class="text-sm">Refills Authorized</label>
-          <input id="refills" type="number" min="0" value="0" class="w-full">
-        </div>
         <div class="md:col-span-2">
-          <label class="text-sm">Additional Instructions</label>
+          <label class="text-sm">Patient Instructions</label>
           <input id="addl-instr" class="w-full" placeholder="e.g., Saline cleanse, apply before dressing">
         </div>
 
@@ -5639,9 +5648,12 @@ if ($page==='logout'){
           <label class="text-sm">Secondary Dressing</label>
           <select id="secondary-dressing" class="w-full">
             <option value="">None</option>
+            <option value="Dermal Wound Cleaner 8oz">Dermal Wound Cleaner 8oz bottle</option>
             <option value="Gauze - 2x2">Gauze - 2x2</option>
             <option value="Gauze - 4x4">Gauze - 4x4</option>
+            <option value="Sterile Gauze 4x4">Sterile Gauze 4x4</option>
             <option value="Gauze - 6x6">Gauze - 6x6</option>
+            <option value="Sterile Gauze roll">Sterile Gauze roll</option>
             <option value="Non-adherent pad">Non-adherent pad</option>
             <option value="Foam dressing">Foam dressing</option>
             <option value="Transparent film">Transparent film</option>
@@ -5696,14 +5708,18 @@ if ($page==='logout'){
           <input type="file" id="file-rx" accept=".pdf,.txt,image/*" class="w-full">
           <div class="text-xs text-slate-500 mt-1">OR paste text above</div>
         </div>
-        <div class="md:col-span-2">
+        <div class="md:col-span-1">
+          <label class="text-sm">Baseline Wound Photo (Optional)</label>
+          <input type="file" id="file-wound-photo" accept="image/*" class="w-full">
+          <div class="text-xs text-slate-500 mt-1">
+            Non-billable baseline documentation<br>
+            <em>For photo review billing, use Photo Reviews page</em>
+          </div>
+        </div>
+        <div class="md:col-span-1">
           <label class="text-sm block mb-2">Insurance Requirements</label>
           <div class="text-xs text-slate-600">
-            Patient ID & Insurance Card must be on file with the patient. An AOB is also required (only needs to be signed once per patient).
-          </div>
-          <div class="mt-2">
-            <button type="button" id="btn-aob" class="btn">Generate & Sign AOB</button>
-            <span id="aob-hint" class="text-xs text-slate-500 ml-2"></span>
+            Patient ID & Insurance Card must be on file with the patient.
           </div>
         </div>
       </div>
@@ -8722,7 +8738,39 @@ async function openOrderDialog(preselectId=null){
   lastEvalInput.addEventListener('change', validateDates);
   startDateInput.addEventListener('change', validateDates);
 
+  // Add exudate validation listener
+  const productSelect = document.getElementById('ord-product');
+  if (productSelect) {
+    productSelect.addEventListener('change', validateCollagenRestriction);
+  }
+
   document.getElementById('dlg-order').showModal();
+}
+
+// Validate collagen restriction based on exudate level
+function validateCollagenRestriction() {
+  const exudateLevel = document.getElementById('exudate-level')?.value;
+  const productSelect = document.getElementById('ord-product');
+  const warning = document.getElementById('exudate-warning');
+
+  if (!exudateLevel || !productSelect || !warning) return;
+
+  if (exudateLevel === 'heavy') {
+    // Show warning
+    warning.classList.remove('hidden');
+
+    // Get selected product name
+    const selectedOption = productSelect.options[productSelect.selectedIndex];
+    const productName = selectedOption ? selectedOption.textContent.toLowerCase() : '';
+
+    // Check if collagen product is selected
+    if (productName.includes('collagen')) {
+      alert('⚠️ Collagen products cannot be used with heavy exudate. Please select an alginate or foam-based product.');
+      productSelect.value = ''; // Clear selection
+    }
+  } else {
+    warning.classList.add('hidden');
+  }
 }
 
 /* Stop/Restart fallback */

@@ -154,6 +154,7 @@ try {
   $wound_notes    = safe($_POST['wound_notes'] ?? null);
   $payment_type   = safe($_POST['payment_type'] ?? 'insurance');
   $prior_auth     = safe($_POST['prior_auth'] ?? null);
+  $exudate_level  = safe($_POST['exudate_level'] ?? null);
 
   // Signer
   $sign_name  = safe($_POST['sign_name']  ?? null);
@@ -176,7 +177,7 @@ try {
     (id, patient_id, user_id, product, product_id, product_price, cpt, status, frequency, delivery_mode,
      shipments_remaining, created_at, updated_at,
      insurer_name, member_id, group_id, payer_phone, prior_auth, payment_type,
-     wound_location, wound_laterality, wound_notes,
+     wound_location, wound_laterality, wound_notes, exudate_level,
      shipping_name, shipping_phone, shipping_address, shipping_city, shipping_state, shipping_zip,
      rx_note_path, rx_note_mime, ins_card_path, ins_card_mime, id_card_path, id_card_mime,
      e_sign_user_id, e_sign_name, e_sign_title, e_sign_at, e_sign_ip,
@@ -184,7 +185,7 @@ try {
     VALUES
     (?,?,?,?,?,?,?,?,?,?,0,NOW(),NOW(),
      ?,?,?,?, ?,?,?,
-     ?,?,?,
+     ?,?,?,?,
      ?,?,?,?,?,?,
      NULL,NULL,NULL,NULL,NULL,NULL,
      ?,?,?,?,?,
@@ -201,7 +202,7 @@ try {
     safe($_POST['insurance_payer_phone'] ?? null),
     $prior_auth, $payment_type,
     // wound
-    $wound_location, $wound_laterality, $wound_notes,
+    $wound_location, $wound_laterality, $wound_notes, $exudate_level,
     // shipping
     $shipping_name, $shipping_phone, $shipping_address, $shipping_city, $shipping_state, $shipping_zip,
     // e-sign
@@ -220,6 +221,7 @@ try {
     [$rx_path,  $rx_mime]  = save_upload('rx_note',  '/uploads/notes');
     [$ins_path, $ins_mime] = save_upload('ins_card','/uploads/insurance');
     [$id_path,  $id_mime]  = save_upload('id_card',  '/uploads/ids');
+    [$wound_photo_path, $wound_photo_mime] = save_upload('baseline_wound_photo', '/uploads/wounds');
 
     // Validate insurance docs if insurance payment and files were not uploaded
     if ($payment_type === 'insurance') {
@@ -231,11 +233,12 @@ try {
     }
 
     // Update order with file columns if present
-    if ($rx_path || $ins_path || $id_path) {
+    if ($rx_path || $ins_path || $id_path || $wound_photo_path) {
       $sets=[]; $params=[];
       if ($rx_path)  { $sets[]='rx_note_path=?';  $params[]=$rx_path;  $sets[]='rx_note_mime=?';  $params[]=$rx_mime; }
       if ($ins_path) { $sets[]='ins_card_path=?'; $params[]=$ins_path; $sets[]='ins_card_mime=?'; $params[]=$ins_mime; }
       if ($id_path)  { $sets[]='id_card_path=?';  $params[]=$id_path;  $sets[]='id_card_mime=?';  $params[]=$id_mime; }
+      if ($wound_photo_path) { $sets[]='baseline_wound_photo_path=?'; $params[]=$wound_photo_path; $sets[]='baseline_wound_photo_mime=?'; $params[]=$wound_photo_mime; }
       $params[] = $order_id; $params[] = $uid;
       $pdo->prepare("UPDATE orders SET ".implode(', ',$sets).", updated_at=NOW() WHERE id=? AND user_id=?")->execute($params);
     }
