@@ -5,7 +5,14 @@
  * Changes review_status from 'draft' to 'pending_admin_review'
  */
 declare(strict_types=1);
+
+// Start output buffering to prevent any HTML errors from leaking
+ob_start();
+
 require __DIR__ . '/../db.php';
+
+// Clear any buffered output and set JSON header
+ob_end_clean();
 header('Content-Type: application/json');
 
 if (empty($_SESSION['user_id'])) {
@@ -28,7 +35,7 @@ if (empty($orderId)) {
 try {
   // Verify order exists and belongs to this physician
   $stmt = $pdo->prepare("
-    SELECT id, review_status, patient_id
+    SELECT id, review_status, patient_id, status
     FROM orders
     WHERE id = ? AND user_id = ?
   ");
