@@ -2153,10 +2153,7 @@ if ($action) {
         jerr('Patient ID and Insurance Card must be on file before creating an order. Please upload these documents first.');
       }
 
-      // Insurance orders also require AOB
-      if($payment_type==='insurance'){
-        if(empty($p['aob_path'])){ $pdo->rollBack(); jerr('Assignment of Benefits (AOB) must be signed for insurance orders.'); }
-      }
+      // AOB is recommended but not required - physician can sign during order or patient creation
 
       $delivery_to=$_POST['delivery_to'] ?? 'patient';
       $delivery_mode=($delivery_to==='office')?'office':'patient';
@@ -7681,7 +7678,7 @@ async function toggleAccordion(rowEl, patientId, page){
           <input type="file" class="w-full text-sm" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic" onchange="uploadPatientFile('${esc(p.id)}', 'ins', this.files[0])">
         </div>
         <div>
-          <label class="text-xs">Assignment of Benefits (AOB) ${p.aob_path ? '<span class="text-green-600">✓ Signed</span>' : '<span class="text-red-600">* Required</span>'}</label>
+          <label class="text-xs">Assignment of Benefits (AOB) ${p.aob_path ? '<span class="text-green-600">✓ Signed</span>' : '<span class="text-blue-600">(Recommended)</span>'}</label>
           ${p.aob_path ? `<div class="text-xs text-slate-600 mb-1">Signed: ${fmt(p.aob_signed_at)}</div>` : ''}
           <button type="button" class="btn text-sm mt-1" onclick="generateAOB('${esc(p.id)}')">${p.aob_path ? 'Re-generate' : 'Generate & Sign'} AOB</button>
         </div>
@@ -9267,7 +9264,7 @@ function renderPatientDetailPage(p, orders, isEditing) {
             ${isEditing ? `<input type="file" class="w-full text-sm" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.txt" onchange="uploadPatientFile('${esc(p.id)}', 'notes', this.files[0])">` : ''}
           </div>
           <div>
-            <label class="text-xs">AOB ${p.aob_path ? '<span class="text-green-600">✓</span>' : '<span class="text-red-600">*</span>'}</label>
+            <label class="text-xs">AOB ${p.aob_path ? '<span class="text-green-600">✓</span>' : '<span class="text-blue-600">(Recommended)</span>'}</label>
             ${p.aob_path ? `<div class="text-xs text-slate-600 mb-1">Signed: ${fmt(p.aob_signed_at)}</div>` : '<div class="text-xs text-slate-400 mb-1">Not signed</div>'}
             ${isEditing ? `<button type="button" class="btn text-sm mt-1" onclick="generateAOB('${esc(p.id)}')">${p.aob_path ? 'Re-generate' : 'Generate & Sign'} AOB</button>` : ''}
           </div>
