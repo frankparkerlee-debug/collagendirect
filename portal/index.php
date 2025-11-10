@@ -5921,6 +5921,14 @@ if ($page==='logout'){
 // User data from PHP session
 const currentUserLastName = <?= json_encode($user['last_name'] ?? '') ?>;
 
+// CSRF token for secure requests
+<?php
+if (empty($_SESSION['csrf'])) {
+  $_SESSION['csrf'] = bin2hex(random_bytes(32));
+}
+?>
+window.CSRF_TOKEN = <?= json_encode($_SESSION['csrf']) ?>;
+
 const $=s=>document.querySelector(s);
 const fd=o=>{const f=new FormData(); for(const [k,v] of Object.entries(o)) f.append(k,v??''); return f;};
 async function api(q,opts={}){
