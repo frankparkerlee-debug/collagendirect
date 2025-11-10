@@ -5600,13 +5600,8 @@ if ($page==='logout'){
         </div>
       </div>
 
-      <!-- Product + Clinical completeness -->
+      <!-- Order Form -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="text-sm">Product</label>
-          <select id="ord-product" class="w-full"></select>
-        </div>
-
         <div>
           <label class="text-sm block mb-1">Payment</label>
           <div class="flex items-center gap-4">
@@ -5632,47 +5627,6 @@ if ($page==='logout'){
         <div>
           <label class="text-sm">Date of Last Evaluation <span class="text-red-600">*</span></label>
           <input id="last-eval" type="date" class="w-full">
-        </div>
-
-        <div>
-          <label class="text-sm">Start Date</label>
-          <input id="start-date" type="date" class="w-full">
-          <div id="date-validation-hint" class="text-xs mt-1" style="display:none;"></div>
-        </div>
-        <div>
-          <label class="text-sm">Frequency (changes per week) <span class="text-red-600">*</span></label>
-          <input id="freq-week" type="number" min="1" max="21" value="3" class="w-full">
-        </div>
-        <div>
-          <label class="text-sm">Quantity per Change <span class="text-red-600">*</span></label>
-          <input id="qty-change" type="number" min="1" value="1" class="w-full">
-        </div>
-        <div>
-          <label class="text-sm">Duration (days) <span class="text-red-600">*</span></label>
-          <input id="duration-days" type="number" min="1" value="30" class="w-full">
-        </div>
-        <div class="md:col-span-2">
-          <label class="text-sm">Patient Instructions</label>
-          <input id="addl-instr" class="w-full" placeholder="e.g., Saline cleanse, apply before dressing">
-        </div>
-
-        <div class="md:col-span-2">
-          <label class="text-sm">Secondary Dressing</label>
-          <select id="secondary-dressing" class="w-full">
-            <option value="">None</option>
-            <option value="Dermal Wound Cleaner 8oz">Dermal Wound Cleaner 8oz bottle</option>
-            <option value="Gauze - 2x2">Gauze - 2x2</option>
-            <option value="Gauze - 4x4">Gauze - 4x4</option>
-            <option value="Sterile Gauze 4x4">Sterile Gauze 4x4</option>
-            <option value="Gauze - 6x6">Gauze - 6x6</option>
-            <option value="Sterile Gauze roll">Sterile Gauze roll</option>
-            <option value="Non-adherent pad">Non-adherent pad</option>
-            <option value="Foam dressing">Foam dressing</option>
-            <option value="Transparent film">Transparent film</option>
-            <option value="Compression wrap">Compression wrap</option>
-            <option value="Tubular bandage">Tubular bandage</option>
-            <option value="Other">Other (specify in instructions)</option>
-          </select>
         </div>
 
         <div class="md:col-span-2">
@@ -8492,6 +8446,32 @@ function addWound() {
         <label class="text-sm">Qty per Change <span class="text-red-600">*</span></label>
         <input class="wound-qty w-full" type="number" min="1" value="1">
       </div>
+      <div>
+        <label class="text-sm">Duration <span class="text-red-600">*</span></label>
+        <select class="wound-duration w-full">
+          <option value="10">10 days</option>
+          <option value="20">20 days</option>
+          <option value="30" selected>30 days</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-sm">Secondary Dressing</label>
+        <select class="wound-secondary-dressing w-full">
+          <option value="">None</option>
+          <option value="Dermal Wound Cleaner 8oz">Dermal Wound Cleaner 8oz bottle</option>
+          <option value="Gauze - 2x2">Gauze - 2x2</option>
+          <option value="Gauze - 4x4">Gauze - 4x4</option>
+          <option value="Sterile Gauze 4x4">Sterile Gauze 4x4</option>
+          <option value="Gauze - 6x6">Gauze - 6x6</option>
+          <option value="Sterile Gauze roll">Sterile Gauze roll</option>
+          <option value="Non-adherent pad">Non-adherent pad</option>
+          <option value="Foam dressing">Foam dressing</option>
+          <option value="Transparent film">Transparent film</option>
+          <option value="Compression wrap">Compression wrap</option>
+          <option value="Tubular bandage">Tubular bandage</option>
+          <option value="Other">Other (specify in instructions)</option>
+        </select>
+      </div>
       <div class="md:col-span-2">
         <label class="text-sm">Wound Location <span class="text-red-600">*</span></label>
         <select class="wound-location w-full">
@@ -8571,6 +8551,16 @@ function addWound() {
   // Populate product dropdown for this wound
   populateWoundProductDropdown(woundEl);
 
+  // Add validation listeners for collagen restriction
+  const productSelect = woundEl.querySelector('.wound-product');
+  const exudateSelect = woundEl.querySelector('.wound-exudate');
+  if (productSelect) {
+    productSelect.addEventListener('change', validateCollagenRestriction);
+  }
+  if (exudateSelect) {
+    exudateSelect.addEventListener('change', validateCollagenRestriction);
+  }
+
   // Remove handler
   const removeBtn = woundEl.querySelector('.wound-remove');
   if (removeBtn) {
@@ -8579,6 +8569,7 @@ function addWound() {
       console.log('Removing wound');
       woundEl.remove();
       renumberWounds();
+      validateCollagenRestriction(); // Re-validate after removal
     };
   }
 }
@@ -8607,6 +8598,8 @@ function collectWoundsData() {
       product_price: parseFloat(selectedOption?.dataset.price) || 0,
       frequency_per_week: parseInt(el.querySelector('.wound-frequency')?.value) || 0,
       qty_per_change: parseInt(el.querySelector('.wound-qty')?.value) || 1,
+      duration_days: parseInt(el.querySelector('.wound-duration')?.value) || 30,
+      secondary_dressing: el.querySelector('.wound-secondary-dressing')?.value || '',
 
       // Wound details
       location: el.querySelector('.wound-location').value,
@@ -8678,22 +8671,7 @@ async function openOrderDialog(preselectId=null){
   dialog.showModal();
   console.log('Dialog opened successfully');
 
-  try {
-    console.log('Fetching products...');
-    const prods=(await api('action=products')).rows||[];
-    console.log('Products fetched:', prods.length);
-    $('#ord-product').innerHTML=prods.map(p=>{
-      let label = esc(p.name);
-      if (p.size) label += ` (${esc(p.size)})`;
-      if (p.hcpcs) label += ` — ${esc(p.hcpcs)}`;
-      return `<option value="${p.id}">${label}</option>`;
-    }).join('');
-  } catch(e) {
-    console.error('Error fetching products:', e);
-    alert('Error loading products: ' + e.message);
-    dialog.close();
-    return;
-  }
+  // Product selection is now per-wound, loaded when wounds are added
 
   // chooser (now that dialog is open, these elements are accessible)
   const box=$('#chooser-input'), list=$('#chooser-list'), hidden=$('#chooser-id'), hint=$('#chooser-hint'), create=$('#create-section');
@@ -8861,25 +8839,7 @@ async function openOrderDialog(preselectId=null){
   const lastEval = $('#last-eval');
   if (lastEval) lastEval.value='';
 
-  const startDate = $('#start-date');
-  if (startDate) startDate.value='';
-
-  const freqWeek = $('#freq-week');
-  if (freqWeek) freqWeek.value='3';
-
-  const qtyChange = $('#qty-change');
-  if (qtyChange) qtyChange.value='1';
-
-  const durationDays = $('#duration-days');
-  if (durationDays) durationDays.value='30';
-
-  // Note: refills field removed - no longer needed
-
-  const addlInstr = $('#addl-instr');
-  if (addlInstr) addlInstr.value='';
-
-  const secondaryDressing = $('#secondary-dressing');
-  if (secondaryDressing) secondaryDressing.value='';
+  // Old field resets removed - these fields are now per-wound
 
   const ordNotes = $('#ord-notes');
   if (ordNotes) ordNotes.value='';
@@ -8939,21 +8899,19 @@ async function openOrderDialog(preselectId=null){
           btn.disabled=false; btn.textContent='Submit Order';
           return;
         }
+        if (!w.duration_days) {
+          alert(`Wound #${i + 1}: Please select duration`);
+          btn.disabled=false; btn.textContent='Submit Order';
+          return;
+        }
         if (!w.location || !w.length_cm || !w.width_cm || !w.icd10_primary || !w.exudate_level) {
-          alert(`Wound #${i + 1}: Please fill in required fields (Product, Frequency, Location, Length, Width, Exudate Level, Primary ICD-10)`);
+          alert(`Wound #${i + 1}: Please fill in required fields (Product, Frequency, Duration, Location, Length, Width, Exudate Level, Primary ICD-10)`);
           btn.disabled=false; btn.textContent='Submit Order';
           return;
         }
       }
 
-      // Validate required form elements exist
-      const productSelect = $('#ord-product');
-      if (!productSelect) {
-        alert('Error: Product selector not found. Please refresh the page.');
-        btn.disabled=false; btn.textContent='Submit Order';
-        return;
-      }
-
+      // Validate payment type
       const paymentRadio = document.querySelector('input[name="paytype"]:checked');
       if (!paymentRadio) {
         alert('Error: Payment type not selected. Please refresh the page.');
@@ -8963,19 +8921,12 @@ async function openOrderDialog(preselectId=null){
 
       const body=new FormData();
       body.append('patient_id', pid);
-      body.append('product_id', productSelect.value);
       body.append('payment_type', paymentRadio.value);
 
-      // Send wounds as JSON
+      // Send wounds as JSON (contains all product/frequency/duration/secondary dressing data)
       body.append('wounds_data', JSON.stringify(woundsData));
 
       body.append('last_eval_date', $('#last-eval')?.value || '');
-      body.append('start_date', $('#start-date')?.value || '');
-      body.append('frequency_per_week', $('#freq-week')?.value || '3');
-      body.append('qty_per_change', $('#qty-change')?.value || '1');
-      body.append('duration_days', $('#duration-days')?.value || '30');
-      body.append('additional_instructions', $('#addl-instr')?.value || '');
-      body.append('secondary_dressing', $('#secondary-dressing')?.value || '');
 
       body.append('notes_text', $('#ord-notes')?.value || '');
 
@@ -9041,17 +8992,12 @@ async function openOrderDialog(preselectId=null){
 
       const body=new FormData();
       body.append('patient_id', pid);
-      body.append('product_id', $('#ord-product').value);
       body.append('payment_type', document.querySelector('input[name="paytype"]:checked')?.value || 'insurance');
+
+      // Send wounds as JSON (contains all product/frequency/duration/secondary dressing data)
       body.append('wounds_data', JSON.stringify(woundsData));
+
       body.append('last_eval_date', $('#last-eval')?.value || '');
-      body.append('start_date', $('#start-date')?.value || '');
-      body.append('frequency_per_week', $('#freq-week')?.value || '3');
-      body.append('qty_per_change', $('#qty-change')?.value || '1');
-      body.append('duration_days', $('#duration-days')?.value || '30');
-      // Note: refills field removed - no longer needed
-      body.append('additional_instructions', $('#addl-instr')?.value || '');
-      body.append('secondary_dressing', $('#secondary-dressing')?.value || '');
       body.append('notes_text', $('#ord-notes')?.value || '');
       body.append('delivery_to', document.querySelector('input[name="deliver"]:checked')?.value || 'patient');
       body.append('shipping_name', $('#ship-name')?.value || '');
@@ -9116,82 +9062,37 @@ async function openOrderDialog(preselectId=null){
   // Initialize wounds manager
   initWoundsManager();
 
-  // Add date validation listeners
-  const lastEvalInput = $('#last-eval');
-  const startDateInput = $('#start-date');
-  const dateHint = $('#date-validation-hint');
-
-  function validateDates() {
-    const lastEval = lastEvalInput.value;
-    const startDate = startDateInput.value || new Date().toISOString().split('T')[0];
-
-    if (!lastEval) {
-      dateHint.style.display = 'none';
-      return;
-    }
-
-    const lastEvalDate = new Date(lastEval);
-    const startDateObj = new Date(startDate);
-    const daysDiff = Math.floor((startDateObj - lastEvalDate) / (1000 * 60 * 60 * 24));
-
-    if (daysDiff < 0) {
-      dateHint.textContent = '⚠ Start date cannot be before last evaluation date';
-      dateHint.style.color = 'var(--error)';
-      dateHint.style.display = 'block';
-    } else if (daysDiff > 30) {
-      dateHint.textContent = `⚠ Start date is ${daysDiff} days after last evaluation (max 30 days allowed)`;
-      dateHint.style.color = 'var(--error)';
-      dateHint.style.display = 'block';
-    } else {
-      dateHint.textContent = `✓ ${daysDiff} days between evaluation and start date`;
-      dateHint.style.color = 'var(--success)';
-      dateHint.style.display = 'block';
-    }
-  }
-
-  lastEvalInput.addEventListener('change', validateDates);
-  startDateInput.addEventListener('change', validateDates);
-
-  // Add exudate validation listener
-  const productSelect = document.getElementById('ord-product');
-  if (productSelect) {
-    productSelect.addEventListener('change', validateCollagenRestriction);
-  }
+  // Date validation removed - start date field eliminated (assumes start date = day after order)
 
   // Dialog was already opened at the beginning of this function
   console.log('Order dialog setup complete');
 }
 
-// Validate collagen restriction based on exudate level
+// Validate collagen restriction based on exudate level (per-wound validation)
 function validateCollagenRestriction() {
-  const productSelect = document.getElementById('ord-product');
   const warning = document.getElementById('exudate-warning');
+  if (!warning) return;
 
-  if (!productSelect || !warning) return;
+  // Check each wound for heavy exudate + collagen product combination
+  const woundEls = document.querySelectorAll('[data-wound-index]');
+  let hasInvalidCombination = false;
 
-  // Check if ANY wound has heavy exudate
-  const woundExudates = document.querySelectorAll('.wound-exudate');
-  let hasHeavyExudate = false;
+  woundEls.forEach(woundEl => {
+    const exudateSelect = woundEl.querySelector('.wound-exudate');
+    const productSelect = woundEl.querySelector('.wound-product');
 
-  woundExudates.forEach(select => {
-    if (select.value === 'heavy') {
-      hasHeavyExudate = true;
+    if (exudateSelect && productSelect && exudateSelect.value === 'heavy') {
+      const selectedOption = productSelect.options[productSelect.selectedIndex];
+      const productName = selectedOption?.textContent?.toLowerCase() || '';
+
+      if (productName.includes('collagen')) {
+        hasInvalidCombination = true;
+      }
     }
   });
 
-  if (hasHeavyExudate) {
-    // Show warning
+  if (hasInvalidCombination) {
     warning.classList.remove('hidden');
-
-    // Get selected product name
-    const selectedOption = productSelect.options[productSelect.selectedIndex];
-    const productName = selectedOption ? selectedOption.textContent.toLowerCase() : '';
-
-    // Check if collagen product is selected
-    if (productName.includes('collagen')) {
-      alert('⚠️ Collagen products cannot be used when any wound has heavy exudate. Please select an alginate or foam-based product.');
-      productSelect.value = ''; // Clear selection
-    }
   } else {
     warning.classList.add('hidden');
   }
