@@ -1347,6 +1347,7 @@ if ($action) {
     $sql = "
       SELECT
         wp.*,
+        (wp.reviewed_at IS NOT NULL) as reviewed,
         pr.wound_location, pr.requested_at,
         be.id as encounter_id, be.assessment, be.cpt_code, be.charge_amount, be.exported, be.encounter_date, be.clinical_note
       FROM wound_photos wp
@@ -1360,9 +1361,9 @@ if ($action) {
 
     $photos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Add proper photo URLs using proxy script for secure serving
+    // Add proper photo URLs using portal proxy script for secure serving
     foreach ($photos as &$photo) {
-      $photo['photo_url'] = '/admin/serve-wound-photo.php?id=' . urlencode($photo['id']);
+      $photo['photo_url'] = '/portal/serve-wound-photo.php?id=' . urlencode($photo['id']);
     }
 
     jok(['photos' => $photos, 'count' => count($photos)]);
@@ -6629,24 +6630,30 @@ if (<?php echo json_encode($page==='dashboard'); ?>){
           // Status badge
           let statusBadge = '';
           if (photo.reviewed) {
-            const assessmentColors = {
-              'improving': '#10b981',
-              'stable': '#3b82f6',
-              'concern': '#f59e0b',
-              'urgent': '#ef4444'
-            };
-            const assessmentLabels = {
-              'improving': 'Improving',
-              'stable': 'Stable',
-              'concern': 'Concern',
-              'urgent': 'Urgent'
-            };
-            const color = assessmentColors[photo.assessment] || '#6b7280';
-            const label = assessmentLabels[photo.assessment] || 'Reviewed';
+            // Photo has been reviewed - check if it has assessment (billable) or is baseline
+            if (photo.assessment) {
+              const assessmentColors = {
+                'improving': '#10b981',
+                'stable': '#3b82f6',
+                'concern': '#f59e0b',
+                'urgent': '#ef4444'
+              };
+              const assessmentLabels = {
+                'improving': 'Improving',
+                'stable': 'Stable',
+                'concern': 'Concern',
+                'urgent': 'Urgent'
+              };
+              const color = assessmentColors[photo.assessment] || '#6b7280';
+              const label = assessmentLabels[photo.assessment] || 'Reviewed';
 
-            statusBadge = `<span style="display: inline-block; padding: 0.25rem 0.5rem; background: ${color}; color: white; border-radius: 6px; font-size: 0.75rem; font-weight: 600;">${label}</span>`;
+              statusBadge = `<span style="display: inline-block; padding: 0.25rem 0.5rem; background: ${color}; color: white; border-radius: 6px; font-size: 0.75rem; font-weight: 600;">${label}</span>`;
+            } else {
+              // Baseline photo (reviewed_at set but no assessment = non-billable baseline)
+              statusBadge = '<span style="display: inline-block; padding: 0.25rem 0.5rem; background: #64748b; color: white; border-radius: 6px; font-size: 0.75rem; font-weight: 600;">Baseline</span>';
+            }
           } else {
-            statusBadge = '<span style="display: inline-block; padding: 0.25rem 0.5rem; background: #dc2626; color: white; border-radius: 6px; font-size: 0.75rem; font-weight: 600;">Pending</span>';
+            statusBadge = '<span style="display: inline-block; padding: 0.25rem 0.5rem; background: #dc2626; color: white; border-radius: 6px; font-size: 0.75rem; font-weight: 600;">Pending Review</span>';
           }
 
           // Billing info
