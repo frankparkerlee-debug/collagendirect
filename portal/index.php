@@ -64,10 +64,11 @@ if (is_dir('/var/data/uploads')) {
 }
 
 $DIRS = [
-  'ids'       => $UPLOAD_ROOT . '/ids',
-  'insurance' => $UPLOAD_ROOT . '/insurance',
-  'notes'     => $UPLOAD_ROOT . '/notes',
-  'aob'       => $UPLOAD_ROOT . '/aob', // NEW for AOB files
+  'ids'          => $UPLOAD_ROOT . '/ids',
+  'insurance'    => $UPLOAD_ROOT . '/insurance',
+  'notes'        => $UPLOAD_ROOT . '/notes',
+  'aob'          => $UPLOAD_ROOT . '/aob',
+  'wound_photos' => $UPLOAD_ROOT . '/wound-photos', // Baseline wound photos from orders
 ];
 // Create directories with better error handling
 foreach ($DIRS as $name => $p) {
@@ -2325,7 +2326,7 @@ if ($action) {
         }
       }
 
-      // Baseline wound photo (optional) - attach to order
+      // Baseline wound photo (optional) - attach to order (non-billable)
       if(!empty($_FILES['baseline_wound_photo']) && $_FILES['baseline_wound_photo']['error']===UPLOAD_ERR_OK){
         $photoFile=$_FILES['baseline_wound_photo'];
         if($photoFile['size']>25*1024*1024) jerr('Photo file too large (max 25MB)');
@@ -2335,19 +2336,22 @@ if ($action) {
         if(!isset($allowedPhoto[$photoMime])) jerr('Invalid photo format. Please upload JPG, PNG, WEBP, or HEIC.');
 
         $photoExt=$allowedPhoto[$photoMime];
-        $photoFinal='wound-baseline-'.date('Ymd-His').'-'.substr($oid,0,6).'.'.$photoExt;
-        $photoAbs=$DIRS['notes'].'/'.$photoFinal;
+        $photoFinal='baseline-'.date('Ymd-His').'-'.substr($oid,0,6).'.'.$photoExt;
+        $photoAbs=$DIRS['wound_photos'].'/'.$photoFinal;
 
         if(!@move_uploaded_file($photoFile['tmp_name'],$photoAbs)) jerr('Failed to save wound photo',500);
-        $photoRel='/uploads/notes/'.$photoFinal;
+        $photoRel='/uploads/wound-photos/'.$photoFinal;
 
         // Save to wound_photos table with order_id linkage
+        // These are baseline/documentation photos, not billable review photos
         $photoId = bin2hex(random_bytes(16));
         $pdo->prepare("
           INSERT INTO wound_photos
-          (id, patient_id, order_id, photo_path, photo_mime, photo_size_bytes, uploaded_via, uploaded_at)
-          VALUES (?, ?, ?, ?, ?, ?, 'portal_order', NOW())
+          (id, patient_id, order_id, photo_path, photo_mime, photo_size_bytes, uploaded_via, uploaded_at, reviewed_at)
+          VALUES (?, ?, ?, ?, ?, ?, 'portal_order', NOW(), NOW())
         ")->execute([$photoId, $pid, $oid, $photoRel, $photoMime, $photoFile['size']]);
+
+        // Note: reviewed_at is set to NOW() to mark as non-billable (already processed as part of order)
       }
 
       // snapshot provider signature
