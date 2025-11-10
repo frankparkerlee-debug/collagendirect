@@ -33,6 +33,10 @@ services:
       - key: SMTP_FROM_NAME
         value: CollagenDirect
     healthCheckPath: /portal/health.php
+    disk:
+      name: uploads
+      mountPath: /opt/render/project/src/uploads
+      sizeGB: 1
 
 databases:
   - name: collagendirect-db
