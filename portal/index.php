@@ -2119,7 +2119,20 @@ if ($action) {
 
       $payment_type=$_POST['payment_type'] ?? 'insurance';
 
-      $product_id=(int)($_POST['product_id']??0);
+      // Parse wounds_data to get product_id from first wound (for backward compatibility)
+      $wounds_json = $_POST['wounds_data'] ?? '';
+      $wounds_array = [];
+      if ($wounds_json) {
+        $wounds_array = json_decode($wounds_json, true) ?: [];
+      }
+
+      // Get product_id from first wound, or fallback to legacy POST field
+      $product_id = 0;
+      if (!empty($wounds_array) && isset($wounds_array[0]['product_id'])) {
+        $product_id = (int)$wounds_array[0]['product_id'];
+      } else {
+        $product_id = (int)($_POST['product_id'] ?? 0);
+      }
 
       // Check which columns exist (backward compatibility)
       $prodColCheck = $pdo->query("
@@ -2132,7 +2145,7 @@ if ($action) {
 
       $pr=$pdo->prepare("SELECT id, name, size, price_admin, {$hcpcsCol} as hcpcs_code{$categorySelect} FROM products WHERE id=? AND active=TRUE");
       $pr->execute([$product_id]); $prod=$pr->fetch(PDO::FETCH_ASSOC);
-      if(!$prod){ $pdo->rollBack(); jerr('Product not found',404); }
+      if(!$prod){ $pdo->rollBack(); jerr('Product not found (ID: '.$product_id.'). Please ensure each wound has a product selected.',404); }
 
       // REQUIRED: Patient ID and Insurance Card must always be on file
       if(empty($p['id_card_path']) || empty($p['ins_card_path'])){
@@ -2170,14 +2183,11 @@ if ($action) {
       }
 
       // ---------- Clinical completeness ----------
-      // Wounds data (multiple wounds support)
-      $wounds_json = trim((string)($_POST['wounds_data'] ?? ''));
-      if ($wounds_json === '') { $pdo->rollBack(); jerr('Wounds data is required.'); }
-
-      $wounds_data = json_decode($wounds_json, true);
-      if (!is_array($wounds_data) || count($wounds_data) === 0) {
+      // Wounds data already parsed above (used for product_id extraction)
+      if (!is_array($wounds_array) || count($wounds_array) === 0) {
         $pdo->rollBack(); jerr('At least one wound is required.');
       }
+      $wounds_data = $wounds_array; // Use the already-parsed data
 
       // Validate wounds data
       foreach ($wounds_data as $idx => $wound) {
@@ -2207,7 +2217,8 @@ if ($action) {
 
       $last_eval = $_POST['last_eval_date'] ?? null; if(!$last_eval){ $pdo->rollBack(); jerr('Date of last evaluation is required.'); }
 
-      $start_date = !empty($_POST['start_date']) ? $_POST['start_date'] : date('Y-m-d');
+      // Start date is now automatically set to day after order (no manual entry)
+      $start_date = date('Y-m-d', strtotime('+1 day'));
 
       // Validate: start_date must be within 30 days of last_eval_date
       $last_eval_ts = strtotime($last_eval);
@@ -2216,20 +2227,27 @@ if ($action) {
 
       if ($days_diff > 30) {
         $pdo->rollBack();
-        jerr('Order start date must be within 30 days of last evaluation. Last eval: ' . date('m/d/Y', $last_eval_ts) . ', Start date: ' . date('m/d/Y', $start_date_ts) . ' (' . round($days_diff) . ' days apart).');
+        jerr('Order start date (tomorrow) must be within 30 days of last evaluation. Last eval: ' . date('m/d/Y', $last_eval_ts) . ' (' . round($days_diff) . ' days apart). Please update the last evaluation date.');
       }
 
       if ($days_diff < 0) {
         $pdo->rollBack();
-        jerr('Order start date cannot be before the last evaluation date.');
+        jerr('Last evaluation date cannot be in the future. Please correct the date.');
       }
-      $freq_per_week = max(0,(int)($_POST['frequency_per_week']??0));
-      $qty_per_change = max(1,(int)($_POST['qty_per_change']??1));
-      $duration_days = max(1,(int)($_POST['duration_days']??30));
+
+      // Get frequency, qty, duration from first wound (for legacy columns and calculations)
+      // These are now per-wound, but we use first wound for backward compatibility
+      $freq_per_week = max(0,(int)($first_wound['frequency_per_week']??0));
+      $qty_per_change = max(1,(int)($first_wound['qty_per_change']??1));
+      $duration_days = max(1,(int)($first_wound['duration_days']??30));
       $refills_allowed = max(0,(int)($_POST['refills_allowed']??0));
-      $additional_instructions = trim((string)($_POST['additional_instructions']??''));
-      $secondary_dressing = trim((string)($_POST['secondary_dressing']??''));
-      if($freq_per_week<=0){ $pdo->rollBack(); jerr('Frequency per week is required.'); }
+
+      // Additional instructions and secondary dressing are now per-wound (stored in wounds_data)
+      // For legacy columns, use first wound's values
+      $additional_instructions = trim((string)($first_wound['notes']??''));
+      $secondary_dressing = trim((string)($first_wound['secondary_dressing']??''));
+
+      if($freq_per_week<=0){ $pdo->rollBack(); jerr('Frequency per week is required for each wound.'); }
 
       // Calculate product count: (Frequency/7 days) × Duration × Quantity per change × (1 + Refills)
       // This gives total number of products needed for the entire treatment including refills
