@@ -203,10 +203,25 @@ function renderOrderCard(order, index) {
   `;
 }
 
+/**
+ * View order details in enhanced dialog
+ * This is an alias to viewOrderDetails for compatibility
+ * @param {Object} order - Order object
+ */
+function viewOrderDetailsEnhanced(order) {
+  // Call the global viewOrderDetails function defined in index.php
+  if (typeof window.viewOrderDetails === 'function') {
+    window.viewOrderDetails(order);
+  } else {
+    console.error('viewOrderDetails function not found');
+  }
+}
+
 // Export functions
 if (typeof window !== 'undefined') {
   window.getOrderDisplayStatus = getOrderDisplayStatus;
   window.canEditOrder = canEditOrder;
   window.getStatusBadgeHTML = getStatusBadgeHTML;
   window.renderOrderCard = renderOrderCard;
+  window.viewOrderDetailsEnhanced = viewOrderDetailsEnhanced;
 }
