@@ -8419,6 +8419,32 @@ function initWoundsManager() {
   console.log('Wounds manager initialized successfully');
 }
 
+// Populate product dropdown for a wound
+async function populateWoundProductDropdown(woundEl) {
+  const productSelect = woundEl.querySelector('.wound-product');
+  if (!productSelect) return;
+
+  try {
+    const res = await api('action=products');
+    const products = res.rows || [];
+
+    // Clear existing options except the first one
+    productSelect.innerHTML = '<option value="">Select product...</option>';
+
+    products.forEach(p => {
+      const option = document.createElement('option');
+      option.value = p.id;
+      option.textContent = p.name + (p.size ? ' ' + p.size : '');
+      option.dataset.productName = p.name;
+      option.dataset.cpt = p.cpt || '';
+      option.dataset.price = p.price || '0';
+      productSelect.appendChild(option);
+    });
+  } catch (e) {
+    console.error('Failed to load products for wound:', e);
+  }
+}
+
 function addWound() {
   console.log('addWound() called, woundCounter:', woundCounter);
   const container = $('#wounds-container');
@@ -8444,6 +8470,28 @@ function addWound() {
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div class="md:col-span-2">
+        <label class="text-sm">Product <span class="text-red-600">*</span></label>
+        <select class="wound-product w-full">
+          <option value="">Select product...</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-sm">Change Frequency <span class="text-red-600">*</span></label>
+        <select class="wound-frequency w-full">
+          <option value="">Select frequency</option>
+          <option value="7">Daily (7x/week)</option>
+          <option value="5">5x/week</option>
+          <option value="4">Every other day (4x/week)</option>
+          <option value="3">3x/week</option>
+          <option value="2">2x/week</option>
+          <option value="1">Weekly</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-sm">Qty per Change <span class="text-red-600">*</span></label>
+        <input class="wound-qty w-full" type="number" min="1" value="1">
+      </div>
       <div class="md:col-span-2">
         <label class="text-sm">Wound Location <span class="text-red-600">*</span></label>
         <select class="wound-location w-full">
@@ -8520,6 +8568,9 @@ function addWound() {
     initICD10Autocomplete();
   }
 
+  // Populate product dropdown for this wound
+  populateWoundProductDropdown(woundEl);
+
   // Remove handler
   const removeBtn = woundEl.querySelector('.wound-remove');
   if (removeBtn) {
@@ -8545,7 +8596,19 @@ function collectWoundsData() {
   const woundEls = document.querySelectorAll('[data-wound-index]');
 
   woundEls.forEach((el) => {
+    const productSelect = el.querySelector('.wound-product');
+    const selectedOption = productSelect?.options[productSelect.selectedIndex];
+
     const wound = {
+      // Product details for this wound
+      product_id: el.querySelector('.wound-product')?.value || '',
+      product_name: selectedOption?.dataset.productName || '',
+      product_cpt: selectedOption?.dataset.cpt || '',
+      product_price: parseFloat(selectedOption?.dataset.price) || 0,
+      frequency_per_week: parseInt(el.querySelector('.wound-frequency')?.value) || 0,
+      qty_per_change: parseInt(el.querySelector('.wound-qty')?.value) || 1,
+
+      // Wound details
       location: el.querySelector('.wound-location').value,
       laterality: el.querySelector('.wound-laterality').value,
       length_cm: parseFloat(el.querySelector('.wound-length').value) || null,
@@ -8866,8 +8929,18 @@ async function openOrderDialog(preselectId=null){
       // Validate wounds
       for (let i = 0; i < woundsData.length; i++) {
         const w = woundsData[i];
+        if (!w.product_id) {
+          alert(`Wound #${i + 1}: Please select a product`);
+          btn.disabled=false; btn.textContent='Submit Order';
+          return;
+        }
+        if (!w.frequency_per_week) {
+          alert(`Wound #${i + 1}: Please select change frequency`);
+          btn.disabled=false; btn.textContent='Submit Order';
+          return;
+        }
         if (!w.location || !w.length_cm || !w.width_cm || !w.icd10_primary || !w.exudate_level) {
-          alert(`Wound #${i + 1}: Please fill in required fields (Location, Length, Width, Exudate Level, Primary ICD-10)`);
+          alert(`Wound #${i + 1}: Please fill in required fields (Product, Frequency, Location, Length, Width, Exudate Level, Primary ICD-10)`);
           btn.disabled=false; btn.textContent='Submit Order';
           return;
         }
