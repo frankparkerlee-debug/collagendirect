@@ -123,31 +123,97 @@ $sec_insurance = '
   </table></div>
 ';
 
-$sec_wound = '
-  <h2>Wound Details</h2>
+// Parse wounds_data JSONB for multi-wound support
+$wounds = [];
+if (!empty($o['wounds_data'])) {
+  $wounds_json = is_string($o['wounds_data']) ? $o['wounds_data'] : json_encode($o['wounds_data']);
+  $wounds = json_decode($wounds_json, true) ?: [];
+}
+
+// If no wounds_data, fallback to legacy single-wound columns
+if (empty($wounds)) {
+  $wounds = [[
+    'location' => $o['wound_location'] ?? '—',
+    'laterality' => $o['wound_laterality'] ?? '—',
+    'length_cm' => $o['wound_length_cm'] ?? '—',
+    'width_cm' => $o['wound_width_cm'] ?? '—',
+    'depth_cm' => $o['wound_depth_cm'] ?? '—',
+    'type' => $o['wound_type'] ?? '—',
+    'stage' => $o['wound_stage'] ?? '—',
+    'exudate_level' => $o['exudate_level'] ?? '—',
+    'icd10_primary' => $o['icd10_primary'] ?? '—',
+    'icd10_secondary' => $o['icd10_secondary'] ?? '—',
+    'product_name' => $o['product'] ?? '—',
+    'frequency_per_week' => $fpw,
+    'qty_per_change' => $qty,
+    'notes' => $o['wound_notes'] ?? ''
+  ]];
+}
+
+// Build wounds section with each wound
+$sec_wound = '';
+$wound_num = 1;
+foreach ($wounds as $wound) {
+  $w_product = h($wound['product_name'] ?? '—');
+  $w_freq = (int)($wound['frequency_per_week'] ?? 0);
+  $w_qty = (int)($wound['qty_per_change'] ?? 1);
+
+  $sec_wound .= '
+  <h2>Wound #'.$wound_num.'</h2>
   <div class="box"><table class="kv">
-    <tr><td class="key">Location</td><td>'.h($o['wound_location'] ?? "—").'</td></tr>
-    <tr><td class="key">Laterality</td><td>'.h($o['wound_laterality'] ?? "—").'</td></tr>
-    <tr><td class="key">Length (cm)</td><td>'.h($o['wound_length_cm'] ?? "—").'</td></tr>
-    <tr><td class="key">Width (cm)</td><td>'.h($o['wound_width_cm'] ?? "—").'</td></tr>
-    <tr><td class="key">Depth (cm)</td><td>'.h($o['wound_depth_cm'] ?? "—").'</td></tr>
-    <tr><td class="key">Type</td><td>'.h($o['wound_type'] ?? "—").'</td></tr>
-    <tr><td class="key">Stage</td><td>'.h($o['wound_stage'] ?? "—").'</td></tr>
-    <tr><td class="key">ICD-10 Primary</td><td>'.h($o['icd10_primary'] ?? "—").'</td></tr>
-    <tr><td class="key">ICD-10 Secondary</td><td>'.h($o['icd10_secondary'] ?? "—").'</td></tr>
+    <tr><td class="key">Product</td><td><strong>'.$w_product.'</strong></td></tr>
+    <tr><td class="key">Change Frequency</td><td>'.h((string)$w_freq).' × /week</td></tr>
+    <tr><td class="key">Qty per Change</td><td>'.h((string)$w_qty).'</td></tr>
+    <tr><td class="key">Location</td><td>'.h($wound['location'] ?? "—").'</td></tr>
+    <tr><td class="key">Laterality</td><td>'.h($wound['laterality'] ?? "—").'</td></tr>
+    <tr><td class="key">Dimensions</td><td>L: '.h($wound['length_cm'] ?? "—").' cm × W: '.h($wound['width_cm'] ?? "—").' cm × D: '.h($wound['depth_cm'] ?? "—").' cm</td></tr>
+    <tr><td class="key">Type</td><td>'.h($wound['type'] ?? "—").'</td></tr>
+    <tr><td class="key">Stage</td><td>'.h($wound['stage'] ?? "—").'</td></tr>
+    <tr><td class="key">Exudate Level</td><td>'.h($wound['exudate_level'] ?? "—").'</td></tr>
+    <tr><td class="key">ICD-10 Primary</td><td>'.h($wound['icd10_primary'] ?? "—").'</td></tr>
+    <tr><td class="key">ICD-10 Secondary</td><td>'.h($wound['icd10_secondary'] ?? "—").'</td></tr>';
+
+  if (!empty($wound['notes'])) {
+    $sec_wound .= '
+    <tr><td class="key">Patient Instructions</td><td>'.h($wound['notes']).'</td></tr>';
+  }
+
+  $sec_wound .= '
   </table></div>
-';
+  ';
+  $wound_num++;
+}
+
+// Calculate aggregate totals for all wounds
+$total_units_per_week = 0;
+$product_list = [];
+foreach ($wounds as $wound) {
+  $w_freq = (int)($wound['frequency_per_week'] ?? 0);
+  $w_qty = (int)($wound['qty_per_change'] ?? 1);
+  $total_units_per_week += $w_freq * $w_qty;
+
+  $p_name = $wound['product_name'] ?? 'Unknown';
+  if (!in_array($p_name, $product_list)) {
+    $product_list[] = $p_name;
+  }
+}
+
+$duration_days = max(0, (int)($o['duration_days'] ?? 0));
+$duration_weeks = $duration_days > 0 ? (int)ceil($duration_days / 7) : 0;
+$total_units_for_duration = $total_units_per_week * $duration_weeks * (1 + $refills);
+
+$products_summary = count($product_list) === 1 ? $product_list[0] : implode(', ', $product_list);
 
 $sec_order = '
-  <h2>Order Details</h2>
+  <h2>Order Summary</h2>
   <div class="box"><table class="kv">
     <tr><td class="key">Order #</td><td>'.h($o['id']).'</td></tr>
-    <tr><td class="key">Product</td><td>'.h($o['product'] ?? "").'</td></tr>
-    <tr><td class="key">Change Frequency</td><td>'.h((string)$fpw).' × /week</td></tr>
-    <tr><td class="key">Qty per Change</td><td>'.h((string)$qty).'</td></tr>
-    <tr><td class="key">Duration (days)</td><td>'.h((string)max(0,(int)($o['duration_days'] ?? 0))).'</td></tr>
+    <tr><td class="key">Number of Wounds</td><td>'.count($wounds).'</td></tr>
+    <tr><td class="key">Products</td><td>'.h($products_summary).'</td></tr>
+    <tr><td class="key">Total Units per Week</td><td>'.h((string)$total_units_per_week).'</td></tr>
+    <tr><td class="key">Duration (days)</td><td>'.h((string)$duration_days).' ('.h((string)$duration_weeks).' weeks)</td></tr>
     <tr><td class="key">Refills Allowed</td><td>'.h((string)$refills).'</td></tr>
-    <tr><td class="key">Total Authorized Units</td><td>'.h((string)$units_total).'</td></tr>
+    <tr><td class="key">Total Authorized Units</td><td><strong>'.h((string)$total_units_for_duration).'</strong> (across all wounds)</td></tr>
     <tr><td class="key">Delivery Mode</td><td>'.h($o['delivery_mode'] ?? "—").'</td></tr>
     <tr><td class="key">Status</td><td>'.h($o['status'] ?? "—").'</td></tr>
     <tr><td class="key">Created</td><td>'.h($o['created_at'] ?? "—").'</td></tr>
