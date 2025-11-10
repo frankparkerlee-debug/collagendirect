@@ -2325,6 +2325,31 @@ if ($action) {
         }
       }
 
+      // Baseline wound photo (optional) - attach to order
+      if(!empty($_FILES['baseline_wound_photo']) && $_FILES['baseline_wound_photo']['error']===UPLOAD_ERR_OK){
+        $photoFile=$_FILES['baseline_wound_photo'];
+        if($photoFile['size']>25*1024*1024) jerr('Photo file too large (max 25MB)');
+
+        $photoMime=$fi->file($photoFile['tmp_name']) ?: 'application/octet-stream';
+        $allowedPhoto=['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp','image/heic'=>'heic'];
+        if(!isset($allowedPhoto[$photoMime])) jerr('Invalid photo format. Please upload JPG, PNG, WEBP, or HEIC.');
+
+        $photoExt=$allowedPhoto[$photoMime];
+        $photoFinal='wound-baseline-'.date('Ymd-His').'-'.substr($oid,0,6).'.'.$photoExt;
+        $photoAbs=$DIRS['notes'].'/'.$photoFinal;
+
+        if(!@move_uploaded_file($photoFile['tmp_name'],$photoAbs)) jerr('Failed to save wound photo',500);
+        $photoRel='/uploads/notes/'.$photoFinal;
+
+        // Save to wound_photos table with order_id linkage
+        $photoId = bin2hex(random_bytes(16));
+        $pdo->prepare("
+          INSERT INTO wound_photos
+          (id, patient_id, order_id, photo_path, photo_mime, photo_size_bytes, uploaded_via, uploaded_at)
+          VALUES (?, ?, ?, ?, ?, ?, 'portal_order', NOW())
+        ")->execute([$photoId, $pid, $oid, $photoRel, $photoMime, $photoFile['size']]);
+      }
+
       // snapshot provider signature
       $pdo->prepare("UPDATE users SET sign_name=?,sign_title=?,sign_date=CURRENT_DATE,updated_at=NOW() WHERE id=?")
           ->execute([$sign_name,$sign_title,$userId]);
