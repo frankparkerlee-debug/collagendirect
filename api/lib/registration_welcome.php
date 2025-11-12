@@ -27,6 +27,13 @@ function send_registration_welcome_email(array $userData): bool {
   $roleTitle = '';
   $nextSteps = '';
   $portalAccess = '';
+  $trainingMaterials = "
+**Training & Support Resources:**
+- Getting Started Guide: https://docs.collagendirect.health/getting-started
+- Video Tutorials: https://docs.collagendirect.health/videos
+- Order Creation Walkthrough: https://docs.collagendirect.health/orders
+- Billing & Documentation: https://docs.collagendirect.health/billing
+- FAQs: https://docs.collagendirect.health/faq";
 
   switch ($userType) {
     case 'practice_admin':
@@ -38,14 +45,23 @@ You now have full access to the CollagenDirect Physician Portal where you can:
 - Track order status and shipments
 - Upload patient documentation
 - Manage your practice team and physicians
-- Configure billing and insurance settings";
+- Configure billing and insurance settings
+
+**About Your Role:**
+As a Practice Owner, you can:
+- Create and manage orders for your patients
+- Add and manage physicians within your practice
+- Configure practice-wide billing settings
+- Access all orders created by physicians in your practice
+- Review wound photos and telehealth assessments";
 
       $nextSteps = "
 **Next Steps:**
 1. Log in to your portal at: https://collagendirect.health/portal
 2. Complete your practice profile
 3. Add physicians to your practice (if applicable)
-4. Start creating orders for your patients";
+4. Review the training materials below to get started
+5. Start creating orders for your patients";
       break;
 
     case 'physician':
@@ -59,16 +75,25 @@ You now have access to the CollagenDirect Physician Portal where you can:
 - Review wound photos and assessments
 - Track patient progress
 - Generate billable E/M codes for telehealth reviews
-- Access patient documentation";
+- Access patient documentation
+
+**About Your Role:**
+As a Physician within a practice, you can:
+- Create and manage orders for your own patients
+- Review wound photos and telehealth assessments
+- Generate billable E/M codes for telehealth reviews
+- Access your patient documentation
+- All orders you create are also visible to your practice administrator";
 
       $nextSteps = "
 **Next Steps:**
 1. Log in to your portal at: https://collagendirect.health/portal
 2. Complete your physician profile
-3. Start creating orders for your patients";
+3. Review the training materials below to get started
+4. Start creating orders for your patients";
 
       if ($pmEmail) {
-        $nextSteps .= "\n4. Your practice manager ($pmEmail) will manage your practice settings";
+        $nextSteps .= "\n5. Your practice manager ($pmEmail) will manage your practice settings";
       }
       break;
 
@@ -132,17 +157,20 @@ Email: $email";
 
 $nextSteps
 
+$trainingMaterials
+
 **Need Help?**
 - Portal Support: https://docs.collagendirect.health
 - Email: support@collagendirect.health
 - Phone: (888) 415-6880
+- Live Chat: Available in your portal
 
 **Important Reminders:**
 - Keep your login credentials secure
 - Complete your profile information for faster order processing
 - Review our HIPAA Business Associate Agreement in your portal settings
 
-Thank you for choosing CollagenDirect. We look forward to partnering with you in providing exceptional wound care to your patients.
+Thank you for choosing CollagenDirect. We look forward to partnering with you in providing exceptional wound care to your patients!
 
 Best regards,
 The CollagenDirect Team
