@@ -5752,11 +5752,11 @@ if ($page==='logout'){
             <input id="np-last"  placeholder="Last name">
             <input id="np-dob"   type="date" placeholder="DOB">
             <input id="np-phone" placeholder="Phone (10 digits)">
-            <div class="md:col-span-2" style="display:flex;align-items:center;gap:0.5rem;padding:0.5rem 0;">
-              <input type="checkbox" id="np-accepts-sms" style="width:auto;">
-              <label for="np-accepts-sms" style="margin:0;font-size:0.875rem;cursor:pointer;">Patient consents to receive text messages (SMS delivery confirmations)</label>
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              <input type="checkbox" id="np-accepts-sms" style="width:auto;margin:0;">
+              <label for="np-accepts-sms" style="margin:0;font-size:0.8rem;cursor:pointer;white-space:nowrap;">Accepts SMS</label>
             </div>
-            <input id="np-email" class="md:col-span-2" placeholder="Email (required if text messages declined)">
+            <input id="np-email" placeholder="Email">
             <input id="np-address" class="md:col-span-2" placeholder="Street Address">
             <input id="np-city" placeholder="City">
             <input id="np-state" placeholder="State">
@@ -9105,6 +9105,21 @@ async function openOrderDialog(preselectId=null){
     if(add) add.onclick=()=>{
       list.classList.add('hidden');
       create.classList.remove('hidden');
+      // Clear all form fields for new patient
+      $('#np-first').value = '';
+      $('#np-last').value = '';
+      $('#np-dob').value = '';
+      $('#np-phone').value = '';
+      $('#np-accepts-sms').checked = false;
+      $('#np-email').value = '';
+      $('#np-address').value = '';
+      $('#np-city').value = '';
+      $('#np-state').value = '';
+      $('#np-zip').value = '';
+      $('#np-ins-provider').value = '';
+      $('#np-ins-member-id').value = '';
+      $('#np-ins-group-id').value = '';
+      $('#np-ins-payer-phone').value = '';
       const npFirst = $('#np-first');
       if (npFirst) npFirst.focus();
       // Initialize address autocomplete for new patient section
