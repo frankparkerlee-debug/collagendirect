@@ -559,25 +559,15 @@
               <input id="taxId" placeholder="##-#######" />
             </div>
             <div id="field-address">
-              <label for="address">Street Address</label>
-              <input id="address" />
-              <div class="error-message">Street address is required</div>
+              <label for="address">Full Address</label>
+              <input id="address" placeholder="Start typing address..." />
+              <div style="font-size: 0.875rem; color: #64748b; margin-top: 0.25rem;">Address will autocomplete as you type</div>
+              <div class="error-message">Address is required</div>
             </div>
-            <div id="field-city">
-              <label for="city">City</label>
-              <input id="city" />
-              <div class="error-message">City is required</div>
-            </div>
-            <div id="field-state">
-              <label for="state">State</label>
-              <select id="state"></select>
-              <div class="error-message">State is required</div>
-            </div>
-            <div id="field-zip">
-              <label for="zip">ZIP</label>
-              <input id="zip" pattern="\d{5}(-\d{4})?" placeholder="12345" />
-              <div class="error-message">ZIP code is required</div>
-            </div>
+            <!-- Hidden fields for structured data storage -->
+            <input type="hidden" id="city" />
+            <input type="hidden" id="state" />
+            <input type="hidden" id="zip" />
             <div id="field-phone">
               <label for="phone">Practice Phone</label>
               <input id="phone" type="tel" placeholder="(555) 555-5555" />
@@ -1111,6 +1101,9 @@
           // Initialize address autocomplete now that section is visible
           if (typeof initAddressAutocomplete === 'function' && document.getElementById('address')) {
             initAddressAutocomplete('address', (addressData) => {
+              // Use formatted address as the main address field
+              document.getElementById('address').value = addressData.formatted || addressData.street || '';
+              // Store parsed components in hidden fields for database
               document.getElementById('city').value = addressData.city || '';
               document.getElementById('state').value = addressData.state || '';
               document.getElementById('zip').value = addressData.zip || '';
@@ -1146,6 +1139,9 @@
           // Initialize address autocomplete now that section is visible
           if (typeof initAddressAutocomplete === 'function' && document.getElementById('address')) {
             initAddressAutocomplete('address', (addressData) => {
+              // Use formatted address as the main address field
+              document.getElementById('address').value = addressData.formatted || addressData.street || '';
+              // Store parsed components in hidden fields for database
               document.getElementById('city').value = addressData.city || '';
               document.getElementById('state').value = addressData.state || '';
               document.getElementById('zip').value = addressData.zip || '';

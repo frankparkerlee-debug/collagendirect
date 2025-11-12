@@ -5145,17 +5145,21 @@ if ($page==='logout'){
             <input type="text" id="practice-name" class="w-full mt-1" required>
           </div>
           <div>
-            <label class="text-sm font-medium text-slate-700">Practice Address</label>
-            <input type="text" id="practice-address" class="w-full mt-1" placeholder="Street Address">
+            <label class="text-sm font-medium text-slate-700">Full Practice Address</label>
+            <input type="text" id="practice-address" class="w-full mt-1" placeholder="Start typing address...">
+            <div class="text-xs text-slate-500 mt-1">Address will autocomplete as you type</div>
           </div>
-          <div class="grid grid-cols-3 gap-4">
+          <!-- Hidden fields for structured data -->
+          <input type="hidden" id="practice-city">
+          <input type="hidden" id="practice-state">
+          <div style="display:none;" class="grid grid-cols-3 gap-4">
             <div>
               <label class="text-sm font-medium text-slate-700">City</label>
-              <input type="text" id="practice-city" class="w-full mt-1">
+              <input type="text" id="practice-city-display" class="w-full mt-1" disabled>
             </div>
             <div>
               <label class="text-sm font-medium text-slate-700">State</label>
-              <select id="practice-state" class="w-full mt-1">
+              <select id="practice-state-display" class="w-full mt-1" disabled>
                 <option value="">Select State</option>
                 <option value="AL">Alabama</option>
                 <option value="AK">Alaska</option>
@@ -5211,9 +5215,10 @@ if ($page==='logout'){
             </div>
             <div>
               <label class="text-sm font-medium text-slate-700">ZIP Code</label>
-              <input type="text" id="practice-zip" class="w-full mt-1">
+              <input type="text" id="practice-zip-display" class="w-full mt-1" disabled>
             </div>
           </div>
+          <input type="hidden" id="practice-zip">
           <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="text-sm font-medium text-slate-700">Practice Phone</label>
@@ -5868,15 +5873,14 @@ if ($page==='logout'){
             <div id="office-addr" class="grid grid-cols-1 md:grid-cols-2 gap-3 hidden">
               <div class="md:col-span-2"><input id="ship-name" class="w-full" placeholder="Recipient / Attn"></div>
               <div><input id="ship-phone" class="w-full" placeholder="Phone (10 digits)"></div>
-              <div class="md:col-span-2"><input id="ship-addr" class="w-full" placeholder="Street address"></div>
-              <div><input id="ship-city" class="w-full" placeholder="City"></div>
-              <div>
-                <select id="ship-state" class="w-full">
-                  <option value="">State</option>
-                  <?php foreach(usStates() as $s) echo "<option>$s</option>"; ?>
-                </select>
+              <div class="md:col-span-2">
+                <input id="ship-addr" class="w-full" placeholder="Start typing full address...">
+                <div class="text-xs text-slate-500 mt-1">Address will autocomplete as you type</div>
               </div>
-              <div><input id="ship-zip" class="w-full" placeholder="ZIP"></div>
+              <!-- Hidden fields for structured data -->
+              <input type="hidden" id="ship-city">
+              <input type="hidden" id="ship-state">
+              <input type="hidden" id="ship-zip">
             </div>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-3 bg-slate-50 rounded-xl border">
@@ -5964,24 +5968,14 @@ if ($page==='logout'){
         <!-- Address -->
         <div class="md:col-span-2 text-sm font-medium" style="margin-top:0.5rem">Address</div>
         <div class="md:col-span-2">
-          <label class="text-sm font-medium">Street Address</label>
-          <input id="patient-address" class="w-full" placeholder="123 Main St">
+          <label class="text-sm font-medium">Full Address</label>
+          <input id="patient-address" class="w-full" placeholder="Start typing address...">
+          <div class="text-xs text-slate-500 mt-1">Address will autocomplete as you type</div>
         </div>
-        <div>
-          <label class="text-sm font-medium">City</label>
-          <input id="patient-city" class="w-full" placeholder="City">
-        </div>
-        <div>
-          <label class="text-sm font-medium">State</label>
-          <select id="patient-state" class="w-full">
-            <option value="">Select State</option>
-            <?php foreach(usStates() as $s) echo "<option>$s</option>"; ?>
-          </select>
-        </div>
-        <div>
-          <label class="text-sm font-medium">ZIP</label>
-          <input id="patient-zip" class="w-full" placeholder="12345">
-        </div>
+        <!-- Hidden fields for structured data -->
+        <input type="hidden" id="patient-city">
+        <input type="hidden" id="patient-state">
+        <input type="hidden" id="patient-zip">
 
         <!-- Insurance Information -->
         <div class="md:col-span-2 text-sm font-medium" style="margin-top:0.5rem">Insurance Information</div>
@@ -6440,6 +6434,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('patient-address') && !window.addressAutocompleteInitialized['patient-address']) {
       window.addressAutocompleteInitialized['patient-address'] = true;
       initAddressAutocomplete('patient-address', (address) => {
+        // Use formatted address as the main address field
+        document.getElementById('patient-address').value = address.formatted || address.street || '';
+        // Store parsed components in hidden fields for database
         document.getElementById('patient-city').value = address.city || '';
         document.getElementById('patient-state').value = address.state || '';
         document.getElementById('patient-zip').value = address.zip || '';
@@ -6450,6 +6447,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('practice-address') && !window.addressAutocompleteInitialized['practice-address']) {
       window.addressAutocompleteInitialized['practice-address'] = true;
       initAddressAutocomplete('practice-address', (address) => {
+        // Use formatted address as the main address field
+        document.getElementById('practice-address').value = address.formatted || address.street || '';
+        // Store parsed components in hidden fields for database
         document.getElementById('practice-city').value = address.city || '';
         document.getElementById('practice-state').value = address.state || '';
         document.getElementById('practice-zip').value = address.zip || '';
@@ -6460,6 +6460,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('ship-addr') && !window.addressAutocompleteInitialized['ship-addr']) {
       window.addressAutocompleteInitialized['ship-addr'] = true;
       initAddressAutocomplete('ship-addr', (address) => {
+        // Use formatted address as the main address field
+        if (document.getElementById('ship-addr')) document.getElementById('ship-addr').value = address.formatted || address.street || '';
+        // Store parsed components in hidden fields for database
         if (document.getElementById('ship-city')) document.getElementById('ship-city').value = address.city || '';
         if (document.getElementById('ship-state')) document.getElementById('ship-state').value = address.state || '';
         if (document.getElementById('ship-zip')) document.getElementById('ship-zip').value = address.zip || '';
