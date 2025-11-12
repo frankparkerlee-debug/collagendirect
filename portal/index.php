@@ -5505,17 +5505,12 @@ if ($page==='logout'){
         <div class="pt-4 border-t">
           <h3 class="font-semibold mb-3">Address</h3>
           <div class="space-y-3">
-            <input type="text" id="new-address" class="w-full" placeholder="Street address">
-            <div class="grid grid-cols-2 gap-2">
-              <input type="text" id="new-city" class="w-full" placeholder="City">
-              <select id="new-state" class="w-full">
-                <option value="">State</option>
-                <?php foreach(usStates() as $s): ?>
-                  <option value="<?php echo htmlspecialchars($s); ?>"><?php echo htmlspecialchars($s); ?></option>
-                <?php endforeach; ?>
-              </select>
-            </div>
-            <input type="text" id="new-zip" class="w-full" placeholder="ZIP code">
+            <input type="text" id="new-address" class="w-full" placeholder="Start typing full address...">
+            <div class="text-xs text-slate-500">Address will autocomplete as you type</div>
+            <!-- Hidden fields for structured data -->
+            <input type="hidden" id="new-city">
+            <input type="hidden" id="new-state">
+            <input type="hidden" id="new-zip">
           </div>
         </div>
 
@@ -6480,6 +6475,19 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('np-city').value = address.city || '';
         document.getElementById('np-state').value = address.state || '';
         document.getElementById('np-zip').value = address.zip || '';
+      });
+    }
+
+    // Full page "Add Patient" form address
+    if (document.getElementById('new-address') && !window.addressAutocompleteInitialized['new-address']) {
+      window.addressAutocompleteInitialized['new-address'] = true;
+      initAddressAutocomplete('new-address', (address) => {
+        // Use formatted address as the main address field
+        document.getElementById('new-address').value = address.formatted || address.street || '';
+        // Store parsed components in hidden fields for database
+        document.getElementById('new-city').value = address.city || '';
+        document.getElementById('new-state').value = address.state || '';
+        document.getElementById('new-zip').value = address.zip || '';
       });
     }
   }
