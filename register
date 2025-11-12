@@ -1108,6 +1108,15 @@
           dmeSection.hidden = true;
           agreementsSection.hidden = false;
 
+          // Initialize address autocomplete now that section is visible
+          if (typeof initAddressAutocomplete === 'function' && document.getElementById('address')) {
+            initAddressAutocomplete('address', (addressData) => {
+              document.getElementById('city').value = addressData.city || '';
+              document.getElementById('state').value = addressData.state || '';
+              document.getElementById('zip').value = addressData.zip || '';
+            });
+          }
+
           // Set required fields
           setRequired(['practiceName', 'address', 'city', 'state', 'zip', 'phone', 'firstName', 'lastName', 'npi', 'license', 'licenseState', 'licenseExpiry', 'agreeMSA', 'agreeBAA', 'signName', 'signTitle', 'signDate']);
           setOptional(['dmeNumber', 'dmeState', 'dmeExpiry', 'practiceManagerEmail']);
@@ -1133,6 +1142,15 @@
           practiceManagerLinkSection.hidden = true;
           dmeSection.hidden = false;
           agreementsSection.hidden = false;
+
+          // Initialize address autocomplete now that section is visible
+          if (typeof initAddressAutocomplete === 'function' && document.getElementById('address')) {
+            initAddressAutocomplete('address', (addressData) => {
+              document.getElementById('city').value = addressData.city || '';
+              document.getElementById('state').value = addressData.state || '';
+              document.getElementById('zip').value = addressData.zip || '';
+            });
+          }
 
           // Set required fields
           setRequired(['practiceName', 'address', 'city', 'state', 'zip', 'phone', 'firstName', 'lastName', 'npi', 'license', 'licenseState', 'licenseExpiry', 'dmeNumber', 'dmeState', 'dmeExpiry', 'agreeMSA', 'agreeBAA', 'signName', 'signTitle', 'signDate']);
@@ -1511,15 +1529,6 @@
         console.error(err);
       }
     });
-
-    // Initialize address autocomplete
-    if (typeof initAddressAutocomplete === 'function') {
-      initAddressAutocomplete('address', (addressData) => {
-        document.getElementById('city').value = addressData.city || '';
-        document.getElementById('state').value = addressData.state || '';
-        document.getElementById('zip').value = addressData.zip || '';
-      });
-    }
 
     // Set year in footer
     document.getElementById('year').textContent = new Date().getFullYear();

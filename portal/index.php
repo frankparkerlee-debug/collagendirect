@@ -6429,10 +6429,16 @@ document.addEventListener('DOMContentLoaded', () => {
   // Version marker for debugging
   console.log('Portal JS loaded - Version: 2025-11-12 (Address autocomplete added)');
 
+  // Track which address fields have been initialized
+  window.addressAutocompleteInitialized = window.addressAutocompleteInitialized || {};
+
   // Initialize address autocomplete for all address fields
-  if (typeof initAddressAutocomplete === 'function') {
+  function initAddressFields() {
+    if (typeof initAddressAutocomplete !== 'function') return;
+
     // Patient address in new patient modal
-    if (document.getElementById('patient-address')) {
+    if (document.getElementById('patient-address') && !window.addressAutocompleteInitialized['patient-address']) {
+      window.addressAutocompleteInitialized['patient-address'] = true;
       initAddressAutocomplete('patient-address', (address) => {
         document.getElementById('patient-city').value = address.city || '';
         document.getElementById('patient-state').value = address.state || '';
@@ -6441,7 +6447,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Practice address in settings
-    if (document.getElementById('practice-address')) {
+    if (document.getElementById('practice-address') && !window.addressAutocompleteInitialized['practice-address']) {
+      window.addressAutocompleteInitialized['practice-address'] = true;
       initAddressAutocomplete('practice-address', (address) => {
         document.getElementById('practice-city').value = address.city || '';
         document.getElementById('practice-state').value = address.state || '';
@@ -6450,7 +6457,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Shipping address in order forms (if exists)
-    if (document.getElementById('ship-addr')) {
+    if (document.getElementById('ship-addr') && !window.addressAutocompleteInitialized['ship-addr']) {
+      window.addressAutocompleteInitialized['ship-addr'] = true;
       initAddressAutocomplete('ship-addr', (address) => {
         if (document.getElementById('ship-city')) document.getElementById('ship-city').value = address.city || '';
         if (document.getElementById('ship-state')) document.getElementById('ship-state').value = address.state || '';
@@ -6458,6 +6466,9 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
   }
+
+  // Initialize on page load
+  initAddressFields();
 
   const profileMenu = document.getElementById('profile-menu');
   const globalNewOrderBtn = document.getElementById('global-new-order-btn');
@@ -7102,6 +7113,12 @@ if (<?php echo json_encode($page==='patients'); ?>){
     $('#patient-hint').style.color='';
     // Open dialog
     document.getElementById('dlg-patient').showModal();
+    // Initialize address autocomplete for patient modal (after modal is shown)
+    setTimeout(() => {
+      if (typeof initAddressFields === 'function') {
+        initAddressFields();
+      }
+    }, 100);
   });
 
   // Save Patient button
