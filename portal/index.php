@@ -5754,14 +5754,10 @@ if ($page==='logout'){
             <input id="np-phone" placeholder="Phone (10 digits)">
             <input id="np-cell-phone" placeholder="Cell Phone (10 digits)">
             <input id="np-email" class="md:col-span-2" placeholder="Email">
-            <div class="md:col-span-2">
-              <input id="np-address" class="w-full" placeholder="Start typing full address...">
-              <div class="text-xs text-slate-500 mt-1">Address will autocomplete as you type</div>
-            </div>
-            <!-- Hidden fields for structured data -->
-            <input type="hidden" id="np-city">
-            <input type="hidden" id="np-state">
-            <input type="hidden" id="np-zip">
+            <input id="np-address" class="md:col-span-2" placeholder="Street Address">
+            <input id="np-city" placeholder="City">
+            <input id="np-state" placeholder="State">
+            <input id="np-zip" placeholder="ZIP Code">
 
             <!-- Insurance Information -->
             <div class="md:col-span-2 text-sm font-medium" style="margin-top:0.5rem">Insurance Information</div>
