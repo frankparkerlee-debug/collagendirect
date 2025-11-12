@@ -1662,6 +1662,7 @@ if ($action) {
     $clinicalNote = trim((string)($_POST['clinical_note'] ?? ''));
 
     if ($photoId === '') jerr('Missing photo ID');
+    if ($encounterId === '') jerr('Missing encounter ID');
     if ($clinicalNote === '') jerr('Clinical note cannot be empty');
 
     // Get photo and verify access
@@ -1688,26 +1689,22 @@ if ($action) {
       jerr('Photo has not been reviewed yet. Use the review action instead.');
     }
 
-    // Update the billable encounter's clinical note
-    if ($photo['billable_encounter_id']) {
-      $updateStmt = $pdo->prepare("
-        UPDATE billable_encounters
-        SET clinical_note = ?, updated_at = NOW()
-        WHERE id = ? AND physician_id = ?
-      ");
-      $result = $updateStmt->execute([$clinicalNote, $photo['billable_encounter_id'], $userId]);
+    // Update the billable encounter's clinical note using the encounter_id from the request
+    $updateStmt = $pdo->prepare("
+      UPDATE billable_encounters
+      SET clinical_note = ?, updated_at = NOW()
+      WHERE id = ? AND physician_id = ?
+    ");
+    $result = $updateStmt->execute([$clinicalNote, $encounterId, $userId]);
 
-      if (!$result || $updateStmt->rowCount() === 0) {
-        jerr('Failed to update clinical note. You may not have permission to edit this encounter.');
-      }
-
-      jok([
-        'message' => 'Clinical notes updated successfully',
-        'encounter_id' => $photo['billable_encounter_id']
-      ]);
-    } else {
-      jerr('No billable encounter found for this photo');
+    if (!$result || $updateStmt->rowCount() === 0) {
+      jerr('Failed to update clinical note. You may not have permission to edit this encounter.');
     }
+
+    jok([
+      'message' => 'Clinical notes updated successfully',
+      'encounter_id' => $encounterId
+    ]);
   }
 
   /* ---- Export billing encounters to CSV ---- */
