@@ -191,6 +191,20 @@ try {
     }
   }
 
+  // Send welcome email (don't fail registration if email fails)
+  try {
+    require_once __DIR__ . '/lib/registration_welcome.php';
+
+    // Send welcome email to the new user
+    send_registration_welcome_email($data);
+
+    // Send notification to admin
+    send_admin_new_registration_notification($data);
+  } catch (Throwable $emailError) {
+    error_log("Failed to send registration emails: " . $emailError->getMessage());
+    // Continue - don't fail registration because of email issues
+  }
+
   json_out(201, ['ok' => true, 'message' => 'Registration successful']);
 
 } catch (Throwable $e) {
