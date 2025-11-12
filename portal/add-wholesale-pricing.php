@@ -11,7 +11,9 @@ header('Content-Type: text/plain; charset=utf-8');
 echo "=== Adding Wholesale Pricing to Products Table ===\n\n";
 
 try {
-  $db = db();
+  // Use global $pdo from db.php
+  global $pdo;
+  $db = $pdo;
 
   // Check if columns already exist
   $stmt = $db->query("
