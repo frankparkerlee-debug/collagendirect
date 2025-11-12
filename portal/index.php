@@ -5752,8 +5752,11 @@ if ($page==='logout'){
             <input id="np-last"  placeholder="Last name">
             <input id="np-dob"   type="date" placeholder="DOB">
             <input id="np-phone" placeholder="Phone (10 digits)">
-            <input id="np-cell-phone" placeholder="Cell Phone (10 digits)">
-            <input id="np-email" class="md:col-span-2" placeholder="Email">
+            <div class="md:col-span-2" style="display:flex;align-items:center;gap:0.5rem;padding:0.5rem 0;">
+              <input type="checkbox" id="np-accepts-sms" style="width:auto;">
+              <label for="np-accepts-sms" style="margin:0;font-size:0.875rem;cursor:pointer;">Patient consents to receive text messages (SMS delivery confirmations)</label>
+            </div>
+            <input id="np-email" class="md:col-span-2" placeholder="Email (required if text messages declined)">
             <input id="np-address" class="md:col-span-2" placeholder="Street Address">
             <input id="np-city" placeholder="City">
             <input id="np-state" placeholder="State">
@@ -9151,7 +9154,7 @@ async function openOrderDialog(preselectId=null){
     // Create patient first
     const r=await fetch('?action=patient.save',{method:'POST',body:fd({
       first_name:first,last_name:last,dob:$('#np-dob').value,
-      phone:$('#np-phone').value,cell_phone:$('#np-cell-phone').value,email:$('#np-email').value,
+      phone:$('#np-phone').value,accepts_sms:$('#np-accepts-sms').checked?'1':'0',email:$('#np-email').value,
       address:$('#np-address').value,city:$('#np-city').value,state:$('#np-state').value,zip:$('#np-zip').value,
       insurance_provider:$('#np-ins-provider').value,insurance_member_id:$('#np-ins-member-id').value,
       insurance_group_id:$('#np-ins-group-id').value,insurance_payer_phone:$('#np-ins-payer-phone').value
