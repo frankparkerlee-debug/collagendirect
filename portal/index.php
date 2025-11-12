@@ -5762,23 +5762,25 @@ if ($page==='logout'){
           <!-- Contact Information -->
           <div class="mb-3">
             <div class="text-sm font-semibold text-slate-700 mb-2">Contact Information</div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <input id="np-phone" placeholder="Phone (10 digits) *" class="w-full">
-              <div class="flex items-center gap-2 px-3 py-2 border border-slate-300 rounded-lg bg-slate-50">
-                <input type="checkbox" id="np-accepts-sms" class="w-4 h-4">
-                <label for="np-accepts-sms" class="text-sm cursor-pointer select-none">Patient accepts text messages</label>
-              </div>
+            <div class="flex gap-3 items-start">
+              <input id="np-phone" placeholder="Phone (10 digits) *" class="flex-1">
+              <label class="flex items-center gap-1.5 px-2.5 py-2 border border-slate-300 rounded bg-white cursor-pointer hover:bg-slate-50 whitespace-nowrap">
+                <input type="checkbox" id="np-accepts-sms" class="w-3.5 h-3.5 rounded border-slate-300">
+                <span class="text-sm text-slate-700 select-none">Accepts SMS</span>
+              </label>
             </div>
           </div>
 
           <!-- Address -->
           <div class="mb-3">
             <div class="text-sm font-semibold text-slate-700 mb-2">Address</div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <input id="np-address" class="md:col-span-2 w-full" placeholder="Street Address *">
-              <input id="np-city" placeholder="City *" class="w-full">
-              <input id="np-state" placeholder="State *" class="w-full">
-              <input id="np-zip" placeholder="ZIP Code *" class="w-full">
+            <div class="space-y-2">
+              <input id="np-address" placeholder="Street Address *" class="w-full">
+              <div class="grid grid-cols-12 gap-2">
+                <input id="np-city" placeholder="City *" class="col-span-6">
+                <input id="np-state" placeholder="State *" class="col-span-3">
+                <input id="np-zip" placeholder="ZIP *" class="col-span-3">
+              </div>
             </div>
           </div>
 
