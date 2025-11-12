@@ -6422,7 +6422,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const notificationsMenu = document.getElementById('notifications-menu');
   const profileBtn = document.getElementById('profile-btn');
   // Version marker for debugging
-  console.log('Portal JS loaded - Version: 2025-11-12 (Address autocomplete added)');
+  console.log('Portal JS loaded - Version: 2025-11-12-final (Address autocomplete complete)');
 
   // Track which address fields have been initialized
   window.addressAutocompleteInitialized = window.addressAutocompleteInitialized || {};
