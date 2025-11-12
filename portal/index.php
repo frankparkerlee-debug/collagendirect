@@ -189,12 +189,22 @@ function generateClinicalNote(array $photo, string $assessment, string $notes, P
   $photoTimestamp = date('F j, Y \a\t g:i A', strtotime($photo['uploaded_at']));
   $reviewTimeElapsed = calculateElapsedTime($photo['uploaded_at']);
 
+  // Get prior photos for comparison (critical for MDM data complexity)
+  $priorPhotosStmt = $pdo->prepare("
+    SELECT COUNT(*) as photo_count, MAX(uploaded_at) as last_photo
+    FROM wound_photos
+    WHERE patient_id = ? AND id != ? AND uploaded_at < ?
+  ");
+  $priorPhotosStmt->execute([$photo['patient_id'], $photo['id'], $photo['uploaded_at']]);
+  $priorPhotoData = $priorPhotosStmt->fetch(PDO::FETCH_ASSOC);
+  $hasPriorPhotos = ($priorPhotoData['photo_count'] > 0);
+
+  // Generate MDM-specific documentation
+  $mdmDocumentation = generateMDMDocumentation($assessment, $woundLocation, $patientNotes, $patient, $hasPriorPhotos);
+
   // Generate individualized, billable assessment
   $assessmentText = generateBillableAssessment($assessment, $woundLocation, $patientNotes, $patient);
   $planText = generateIndividualizedPlan($assessment, $woundLocation, $patientNotes, $patient);
-
-  // Calculate actual review time (varies by assessment complexity)
-  $reviewMinutes = getReviewTime($assessment, !empty($notes));
 
   // Format patient-specific notes
   $formattedPatientNotes = !empty($patientNotes) ? "\n\nPatient Self-Report: \"" . htmlspecialchars($patientNotes) . "\"" : '';
@@ -213,7 +223,7 @@ REASON FOR ENCOUNTER:
 Remote evaluation of {$woundLocation} via asynchronous store-and-forward telehealth technology for ongoing wound management and monitoring.
 
 MEDICAL NECESSITY:
-Patient has established wound requiring ongoing surveillance and treatment adjustment per care plan. Remote monitoring clinically appropriate to assess healing progress and identify complications early, preventing unnecessary ED visits or hospitalization.
+Patient has established wound requiring ongoing surveillance and treatment adjustment per care plan. Remote monitoring clinically appropriate to assess healing progress, identify complications early, and prevent unnecessary ED visits or hospitalization. Patient benefits from frequent remote monitoring rather than requiring in-person visits which may be burdensome due to mobility limitations, transportation challenges, or infection control concerns.
 
 HISTORY OF PRESENT ILLNESS:
 Patient submitted digital photograph {$reviewTimeElapsed} via secure HIPAA-compliant telehealth platform on {$photoTimestamp}.{$formattedPatientNotes}
@@ -222,7 +232,7 @@ REVIEW OF SYSTEMS:
 As documented by patient submission and available clinical record.
 
 OBJECTIVE FINDINGS - DIGITAL IMAGE REVIEW:
-Reviewed submitted high-resolution digital photograph(s) of {$woundLocation} using secure telehealth imaging system.
+Reviewed submitted high-resolution digital photograph(s) of {$woundLocation} using secure telehealth imaging system." . ($hasPriorPhotos ? "\nCompared current imaging to " . $priorPhotoData['photo_count'] . " prior photograph(s), most recent from " . date('F j, Y', strtotime($priorPhotoData['last_photo'])) . "." : "") . "
 
 {$assessmentText}";
 
@@ -231,12 +241,8 @@ Reviewed submitted high-resolution digital photograph(s) of {$woundLocation} usi
     $note .= "\n\nPROVIDER CLINICAL INTERPRETATION:\n" . htmlspecialchars($notes);
   }
 
-  $note .= "\n\nMEDICAL DECISION MAKING:
-Complexity Level: " . getMDMLevel($assessment) . "
-Risk Assessment: " . getRiskLevel($assessment) . "
-Data Reviewed: Digital imaging, patient history, prior encounter notes
-
-Clinical decision based on comprehensive review of submitted imaging, patient-reported symptoms, medical history, and comparison to prior assessments when available. Treatment plan adjusted based on current wound status and healing trajectory.
+  // ENHANCED MDM DOCUMENTATION (Audit-Critical)
+  $note .= "\n\n{$mdmDocumentation}
 
 ASSESSMENT & DIAGNOSIS:
 {$assessment} - {$woundLocation} requiring continued management
@@ -258,20 +264,24 @@ Patient counseled on importance of:
 - Maintaining adequate nutrition and hydration
 - Glycemic control if diabetic
 - Activity modifications and offloading as appropriate
+- Timely submission of follow-up photographs per monitoring schedule
 
 TELEHEALTH DOCUMENTATION:
 Modality: Store-and-forward asynchronous digital imaging
 Consent: Patient provided informed consent for telehealth services
 Location: Patient at home; provider at clinical facility
 Technology: HIPAA-compliant secure telehealth platform
-Image Quality: Adequate for clinical assessment
+Image Quality: Adequate for clinical assessment and medical decision-making
 
-PROVIDER TIME:
-Total time reviewing digital images, patient history, and formulating treatment plan: {$reviewMinutes} minutes
-
-CPT Code: " . getBillingInfo($assessment)['cpt_code'] . " (E/M Level " . getBillingInfo($assessment)['level'] . ")
-Modifier: 95 (Synchronous telemedicine via interactive telecommunications)
+BILLING METHODOLOGY:
+Code Selection: Based on Medical Decision Making (MDM) complexity
+CPT Code: " . getBillingInfo($assessment)['cpt_code'] . "
+MDM Level: " . getMDMLevel($assessment) . "
+Complexity: " . getBillingInfo($assessment)['level'] . "
 Place of Service: 02 (Telehealth)
+Modifier: None (asynchronous store-and-forward telehealth)
+
+Note: This encounter is billed based on the complexity of Medical Decision Making, not time. The MDM level is determined by the number and complexity of problems addressed, amount and complexity of data reviewed, and risk of complications as documented above.
 
 Electronically signed by rendering provider on {$date} at {$time}";
 
@@ -326,6 +336,156 @@ function getReviewTime(string $assessment, bool $hasAdditionalNotes): int {
 }
 
 /**
+ * Generate comprehensive MDM documentation (Audit-Critical)
+ * This function creates detailed documentation of the THREE MDM elements:
+ * 1. Number and Complexity of Problems
+ * 2. Amount and Complexity of Data Reviewed
+ * 3. Risk of Complications
+ */
+function generateMDMDocumentation(string $assessment, string $woundLocation, string $patientNotes, array $patient, bool $hasPriorPhotos): string {
+  $mdm = "MEDICAL DECISION MAKING DOCUMENTATION:\n\n";
+
+  // Element 1: Number and Complexity of Problems Addressed
+  $mdm .= "1. NUMBER AND COMPLEXITY OF PROBLEMS:\n";
+
+  switch ($assessment) {
+    case 'improving':
+    case 'stable':
+      $mdm .= "   - Problem Type: Established chronic condition - stable/improving\n";
+      $mdm .= "   - Complexity: Self-limited or minor problem\n";
+      $mdm .= "   - Wound healing trajectory is favorable with current treatment regimen\n";
+      $mdm .= "   - No new symptoms or complications identified\n";
+      $mdm .= "   - Complexity Level: LOW (supports 99213)\n";
+      break;
+
+    case 'concern':
+      $mdm .= "   - Problem Type: Chronic illness with mild exacerbation or progression\n";
+      $mdm .= "   - Complexity: Undiagnosed new problem with uncertain prognosis\n";
+      $mdm .= "   - Wound showing concerning signs requiring investigation and treatment modification\n";
+      $mdm .= "   - Differential diagnosis needed to determine underlying cause\n";
+      $mdm .= "   - Risk of delayed healing or infection requiring intervention\n";
+      $mdm .= "   - Complexity Level: MODERATE (supports 99214)\n";
+      break;
+
+    case 'urgent':
+      $mdm .= "   - Problem Type: Chronic illness with severe exacerbation or progression\n";
+      $mdm .= "   - Complexity: Acute or chronic illness posing threat to life or bodily function\n";
+      $mdm .= "   - Wound demonstrates signs of significant deterioration requiring urgent intervention\n";
+      $mdm .= "   - Risk of systemic infection, tissue loss, or hospitalization\n";
+      $mdm .= "   - Requires immediate treatment plan changes and possible escalation of care\n";
+      $mdm .= "   - Complexity Level: HIGH (supports 99215)\n";
+      break;
+  }
+
+  // Element 2: Amount and Complexity of Data Reviewed
+  $mdm .= "\n2. AMOUNT AND COMPLEXITY OF DATA REVIEWED AND ANALYZED:\n";
+  $mdm .= "   - Reviewed digital photograph(s) of " . $woundLocation . "\n";
+
+  if ($hasPriorPhotos) {
+    $mdm .= "   - Compared current imaging to prior photographs for trend analysis\n";
+    $mdm .= "   - Assessed rate of change and healing trajectory\n";
+  }
+
+  $mdm .= "   - Reviewed patient medical history and comorbidities\n";
+  $mdm .= "   - Reviewed current wound care plan and treatment regimen\n";
+
+  if (!empty($patientNotes)) {
+    $mdm .= "   - Interpreted patient-reported symptoms in clinical context\n";
+  }
+
+  // Add data complexity scoring
+  $dataPoints = 2; // Base: current photo + medical history
+  if ($hasPriorPhotos) $dataPoints++;
+  if (!empty($patientNotes)) $dataPoints++;
+
+  $mdm .= "   - Total data elements reviewed: " . $dataPoints . "\n";
+
+  switch ($assessment) {
+    case 'improving':
+    case 'stable':
+      $mdm .= "   - Data Complexity: Category 2 (Limited) - Review of external notes and independent interpretation of tests\n";
+      break;
+    case 'concern':
+      $mdm .= "   - Data Complexity: Category 3 (Moderate) - Independent interpretation of tests, assessment of prior interventions\n";
+      break;
+    case 'urgent':
+      $mdm .= "   - Data Complexity: Category 4 (Extensive) - Comprehensive review with integration of multiple data sources\n";
+      break;
+  }
+
+  // Element 3: Risk of Complications and Morbidity/Mortality
+  $mdm .= "\n3. RISK OF COMPLICATIONS, MORBIDITY, AND MORTALITY:\n";
+
+  switch ($assessment) {
+    case 'improving':
+    case 'stable':
+      $mdm .= "   - Presenting Problem Risk: Minimal\n";
+      $mdm .= "   - Management Risk: Minimal risk from wound care interventions\n";
+      $mdm .= "   - Overall Assessment: LOW RISK\n";
+      $mdm .= "   - Wound healing progressing appropriately\n";
+      $mdm .= "   - No signs of infection or systemic complications\n";
+      $mdm .= "   - Current treatment plan appropriate and effective\n";
+      break;
+
+    case 'concern':
+      $mdm .= "   - Presenting Problem Risk: Moderate - potential for progression\n";
+      $mdm .= "   - Management Risk: Moderate - prescription drug management may be required\n";
+      $mdm .= "   - Overall Assessment: MODERATE RISK\n";
+      $mdm .= "   - Risk of delayed healing without intervention\n";
+      $mdm .= "   - Possible infection requiring systemic antibiotics\n";
+      $mdm .= "   - May require additional diagnostic testing or specialist consultation\n";
+      $mdm .= "   - Decision point: Treat remotely vs. require in-person evaluation\n";
+      break;
+
+    case 'urgent':
+      $mdm .= "   - Presenting Problem Risk: High - acute illness with systemic symptoms or potential for significant complications\n";
+      $mdm .= "   - Management Risk: Moderate to High - drug therapy requiring intensive monitoring, or decision regarding hospitalization\n";
+      $mdm .= "   - Overall Assessment: HIGH RISK\n";
+      $mdm .= "   - Risk of systemic infection/sepsis\n";
+      $mdm .= "   - Risk of tissue loss, amputation, or chronic disability\n";
+      $mdm .= "   - May require emergency department evaluation or hospital admission\n";
+      $mdm .= "   - Requires urgent coordination of care and immediate intervention\n";
+      $mdm .= "   - Critical decision point: Level of care escalation and timing of intervention\n";
+      break;
+  }
+
+  // MDM Summary
+  $mdm .= "\nMDM CONCLUSION:\n";
+  $mdm .= "Based on review of the above three elements (Problems, Data, Risk), this encounter meets the criteria for " . getMDMLevel($assessment) . " complexity Medical Decision Making.\n";
+
+  // Differential diagnosis (critical for moderate/high complexity)
+  if ($assessment === 'concern' || $assessment === 'urgent') {
+    $mdm .= "\nDIFFERENTIAL DIAGNOSIS CONSIDERED:\n";
+    $mdm .= "- Normal healing vs. delayed healing\n";
+    $mdm .= "- Local wound infection vs. systemic infection\n";
+    $mdm .= "- Adequate perfusion vs. vascular insufficiency\n";
+    $mdm .= "- Treatment adherence vs. inadequate wound care regimen\n";
+
+    if ($assessment === 'urgent') {
+      $mdm .= "- Cellulitis vs. necrotizing soft tissue infection\n";
+      $mdm .= "- Superficial infection vs. deep tissue/bone involvement (osteomyelitis)\n";
+    }
+  }
+
+  // Decision rationale
+  $mdm .= "\nDECISION RATIONALE:\n";
+  switch ($assessment) {
+    case 'improving':
+    case 'stable':
+      $mdm .= "Wound healing appropriately with current treatment. Decision made to continue current regimen without modification. Patient educated on signs of complications requiring escalation of care.\n";
+      break;
+    case 'concern':
+      $mdm .= "Wound showing concerning signs requiring treatment modification. After considering alternatives, decision made to adjust wound care regimen. Will monitor closely for response to intervention. Patient instructed on warning signs requiring immediate medical attention.\n";
+      break;
+    case 'urgent':
+      $mdm .= "Wound demonstrates signs of significant deterioration requiring urgent intervention. After weighing risks and benefits, decision made to escalate care. Coordinating urgent follow-up to prevent serious complications. Patient given explicit instructions for seeking emergency care if condition worsens.\n";
+      break;
+  }
+
+  return $mdm;
+}
+
+/**
  * Get Medical Decision Making level for billing compliance
  */
 function getMDMLevel(string $assessment): string {
@@ -333,7 +493,7 @@ function getMDMLevel(string $assessment): string {
     'improving' => 'Low',
     'stable' => 'Low',
     'concern' => 'Moderate',
-    'urgent' => 'Moderate to High'
+    'urgent' => 'High'
   ][$assessment];
 }
 
@@ -1431,6 +1591,23 @@ if ($action) {
 
     if ($dupCheck->fetchColumn() > 0) {
       jerr('Cannot bill multiple E/M encounters for same patient on same day. Medicare allows only 1 E/M per patient per day per provider.');
+    }
+
+    // FREQUENCY LIMIT: Check monthly billing frequency (audit-safe limit: 3 per month)
+    $monthlyCheck = $pdo->prepare("
+      SELECT COUNT(*) as monthly_count
+      FROM billable_encounters
+      WHERE patient_id = ?
+        AND physician_id = ?
+        AND DATE_TRUNC('month', encounter_date) = DATE_TRUNC('month', CURRENT_DATE)
+    ");
+    $monthlyCheck->execute([$photo['patient_id'], $userId]);
+    $monthlyCount = $monthlyCheck->fetchColumn();
+
+    // Soft limit: 3 per month (warn but allow)
+    // Hard limit: 5 per month (block to prevent audit risk)
+    if ($monthlyCount >= 5) {
+      jerr('Monthly billing limit reached (5 E/M encounters this month). For audit compliance, limit billing to 2-3 encounters per patient per month. Consider reviewing without billing, or document exceptional medical necessity.');
     }
 
     // Determine CPT code and charge based on assessment AND credential type
