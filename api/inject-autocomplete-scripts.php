@@ -17,8 +17,9 @@ if (strpos($content, 'search-helpers.js') !== false) {
 }
 
 // Script tags to inject (before </head>)
+// Use relative paths from portal/index.php perspective (already in /portal/)
 $scriptTags = <<<HTML
-<script src="portal/search-helpers.js"></script>
+<script src="search-helpers.js"></script>
 <script src="address-autocomplete-init.js"></script>
 HTML;
 
@@ -40,7 +41,7 @@ echo json_encode([
     'ok' => true,
     'message' => 'Address autocomplete scripts injected successfully',
     'scripts' => [
-        'portal/search-helpers.js',
+        'search-helpers.js',
         'address-autocomplete-init.js'
     ],
     'file_size' => filesize($portalFile)
