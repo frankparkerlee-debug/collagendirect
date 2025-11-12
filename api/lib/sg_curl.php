@@ -154,3 +154,43 @@ function sg_send($to, ?string $subject, ?string $html, array $opts = []): bool {
   error_log("SendGrid API non-202 ($status): " . $resBody);
   return false;
 }
+
+/**
+ * Legacy compatibility wrapper for direct SendGrid API calls
+ * Used by registration_welcome.php, provider_welcome.php, etc.
+ *
+ * @param string $apiKey SendGrid API key
+ * @param array $data SendGrid API payload (personalizations, from, content, etc.)
+ * @return array ['success' => bool, 'error' => string|null]
+ */
+function sg_curl_send(string $apiKey, array $data): array {
+  $ch = curl_init('https://api.sendgrid.com/v3/mail/send');
+  curl_setopt_array($ch, [
+    CURLOPT_POST            => true,
+    CURLOPT_HTTPHEADER      => [
+      'Authorization: Bearer ' . $apiKey,
+      'Content-Type: application/json'
+    ],
+    CURLOPT_POSTFIELDS      => json_encode($data),
+    CURLOPT_RETURNTRANSFER  => true,
+    CURLOPT_TIMEOUT         => 20,
+  ]);
+
+  $resBody = curl_exec($ch);
+  $status  = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+  $err     = curl_error($ch);
+  curl_close($ch);
+
+  if ($err) {
+    error_log('SendGrid cURL error: ' . $err);
+    return ['success' => false, 'error' => $err];
+  }
+
+  // SendGrid returns 202 on success
+  if ($status === 202) {
+    return ['success' => true, 'error' => null];
+  }
+
+  error_log("SendGrid API non-202 ($status): " . $resBody);
+  return ['success' => false, 'error' => "HTTP $status: $resBody"];
+}
