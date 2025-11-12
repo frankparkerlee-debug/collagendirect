@@ -229,8 +229,9 @@
   <!-- Centered auth card -->
   <main>
     <section class="auth-card">
-      <h1>Welcome back</h1>
-      <p class="subtitle">New here? <a href="/register" style="color:var(--brand);font-weight:500">Create an account</a></p>
+      <div id="portalBadge" style="display:none;background:#5FA8A1;color:#fff;font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;padding:0.5rem 1rem;border-radius:8px;text-align:center;margin-bottom:1rem">Admin Portal</div>
+      <h1 id="pageTitle">Welcome back</h1>
+      <p class="subtitle" id="pageSubtitle">New here? <a href="/register" style="color:var(--brand);font-weight:500">Create an account</a></p>
 
       <p id="err" class="error" role="alert">Invalid email or password. Please try again.</p>
 
@@ -309,6 +310,23 @@
   <!-- === YOUR ORIGINAL JS (unchanged) === -->
   <script>
   (function () {
+    // Check if accessing admin portal
+    const params = new URLSearchParams(location.search);
+    const nextUrl = params.get('next') || '';
+    const isAdminPortal = nextUrl.includes('/admin') || document.referrer.includes('/admin');
+
+    if (isAdminPortal) {
+      // Show admin badge
+      const badge = document.getElementById('portalBadge');
+      if (badge) badge.style.display = 'block';
+
+      // Update title and subtitle for admin
+      const title = document.getElementById('pageTitle');
+      const subtitle = document.getElementById('pageSubtitle');
+      if (title) title.textContent = 'Admin Portal Login';
+      if (subtitle) subtitle.innerHTML = 'Sign in with your admin credentials';
+    }
+
     // Show/Hide password
     const toggle = document.getElementById('togglePw');
     const pw = document.getElementById('password');
