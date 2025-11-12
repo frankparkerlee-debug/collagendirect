@@ -170,7 +170,7 @@ try {
 }
 
 // ---------- Minimal breadcrumb for troubleshooting ----------
-error_log('[reset] email='.$email.' sent='.( $sentOk ? 'yes' : 'no' ).' template='.($templateId ?: '(inline)').' url='.$resetUrl);
+error_log('[reset] email='.$email.' sent='.( $sentOk ? 'yes' : 'no' ).' url='.$resetUrl);
 
 // ---------- Debug view (optional): call with ?debug=1 while testing ----------
 if (!empty($_GET['debug'])) {
@@ -178,7 +178,6 @@ if (!empty($_GET['debug'])) {
     'ok'        => true,
     'debug'     => [
       'email'    => $email,
-      'template' => $templateId ?: '(inline)',
       'reset_url'=> $resetUrl,
       'sent'     => $sentOk ? 'yes' : 'no',
     ]
