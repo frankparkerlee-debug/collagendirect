@@ -2324,13 +2324,13 @@ if ($action) {
       $pr->execute([$product_id]); $prod=$pr->fetch(PDO::FETCH_ASSOC);
       if(!$prod){ $pdo->rollBack(); jerr('Product not found (ID: '.$product_id.'). Please ensure each wound has a product selected.',404); }
 
-      // REQUIRED: Patient ID and Insurance Card must always be on file
-      if(empty($p['id_card_path']) || empty($p['ins_card_path'])){
+      // REQUIRED: Patient ID must be on file (Insurance card is optional for cash pay/direct bill)
+      if(empty($p['id_card_path'])){
         $pdo->rollBack();
-        jerr('Patient ID and Insurance Card must be on file before creating an order. Please upload these documents first.');
+        jerr('Patient Photo ID must be on file before creating an order. Please upload this document first.');
       }
 
-      // AOB is recommended but not required - physician can sign during order or patient creation
+      // Insurance card and AOB are optional - not all patients use insurance billing
 
       $delivery_to=$_POST['delivery_to'] ?? 'patient';
       $delivery_mode=($delivery_to==='office')?'office':'patient';
@@ -5793,17 +5793,19 @@ if ($page==='logout'){
             </div>
           </div>
 
-          <!-- Required Documents -->
-          <div class="mb-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <div class="text-sm font-semibold text-blue-900 mb-3">Required Documents <span class="text-red-600">*</span></div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="text-xs font-medium text-blue-800 block mb-1">Photo ID (Driver's License or State ID)</label>
+          <!-- Documents -->
+          <div class="mb-3">
+            <div class="text-sm font-semibold text-slate-700 mb-2">Documents</div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div class="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <label class="text-xs font-medium text-red-800 block mb-1">Photo ID <span class="text-red-600">*</span></label>
                 <input type="file" id="np-id-card" accept="image/*,application/pdf" class="w-full text-sm">
+                <div class="text-xs text-red-700 mt-1">Required (Driver's License or State ID)</div>
               </div>
-              <div>
-                <label class="text-xs font-medium text-blue-800 block mb-1">Insurance Card (Front & Back)</label>
+              <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                <label class="text-xs font-medium text-slate-700 block mb-1">Insurance Card</label>
                 <input type="file" id="np-ins-card" accept="image/*,application/pdf" class="w-full text-sm">
+                <div class="text-xs text-slate-600 mt-1">Optional (Front & Back if insurance billing)</div>
               </div>
             </div>
           </div>
@@ -9201,7 +9203,7 @@ async function openOrderDialog(preselectId=null){
       if (!state) { showError('State is required'); return; }
       if (!zip) { showError('ZIP code is required'); return; }
       if (!idFile) { showError('Photo ID is required'); return; }
-      if (!insFile) { showError('Insurance card is required'); return; }
+      // Insurance card is optional (for cash pay / direct bill patients)
 
       // Validate phone format (10 digits)
       const phoneDigits = phone.replace(/\D/g, '');
