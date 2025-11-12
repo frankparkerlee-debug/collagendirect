@@ -1237,6 +1237,7 @@ if ($action) {
     $dob  =$_POST['dob']??null;
     $mrn  =trim((string)($_POST['mrn']??''));
     $phone=$_POST['phone']??null; $cell_phone=$_POST['cell_phone']??null; $email=$_POST['email']??null;
+    $accepts_sms = isset($_POST['accepts_sms']) && ($_POST['accepts_sms'] === '1' || $_POST['accepts_sms'] === 'true');
     $address=$_POST['address']??null; $city=$_POST['city']??null; $state=$_POST['state']??null; $zip=$_POST['zip']??null;
     $ins_provider=$_POST['insurance_provider']??null; $ins_member_id=$_POST['insurance_member_id']??null;
     $ins_group_id=$_POST['insurance_group_id']??null; $ins_payer_phone=$_POST['insurance_payer_phone']??null;
@@ -1261,16 +1262,16 @@ if ($action) {
       $pid=bin2hex(random_bytes(16));
       $st=$pdo->prepare("INSERT INTO patients
         (id,user_id,first_name,last_name,dob,mrn,city,address_state,phone,cell_phone,email,address,zip,
-         insurance_provider,insurance_member_id,insurance_group_id,insurance_payer_phone,state,created_at,updated_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending',NOW(),NOW())");
+         insurance_provider,insurance_member_id,insurance_group_id,insurance_payer_phone,accepts_sms,state,created_at,updated_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending',NOW(),NOW())");
       $st->execute([$pid,$userId,$first,$last,$dob,$mrn,$city,$state,$phone,$cell_phone,$email,$address,$zip,
-                    $ins_provider,$ins_member_id,$ins_group_id,$ins_payer_phone]);
+                    $ins_provider,$ins_member_id,$ins_group_id,$ins_payer_phone,$accepts_sms]);
     } else {
       $st=$pdo->prepare("UPDATE patients SET first_name=?,last_name=?,dob=?,mrn=?,city=?,address_state=?,phone=?,cell_phone=?,email=?,address=?,zip=?,
-                         insurance_provider=?,insurance_member_id=?,insurance_group_id=?,insurance_payer_phone=?,updated_at=NOW()
+                         insurance_provider=?,insurance_member_id=?,insurance_group_id=?,insurance_payer_phone=?,accepts_sms=?,updated_at=NOW()
                          WHERE id=? AND user_id=?");
       $st->execute([$first,$last,$dob,$mrn,$city,$state,$phone,$cell_phone,$email,$address,$zip,
-                    $ins_provider,$ins_member_id,$ins_group_id,$ins_payer_phone,$pid,$userId]);
+                    $ins_provider,$ins_member_id,$ins_group_id,$ins_payer_phone,$accepts_sms,$pid,$userId]);
     }
 
     // Auto-generate AI approval score for NEW patients only (created today or later)
@@ -9145,24 +9146,62 @@ async function openOrderDialog(preselectId=null){
         console.error('Create patient form fields not found');
         return;
       }
-      const first=npFirst.value.trim(), last=npLast.value.trim();
-      if(!first||!last){
-        if (npHint) npHint.textContent='First and last name required.';
+
+      // Comprehensive field validation with specific error messages
+      const npHintElem = $('#np-hint');
+      function showError(msg) {
+        if (npHintElem) {
+          npHintElem.textContent = msg;
+          npHintElem.style.color = 'red';
+        }
+      }
+
+      // Required fields
+      const first = npFirst.value.trim();
+      const last = npLast.value.trim();
+      const dob = $('#np-dob').value.trim();
+      const phone = $('#np-phone').value.trim();
+      const email = $('#np-email').value.trim();
+      const address = $('#np-address').value.trim();
+      const city = $('#np-city').value.trim();
+      const state = $('#np-state').value.trim();
+      const zip = $('#np-zip').value.trim();
+      const idFile = $('#np-id-card').files[0];
+      const insFile = $('#np-ins-card').files[0];
+
+      // Validate required fields
+      if (!first) { showError('First name is required'); return; }
+      if (!last) { showError('Last name is required'); return; }
+      if (!dob) { showError('Date of birth is required'); return; }
+      if (!phone) { showError('Phone number is required'); return; }
+      if (!email) { showError('Email address is required'); return; }
+      if (!address) { showError('Street address is required'); return; }
+      if (!city) { showError('City is required'); return; }
+      if (!state) { showError('State is required'); return; }
+      if (!zip) { showError('ZIP code is required'); return; }
+      if (!idFile) { showError('Photo ID is required'); return; }
+      if (!insFile) { showError('Insurance card is required'); return; }
+
+      // Validate phone format (10 digits)
+      const phoneDigits = phone.replace(/\D/g, '');
+      if (phoneDigits.length !== 10 && !(phoneDigits.length === 11 && phoneDigits[0] === '1')) {
+        showError('Phone number must be 10 digits (e.g., 555-123-4567)');
         return;
       }
 
-    const idFile = $('#np-id-card').files[0];
-    const insFile = $('#np-ins-card').files[0];
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        showError('Email address format is invalid');
+        return;
+      }
 
-    const npHintElem = $('#np-hint');
-    if(!idFile){
-      if (npHintElem) { npHintElem.textContent='Photo ID is required.'; npHintElem.style.color='red'; }
-      return;
-    }
-    if(!insFile){
-      if (npHintElem) { npHintElem.textContent='Insurance card is required.'; npHintElem.style.color='red'; }
-      return;
-    }
+      // Validate ZIP code (5 digits)
+      const zipDigits = zip.replace(/\D/g, '');
+      if (zipDigits.length !== 5 && zipDigits.length !== 9) {
+        showError('ZIP code must be 5 or 9 digits (e.g., 12345 or 12345-6789)');
+        return;
+      }
 
     if (npHintElem) { npHintElem.textContent='Creating patient...'; npHintElem.style.color=''; }
 
@@ -10428,6 +10467,44 @@ if (document.getElementById('add-patient-form')) {
 
     const submitBtn = e.target.querySelector('button[type="submit"]');
     const originalText = submitBtn.textContent;
+
+    // Helper function to show validation errors
+    function showError(msg) {
+      errorDiv.textContent = msg;
+      errorDiv.classList.remove('hidden');
+      window.scrollTo({top: errorDiv.offsetTop - 100, behavior: 'smooth'});
+    }
+
+    // Get form values
+    const firstName = $('#new-first-name').value.trim();
+    const lastName = $('#new-last-name').value.trim();
+    const dob = $('#new-dob').value;
+    const phone = $('#new-phone').value.trim();
+    const email = $('#new-email').value.trim();
+
+    // Validate required fields
+    if (!firstName) { showError('First name is required'); return; }
+    if (!lastName) { showError('Last name is required'); return; }
+    if (!dob) { showError('Date of birth is required'); return; }
+
+    // Validate phone format if provided
+    if (phone) {
+      const phoneDigits = phone.replace(/\D/g, '');
+      if (phoneDigits.length !== 10 && !(phoneDigits.length === 11 && phoneDigits[0] === '1')) {
+        showError('Phone number must be 10 digits (e.g., 555-123-4567)');
+        return;
+      }
+    }
+
+    // Validate email format if provided
+    if (email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        showError('Email address format is invalid');
+        return;
+      }
+    }
+
     submitBtn.disabled = true;
     submitBtn.textContent = 'Creating patient...';
 
@@ -10436,12 +10513,12 @@ if (document.getElementById('add-patient-form')) {
     try {
       // Step 1: Create patient
       const body = fd({
-        first_name: $('#new-first-name').value.trim(),
-        last_name: $('#new-last-name').value.trim(),
-        dob: $('#new-dob').value,
+        first_name: firstName,
+        last_name: lastName,
+        dob: dob,
         sex: $('#new-sex').value,
-        phone: $('#new-phone').value,
-        email: $('#new-email').value,
+        phone: phone,
+        email: email,
         address: $('#new-address').value,
         city: $('#new-city').value,
         state: $('#new-state').value,
