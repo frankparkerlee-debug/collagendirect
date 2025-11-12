@@ -140,6 +140,10 @@ The CollagenDirect Team
     'from' => ['email' => $fromEmail, 'name' => $fromName],
     'content' => [
       ['type' => 'text/plain', 'value' => $emailBody]
+    ],
+    'tracking_settings' => [
+      'click_tracking' => ['enable' => false, 'enable_text' => false],
+      'open_tracking' => ['enable' => false]
     ]
   ];
 

@@ -97,7 +97,11 @@ https://collagendirect.health
     'content' => [
       ['type' => 'text/plain', 'value' => $emailBody]
     ],
-    'categories' => ['auth', 'password-reset']
+    'categories' => ['auth', 'password-reset'],
+    'tracking_settings' => [
+      'click_tracking' => ['enable' => false, 'enable_text' => false],
+      'open_tracking' => ['enable' => false]
+    ]
   ];
 
   try {

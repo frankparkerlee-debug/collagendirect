@@ -7114,36 +7114,9 @@ if (<?php echo json_encode($page==='patients'); ?>){
   $('#q').addEventListener('input',e=>load(e.target.value.trim()));
   // Removed btn-new-order - using global-new-order-btn in header instead
 
-  // Add Patient button
+  // Add Patient button - redirect to full page form (removed modal logic)
   document.getElementById('btn-add-patient').addEventListener('click',()=>{
-    // Clear form
-    $('#patient-first').value='';
-    $('#patient-last').value='';
-    $('#patient-dob').value='';
-    $('#patient-mrn').value='';
-    $('#patient-phone').value='';
-    $('#patient-cell-phone').value='';
-    $('#patient-email').value='';
-    $('#patient-address').value='';
-    $('#patient-city').value='';
-    $('#patient-state').value='';
-    $('#patient-zip').value='';
-    $('#patient-ins-provider').value='';
-    $('#patient-ins-member-id').value='';
-    $('#patient-ins-group-id').value='';
-    $('#patient-ins-payer-phone').value='';
-    $('#patient-id-file').value='';
-    $('#patient-ins-file').value='';
-    $('#patient-hint').textContent='';
-    $('#patient-hint').style.color='';
-    // Open dialog
-    document.getElementById('dlg-patient').showModal();
-    // Initialize address autocomplete for patient modal (after modal is shown)
-    setTimeout(() => {
-      if (typeof initAddressFields === 'function') {
-        initAddressFields();
-      }
-    }, 100);
+    window.location.href = '?page=patient-add';
   });
 
   // Save Patient button
@@ -10452,13 +10425,7 @@ if (document.getElementById('add-patient-form')) {
 
 /* ========== UPDATE PATIENT TABLE TO USE NEW PAGES ========== */
 
-// Update the "Add Patient" button to go to the new page instead of modal
-const addPatientBtn = document.getElementById('btn-add-patient');
-if (addPatientBtn) {
-  addPatientBtn.onclick = () => {
-    window.location.href = '?page=patient-add';
-  };
-}
+// Note: "Add Patient" button handler consolidated at line 7118 to avoid duplicate event listeners
 
 // Update patient row clicks to go to detail page instead of accordion
 document.addEventListener('click', (e) => {

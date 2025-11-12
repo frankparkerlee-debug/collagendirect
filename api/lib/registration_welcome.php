@@ -193,7 +193,11 @@ https://collagendirect.health
     'content' => [
       ['type' => 'text/plain', 'value' => $emailBody]
     ],
-    'reply_to' => ['email' => 'support@collagendirect.health', 'name' => 'CollagenDirect Support']
+    'reply_to' => ['email' => 'support@collagendirect.health', 'name' => 'CollagenDirect Support'],
+    'tracking_settings' => [
+      'click_tracking' => ['enable' => false, 'enable_text' => false],
+      'open_tracking' => ['enable' => false]
+    ]
   ];
 
   try {
