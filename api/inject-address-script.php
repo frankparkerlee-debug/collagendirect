@@ -18,12 +18,12 @@ if (strpos($content, 'address-autocomplete-init.js') !== false) {
     die(json_encode(['ok' => true, 'message' => 'Script already injected', 'already_present' => true]));
 }
 
-// Find the search-helpers.js script tag and add after it
-$searchPattern = '<script src="portal/search-helpers.js"></script>';
-$replacement = $searchPattern . "\n" . $scriptTag;
+// Find the </head> tag and add script before it
+$searchPattern = '</head>';
+$replacement = $scriptTag . "\n" . $searchPattern;
 
 if (strpos($content, $searchPattern) === false) {
-    die(json_encode(['ok' => false, 'error' => 'search-helpers.js not found in portal file']));
+    die(json_encode(['ok' => false, 'error' => '</head> tag not found in portal file']));
 }
 
 $newContent = str_replace($searchPattern, $replacement, $content);
