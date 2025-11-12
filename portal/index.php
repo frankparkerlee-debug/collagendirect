@@ -9181,48 +9181,71 @@ function validateWoundLocationICD10(woundEl) {
     return;
   }
 
-  // Map wound locations to compatible ICD-10 code patterns
-  const locationToICD10Map = {
-    // Lower extremity wounds
-    'Left Foot': ['S91', 'S92', 'S93', 'S94', 'S95', 'S96', 'S97', 'S98', 'S99', 'L97.5', 'L97.4', 'L89.5', 'E11.621', 'E11.622', 'I96'],
-    'Right Foot': ['S91', 'S92', 'S93', 'S94', 'S95', 'S96', 'S97', 'S98', 'S99', 'L97.5', 'L97.4', 'L89.5', 'E11.621', 'E11.622', 'I96'],
-    'Left Lower Leg': ['S81', 'S82', 'S83', 'S84', 'S85', 'S86', 'S87', 'S88', 'S89', 'L97.2', 'L97.1', 'L89.2', 'I83'],
-    'Right Lower Leg': ['S81', 'S82', 'S83', 'S84', 'S85', 'S86', 'S87', 'S88', 'S89', 'L97.2', 'L97.1', 'L89.2', 'I83'],
-    'Left Thigh': ['S71', 'S72', 'S73', 'S74', 'S75', 'S76', 'S77', 'S78', 'S79', 'L89.3'],
-    'Right Thigh': ['S71', 'S72', 'S73', 'S74', 'S75', 'S76', 'S77', 'S78', 'S79', 'L89.3'],
+  // Common systemic/general codes that are valid for ANY wound location
+  // These include diabetes, infection, vascular disease, chronic conditions, etc.
+  const universalWoundCodes = [
+    'E11.62', 'E11.63', 'E11.65', 'E10.62', 'E10.63', 'E10.65', // Diabetes with skin complications
+    'E08.62', 'E08.63', 'E09.62', 'E09.63', 'E13.62', 'E13.63', // Other diabetes types
+    'L97', 'L98', // Non-pressure chronic ulcers
+    'L89', // Pressure ulcers (any site)
+    'I83', // Varicose veins with ulcer/inflammation
+    'I87.2', // Venous insufficiency
+    'I70.2', 'I70.3', 'I70.4', // Atherosclerosis with gangrene/ulceration
+    'I96', // Gangrene
+    'T79', // Traumatic complications
+    'T81', // Complications of procedures
+    'T82', 'T83', 'T84', 'T85', // Complications of devices/implants
+    'L08', // Local infections of skin
+    'L03', // Cellulitis
+    'L02', // Cutaneous abscess
+    'M86', // Osteomyelitis
+    'A48.0', 'A49', // Bacterial infections
+    'B95', 'B96', // Bacterial agents
+  ];
 
-    // Upper extremity wounds
-    'Left Hand': ['S61', 'S62', 'S63', 'S64', 'S65', 'S66', 'S67', 'S68', 'S69'],
-    'Right Hand': ['S61', 'S62', 'S63', 'S64', 'S65', 'S66', 'S67', 'S68', 'S69'],
-    'Left Forearm': ['S51', 'S52', 'S53', 'S54', 'S55', 'S56', 'S57', 'S58', 'S59'],
-    'Right Forearm': ['S51', 'S52', 'S53', 'S54', 'S55', 'S56', 'S57', 'S58', 'S59'],
-    'Left Upper Arm': ['S41', 'S42', 'S43', 'S44', 'S45', 'S46', 'S47', 'S48', 'S49'],
-    'Right Upper Arm': ['S41', 'S42', 'S43', 'S44', 'S45', 'S46', 'S47', 'S48', 'S49'],
-
-    // Trunk wounds
-    'Chest': ['S21', 'S22', 'S23', 'S24', 'S25', 'S26', 'S27', 'S28', 'S29', 'L89.0'],
-    'Abdomen': ['S31', 'S32', 'S33', 'S34', 'S35', 'S36', 'S37', 'S38', 'S39', 'L89.1'],
-    'Back': ['S21', 'S22', 'S31', 'S32', 'L89.1'],
-    'Buttock': ['L89.3', 'S31', 'S71'],
-    'Sacrum/Coccyx': ['L89.15', 'S32', 'S33', 'S34'],
-
-    // Head/neck wounds
-    'Head': ['S01', 'S02', 'S03', 'S04', 'S05', 'S06', 'S07', 'S08', 'S09'],
-    'Face': ['S01', 'S02', 'S03', 'S04', 'S05', 'S07', 'S08', 'S09'],
-    'Neck': ['S11', 'S12', 'S13', 'S14', 'S15', 'S16', 'S17', 'S18', 'S19'],
-  };
-
-  // Check if location has mapping
-  if (!locationToICD10Map[location]) {
+  // Check if code is a universal wound code first
+  const isUniversalCode = universalWoundCodes.some(prefix => icd10Code.startsWith(prefix));
+  if (isUniversalCode) {
     clearLocationICD10Warning(woundEl);
-    return;
+    return; // Universal codes are always valid
   }
 
-  // Check if ICD-10 code matches any of the compatible patterns
-  const compatiblePrefixes = locationToICD10Map[location];
-  const isCompatible = compatiblePrefixes.some(prefix => icd10Code.startsWith(prefix));
+  // Map wound locations to INCOMPATIBLE ICD-10 code patterns
+  // Only flag clearly wrong combinations (e.g., head trauma code with foot wound)
+  const locationIncompatibilities = {
+    // Lower extremity - incompatible with head/neck/upper extremity trauma
+    'Left Foot': ['S01', 'S02', 'S03', 'S04', 'S05', 'S06', 'S07', 'S08', 'S09', 'S11', 'S12', 'S13', 'S14', 'S15', 'S16', 'S17', 'S18', 'S19', 'S41', 'S42', 'S43', 'S44', 'S45', 'S46', 'S47', 'S48', 'S49', 'S51', 'S52', 'S53', 'S54', 'S55', 'S56', 'S57', 'S58', 'S59', 'S61', 'S62', 'S63', 'S64', 'S65', 'S66', 'S67', 'S68', 'S69'],
+    'Right Foot': ['S01', 'S02', 'S03', 'S04', 'S05', 'S06', 'S07', 'S08', 'S09', 'S11', 'S12', 'S13', 'S14', 'S15', 'S16', 'S17', 'S18', 'S19', 'S41', 'S42', 'S43', 'S44', 'S45', 'S46', 'S47', 'S48', 'S49', 'S51', 'S52', 'S53', 'S54', 'S55', 'S56', 'S57', 'S58', 'S59', 'S61', 'S62', 'S63', 'S64', 'S65', 'S66', 'S67', 'S68', 'S69'],
+    'Left Lower Leg': ['S01', 'S02', 'S03', 'S04', 'S05', 'S06', 'S07', 'S08', 'S09', 'S11', 'S12', 'S13', 'S14', 'S15', 'S16', 'S17', 'S18', 'S19', 'S41', 'S42', 'S43', 'S44', 'S45', 'S46', 'S47', 'S48', 'S49', 'S51', 'S52', 'S53', 'S54', 'S55', 'S56', 'S57', 'S58', 'S59', 'S61', 'S62', 'S63', 'S64', 'S65', 'S66', 'S67', 'S68', 'S69'],
+    'Right Lower Leg': ['S01', 'S02', 'S03', 'S04', 'S05', 'S06', 'S07', 'S08', 'S09', 'S11', 'S12', 'S13', 'S14', 'S15', 'S16', 'S17', 'S18', 'S19', 'S41', 'S42', 'S43', 'S44', 'S45', 'S46', 'S47', 'S48', 'S49', 'S51', 'S52', 'S53', 'S54', 'S55', 'S56', 'S57', 'S58', 'S59', 'S61', 'S62', 'S63', 'S64', 'S65', 'S66', 'S67', 'S68', 'S69'],
+    'Left Thigh': ['S01', 'S02', 'S03', 'S04', 'S05', 'S06', 'S07', 'S08', 'S09', 'S11', 'S12', 'S13', 'S14', 'S15', 'S16', 'S17', 'S18', 'S19', 'S41', 'S42', 'S43', 'S44', 'S45', 'S46', 'S47', 'S48', 'S49', 'S51', 'S52', 'S53', 'S54', 'S55', 'S56', 'S57', 'S58', 'S59', 'S61', 'S62', 'S63', 'S64', 'S65', 'S66', 'S67', 'S68', 'S69'],
+    'Right Thigh': ['S01', 'S02', 'S03', 'S04', 'S05', 'S06', 'S07', 'S08', 'S09', 'S11', 'S12', 'S13', 'S14', 'S15', 'S16', 'S17', 'S18', 'S19', 'S41', 'S42', 'S43', 'S44', 'S45', 'S46', 'S47', 'S48', 'S49', 'S51', 'S52', 'S53', 'S54', 'S55', 'S56', 'S57', 'S58', 'S59', 'S61', 'S62', 'S63', 'S64', 'S65', 'S66', 'S67', 'S68', 'S69'],
 
-  if (!isCompatible) {
+    // Upper extremity - incompatible with head/neck/lower extremity trauma
+    'Left Hand': ['S01', 'S02', 'S03', 'S04', 'S05', 'S06', 'S07', 'S08', 'S09', 'S11', 'S12', 'S13', 'S14', 'S15', 'S16', 'S17', 'S18', 'S19', 'S71', 'S72', 'S73', 'S74', 'S75', 'S76', 'S77', 'S78', 'S79', 'S81', 'S82', 'S83', 'S84', 'S85', 'S86', 'S87', 'S88', 'S89', 'S91', 'S92', 'S93', 'S94', 'S95', 'S96', 'S97', 'S98', 'S99'],
+    'Right Hand': ['S01', 'S02', 'S03', 'S04', 'S05', 'S06', 'S07', 'S08', 'S09', 'S11', 'S12', 'S13', 'S14', 'S15', 'S16', 'S17', 'S18', 'S19', 'S71', 'S72', 'S73', 'S74', 'S75', 'S76', 'S77', 'S78', 'S79', 'S81', 'S82', 'S83', 'S84', 'S85', 'S86', 'S87', 'S88', 'S89', 'S91', 'S92', 'S93', 'S94', 'S95', 'S96', 'S97', 'S98', 'S99'],
+    'Left Forearm': ['S01', 'S02', 'S03', 'S04', 'S05', 'S06', 'S07', 'S08', 'S09', 'S11', 'S12', 'S13', 'S14', 'S15', 'S16', 'S17', 'S18', 'S19', 'S71', 'S72', 'S73', 'S74', 'S75', 'S76', 'S77', 'S78', 'S79', 'S81', 'S82', 'S83', 'S84', 'S85', 'S86', 'S87', 'S88', 'S89', 'S91', 'S92', 'S93', 'S94', 'S95', 'S96', 'S97', 'S98', 'S99'],
+    'Right Forearm': ['S01', 'S02', 'S03', 'S04', 'S05', 'S06', 'S07', 'S08', 'S09', 'S11', 'S12', 'S13', 'S14', 'S15', 'S16', 'S17', 'S18', 'S19', 'S71', 'S72', 'S73', 'S74', 'S75', 'S76', 'S77', 'S78', 'S79', 'S81', 'S82', 'S83', 'S84', 'S85', 'S86', 'S87', 'S88', 'S89', 'S91', 'S92', 'S93', 'S94', 'S95', 'S96', 'S97', 'S98', 'S99'],
+    'Left Upper Arm': ['S01', 'S02', 'S03', 'S04', 'S05', 'S06', 'S07', 'S08', 'S09', 'S11', 'S12', 'S13', 'S14', 'S15', 'S16', 'S17', 'S18', 'S19', 'S71', 'S72', 'S73', 'S74', 'S75', 'S76', 'S77', 'S78', 'S79', 'S81', 'S82', 'S83', 'S84', 'S85', 'S86', 'S87', 'S88', 'S89', 'S91', 'S92', 'S93', 'S94', 'S95', 'S96', 'S97', 'S98', 'S99'],
+    'Right Upper Arm': ['S01', 'S02', 'S03', 'S04', 'S05', 'S06', 'S07', 'S08', 'S09', 'S11', 'S12', 'S13', 'S14', 'S15', 'S16', 'S17', 'S18', 'S19', 'S71', 'S72', 'S73', 'S74', 'S75', 'S76', 'S77', 'S78', 'S79', 'S81', 'S82', 'S83', 'S84', 'S85', 'S86', 'S87', 'S88', 'S89', 'S91', 'S92', 'S93', 'S94', 'S95', 'S96', 'S97', 'S98', 'S99'],
+
+    // Head/neck - incompatible with extremity trauma
+    'Head': ['S41', 'S42', 'S43', 'S44', 'S45', 'S46', 'S47', 'S48', 'S49', 'S51', 'S52', 'S53', 'S54', 'S55', 'S56', 'S57', 'S58', 'S59', 'S61', 'S62', 'S63', 'S64', 'S65', 'S66', 'S67', 'S68', 'S69', 'S71', 'S72', 'S73', 'S74', 'S75', 'S76', 'S77', 'S78', 'S79', 'S81', 'S82', 'S83', 'S84', 'S85', 'S86', 'S87', 'S88', 'S89', 'S91', 'S92', 'S93', 'S94', 'S95', 'S96', 'S97', 'S98', 'S99'],
+    'Face': ['S41', 'S42', 'S43', 'S44', 'S45', 'S46', 'S47', 'S48', 'S49', 'S51', 'S52', 'S53', 'S54', 'S55', 'S56', 'S57', 'S58', 'S59', 'S61', 'S62', 'S63', 'S64', 'S65', 'S66', 'S67', 'S68', 'S69', 'S71', 'S72', 'S73', 'S74', 'S75', 'S76', 'S77', 'S78', 'S79', 'S81', 'S82', 'S83', 'S84', 'S85', 'S86', 'S87', 'S88', 'S89', 'S91', 'S92', 'S93', 'S94', 'S95', 'S96', 'S97', 'S98', 'S99'],
+    'Neck': ['S41', 'S42', 'S43', 'S44', 'S45', 'S46', 'S47', 'S48', 'S49', 'S51', 'S52', 'S53', 'S54', 'S55', 'S56', 'S57', 'S58', 'S59', 'S61', 'S62', 'S63', 'S64', 'S65', 'S66', 'S67', 'S68', 'S69', 'S71', 'S72', 'S73', 'S74', 'S75', 'S76', 'S77', 'S78', 'S79', 'S81', 'S82', 'S83', 'S84', 'S85', 'S86', 'S87', 'S88', 'S89', 'S91', 'S92', 'S93', 'S94', 'S95', 'S96', 'S97', 'S98', 'S99'],
+  };
+
+  // Check if location has incompatibility mapping
+  if (!locationIncompatibilities[location]) {
+    clearLocationICD10Warning(woundEl);
+    return; // No specific incompatibilities defined for this location
+  }
+
+  // Check if ICD-10 code is clearly incompatible with location
+  const incompatiblePrefixes = locationIncompatibilities[location];
+  const isIncompatible = incompatiblePrefixes.some(prefix => icd10Code.startsWith(prefix));
+
+  if (isIncompatible) {
     showLocationICD10Warning(woundEl, location, icd10Code);
   } else {
     clearLocationICD10Warning(woundEl);
