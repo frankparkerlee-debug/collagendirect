@@ -1030,6 +1030,7 @@
     </div>
   </div>
 
+  <script src="/portal/search-helpers.js"></script>
   <script>
   (function () {
     // Modal handlers (BAA and MSAA)
@@ -1510,6 +1511,15 @@
         console.error(err);
       }
     });
+
+    // Initialize address autocomplete
+    if (typeof initAddressAutocomplete === 'function') {
+      initAddressAutocomplete('address', (addressData) => {
+        document.getElementById('city').value = addressData.city || '';
+        document.getElementById('state').value = addressData.state || '';
+        document.getElementById('zip').value = addressData.zip || '';
+      });
+    }
 
     // Set year in footer
     document.getElementById('year').textContent = new Date().getFullYear();

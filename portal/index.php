@@ -3356,6 +3356,7 @@ if ($page==='logout'){
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="/assets/icd10-autocomplete.js"></script>
+<script src="/portal/search-helpers.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   /* Design Tokens - Healthcare UI */
@@ -6426,7 +6427,37 @@ document.addEventListener('DOMContentLoaded', () => {
   const notificationsMenu = document.getElementById('notifications-menu');
   const profileBtn = document.getElementById('profile-btn');
   // Version marker for debugging
-  console.log('Portal JS loaded - Version: 2025-11-07-fix2 (AOB removed, exudate added)');
+  console.log('Portal JS loaded - Version: 2025-11-12 (Address autocomplete added)');
+
+  // Initialize address autocomplete for all address fields
+  if (typeof initAddressAutocomplete === 'function') {
+    // Patient address in new patient modal
+    if (document.getElementById('patient-address')) {
+      initAddressAutocomplete('patient-address', (address) => {
+        document.getElementById('patient-city').value = address.city || '';
+        document.getElementById('patient-state').value = address.state || '';
+        document.getElementById('patient-zip').value = address.zip || '';
+      });
+    }
+
+    // Practice address in settings
+    if (document.getElementById('practice-address')) {
+      initAddressAutocomplete('practice-address', (address) => {
+        document.getElementById('practice-city').value = address.city || '';
+        document.getElementById('practice-state').value = address.state || '';
+        document.getElementById('practice-zip').value = address.zip || '';
+      });
+    }
+
+    // Shipping address in order forms (if exists)
+    if (document.getElementById('ship-addr')) {
+      initAddressAutocomplete('ship-addr', (address) => {
+        if (document.getElementById('ship-city')) document.getElementById('ship-city').value = address.city || '';
+        if (document.getElementById('ship-state')) document.getElementById('ship-state').value = address.state || '';
+        if (document.getElementById('ship-zip')) document.getElementById('ship-zip').value = address.zip || '';
+      });
+    }
+  }
 
   const profileMenu = document.getElementById('profile-menu');
   const globalNewOrderBtn = document.getElementById('global-new-order-btn');
