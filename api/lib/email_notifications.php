@@ -11,33 +11,108 @@ require_once __DIR__ . '/sg_curl.php';
 
 /**
  * 1. Password Reset Email
- * Template: SG_TMPL_PASSWORD_RESET
+ * Template: SG_TMPL_PASSWORD_RESET (optional, falls back to plain text)
  * Audience: All users
  * Trigger: User clicks "Forgot Password"
  */
 function send_password_reset_email(string $email, string $firstName, string $resetUrl): bool {
   $templateId = env('SG_TMPL_PASSWORD_RESET');
-  if (!$templateId) {
-    error_log('[email] Password reset template ID not configured');
+
+  // If template is configured, use it
+  if ($templateId) {
+    error_log('[email] Using SendGrid template for password reset: ' . $templateId);
+    return sg_send(
+      ['email' => $email, 'name' => $firstName],
+      null,
+      null,
+      [
+        'template_id' => $templateId,
+        'dynamic_data' => [
+          'first_name' => $firstName,
+          'reset_url' => $resetUrl,
+          'expires_minutes' => '15',
+          'year' => date('Y'),
+          'brand_logo_url' => 'https://collagendirect.health/assets/collagendirect.png'
+        ],
+        'categories' => ['auth', 'password-reset']
+      ]
+    );
+  }
+
+  // Fallback to plain-text email if template not configured
+  error_log('[email] SendGrid template not configured, using plain-text password reset email');
+
+  $apiKey = getenv('SENDGRID_API_KEY');
+  if (!$apiKey) {
+    error_log('SendGrid API key not configured');
     return false;
   }
 
-  return sg_send(
-    ['email' => $email, 'name' => $firstName],
-    null,
-    null,
-    [
-      'template_id' => $templateId,
-      'dynamic_data' => [
-        'first_name' => $firstName,
-        'reset_url' => $resetUrl,
-        'expires_minutes' => '15',
-        'year' => date('Y'),
-        'brand_logo_url' => 'https://collagendirect.health/assets/collagendirect.png'
-      ],
-      'categories' => ['auth', 'password-reset']
-    ]
-  );
+  $fromEmail = getenv('SMTP_FROM') ?: 'no-reply@collagendirect.health';
+  $fromName = getenv('SMTP_FROM_NAME') ?: 'CollagenDirect';
+
+  $subject = 'Reset Your CollagenDirect Password';
+
+  $emailBody = "Hello $firstName,
+
+We received a request to reset your password for your CollagenDirect account.
+
+**Reset Your Password:**
+Click the link below to create a new password:
+$resetUrl
+
+This link will expire in 15 minutes for security reasons.
+
+**Didn't request this?**
+If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.
+
+**Need Help?**
+- Support Email: support@collagendirect.health
+- Phone: (888) 415-6880
+- Portal: https://collagendirect.health/portal
+
+**Training Resources:**
+Once you're logged in, check out our training materials:
+- Getting Started Guide: https://docs.collagendirect.health/getting-started
+- Video Tutorials: https://docs.collagendirect.health/videos
+- FAQs: https://docs.collagendirect.health/faq
+
+Best regards,
+The CollagenDirect Team
+
+---
+CollagenDirect
+Advanced Wound Care Solutions
+https://collagendirect.health
+";
+
+  $data = [
+    'personalizations' => [
+      [
+        'to' => [['email' => $email, 'name' => $firstName]],
+        'subject' => $subject
+      ]
+    ],
+    'from' => ['email' => $fromEmail, 'name' => $fromName],
+    'content' => [
+      ['type' => 'text/plain', 'value' => $emailBody]
+    ],
+    'categories' => ['auth', 'password-reset']
+  ];
+
+  try {
+    $result = sg_curl_send($apiKey, $data);
+    if ($result['success']) {
+      error_log("Password reset email sent successfully to $email");
+      return true;
+    } else {
+      error_log("Failed to send password reset email to $email: " . ($result['error'] ?? 'Unknown error'));
+      return false;
+    }
+  } catch (\Throwable $e) {
+    error_log("Exception sending password reset email to $email: " . $e->getMessage());
+    return false;
+  }
 }
 
 /**
