@@ -5,7 +5,7 @@
  */
 
 $portalFile = __DIR__ . '/../portal/index.php';
-$scriptTag = '<script src="portal/address-autocomplete-init.js"></script>';
+$scriptTag = '<script src="address-autocomplete-init.js"></script>';
 
 if (!file_exists($portalFile)) {
     die(json_encode(['ok' => false, 'error' => 'Portal file not found']));
