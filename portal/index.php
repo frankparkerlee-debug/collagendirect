@@ -5748,47 +5748,68 @@ if ($page==='logout'){
 
         <!-- Create new patient -->
         <div id="create-section" class="mt-3 hidden">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <input id="np-first" placeholder="First name">
-            <input id="np-last"  placeholder="Last name">
-            <input id="np-dob"   type="date" placeholder="DOB">
-            <input id="np-phone" placeholder="Phone (10 digits)">
-            <div style="display:flex;align-items:center;gap:0.5rem;">
-              <input type="checkbox" id="np-accepts-sms" style="width:auto;margin:0;">
-              <label for="np-accepts-sms" style="margin:0;font-size:0.8rem;cursor:pointer;white-space:nowrap;">Accepts SMS</label>
+          <!-- Basic Information -->
+          <div class="mb-3">
+            <div class="text-sm font-semibold text-slate-700 mb-2">Basic Information</div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <input id="np-first" placeholder="First name *" class="w-full">
+              <input id="np-last" placeholder="Last name *" class="w-full">
+              <input id="np-dob" type="date" placeholder="Date of birth *" class="w-full">
+              <input id="np-email" placeholder="Email *" class="w-full">
             </div>
-            <input id="np-email" placeholder="Email">
-            <input id="np-address" class="md:col-span-2" placeholder="Street Address">
-            <input id="np-city" placeholder="City">
-            <input id="np-state" placeholder="State">
-            <input id="np-zip" placeholder="ZIP Code">
+          </div>
 
-            <!-- Insurance Information -->
-            <div class="md:col-span-2 text-sm font-medium" style="margin-top:0.5rem">Insurance Information</div>
-            <input id="np-ins-provider" placeholder="Insurance Carrier (e.g., Blue Cross)">
-            <input id="np-ins-member-id" placeholder="Member ID">
-            <input id="np-ins-group-id" placeholder="Group Number">
-            <input id="np-ins-payer-phone" placeholder="Payer Phone">
-
-            <!-- Required Document Uploads -->
-            <div class="md:col-span-2 mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <div class="text-sm font-medium text-blue-900 mb-2">Required Documents</div>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <label class="text-xs text-blue-800 block mb-1">Photo ID <span class="text-red-600">*</span></label>
-                  <input type="file" id="np-id-card" accept="image/*,application/pdf" class="text-sm">
-                  <div class="text-xs text-blue-600 mt-1">Required before order submission</div>
-                </div>
-                <div>
-                  <label class="text-xs text-blue-800 block mb-1">Insurance Card <span class="text-red-600">*</span></label>
-                  <input type="file" id="np-ins-card" accept="image/*,application/pdf" class="text-sm">
-                  <div class="text-xs text-blue-600 mt-1">Required before order submission</div>
-                </div>
+          <!-- Contact Information -->
+          <div class="mb-3">
+            <div class="text-sm font-semibold text-slate-700 mb-2">Contact Information</div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <input id="np-phone" placeholder="Phone (10 digits) *" class="w-full">
+              <div class="flex items-center gap-2 px-3 py-2 border border-slate-300 rounded-lg bg-slate-50">
+                <input type="checkbox" id="np-accepts-sms" class="w-4 h-4">
+                <label for="np-accepts-sms" class="text-sm cursor-pointer select-none">Patient accepts text messages</label>
               </div>
             </div>
           </div>
-          <button id="btn-create-patient" type="button" class="btn mt-2">Save Patient &amp; Use</button>
-          <div id="np-hint" class="text-xs text-slate-500 mt-1"></div>
+
+          <!-- Address -->
+          <div class="mb-3">
+            <div class="text-sm font-semibold text-slate-700 mb-2">Address</div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <input id="np-address" class="md:col-span-2 w-full" placeholder="Street Address *">
+              <input id="np-city" placeholder="City *" class="w-full">
+              <input id="np-state" placeholder="State *" class="w-full">
+              <input id="np-zip" placeholder="ZIP Code *" class="w-full">
+            </div>
+          </div>
+
+          <!-- Insurance Information -->
+          <div class="mb-3">
+            <div class="text-sm font-semibold text-slate-700 mb-2">Insurance Information</div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <input id="np-ins-provider" placeholder="Insurance Carrier (e.g., Blue Cross)" class="w-full">
+              <input id="np-ins-member-id" placeholder="Member ID" class="w-full">
+              <input id="np-ins-group-id" placeholder="Group Number" class="w-full">
+              <input id="np-ins-payer-phone" placeholder="Payer Phone" class="w-full">
+            </div>
+          </div>
+
+          <!-- Required Documents -->
+          <div class="mb-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div class="text-sm font-semibold text-blue-900 mb-3">Required Documents <span class="text-red-600">*</span></div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="text-xs font-medium text-blue-800 block mb-1">Photo ID (Driver's License or State ID)</label>
+                <input type="file" id="np-id-card" accept="image/*,application/pdf" class="w-full text-sm">
+              </div>
+              <div>
+                <label class="text-xs font-medium text-blue-800 block mb-1">Insurance Card (Front & Back)</label>
+                <input type="file" id="np-ins-card" accept="image/*,application/pdf" class="w-full text-sm">
+              </div>
+            </div>
+          </div>
+
+          <button id="btn-create-patient" type="button" class="btn w-full text-white" style="background: var(--brand);">Save Patient &amp; Use for Order</button>
+          <div id="np-hint" class="text-xs mt-2"></div>
         </div>
 
         <!-- Selected Patient Document Status -->
