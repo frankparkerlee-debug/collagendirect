@@ -8538,7 +8538,13 @@ function addWound() {
       </div>
       <div>
         <label class="text-sm">Laterality</label>
-        <input class="wound-laterality w-full" placeholder="e.g., Left, Right">
+        <select class="wound-laterality w-full">
+          <option value="">N/A</option>
+          <option value="Left">Left</option>
+          <option value="Right">Right</option>
+          <option value="Bilateral">Bilateral</option>
+          <option value="Midline">Midline</option>
+        </select>
       </div>
       <div>
         <label class="text-sm">Length (cm) <span class="text-red-600">*</span></label>
@@ -8610,6 +8616,14 @@ function addWound() {
   }
   if (exudateSelect) {
     exudateSelect.addEventListener('change', validateCollagenRestriction);
+  }
+
+  // Add validation listeners for wound location vs ICD-10 matching
+  const locationSelect = woundEl.querySelector('.wound-location');
+  const icd10Primary = woundEl.querySelector('.wound-icd10-primary');
+  if (locationSelect && icd10Primary) {
+    locationSelect.addEventListener('change', () => validateWoundLocationICD10(woundEl));
+    icd10Primary.addEventListener('blur', () => validateWoundLocationICD10(woundEl));
   }
 
   // Remove handler
@@ -9146,6 +9160,106 @@ function validateCollagenRestriction() {
     warning.classList.remove('hidden');
   } else {
     warning.classList.add('hidden');
+  }
+}
+
+// Validate wound location matches ICD-10 code
+function validateWoundLocationICD10(woundEl) {
+  if (!woundEl) return;
+
+  const locationSelect = woundEl.querySelector('.wound-location');
+  const icd10Input = woundEl.querySelector('.wound-icd10-primary');
+
+  if (!locationSelect || !icd10Input) return;
+
+  const location = locationSelect.value;
+  const icd10Code = icd10Input.value.trim().toUpperCase();
+
+  // If either field is empty, clear any warnings
+  if (!location || !icd10Code) {
+    clearLocationICD10Warning(woundEl);
+    return;
+  }
+
+  // Map wound locations to compatible ICD-10 code patterns
+  const locationToICD10Map = {
+    // Lower extremity wounds
+    'Left Foot': ['S91', 'S92', 'S93', 'S94', 'S95', 'S96', 'S97', 'S98', 'S99', 'L97.5', 'L97.4', 'L89.5', 'E11.621', 'E11.622', 'I96'],
+    'Right Foot': ['S91', 'S92', 'S93', 'S94', 'S95', 'S96', 'S97', 'S98', 'S99', 'L97.5', 'L97.4', 'L89.5', 'E11.621', 'E11.622', 'I96'],
+    'Left Lower Leg': ['S81', 'S82', 'S83', 'S84', 'S85', 'S86', 'S87', 'S88', 'S89', 'L97.2', 'L97.1', 'L89.2', 'I83'],
+    'Right Lower Leg': ['S81', 'S82', 'S83', 'S84', 'S85', 'S86', 'S87', 'S88', 'S89', 'L97.2', 'L97.1', 'L89.2', 'I83'],
+    'Left Thigh': ['S71', 'S72', 'S73', 'S74', 'S75', 'S76', 'S77', 'S78', 'S79', 'L89.3'],
+    'Right Thigh': ['S71', 'S72', 'S73', 'S74', 'S75', 'S76', 'S77', 'S78', 'S79', 'L89.3'],
+
+    // Upper extremity wounds
+    'Left Hand': ['S61', 'S62', 'S63', 'S64', 'S65', 'S66', 'S67', 'S68', 'S69'],
+    'Right Hand': ['S61', 'S62', 'S63', 'S64', 'S65', 'S66', 'S67', 'S68', 'S69'],
+    'Left Forearm': ['S51', 'S52', 'S53', 'S54', 'S55', 'S56', 'S57', 'S58', 'S59'],
+    'Right Forearm': ['S51', 'S52', 'S53', 'S54', 'S55', 'S56', 'S57', 'S58', 'S59'],
+    'Left Upper Arm': ['S41', 'S42', 'S43', 'S44', 'S45', 'S46', 'S47', 'S48', 'S49'],
+    'Right Upper Arm': ['S41', 'S42', 'S43', 'S44', 'S45', 'S46', 'S47', 'S48', 'S49'],
+
+    // Trunk wounds
+    'Chest': ['S21', 'S22', 'S23', 'S24', 'S25', 'S26', 'S27', 'S28', 'S29', 'L89.0'],
+    'Abdomen': ['S31', 'S32', 'S33', 'S34', 'S35', 'S36', 'S37', 'S38', 'S39', 'L89.1'],
+    'Back': ['S21', 'S22', 'S31', 'S32', 'L89.1'],
+    'Buttock': ['L89.3', 'S31', 'S71'],
+    'Sacrum/Coccyx': ['L89.15', 'S32', 'S33', 'S34'],
+
+    // Head/neck wounds
+    'Head': ['S01', 'S02', 'S03', 'S04', 'S05', 'S06', 'S07', 'S08', 'S09'],
+    'Face': ['S01', 'S02', 'S03', 'S04', 'S05', 'S07', 'S08', 'S09'],
+    'Neck': ['S11', 'S12', 'S13', 'S14', 'S15', 'S16', 'S17', 'S18', 'S19'],
+  };
+
+  // Check if location has mapping
+  if (!locationToICD10Map[location]) {
+    clearLocationICD10Warning(woundEl);
+    return;
+  }
+
+  // Check if ICD-10 code matches any of the compatible patterns
+  const compatiblePrefixes = locationToICD10Map[location];
+  const isCompatible = compatiblePrefixes.some(prefix => icd10Code.startsWith(prefix));
+
+  if (!isCompatible) {
+    showLocationICD10Warning(woundEl, location, icd10Code);
+  } else {
+    clearLocationICD10Warning(woundEl);
+  }
+}
+
+function showLocationICD10Warning(woundEl, location, icd10Code) {
+  // Check if warning already exists
+  let warning = woundEl.querySelector('.location-icd10-warning');
+
+  if (!warning) {
+    // Create warning element
+    warning = document.createElement('div');
+    warning.className = 'location-icd10-warning bg-yellow-50 border border-yellow-400 text-yellow-800 px-3 py-2 rounded text-sm mt-2';
+    warning.innerHTML = `
+      <strong>⚠ Warning:</strong> The wound location "<strong>${location}</strong>" may not be compatible with ICD-10 code "<strong>${icd10Code}</strong>".
+      <br>Please verify this is the correct diagnosis code for this anatomical location.
+    `;
+
+    // Insert after ICD-10 input field
+    const icd10Input = woundEl.querySelector('.wound-icd10-primary');
+    if (icd10Input && icd10Input.parentNode) {
+      icd10Input.parentNode.insertBefore(warning, icd10Input.nextSibling);
+    }
+  } else {
+    // Update existing warning
+    warning.innerHTML = `
+      <strong>⚠ Warning:</strong> The wound location "<strong>${location}</strong>" may not be compatible with ICD-10 code "<strong>${icd10Code}</strong>".
+      <br>Please verify this is the correct diagnosis code for this anatomical location.
+    `;
+  }
+}
+
+function clearLocationICD10Warning(woundEl) {
+  const warning = woundEl.querySelector('.location-icd10-warning');
+  if (warning) {
+    warning.remove();
   }
 }
 
