@@ -6230,749 +6230,204 @@ if ($page==='logout'){
         Back to Orders
       </a>
     </div>
-
+    <!-- Main Container with Cart Sidebar -->
     <!-- Main Container with Cart Sidebar -->
     <div class="wholesale-container">
       <!-- Main Form Area -->
+      <div class="wholesale-main">
+        <div class="card" style="border: none; border-radius: 16px; padding: 2rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
 
-          <!-- Step 1: Order Type Selection -->
-          <div class="form-step active" data-step="1">
-            <h4 class="mb-4"><i class="bi bi-cart-check text-primary"></i> Select Order Type</h4>
-            <div class="row g-3">
-              <div class="col-md-4">
-                <div class="card product-card h-100" onclick="selectOrderType('single')" id="orderTypeSingle">
-                  <div class="card-body text-center">
-                    <i class="bi bi-person fs-1 text-primary d-block mb-3"></i>
-                    <h5 class="card-title mb-2">Single Patient</h5>
-                    <p class="text-muted small mb-0">Order for one patient at a time</p>
-                  </div>
+          <!-- Step 1: Patient Entry -->
+          <div id="step-patient" class="fade-in">
+            <h4 style="font-size: 1.25rem; font-weight: 700; color: #1e293b; margin-bottom: 1.5rem;">
+              <svg style="width: 24px; height: 24px; display: inline-block; margin-right: 0.5rem; vertical-align: middle; color: #3b82f6;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+              </svg>
+              Patient Information
+            </h4>
+
+            <!-- Select Existing or Create New -->
+            <div style="margin-bottom: 1.5rem;">
+              <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #374151;">Select Existing Patient</label>
+              <select id="existing-patient-select" class="form-select form-select-lg" style="border-radius: 12px;">
+                <option value="">-- Choose patient --</option>
+              </select>
+              <p style="margin-top: 0.5rem; font-size: 0.875rem; color: #64748b;">
+                Or <a href="#" id="toggle-new-patient" style="color: #3b82f6; font-weight: 600; text-decoration: none;">create a new patient</a>
+              </p>
+            </div>
+
+            <!-- New Patient Form (Hidden by Default) -->
+            <div id="new-patient-form" style="display: none; background: #f8fafc; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;">
+              <h5 style="font-size: 1rem; font-weight: 600; color: #1e293b; margin-bottom: 1rem;">Create New Patient</h5>
+
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label style="font-weight: 500; color: #374151; display: block; margin-bottom: 0.5rem;">First Name *</label>
+                  <input type="text" id="new-first-name" class="form-control" placeholder="First name" required style="border-radius: 8px;">
                 </div>
-              </div>
-              <div class="col-md-4">
-                <div class="card product-card h-100" onclick="selectOrderType('bulk')" id="orderTypeBulk">
-                  <div class="card-body text-center">
-                    <i class="bi bi-people fs-1 text-success d-block mb-3"></i>
-                    <h5 class="card-title mb-2">Multiple Patients</h5>
-                    <p class="text-muted small mb-0">Add multiple patient orders to cart</p>
-                  </div>
+                <div class="col-md-6">
+                  <label style="font-weight: 500; color: #374151; display: block; margin-bottom: 0.5rem;">Last Name *</label>
+                  <input type="text" id="new-last-name" class="form-control" placeholder="Last name" required style="border-radius: 8px;">
                 </div>
-              </div>
-              <div class="col-md-4">
-                <div class="card product-card h-100" onclick="selectOrderType('office')" id="orderTypeOffice">
-                  <div class="card-body text-center">
-                    <i class="bi bi-building fs-1 text-info d-block mb-3"></i>
-                    <h5 class="card-title mb-2">Office Stock</h5>
-                    <p class="text-muted small mb-0">Order supplies for office inventory</p>
+                <div class="col-md-6">
+                  <label style="font-weight: 500; color: #374151; display: block; margin-bottom: 0.5rem;">Date of Birth *</label>
+                  <input type="date" id="new-dob" class="form-control" required style="border-radius: 8px;">
+                </div>
+                <div class="col-md-6">
+                  <label style="font-weight: 500; color: #374151; display: block; margin-bottom: 0.5rem;">Phone Number *</label>
+                  <input type="tel" id="new-phone" class="form-control" placeholder="(555) 123-4567" required style="border-radius: 8px;">
+                  <small style="color: #64748b; font-size: 0.75rem;">Will be standardized for SMS delivery</small>
+                </div>
+                <div class="col-12">
+                  <label style="font-weight: 500; color: #374151; display: block; margin-bottom: 0.5rem;">Address *</label>
+                  <input type="text" id="new-address" class="form-control" placeholder="Start typing address..." required style="border-radius: 8px;">
+                  <small style="color: #64748b; font-size: 0.75rem;">Uses Google Places API for standardization</small>
+                </div>
+                <div class="col-md-6">
+                  <label style="font-weight: 500; color: #374151; display: block; margin-bottom: 0.5rem;">City *</label>
+                  <input type="text" id="new-city" class="form-control" required style="border-radius: 8px;">
+                </div>
+                <div class="col-md-3">
+                  <label style="font-weight: 500; color: #374151; display: block; margin-bottom: 0.5rem;">State *</label>
+                  <input type="text" id="new-state" class="form-control" required style="border-radius: 8px;">
+                </div>
+                <div class="col-md-3">
+                  <label style="font-weight: 500; color: #374151; display: block; margin-bottom: 0.5rem;">ZIP Code *</label>
+                  <input type="text" id="new-zip" class="form-control" required style="border-radius: 8px;">
+                </div>
+                <div class="col-12">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="new-accepts-sms" checked>
+                    <label class="form-check-label" for="new-accepts-sms" style="font-size: 0.875rem; color: #475569;">
+                      Send delivery SMS notifications to this patient
+                    </label>
                   </div>
                 </div>
               </div>
             </div>
-            <input type="hidden" id="order_type" name="order_type" value="">
-            <div class="mt-4 pt-4 border-top">
-              <button type="button" class="btn btn-lg btn-primary px-5" onclick="nextStep()" id="orderTypeNext" disabled>
-                Continue <i class="bi bi-arrow-right"></i>
+
+            <!-- Delivery Address Selection -->
+            <div style="margin-bottom: 1.5rem;">
+              <label style="display: block; font-weight: 600; margin-bottom: 0.75rem; color: #374151;">Delivery Address</label>
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <div class="product-item" id="delivery-patient" onclick="selectDelivery('patient')" style="text-align: center; padding: 1.5rem;">
+                    <svg style="width: 32px; height: 32px; color: #3b82f6; margin: 0 auto 0.5rem; display: block;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                    </svg>
+                    <div style="font-weight: 600; color: #1e293b;">Patient Address</div>
+                    <div style="font-size: 0.75rem; color: #64748b;">Ship to patient's home</div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="product-item" id="delivery-office" onclick="selectDelivery('office')" style="text-align: center; padding: 1.5rem;">
+                    <svg style="width: 32px; height: 32px; color: #8b5cf6; margin: 0 auto 0.5rem; display: block;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                    </svg>
+                    <div style="font-weight: 600; color: #1e293b;">Office Stock</div>
+                    <div style="font-size: 0.75rem; color: #64748b;">Ship to your practice</div>
+                  </div>
+                </div>
+              </div>
+              <input type="hidden" id="delivery-type" value="patient">
+            </div>
+
+            <button type="button" class="btn btn-lg" id="btn-continue-to-products" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border: none; padding: 0.875rem 2rem; border-radius: 12px; font-weight: 600; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); width: 100%;">
+              Continue to Products
+              <svg style="width: 18px; height: 18px; display: inline-block; margin-left: 0.5rem; vertical-align: middle;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Step 2: Product Selection -->
+          <div id="step-products" class="fade-in" style="display: none;">
+            <h4 style="font-size: 1.25rem; font-weight: 700; color: #1e293b; margin-bottom: 1.5rem;">
+              <svg style="width: 24px; height: 24px; display: inline-block; margin-right: 0.5rem; vertical-align: middle; color: #10b981;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+              </svg>
+              Select Products
+            </h4>
+
+            <div id="products-grid" class="product-grid"></div>
+
+            <div style="margin-top: 2rem; display: flex; gap: 1rem; justify-content: space-between;">
+              <button type="button" class="btn btn-lg" id="btn-back-to-patient" style="background: #f1f5f9; color: #475569; border: none; padding: 0.875rem 2rem; border-radius: 12px; font-weight: 600;">
+                <svg style="width: 18px; height: 18px; display: inline-block; margin-right: 0.5rem; vertical-align: middle;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 17l-5-5m0 0l5-5m-5 5h12"></path>
+                </svg>
+                Back
+              </button>
+              <button type="button" class="btn btn-lg" id="btn-add-to-cart" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; padding: 0.875rem 2rem; border-radius: 12px; font-weight: 600; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);" disabled>
+                <svg style="width: 18px; height: 18px; display: inline-block; margin-right: 0.5rem; vertical-align: middle;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Add to Cart
               </button>
             </div>
           </div>
 
-          <!-- Step 2: Patient Selection (Single/Bulk) -->
-          <div class="form-step" data-step="2">
-            <!-- Single Patient Mode -->
-            <div id="singlePatientMode" style="display:none;">
-              <h4 class="mb-4"><i class="bi bi-person-fill text-primary"></i> Select Patient</h4>
-              <div class="row">
-                <div class="col-md-8">
-                  <label for="patient_id" class="form-label fw-bold">Choose Patient *</label>
-                  <select id="patient_id" name="patient_id" class="form-select form-select-lg">
-                    <option value="">-- Select a patient --</option>
-                  </select>
-                  <div class="mt-3">
-                    <small class="text-muted">Don't see your patient? <a href="#" id="createNewPatientLink" class="fw-bold">Create New Patient</a></small>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Bulk Patient Mode -->
-            <div id="bulkPatientMode" style="display:none;">
-              <h4 class="mb-4"><i class="bi bi-people text-success"></i> Add Patients to Cart</h4>
-              <div class="row">
-                <div class="col-md-12">
-                  <div class="card bg-light mb-3">
-                    <div class="card-body">
-                      <h6 class="card-title"><i class="bi bi-info-circle"></i> Bulk Ordering</h6>
-                      <p class="mb-0 small">Select multiple patients and configure their orders. All orders will be submitted together.</p>
-                    </div>
-                  </div>
-
-                  <div class="row">
-                    <div class="col-md-6">
-                      <label for="bulk_patient_select" class="form-label fw-bold">Select Patient to Add</label>
-                      <select id="bulk_patient_select" class="form-select form-select-lg">
-                        <option value="">-- Choose patient to add --</option>
-                      </select>
-                    </div>
-                    <div class="col-md-6 d-flex align-items-end">
-                      <button type="button" class="btn btn-success btn-lg" onclick="addPatientToCart()">
-                        <i class="bi bi-plus-circle"></i> Add to Cart
-                      </button>
-                    </div>
-                  </div>
-
-                  <div id="patientCart" class="mt-4" style="display:none;">
-                    <h5 class="mb-3">Patients in Cart (<span id="cartCount">0</span>)</h5>
-                    <div id="cartItems" class="list-group"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Office Stock Mode -->
-            <div id="officeStockMode" style="display:none;">
-              <h4 class="mb-4"><i class="bi bi-building text-info"></i> Office Stock Order</h4>
-              <div class="alert alert-info">
-                <i class="bi bi-info-circle"></i> <strong>Office Stock:</strong> This order is for office inventory and is not associated with any patient.
-              </div>
-            </div>
-
-            <div class="mt-4 pt-4 border-top d-flex justify-content-between">
-              <button type="button" class="btn btn-lg btn-outline-secondary px-5" onclick="prevStep()">
-                <i class="bi bi-arrow-left"></i> Back
-              </button>
-              <button type="button" class="btn btn-lg btn-primary px-5" onclick="nextStep()">
-                Continue <i class="bi bi-arrow-right"></i>
-              </button>
-            </div>
-          </div>
-
-          <!-- Step 3: Product Selection -->
-          <div class="form-step" data-step="3">
-            <h4 class="mb-4"><i class="bi bi-box-seam text-primary"></i> Select Product</h4>
-            <div class="row">
-              <div class="col-md-7">
-                <label for="product_select" class="form-label fw-bold mb-3">Choose Wound Dressing *</label>
-                <select id="product_select" class="form-select form-select-lg" required>
-                  <option value="">-- Select a product --</option>
-                </select>
-                <input type="hidden" id="product_id" name="product_id" required>
-                <small class="text-muted mt-2 d-block">
-                  <i class="bi bi-info-circle"></i> Select a product to see wholesale pricing and details
-                </small>
-              </div>
-              <div class="col-md-5">
-                <div id="pricingDisplay" class="pricing-card" style="display:none;">
-                  <div class="mb-2">
-                    <h6 class="mb-1" id="selectedProductName"></h6>
-                    <small class="opacity-75" id="selectedProductSize"></small>
-                  </div>
-                  <hr class="border-light opacity-25 my-2">
-                  <div class="d-flex justify-content-between mb-2">
-                    <span><i class="bi bi-tag"></i> Wholesale Price:</span>
-                    <strong>$<span id="wholesalePrice">0</span>/piece</strong>
-                  </div>
-                  <div class="d-flex justify-content-between mb-2">
-                    <span><i class="bi bi-box"></i> Pieces per Box:</span>
-                    <strong><span id="piecesPerBox">0</span></strong>
-                  </div>
-                  <hr class="border-light opacity-25 my-2">
-                  <div class="d-flex justify-content-between align-items-center">
-                    <span>Price per Box:</span>
-                    <div class="price">$<span id="boxPrice">0</span></div>
-                  </div>
-                </div>
-                <div id="pricingPlaceholder" class="card bg-light text-center p-4">
-                  <i class="bi bi-box-seam text-muted" style="font-size: 3rem;"></i>
-                  <p class="text-muted mb-0 mt-2">Select a product to view pricing</p>
-                </div>
-              </div>
-            </div>
-            <div class="mt-4 pt-4 border-top d-flex justify-content-between">
-              <button type="button" class="btn btn-lg btn-outline-secondary px-5" onclick="prevStep()">
-                <i class="bi bi-arrow-left"></i> Back
-              </button>
-              <button type="button" class="btn btn-lg btn-primary px-5" onclick="nextStep()">
-                Continue <i class="bi bi-arrow-right"></i>
-              </button>
-            </div>
-          </div>
-
-          <!-- Step 4: Quantity Details -->
-          <div class="form-step" data-step="4">
-            <h4 class="mb-4"><i class="bi bi-calculator text-primary"></i> Calculate Quantity Needed</h4>
-            <div class="row g-4">
-              <div class="col-md-4">
-                <label for="frequency_per_week" class="form-label fw-bold">
-                  <i class="bi bi-calendar-week"></i> Changes per Week *
-                </label>
-                <input type="number" id="frequency_per_week" name="frequency_per_week"
-                       class="form-control form-control-lg" min="1" max="21" value="7" required>
-                <small class="text-muted">Typical: 7 (daily changes)</small>
-              </div>
-              <div class="col-md-4">
-                <label for="duration_days" class="form-label fw-bold">
-                  <i class="bi bi-clock-history"></i> Treatment Duration (Days) *
-                </label>
-                <input type="number" id="duration_days" name="duration_days"
-                       class="form-control form-control-lg" min="1" max="90" value="30" required>
-                <small class="text-muted">Typical: 30 days (1 month)</small>
-              </div>
-              <div class="col-md-4">
-                <label for="qty_per_change" class="form-label fw-bold">
-                  <i class="bi bi-layers"></i> Pieces per Change *
-                </label>
-                <input type="number" id="qty_per_change" name="qty_per_change"
-                       class="form-control form-control-lg" min="1" max="10" value="1" required>
-                <small class="text-muted">Typical: 1-2 pieces</small>
-              </div>
-            </div>
-
-            <div class="order-summary-card">
-              <h5 class="mb-3"><i class="bi bi-clipboard-check"></i> Order Calculation</h5>
-              <div id="orderSummary">
-                <div class="summary-item">
-                  <span>Total Changes Needed:</span>
-                  <span><strong id="totalChanges">-</strong></span>
-                </div>
-                <div class="summary-item">
-                  <span>Pieces Needed:</span>
-                  <span><strong id="piecesNeeded">-</strong></span>
-                </div>
-                <div class="summary-item">
-                  <span>Boxes to Order:</span>
-                  <span><strong id="boxesNeeded">-</strong> boxes</span>
-                </div>
-                <div class="summary-item">
-                  <span>Unit Cost:</span>
-                  <span>$<strong id="unitCost">0.00</strong>/piece</span>
-                </div>
-                <div class="summary-item">
-                  <span><i class="bi bi-cart-check"></i> Total Order Cost:</span>
-                  <span>$<strong id="totalCost">0.00</strong></span>
-                </div>
-              </div>
-            </div>
-
-            <div class="mt-4 pt-4 border-top d-flex justify-content-between">
-              <button type="button" class="btn btn-lg btn-outline-secondary px-5" onclick="prevStep()">
-                <i class="bi bi-arrow-left"></i> Back
-              </button>
-              <button type="button" class="btn btn-lg btn-primary px-5" onclick="nextStep()">
-                Continue <i class="bi bi-arrow-right"></i>
-              </button>
-            </div>
-          </div>
-
-          <!-- Step 5: Shipping -->
-          <div class="form-step" data-step="5">
-            <h4 class="mb-4"><i class="bi bi-truck text-primary"></i> Shipping Information</h4>
-            <div class="row">
-              <div class="col-md-8">
-                <label class="form-label fw-bold mb-3">Delivery Address *</label>
-                <div class="row g-3">
-                  <div class="col-md-6">
-                    <div class="card product-card" onclick="selectShipping('patient')">
-                      <div class="card-body text-center">
-                        <input class="form-check-input" type="radio" name="delivery_to" id="delivery_patient" value="patient" checked>
-                        <label class="form-check-label d-block mt-2" for="delivery_patient">
-                          <i class="bi bi-house-door fs-3 d-block mb-2"></i>
-                          <strong>Patient Address</strong>
-                          <p class="text-muted small mb-0">Ship directly to patient's home</p>
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="col-md-6">
-                    <div class="card product-card" onclick="selectShipping('office')">
-                      <div class="card-body text-center">
-                        <input class="form-check-input" type="radio" name="delivery_to" id="delivery_office" value="office">
-                        <label class="form-check-label d-block mt-2" for="delivery_office">
-                          <i class="bi bi-building fs-3 d-block mb-2"></i>
-                          <strong>Office Address</strong>
-                          <p class="text-muted small mb-0">Ship to your practice</p>
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div class="alert alert-info mt-3">
-                  <i class="bi bi-info-circle"></i> Address will be auto-filled from your records
-                </div>
-              </div>
-            </div>
-            <div class="mt-4 pt-4 border-top d-flex justify-content-between">
-              <button type="button" class="btn btn-lg btn-outline-secondary px-5" onclick="prevStep()">
-                <i class="bi bi-arrow-left"></i> Back
-              </button>
-              <button type="button" class="btn btn-lg btn-primary px-5" onclick="nextStep()">
-                Continue <i class="bi bi-arrow-right"></i>
-              </button>
-            </div>
-          </div>
-
-          <!-- Step 6: Review & Submit -->
-          <div class="form-step" data-step="6">
-            <h4 class="mb-4"><i class="bi bi-check-circle text-success"></i> Review & Submit Order</h4>
-
-            <div class="card bg-light mb-4">
-              <div class="card-body">
-                <h5 class="card-title">Order Summary</h5>
-                <div id="finalReview"></div>
-              </div>
-            </div>
-
-            <div class="card border-warning mb-4">
-              <div class="card-body">
-                <h6 class="card-title"><i class="bi bi-pencil-square"></i> Physician Certification</h6>
-                <div class="row mt-3">
-                  <div class="col-md-6">
-                    <label for="sign_name" class="form-label fw-bold">Full Name *</label>
-                    <input type="text" id="sign_name" name="sign_name" class="form-control"
-                           value="<?= htmlspecialchars($user['first_name'] . ' ' . $user['last_name']) ?>" required>
-                  </div>
-                  <div class="col-md-6">
-                    <label for="sign_title" class="form-label fw-bold">Credentials</label>
-                    <input type="text" id="sign_title" name="sign_title" class="form-control"
-                           value="<?= htmlspecialchars($user['credentials'] ?? 'MD') ?>">
-                  </div>
-                </div>
-                <div class="form-check mt-3 p-3 bg-white rounded">
-                  <input class="form-check-input" type="checkbox" id="ack_sig" name="ack_sig" required>
-                  <label class="form-check-label" for="ack_sig">
-                    <strong>I certify</strong> that this order is medically necessary and that I am authorized to order medical supplies for this patient.
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <div class="mt-4 pt-4 border-top d-flex justify-content-between">
-              <button type="button" class="btn btn-lg btn-outline-secondary px-5" onclick="prevStep()">
-                <i class="bi bi-arrow-left"></i> Back
-              </button>
-              <div>
-                <button type="submit" name="save_as_draft" value="1" class="btn btn-lg btn-outline-primary me-2 px-4">
-                  <i class="bi bi-save"></i> Save Draft
-                </button>
-                <button type="submit" name="save_as_draft" value="0" class="btn btn-lg btn-success px-5">
-                  <i class="bi bi-check-circle"></i> Submit Order
-                </button>
-              </div>
-            </div>
-          </div>
-
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <script>
-  let currentStep = 1;
-  let products = [];
-  let patients = [];
-  let selectedProduct = null;
-  let selectedPatient = null;
-  let orderData = {};
-  window.patientCart = []; // For bulk ordering
-
-  // Order type selection
-  window.selectOrderType = function(type) {
-    // Remove selected class from all cards
-    document.querySelectorAll('#orderTypeSingle, #orderTypeBulk, #orderTypeOffice').forEach(card => {
-      card.classList.remove('selected');
-    });
-
-    // Add selected class to clicked card
-    document.getElementById(`orderType${type.charAt(0).toUpperCase() + type.slice(1)}`).classList.add('selected');
-
-    // Set order type value
-    document.getElementById('order_type').value = type;
-
-    // Enable the Continue button
-    const nextBtn = document.getElementById('orderTypeNext');
-    if (nextBtn) {
-      nextBtn.disabled = false;
-    }
-
-    // Show/hide appropriate patient selection mode in step 2
-    document.getElementById('singlePatientMode').style.display = type === 'single' ? 'block' : 'none';
-    document.getElementById('bulkPatientMode').style.display = type === 'bulk' ? 'block' : 'none';
-    document.getElementById('officeStockMode').style.display = type === 'office' ? 'block' : 'none';
-  };
-
-  // Add patient to cart (bulk ordering)
-  window.addPatientToCart = function() {
-    const selectElem = document.getElementById('bulk_patient_select');
-    const patientId = selectElem.value;
-
-    if (!patientId) {
-      alert('Please select a patient first');
-      return;
-    }
-
-    const opt = selectElem.options[selectElem.selectedIndex];
-    const patient = JSON.parse(opt.dataset.patient);
-
-    // Check if patient already in cart
-    if (window.patientCart.some(p => p.id === patient.id)) {
-      alert('This patient is already in your cart');
-      return;
-    }
-
-    // Add to cart
-    window.patientCart.push(patient);
-
-    // Reset dropdown
-    selectElem.value = '';
-
-    // Render cart
-    renderPatientCart();
-  };
-
-  // Remove patient from cart
-  window.removeFromCart = function(index) {
-    if (confirm('Remove this patient from the cart?')) {
-      window.patientCart.splice(index, 1);
-      renderPatientCart();
-    }
-  };
-
-  // Render patient cart
-  function renderPatientCart() {
-    const cartElem = document.getElementById('patientCart');
-    const cartItemsElem = document.getElementById('cartItems');
-    const cartCountElem = document.getElementById('cartCount');
-
-    if (window.patientCart.length === 0) {
-      cartElem.style.display = 'none';
-      return;
-    }
-
-    cartElem.style.display = 'block';
-    cartCountElem.textContent = window.patientCart.length;
-
-    cartItemsElem.innerHTML = '';
-    window.patientCart.forEach((patient, index) => {
-      const item = document.createElement('div');
-      item.className = 'list-group-item d-flex justify-content-between align-items-center';
-      item.innerHTML = `
-        <div>
-          <strong>${patient.first_name} ${patient.last_name}</strong><br>
-          <small class="text-muted">DOB: ${patient.dob || 'N/A'}</small>
-        </div>
-        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeFromCart(${index})">
-          <i class="bi bi-trash"></i> Remove
-        </button>
-      `;
-      cartItemsElem.appendChild(item);
-    });
-  }
-
-  // Stepper navigation
-  window.nextStep = function() {
-    // Validate current step
-    if (!validateStep(currentStep)) {
-      return;
-    }
-
-    // Hide current step
-    document.querySelector(`.form-step[data-step="${currentStep}"]`).classList.remove('active');
-    document.querySelector(`.stepper-step[data-step="${currentStep}"]`).classList.add('completed');
-    document.querySelector(`.stepper-step[data-step="${currentStep}"]`).classList.remove('active');
-
-    // Show next step
-    currentStep++;
-    document.querySelector(`.form-step[data-step="${currentStep}"]`).classList.add('active');
-    document.querySelector(`.stepper-step[data-step="${currentStep}"]`).classList.add('active');
-
-    // Update final review on last step
-    if (currentStep === 6) {
-      updateFinalReview();
-    }
-
-    // Trigger calculation on step 4 (quantity)
-    if (currentStep === 4) {
-      calculateOrder();
-    }
-
-    window.scrollTo(0, 0);
-  };
-
-  window.prevStep = function() {
-    // Hide current step
-    document.querySelector(`.form-step[data-step="${currentStep}"]`).classList.remove('active');
-    document.querySelector(`.stepper-step[data-step="${currentStep}"]`).classList.remove('active');
-
-    // Show previous step
-    currentStep--;
-    document.querySelector(`.form-step[data-step="${currentStep}"]`).classList.add('active');
-    document.querySelector(`.stepper-step[data-step="${currentStep}"]`).classList.add('active');
-    document.querySelector(`.stepper-step[data-step="${currentStep}"]`).classList.remove('completed');
-
-    window.scrollTo(0, 0);
-  };
-
-  function validateStep(step) {
-    switch(step) {
-      case 1:
-        // Order type selection
-        if (!document.getElementById('order_type').value) {
-          alert('Please select an order type');
-          return false;
-        }
-        break;
-      case 2:
-        // Patient selection (conditional based on order type)
-        const orderType = document.getElementById('order_type').value;
-        if (orderType === 'single') {
-          if (!document.getElementById('patient_id').value) {
-            alert('Please select a patient');
-            return false;
-          }
-        } else if (orderType === 'bulk') {
-          if (!window.patientCart || window.patientCart.length === 0) {
-            alert('Please add at least one patient to the cart');
-            return false;
-          }
-        }
-        // Office stock doesn't need patient validation
-        break;
-      case 3:
-        // Product selection
-        if (!selectedProduct) {
-          alert('Please select a product');
-          return false;
-        }
-        break;
-      case 4:
-        // Quantity details
-        const freq = document.getElementById('frequency_per_week').value;
-        const duration = document.getElementById('duration_days').value;
-        const qty = document.getElementById('qty_per_change').value;
-        if (!freq || !duration || !qty) {
-          alert('Please fill out all quantity fields');
-          return false;
-        }
-        break;
-    }
-    return true;
-  }
-
-  window.selectShipping = function(type) {
-    document.querySelectorAll('.product-card').forEach(card => card.classList.remove('selected'));
-    event.currentTarget.classList.add('selected');
-    document.getElementById(`delivery_${type}`).checked = true;
-  };
-
-  function updateFinalReview() {
-    const patientSelect = document.getElementById('patient_id');
-    const patientName = patientSelect.options[patientSelect.selectedIndex].text;
-
-    const freq = document.getElementById('frequency_per_week').value;
-    const duration = document.getElementById('duration_days').value;
-    const qtyPerChange = document.getElementById('qty_per_change').value;
-
-    const piecesPerBox = selectedProduct.pieces_per_box || 10;
-    const wholesalePrice = selectedProduct.price_wholesale || 0;
-    const changesPerDay = freq / 7;
-    const totalChanges = changesPerDay * duration;
-    const piecesNeeded = Math.ceil(totalChanges * qtyPerChange);
-    const boxesNeeded = Math.ceil(piecesNeeded / piecesPerBox);
-    const totalCost = boxesNeeded * (wholesalePrice * piecesPerBox);
-
-    const deliveryType = document.querySelector('input[name="delivery_to"]:checked').value;
-    const deliveryText = deliveryType === 'patient' ? 'Patient Address' : 'Office Address';
-
-    document.getElementById('finalReview').innerHTML = `
-      <div class="row g-3">
-        <div class="col-md-6">
-          <strong><i class="bi bi-person"></i> Patient:</strong><br>
-          ${patientName}
-        </div>
-        <div class="col-md-6">
-          <strong><i class="bi bi-box-seam"></i> Product:</strong><br>
-          ${selectedProduct.name} ${selectedProduct.size}
-        </div>
-        <div class="col-md-6">
-          <strong><i class="bi bi-calculator"></i> Order Details:</strong><br>
-          ${freq}× per week, ${duration} days, ${qtyPerChange} pieces/change
-        </div>
-        <div class="col-md-6">
-          <strong><i class="bi bi-truck"></i> Shipping:</strong><br>
-          ${deliveryText}
-        </div>
-        <div class="col-12">
-          <hr>
-          <div class="row">
-            <div class="col-6"><strong>Boxes to Order:</strong></div>
-            <div class="col-6 text-end">${boxesNeeded} boxes</div>
-          </div>
-          <div class="row mt-2">
-            <div class="col-6"><strong>Total Cost:</strong></div>
-            <div class="col-6 text-end"><h4 class="text-success">$${totalCost.toFixed(2)}</h4></div>
-          </div>
         </div>
       </div>
-    `;
-  }
 
-  document.addEventListener('DOMContentLoaded', function() {
-    // Load patients
-    fetch('/portal/index.php?action=patients')
-      .then(r => r.json())
-      .then(data => {
-        if (data.ok && data.rows) {
-          patients = data.rows;
+      <!-- Cart Sidebar -->
+      <div class="wholesale-cart">
+        <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-radius: 16px; padding: 1.5rem; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1);">
+          <h4 style="font-size: 1.125rem; font-weight: 700; color: #1e293b; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between;">
+            <span>
+              <svg style="width: 20px; height: 20px; display: inline-block; margin-right: 0.5rem; vertical-align: middle; color: #10b981;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+              </svg>
+              Order Cart
+            </span>
+            <span id="cart-count" style="background: #10b981; color: white; border-radius: 12px; padding: 0.25rem 0.75rem; font-size: 0.875rem; font-weight: 700;">0</span>
+          </h4>
 
-          // Populate single patient dropdown
-          const select = document.getElementById('patient_id');
-          patients.forEach(p => {
-            const opt = document.createElement('option');
-            opt.value = p.id;
-            opt.textContent = `${p.first_name} ${p.last_name} (DOB: ${p.dob || 'N/A'})`;
-            opt.dataset.patient = JSON.stringify(p);
-            select.appendChild(opt);
-          });
+          <div id="cart-items-container" style="max-height: 500px; overflow-y: auto;">
+            <!-- Cart items will be populated here -->
+            <div id="cart-empty" class="cart-empty">
+              <svg style="width: 48px; height: 48px; color: #cbd5e1; margin: 0 auto 1rem; display: block;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+              </svg>
+              <p style="margin: 0; font-size: 0.875rem;">Your cart is empty</p>
+              <p style="margin: 0.25rem 0 0 0; font-size: 0.75rem;">Add patients and products to get started</p>
+            </div>
+            <div id="cart-items-list" style="display: none;"></div>
+          </div>
 
-          // Populate bulk patient dropdown
-          const bulkSelect = document.getElementById('bulk_patient_select');
-          patients.forEach(p => {
-            const opt = document.createElement('option');
-            opt.value = p.id;
-            opt.textContent = `${p.first_name} ${p.last_name} (DOB: ${p.dob || 'N/A'})`;
-            opt.dataset.patient = JSON.stringify(p);
-            bulkSelect.appendChild(opt);
-          });
-        }
-      });
+          <!-- Cart Total -->
+          <div id="cart-total" style="display: none; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 2px solid #dcfce7;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+              <span style="color: #64748b; font-weight: 500;">Total Patients:</span>
+              <span id="total-patients" style="font-weight: 700; color: #1e293b;">0</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+              <span style="color: #64748b; font-weight: 500;">Total Products:</span>
+              <span id="total-products" style="font-weight: 700; color: #1e293b;">0</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; background: white; border-radius: 12px; padding: 1rem;">
+              <span style="font-size: 1rem; font-weight: 600; color: #1e293b;">Total Cost:</span>
+              <span id="total-cost" style="font-size: 1.5rem; font-weight: 700; color: #10b981;">$0.00</span>
+            </div>
+          </div>
 
-    // Load products and populate dropdown
-    fetch('/portal/index.php?action=products')
-      .then(r => r.json())
-      .then(data => {
-        if (data.ok && data.rows) {
-          products = data.rows;
-          const select = document.getElementById('product_select');
+          <!-- Submit Button -->
+          <button type="button" id="btn-submit-all-orders" class="btn btn-lg" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; border: none; padding: 0.875rem 2rem; border-radius: 12px; font-weight: 600; box-shadow: 0 6px 16px rgba(5, 150, 105, 0.3); width: 100%; margin-top: 1.5rem; display: none;">
+            <svg style="width: 18px; height: 18px; display: inline-block; margin-right: 0.5rem; vertical-align: middle;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Submit All Orders
+          </button>
+        </div>
+      </div>
+    </div> <!-- End wholesale-container -->
+  </div> <!-- End container-fluid -->
 
-          products.forEach(p => {
-            const opt = document.createElement('option');
-            opt.value = p.id;
-            opt.textContent = `${p.name} - ${p.size}`;
-            opt.dataset.product = JSON.stringify(p);
-            select.appendChild(opt);
-          });
-        }
-      });
+  <!-- Include Wholesale Order JavaScript -->
+  <script src="/portal/wholesale-order-form.js"></script>
 
-    // Handle product selection from dropdown
-    document.getElementById('product_select').addEventListener('change', function() {
-      const opt = this.options[this.selectedIndex];
-      if (!opt.value || !opt.dataset.product) {
-        document.getElementById('pricingDisplay').style.display = 'none';
-        document.getElementById('pricingPlaceholder').style.display = 'block';
-        selectedProduct = null;
-        document.getElementById('product_id').value = '';
-        return;
-      }
-
-      const product = JSON.parse(opt.dataset.product);
-
-      // Fetch detailed pricing
-      fetch(`/portal/index.php?action=product.details&id=${product.id}`)
-        .then(r => r.json())
-        .then(data => {
-          if (data.ok && data.product) {
-            selectedProduct = data.product;
-            document.getElementById('product_id').value = selectedProduct.id;
-
-            // Show pricing
-            document.getElementById('selectedProductName').textContent = selectedProduct.name;
-            document.getElementById('selectedProductSize').textContent = selectedProduct.size;
-            document.getElementById('wholesalePrice').textContent = (parseFloat(selectedProduct.price_wholesale) || 0).toFixed(2);
-            document.getElementById('piecesPerBox').textContent = parseInt(selectedProduct.pieces_per_box) || 10;
-            document.getElementById('boxPrice').textContent = ((parseFloat(selectedProduct.price_wholesale) || 0) * (parseInt(selectedProduct.pieces_per_box) || 10)).toFixed(2);
-
-            document.getElementById('pricingPlaceholder').style.display = 'none';
-            document.getElementById('pricingDisplay').style.display = 'block';
-
-            // Trigger calculation if we're on step 4 (quantity) or later
-            if (currentStep >= 4) {
-              calculateOrder();
-            }
-          }
-        });
-    });
-
-    // Calculate order summary when inputs change
-    ['frequency_per_week', 'duration_days', 'qty_per_change'].forEach(id => {
-      document.getElementById(id).addEventListener('input', calculateOrder);
-    });
-
-    window.calculateOrder = function() {
-      if (!selectedProduct || !selectedProduct.price_wholesale) {
-        return;
-      }
-
-      const freq = parseInt(document.getElementById('frequency_per_week').value) || 0;
-      const duration = parseInt(document.getElementById('duration_days').value) || 0;
-      const qtyPerChange = parseInt(document.getElementById('qty_per_change').value) || 1;
-      const piecesPerBox = parseInt(selectedProduct.pieces_per_box) || 10;
-      const wholesalePrice = parseFloat(selectedProduct.price_wholesale) || 0;
-
-      if (freq === 0 || duration === 0) {
-        return;
-      }
-
-      const changesPerDay = freq / 7;
-      const totalChanges = changesPerDay * duration;
-      const piecesNeeded = Math.ceil(totalChanges * qtyPerChange);
-      const boxesNeeded = Math.ceil(piecesNeeded / piecesPerBox);
-      const totalCost = boxesNeeded * (wholesalePrice * piecesPerBox);
-
-      document.getElementById('totalChanges').textContent = Math.ceil(totalChanges);
-      document.getElementById('piecesNeeded').textContent = piecesNeeded;
-      document.getElementById('boxesNeeded').textContent = boxesNeeded;
-      document.getElementById('unitCost').textContent = wholesalePrice.toFixed(2);
-      document.getElementById('totalCost').textContent = totalCost.toFixed(2);
-    };
-
-    // Form submission
-    document.getElementById('wholesaleOrderForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-
-      const saveAsDraft = e.submitter?.name === 'save_as_draft' && e.submitter?.value === '1' ? 1 : 0;
-
-      const formData = new FormData(this);
-      formData.append('action', 'order.create.wholesale');
-      formData.append('save_as_draft', saveAsDraft);
-
-      try {
-        const response = await fetch('/portal/index.php', {
-          method: 'POST',
-          body: formData
-        });
-
-        const data = await response.json();
-
-        if (data.ok) {
-          alert(saveAsDraft ? 'Order saved as draft' : 'Order submitted successfully!');
-          window.location.href = '/portal/index.php?page=dashboard';
-        } else {
-          alert('Error: ' + (data.error || 'Failed to create order'));
-        }
-      } catch (err) {
-        alert('Error submitting order: ' + err.message);
-      }
-    });
-
-    // Create new patient link
-    document.getElementById('createNewPatientLink').addEventListener('click', function(e) {
-      e.preventDefault();
-      window.location.href = '/portal/index.php?page=patient&new=1';
-    });
-  });
-  </script>
-
-<?php endif; ?>
-</main>
+<?php endif; ?></main>
 
 <!-- ORDER dialog -->
 <dialog id="dlg-order" class="rounded-2xl w-full max-w-4xl">
