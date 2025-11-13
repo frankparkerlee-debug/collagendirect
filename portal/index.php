@@ -6684,9 +6684,9 @@ if ($page==='logout'){
             // Show pricing
             document.getElementById('selectedProductName').textContent = selectedProduct.name;
             document.getElementById('selectedProductSize').textContent = selectedProduct.size;
-            document.getElementById('wholesalePrice').textContent = (selectedProduct.price_wholesale || 0).toFixed(2);
-            document.getElementById('piecesPerBox').textContent = selectedProduct.pieces_per_box || 10;
-            document.getElementById('boxPrice').textContent = ((selectedProduct.price_wholesale || 0) * (selectedProduct.pieces_per_box || 10)).toFixed(2);
+            document.getElementById('wholesalePrice').textContent = (parseFloat(selectedProduct.price_wholesale) || 0).toFixed(2);
+            document.getElementById('piecesPerBox').textContent = parseInt(selectedProduct.pieces_per_box) || 10;
+            document.getElementById('boxPrice').textContent = ((parseFloat(selectedProduct.price_wholesale) || 0) * (parseInt(selectedProduct.pieces_per_box) || 10)).toFixed(2);
 
             document.getElementById('pricingPlaceholder').style.display = 'none';
             document.getElementById('pricingDisplay').style.display = 'block';
@@ -6704,7 +6704,7 @@ if ($page==='logout'){
       document.getElementById(id).addEventListener('input', calculateOrder);
     });
 
-    function calculateOrder() {
+    window.calculateOrder = function() {
       if (!selectedProduct || !selectedProduct.price_wholesale) {
         return;
       }
@@ -6712,8 +6712,8 @@ if ($page==='logout'){
       const freq = parseInt(document.getElementById('frequency_per_week').value) || 0;
       const duration = parseInt(document.getElementById('duration_days').value) || 0;
       const qtyPerChange = parseInt(document.getElementById('qty_per_change').value) || 1;
-      const piecesPerBox = selectedProduct.pieces_per_box || 10;
-      const wholesalePrice = selectedProduct.price_wholesale || 0;
+      const piecesPerBox = parseInt(selectedProduct.pieces_per_box) || 10;
+      const wholesalePrice = parseFloat(selectedProduct.price_wholesale) || 0;
 
       if (freq === 0 || duration === 0) {
         return;
@@ -6730,7 +6730,7 @@ if ($page==='logout'){
       document.getElementById('boxesNeeded').textContent = boxesNeeded;
       document.getElementById('unitCost').textContent = wholesalePrice.toFixed(2);
       document.getElementById('totalCost').textContent = totalCost.toFixed(2);
-    }
+    };
 
     // Form submission
     document.getElementById('wholesaleOrderForm').addEventListener('submit', async function(e) {
