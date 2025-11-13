@@ -6325,6 +6325,11 @@ if ($page==='logout'){
       updateFinalReview();
     }
 
+    // Trigger calculation on step 3
+    if (currentStep === 3) {
+      calculateOrder();
+    }
+
     window.scrollTo(0, 0);
   };
 
@@ -6493,6 +6498,11 @@ if ($page==='logout'){
 
             document.getElementById('pricingPlaceholder').style.display = 'none';
             document.getElementById('pricingDisplay').style.display = 'block';
+
+            // Trigger calculation if we're on step 3
+            if (currentStep >= 3) {
+              calculateOrder();
+            }
           }
         });
     });
