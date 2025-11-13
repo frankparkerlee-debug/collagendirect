@@ -5926,107 +5926,116 @@ if ($page==='logout'){
     }
   }
 ?>
-  <!-- Wholesale Orders List -->
-  <!-- Header -->
-  <div class="row mb-4">
-    <div class="col-md-8">
-      <h2 class="mb-2"><i class="bi bi-basket"></i> Wholesale Orders & Billing</h2>
-      <p class="text-muted">Track your wholesale orders and payment status</p>
+  <!-- Wholesale Orders Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h2 class="text-2xl font-bold" style="color: #1e293b; margin-bottom: 0.5rem;">
+        <svg style="width: 28px; height: 28px; display: inline-block; margin-right: 0.5rem; vertical-align: middle; color: #10b981;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+        </svg>
+        Wholesale Orders & Billing
+      </h2>
+      <p class="text-sm" style="color: #64748b;">Track your wholesale orders and payment status</p>
     </div>
-    <div class="col-md-4 text-end">
-      <a href="?page=create-wholesale-order" class="btn btn-primary">
-        <i class="bi bi-plus-circle"></i> New Order
-      </a>
-    </div>
+    <a href="?page=create-wholesale-order" class="btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 600; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); transition: all 0.2s; text-decoration: none;">
+      <svg style="width: 18px; height: 18px; display: inline-block; margin-right: 0.5rem; vertical-align: middle;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+      </svg>
+      New Order
+    </a>
   </div>
 
   <!-- Financial Summary Cards -->
-  <div class="row mb-4">
-    <div class="col-md-3">
-      <div class="card border-primary">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <p class="text-muted mb-1 small">Total Ordered</p>
-              <h3 class="mb-0"><?= number_format($orderCount) ?></h3>
-              <small class="text-muted">orders</small>
-            </div>
-            <div class="text-primary">
-              <i class="bi bi-cart3 fs-2"></i>
-            </div>
-          </div>
+  <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <!-- Total Ordered -->
+    <div class="card no-underline transition-all hover:shadow-2xl hover:scale-105 hover:-translate-y-1" style="text-decoration: none; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: none; padding: 1.5rem; border-radius: 16px; position: relative; overflow: hidden;">
+      <div style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: rgba(59, 130, 246, 0.1); border-radius: 50%;"></div>
+      <div class="flex items-center justify-between mb-4">
+        <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">
+          <svg style="width: 24px; height: 24px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+          </svg>
         </div>
       </div>
+      <div class="text-xs font-semibold mb-1" style="color: #64748b; text-transform: uppercase; letter-spacing: 0.1em;">Total Ordered</div>
+      <div class="text-4xl font-bold mb-2" style="color: #1e293b;"><?= number_format($orderCount) ?></div>
+      <div class="text-xs" style="color: #64748b;">Orders placed</div>
     </div>
 
-    <div class="col-md-3">
-      <div class="card border-info">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <p class="text-muted mb-1 small">Total Value</p>
-              <h3 class="mb-0 text-info">$<?= number_format($totalOrdered, 2) ?></h3>
-              <small class="text-muted">all orders</small>
-            </div>
-            <div class="text-info">
-              <i class="bi bi-cash-stack fs-2"></i>
-            </div>
-          </div>
+    <!-- Total Value -->
+    <div class="card no-underline transition-all hover:shadow-2xl hover:scale-105 hover:-translate-y-1" style="text-decoration: none; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: none; padding: 1.5rem; border-radius: 16px; position: relative; overflow: hidden;">
+      <div style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: rgba(16, 185, 129, 0.1); border-radius: 50%;"></div>
+      <div class="flex items-center justify-between mb-4">
+        <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
+          <svg style="width: 24px; height: 24px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
         </div>
       </div>
+      <div class="text-xs font-semibold mb-1" style="color: #64748b; text-transform: uppercase; letter-spacing: 0.1em;">Total Value</div>
+      <div class="text-4xl font-bold mb-2" style="color: #1e293b;">$<?= number_format($totalOrdered, 2) ?></div>
+      <div class="text-xs" style="color: #64748b;">All orders</div>
     </div>
 
-    <div class="col-md-3">
-      <div class="card border-danger">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <p class="text-muted mb-1 small">Amount Owed</p>
-              <h3 class="mb-0 text-danger">$<?= number_format($totalOwed, 2) ?></h3>
-              <small class="text-muted">unpaid orders</small>
-            </div>
-            <div class="text-danger">
-              <i class="bi bi-exclamation-triangle fs-2"></i>
-            </div>
-          </div>
+    <!-- Amount Owed -->
+    <div class="card no-underline transition-all hover:shadow-2xl hover:scale-105 hover:-translate-y-1" style="text-decoration: none; background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border: none; padding: 1.5rem; border-radius: 16px; position: relative; overflow: hidden;">
+      <div style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: rgba(239, 68, 68, 0.1); border-radius: 50%;"></div>
+      <div class="flex items-center justify-between mb-4">
+        <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);">
+          <svg style="width: 24px; height: 24px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+          </svg>
         </div>
       </div>
+      <div class="text-xs font-semibold mb-1" style="color: #64748b; text-transform: uppercase; letter-spacing: 0.1em;">Amount Owed</div>
+      <div class="text-4xl font-bold mb-2" style="color: #1e293b;">$<?= number_format($totalOwed, 2) ?></div>
+      <div class="text-xs" style="color: #64748b;">Unpaid orders</div>
     </div>
 
-    <div class="col-md-3">
-      <div class="card border-success">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <p class="text-muted mb-1 small">Total Paid</p>
-              <h3 class="mb-0 text-success">$<?= number_format($totalPaid, 2) ?></h3>
-              <small class="text-muted">completed</small>
-            </div>
-            <div class="text-success">
-              <i class="bi bi-check-circle fs-2"></i>
-            </div>
-          </div>
+    <!-- Total Paid -->
+    <div class="card no-underline transition-all hover:shadow-2xl hover:scale-105 hover:-translate-y-1" style="text-decoration: none; background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; border: none; padding: 1.5rem; border-radius: 16px; position: relative; overflow: hidden; box-shadow: 0 10px 25px rgba(5, 150, 105, 0.3);">
+      <div style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: rgba(255, 255, 255, 0.1); border-radius: 50%;"></div>
+      <div class="flex items-center justify-between mb-4">
+        <div style="width: 48px; height: 48px; background: rgba(255, 255, 255, 0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px);">
+          <svg style="width: 24px; height: 24px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
         </div>
       </div>
+      <div class="text-xs font-semibold mb-1" style="color: rgba(255,255,255,0.9); text-transform: uppercase; letter-spacing: 0.1em;">Total Paid</div>
+      <div class="text-4xl font-bold mb-2" style="color: white;">$<?= number_format($totalPaid, 2) ?></div>
+      <div class="text-xs" style="color: rgba(255,255,255,0.8);">Completed payments</div>
     </div>
-  </div>
+  </section>
 
   <?php if ($totalOwed > 0): ?>
   <!-- Payment Notice -->
-  <div class="alert alert-warning d-flex align-items-center mb-4" role="alert">
-    <i class="bi bi-info-circle-fill me-3 fs-4"></i>
-    <div>
-      <strong>Payment Due: $<?= number_format($totalOwed, 2) ?></strong><br>
-      <small>You have <?= count(array_filter($wholesaleOrders, fn($o) => empty($o['paid_at']) && in_array($o['status'], ['approved', 'in_transit', 'delivered']))) ?> order(s) awaiting payment. Please contact us to arrange payment.</small>
+  <div class="card" style="background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 2px solid #fbbf24; border-radius: 16px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 4px 12px rgba(251, 191, 36, 0.2);">
+    <div class="flex items-center gap-4">
+      <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3); flex-shrink: 0;">
+        <svg style="width: 24px; height: 24px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+        </svg>
+      </div>
+      <div>
+        <div style="font-size: 1.25rem; font-weight: 700; color: #92400e; margin-bottom: 0.25rem;">
+          Payment Due: $<?= number_format($totalOwed, 2) ?>
+        </div>
+        <div style="font-size: 0.875rem; color: #92400e;">
+          You have <?= count(array_filter($wholesaleOrders, fn($o) => empty($o['paid_at']) && in_array($o['status'], ['approved', 'in_transit', 'delivered']))) ?> order(s) awaiting payment. Please contact us to arrange payment.
+        </div>
+      </div>
     </div>
   </div>
   <?php endif; ?>
 
   <!-- Orders Table -->
-  <div class="card">
-    <div class="card-body">
-      <div class="table-responsive">
-        <table class="table table-hover">
+  <div class="card p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-lg font-semibold" style="color: var(--ink);">Order History</h3>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover" style="border-collapse: separate; border-spacing: 0;">
           <thead>
             <tr>
               <th>Order Date</th>
@@ -6044,9 +6053,18 @@ if ($page==='logout'){
           <tbody>
             <?php if (empty($wholesaleOrders)): ?>
             <tr>
-              <td colspan="10" class="text-center py-4 text-muted">
-                <i class="bi bi-inbox fs-3 d-block mb-2"></i>
-                No wholesale orders found. <a href="?page=create-wholesale-order" class="fw-bold">Create your first order</a>
+              <td colspan="10" class="text-center" style="padding: 4rem 2rem;">
+                <svg style="width: 64px; height: 64px; color: #cbd5e1; margin: 0 auto 1rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                </svg>
+                <div style="font-size: 1.125rem; font-weight: 600; color: #64748b; margin-bottom: 0.5rem;">No wholesale orders yet</div>
+                <div style="font-size: 0.875rem; color: #94a3b8; margin-bottom: 1.5rem;">Get started by creating your first wholesale order</div>
+                <a href="?page=create-wholesale-order" class="btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 600; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
+                  <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                  </svg>
+                  Create First Order
+                </a>
               </td>
             </tr>
             <?php else: ?>
