@@ -43,7 +43,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
       CONCAT(u.first_name, ' ', u.last_name) as physician_name,
       CONCAT(p.first_name, ' ', p.last_name) as patient_name,
       o.product,
-      o.quantity as shipments_remaining,
+      o.shipments_remaining,
       o.product_price as unit_price,
       o.status,
       CONCAT_WS(', ', o.ship_address, o.ship_city, o.ship_state, o.ship_zip) as shipping_address
@@ -129,7 +129,7 @@ if (!$hasBilledBy) {
         o.id,
         o.created_at,
         o.product,
-        o.quantity as shipments_remaining,
+        o.shipments_remaining,
         o.product_price as unit_price,
         o.status,
         o.paid_at,

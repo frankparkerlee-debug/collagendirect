@@ -5880,7 +5880,7 @@ if ($page==='logout'){
       o.delivery_mode,
       o.status,
       o.product,
-      o.quantity,
+      o.shipments_remaining,
       o.product_price as unit_price,
       o.paid_at,
       p.first_name as patient_first,
@@ -5908,7 +5908,7 @@ if ($page==='logout'){
   $pendingOrdersCount = 0;
 
   foreach ($wholesaleOrders as $order) {
-    $quantity = (int)($order['quantity'] ?? 0);
+    $quantity = (int)($order['shipments_remaining'] ?? 0);
     $unitPrice = (float)($order['unit_price'] ?? $order['price_wholesale'] ?? 0);
     $orderTotal = $quantity * $unitPrice;
     $totalOrdered += $orderTotal;
@@ -6056,7 +6056,7 @@ if ($page==='logout'){
                 if (empty($patientName)) $patientName = 'Office Stock';
 
                 $deliveredTo = $order['delivery_mode'] === 'office' ? 'Office' : 'Patient';
-                $quantity = (int)($order['quantity'] ?? 0);
+                $quantity = (int)($order['shipments_remaining'] ?? 0);
                 $unitPrice = (float)($order['unit_price'] ?? $order['price_wholesale'] ?? 0);
                 $total = $quantity * $unitPrice;
 
