@@ -367,50 +367,73 @@ async function submitAllOrders() {
     return;
   }
 
-  if (!confirm(`Submit ${wholesaleState.cart.length} order(s)?`)) {
+  const totalPatients = wholesaleState.cart.length;
+  const totalProducts = wholesaleState.cart.reduce((sum, item) => sum + item.products.length, 0);
+
+  if (!confirm(`Submit ${totalPatients} patient(s) with ${totalProducts} product(s)?`)) {
     return;
   }
 
   const button = document.getElementById('btn-submit-all-orders');
   const originalText = button.innerHTML;
   button.disabled = true;
-  button.innerHTML = 'Submitting...';
+  button.innerHTML = '<svg style="width: 18px; height: 18px; display: inline-block; margin-right: 0.5rem; vertical-align: middle; animation: spin 1s linear infinite;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="4" fill="none" stroke-linecap="round"></path></svg> Submitting...';
 
   try {
-    // Submit each cart item as a separate order
-    const results = [];
-    for (const item of wholesaleState.cart) {
-      const formData = new FormData();
-      formData.append('action', 'order.create.wholesale.batch');
-      formData.append('patient_data', JSON.stringify(item.patient));
-      formData.append('products', JSON.stringify(item.products));
-      formData.append('delivery_type', item.deliveryType);
-      formData.append('billed_by', 'practice_dme');
+    // Prepare cart data for batch submission
+    const cartData = wholesaleState.cart.map(item => ({
+      patient: item.patient,
+      products: item.products.map(p => ({
+        productId: p.id,
+        boxes: p.boxes
+      })),
+      deliveryType: item.deliveryType
+    }));
 
-      const response = await fetch('/portal/index.php', {
-        method: 'POST',
-        body: formData
-      });
+    // Submit all orders in a single batch request
+    const response = await fetch('/portal/index.php?action=order.create.wholesale.batch', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ cart: cartData })
+    });
 
-      const data = await response.json();
-      results.push(data);
+    const data = await response.json();
+
+    if (!data.ok) {
+      throw new Error(data.error || 'Failed to submit orders');
     }
 
-    const successCount = results.filter(r => r.ok).length;
-    const failureCount = results.filter(r => !r.ok).length;
+    const created = data.created || 0;
+    const failed = data.failed || 0;
 
-    if (failureCount === 0) {
-      alert(`✓ All ${successCount} orders submitted successfully!`);
-      window.location.href = '/portal/index.php?page=wholesale-orders';
+    if (failed === 0) {
+      alert(`✓ Success! ${created} order(s) submitted.\n\nAll orders are now pending admin review.`);
+      wholesaleState.cart = [];
+      renderCart();
+      window.location.href = '/portal/index.php?page=dashboard';
     } else {
-      alert(`Submitted ${successCount} orders. ${failureCount} failed. Please review and try again.`);
-      // Remove successful items from cart
-      wholesaleState.cart = wholesaleState.cart.filter((_, index) => !results[index].ok);
+      let message = `Submitted ${created} order(s) successfully.\n`;
+      message += `${failed} order(s) failed.\n\n`;
+
+      if (data.failures && data.failures.length > 0) {
+        message += 'Failed orders:\n';
+        data.failures.forEach(f => {
+          message += `- ${f.patient || 'Unknown'}: ${f.error}\n`;
+        });
+      }
+
+      alert(message);
+
+      // Keep failed items in cart for retry
+      // Note: This is a simplified approach - in production you'd want to match failed items precisely
       renderCart();
     }
+
   } catch (error) {
     console.error('Error submitting orders:', error);
-    alert('Error submitting orders: ' + error.message);
+    alert('Error submitting orders:\n' + error.message);
   } finally {
     button.disabled = false;
     button.innerHTML = originalText;

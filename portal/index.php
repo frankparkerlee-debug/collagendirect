@@ -2362,6 +2362,247 @@ if ($action) {
     }
   }
 
+  /* ORDER.CREATE.WHOLESALE.BATCH — Batch wholesale order creation for multiple patients */
+  if ($action==='order.create.wholesale.batch'){
+    try {
+      $pdo->beginTransaction();
+
+      // Must have provider NPI
+      $u=$pdo->prepare("SELECT npi,first_name,last_name,credentials FROM users WHERE id=? FOR UPDATE");
+      $u->execute([$userId]); $ud=$u->fetch(PDO::FETCH_ASSOC);
+      if(!$ud || empty($ud['npi'])){ $pdo->rollBack(); jerr('Provider NPI is required. Please add your NPI in your profile.'); }
+
+      // Get cart items from JSON payload
+      $cartJson = file_get_contents('php://input');
+      $payload = json_decode($cartJson, true);
+
+      if (!$payload || !isset($payload['cart']) || !is_array($payload['cart'])) {
+        $pdo->rollBack();
+        jerr('Invalid cart data. Expected JSON with cart array.');
+      }
+
+      $cart = $payload['cart'];
+      if (empty($cart)) {
+        $pdo->rollBack();
+        jerr('Cart is empty. Add patients and products before submitting.');
+      }
+
+      $createdOrders = [];
+      $failedOrders = [];
+
+      // Process each patient in the cart
+      foreach ($cart as $idx => $cartItem) {
+        try {
+          $patientData = $cartItem['patient'] ?? null;
+          $products = $cartItem['products'] ?? [];
+          $deliveryType = $cartItem['deliveryType'] ?? 'patient';
+
+          if (!$patientData || empty($products)) {
+            $failedOrders[] = [
+              'index' => $idx,
+              'error' => 'Missing patient or products data'
+            ];
+            continue;
+          }
+
+          // Handle new patient creation or use existing
+          if (!empty($patientData['isNew']) && $patientData['isNew'] === true) {
+            // Create new patient
+            $firstName = trim($patientData['firstName'] ?? '');
+            $lastName = trim($patientData['lastName'] ?? '');
+            $dob = trim($patientData['dob'] ?? '');
+            $phone = trim($patientData['phone'] ?? '');
+            $address = trim($patientData['address'] ?? '');
+            $city = trim($patientData['city'] ?? '');
+            $state = trim($patientData['state'] ?? '');
+            $zip = trim($patientData['zip'] ?? '');
+            $acceptsSMS = isset($patientData['acceptsSMS']) ? (int)$patientData['acceptsSMS'] : 1;
+
+            if (empty($firstName) || empty($lastName) || empty($dob)) {
+              $failedOrders[] = [
+                'index' => $idx,
+                'patient' => "$firstName $lastName",
+                'error' => 'Missing required patient fields (first name, last name, or DOB)'
+              ];
+              continue;
+            }
+
+            // Generate MRN
+            $mrn = 'CD-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(2)));
+            $patientId = bin2hex(random_bytes(16));
+
+            // Standardize phone number for SMS (convert (555) 123-4567 to +15551234567)
+            $standardPhone = $phone;
+            if (!empty($phone)) {
+              $digits = preg_replace('/\D/', '', $phone);
+              if (strlen($digits) === 10) {
+                $standardPhone = '+1' . $digits;
+              } elseif (strlen($digits) === 11 && $digits[0] === '1') {
+                $standardPhone = '+' . $digits;
+              }
+            }
+
+            // Insert new patient
+            $insPatient = $pdo->prepare("INSERT INTO patients
+              (id,user_id,mrn,first_name,last_name,dob,phone,address,city,address_state,zip,accepts_sms,created_at,updated_at)
+              VALUES (?,?,?,?,?,?,?,?,?,?,?,?,NOW(),NOW())");
+            $insPatient->execute([
+              $patientId, $userId, $mrn, $firstName, $lastName, $dob,
+              $standardPhone, $address, $city, $state, $zip, $acceptsSMS
+            ]);
+
+            $pid = $patientId;
+            $patientFullName = "$firstName $lastName";
+            $patientOwnerId = $userId;
+            $shipPhone = $standardPhone;
+            $shipAddr = $address;
+            $shipCity = $city;
+            $shipState = $state;
+            $shipZip = $zip;
+
+          } else {
+            // Use existing patient
+            $pid = $patientData['id'] ?? '';
+            if (empty($pid)) {
+              $failedOrders[] = [
+                'index' => $idx,
+                'error' => 'Missing patient ID for existing patient'
+              ];
+              continue;
+            }
+
+            // Fetch patient (superadmins can order for any patient, others only their own)
+            if ($userRole === 'superadmin') {
+              $own=$pdo->prepare("SELECT id,first_name,last_name,address,city,address_state,zip,phone,user_id FROM patients WHERE id=? FOR UPDATE");
+              $own->execute([$pid]);
+            } else {
+              $own=$pdo->prepare("SELECT id,first_name,last_name,address,city,address_state,zip,phone,user_id FROM patients WHERE id=? AND user_id=? FOR UPDATE");
+              $own->execute([$pid,$userId]);
+            }
+            $p=$own->fetch(PDO::FETCH_ASSOC);
+            if(!$p){
+              $failedOrders[] = [
+                'index' => $idx,
+                'patient_id' => $pid,
+                'error' => 'Patient not found or access denied'
+              ];
+              continue;
+            }
+
+            $patientFullName = ($p['first_name'] ?? '') . ' ' . ($p['last_name'] ?? '');
+            $patientOwnerId = $p['user_id'] ?? $userId;
+            $shipPhone = $p['phone'] ?? '';
+            $shipAddr = $p['address'] ?? '';
+            $shipCity = $p['city'] ?? '';
+            $shipState = $p['address_state'] ?? '';
+            $shipZip = $p['zip'] ?? '';
+          }
+
+          // Create orders for each product
+          foreach ($products as $productItem) {
+            $product_id = (int)($productItem['productId'] ?? 0);
+            $boxes = (int)($productItem['boxes'] ?? 0);
+
+            if ($product_id === 0 || $boxes === 0) {
+              $failedOrders[] = [
+                'index' => $idx,
+                'patient' => $patientFullName,
+                'error' => 'Invalid product ID or box quantity'
+              ];
+              continue;
+            }
+
+            // Get product with wholesale pricing
+            $pr=$pdo->prepare("SELECT id, name, size, price_admin, price_wholesale, pieces_per_box FROM products WHERE id=? AND active=TRUE");
+            $pr->execute([$product_id]);
+            $prod=$pr->fetch(PDO::FETCH_ASSOC);
+            if(!$prod){
+              $failedOrders[] = [
+                'index' => $idx,
+                'patient' => $patientFullName,
+                'product_id' => $product_id,
+                'error' => 'Product not found'
+              ];
+              continue;
+            }
+
+            // Use wholesale pricing
+            $unit_price = $prod['price_wholesale'] ?? $prod['price_admin'];
+            $pieces_per_box = max(1, (int)($prod['pieces_per_box'] ?? 10));
+
+            // For wholesale, we order by boxes, not calculated from frequency
+            // shipments_remaining = boxes ordered
+            $boxes_needed = $boxes;
+
+            // Create order
+            $oid = bin2hex(random_bytes(16));
+            $orderStatus = 'submitted';
+            $reviewStatus = 'pending_admin_review';
+            $start_date = date('Y-m-d', strtotime('+1 day'));
+            $expires_at = date('Y-m-d', strtotime('+90 days', strtotime($start_date))); // Default 90 days
+
+            // Signature from user profile
+            $sign_name = trim($ud['first_name'] . ' ' . $ud['last_name']);
+            $sign_title = trim($ud['credentials'] ?? 'MD');
+
+            $ins=$pdo->prepare("INSERT INTO orders
+              (id,patient_id,user_id,product,product_id,product_price,status,review_status,shipments_remaining,delivery_mode,payment_type,
+               shipping_name,shipping_phone,shipping_address,shipping_city,shipping_state,shipping_zip,
+               sign_name,sign_title,signed_at,created_at,updated_at,expires_at,start_date,
+               billed_by)
+              VALUES (?,?,?,?,?,?,?,?,?,?,?,
+                      ?,?,?,?,?,?,
+                      ?,?,NOW(),NOW(),NOW(),?,?,
+                      ?)");
+            $ins->execute([
+              $oid,$pid,$patientOwnerId,$prod['name'],$prod['id'],$unit_price,$orderStatus,$reviewStatus,$boxes_needed,$deliveryType,'wholesale',
+              (string)$patientFullName,(string)$shipPhone,(string)$shipAddr,(string)$shipCity,(string)$shipState,(string)$shipZip,
+              $sign_name,$sign_title,$expires_at,$start_date,
+              'practice_dme' // Wholesale orders
+            ]);
+
+            $createdOrders[] = [
+              'order_id' => $oid,
+              'patient' => $patientFullName,
+              'product' => $prod['name'],
+              'boxes' => $boxes_needed,
+              'total' => $boxes_needed * ($unit_price * $pieces_per_box)
+            ];
+          }
+
+        } catch (Throwable $e) {
+          $failedOrders[] = [
+            'index' => $idx,
+            'patient' => $patientFullName ?? 'Unknown',
+            'error' => $e->getMessage()
+          ];
+        }
+      }
+
+      // Update provider signature
+      if (!empty($createdOrders)) {
+        $sign_name = trim($ud['first_name'] . ' ' . $ud['last_name']);
+        $sign_title = trim($ud['credentials'] ?? 'MD');
+        $pdo->prepare("UPDATE users SET sign_name=?,sign_title=?,sign_date=CURRENT_DATE,updated_at=NOW() WHERE id=?")
+            ->execute([$sign_name,$sign_title,$userId]);
+      }
+
+      $pdo->commit();
+
+      jok([
+        'success' => true,
+        'created' => count($createdOrders),
+        'failed' => count($failedOrders),
+        'orders' => $createdOrders,
+        'failures' => $failedOrders
+      ]);
+
+    } catch (Throwable $e) {
+      if ($pdo->inTransaction()) $pdo->rollBack();
+      jerr('Batch wholesale order creation failed: '.$e->getMessage(), 500);
+    }
+  }
+
   /* ORDER.CREATE — enforce NPI, patient cards + AOB, clinical completeness; only visit note uploads per order */
   if ($action==='order.create'){
     try {
