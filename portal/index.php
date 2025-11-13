@@ -4519,7 +4519,7 @@ if ($page==='logout'){
       <?php endif; ?>
       <a class="<?php echo $page==='wholesale-order'?'active':''; ?>" href="?page=wholesale-order">
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
-        <span>Wholesale Order</span>
+        <span>Wholesale</span>
       </a>
       <a class="<?php echo $page==='messages'?'active':''; ?>" href="?page=messages">
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
@@ -5871,36 +5871,131 @@ if ($page==='logout'){
     </ul>
   </div>
 
-<?php elseif ($page==='wholesale-order'): ?>
-  <!-- Wholesale Order Form -->
+<?php elseif ($page==='wholesale-order'):
+  // Fetch wholesale orders for this user
+  $wholesaleQuery = "
+    SELECT
+      o.id,
+      o.created_at,
+      o.delivery_to,
+      o.status,
+      o.product,
+      o.quantity,
+      o.product_price as unit_price,
+      p.first_name as patient_first,
+      p.last_name as patient_last,
+      pr.price_wholesale,
+      pr.pieces_per_box
+    FROM orders o
+    LEFT JOIN patients p ON o.patient_id = p.id
+    LEFT JOIN products pr ON o.product_id = pr.id
+    WHERE o.user_id = ?
+      AND o.billed_by = 'practice_dme'
+      AND (o.review_status IS NULL OR o.review_status != 'draft')
+    ORDER BY o.created_at DESC
+  ";
+
+  $wholesaleStmt = $pdo->prepare($wholesaleQuery);
+  $wholesaleStmt->execute([$userId]);
+  $wholesaleOrders = $wholesaleStmt->fetchAll(PDO::FETCH_ASSOC);
+?>
+  <!-- Wholesale Orders List -->
+  <div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+      <div class="col-md-8">
+        <h2 class="mb-2"><i class="bi bi-basket"></i> Wholesale</h2>
+        <p class="text-muted">View and manage your wholesale orders</p>
+      </div>
+      <div class="col-md-4 text-end">
+        <a href="?page=create-wholesale-order" class="btn btn-primary">
+          <i class="bi bi-plus-circle"></i> New Order
+        </a>
+      </div>
+    </div>
+
+    <!-- Orders Table -->
+    <div class="card">
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Order Date</th>
+                <th>Patient</th>
+                <th>Delivered To</th>
+                <th>Product</th>
+                <th class="text-end">Quantity</th>
+                <th class="text-end">Price/Item</th>
+                <th class="text-end">Total</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php if (empty($wholesaleOrders)): ?>
+              <tr>
+                <td colspan="9" class="text-center py-4 text-muted">
+                  <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                  No wholesale orders found. <a href="?page=create-wholesale-order" class="fw-bold">Create your first order</a>
+                </td>
+              </tr>
+              <?php else: ?>
+              <?php foreach ($wholesaleOrders as $order):
+                $patientName = trim(($order['patient_first'] ?? '') . ' ' . ($order['patient_last'] ?? ''));
+                if (empty($patientName)) $patientName = 'Office Stock';
+
+                $deliveredTo = $order['delivery_to'] === 'office' ? 'Office' : 'Patient';
+                $quantity = (int)($order['quantity'] ?? 0);
+                $unitPrice = (float)($order['unit_price'] ?? $order['price_wholesale'] ?? 0);
+                $total = $quantity * $unitPrice;
+
+                $statusClass = match($order['status']) {
+                  'submitted', 'pending', 'awaiting_approval' => 'warning',
+                  'approved' => 'info',
+                  'in_transit' => 'primary',
+                  'delivered' => 'success',
+                  'rejected', 'cancelled' => 'danger',
+                  default => 'secondary'
+                };
+              ?>
+              <tr>
+                <td><?= date('m/d/Y', strtotime($order['created_at'])) ?></td>
+                <td><strong><?= htmlspecialchars($patientName) ?></strong></td>
+                <td>
+                  <?php if ($deliveredTo === 'Office'): ?>
+                    <span class="badge bg-info"><i class="bi bi-building"></i> Office</span>
+                  <?php else: ?>
+                    <span class="badge bg-secondary"><i class="bi bi-house-door"></i> Patient</span>
+                  <?php endif; ?>
+                </td>
+                <td><small class="text-muted"><?= htmlspecialchars($order['product'] ?? 'N/A') ?></small></td>
+                <td class="text-end"><?= $quantity ?></td>
+                <td class="text-end">$<?= number_format($unitPrice, 2) ?></td>
+                <td class="text-end"><strong>$<?= number_format($total, 2) ?></strong></td>
+                <td>
+                  <span class="badge bg-<?= $statusClass ?>">
+                    <?= ucfirst($order['status']) ?>
+                  </span>
+                </td>
+                <td>
+                  <a href="?page=order-detail&id=<?= urlencode($order['id']) ?>" class="btn btn-sm btn-outline-primary" title="View Details">
+                    <i class="bi bi-eye"></i>
+                  </a>
+                </td>
+              </tr>
+              <?php endforeach; ?>
+              <?php endif; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <style>
     .wholesale-stepper {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 2rem;
-      position: relative;
-    }
-    .wholesale-stepper::before {
-      content: '';
-      position: absolute;
-      top: 20px;
-      left: 0;
-      right: 0;
-      height: 2px;
-      background: #dee2e6;
-      z-index: 0;
-    }
-    .stepper-step {
-      flex: 1;
-      text-align: center;
-      position: relative;
-      z-index: 1;
-    }
-    .stepper-circle {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: white;
+      display: none;
       border: 2px solid #dee2e6;
       display: flex;
       align-items: center;
