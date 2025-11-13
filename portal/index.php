@@ -5927,194 +5927,192 @@ if ($page==='logout'){
   }
 ?>
   <!-- Wholesale Orders List -->
-  <div class="container-fluid py-4">
-    <!-- Header -->
-    <div class="row mb-4">
-      <div class="col-md-8">
-        <h2 class="mb-2"><i class="bi bi-basket"></i> Wholesale Orders & Billing</h2>
-        <p class="text-muted">Track your wholesale orders and payment status</p>
-      </div>
-      <div class="col-md-4 text-end">
-        <a href="?page=create-wholesale-order" class="btn btn-primary">
-          <i class="bi bi-plus-circle"></i> New Order
-        </a>
-      </div>
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-md-8">
+      <h2 class="mb-2"><i class="bi bi-basket"></i> Wholesale Orders & Billing</h2>
+      <p class="text-muted">Track your wholesale orders and payment status</p>
     </div>
+    <div class="col-md-4 text-end">
+      <a href="?page=create-wholesale-order" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> New Order
+      </a>
+    </div>
+  </div>
 
-    <!-- Financial Summary Cards -->
-    <div class="row mb-4">
-      <div class="col-md-3">
-        <div class="card border-primary">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <p class="text-muted mb-1 small">Total Ordered</p>
-                <h3 class="mb-0"><?= number_format($orderCount) ?></h3>
-                <small class="text-muted">orders</small>
-              </div>
-              <div class="text-primary">
-                <i class="bi bi-cart3 fs-2"></i>
-              </div>
+  <!-- Financial Summary Cards -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card border-primary">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <p class="text-muted mb-1 small">Total Ordered</p>
+              <h3 class="mb-0"><?= number_format($orderCount) ?></h3>
+              <small class="text-muted">orders</small>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-md-3">
-        <div class="card border-info">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <p class="text-muted mb-1 small">Total Value</p>
-                <h3 class="mb-0 text-info">$<?= number_format($totalOrdered, 2) ?></h3>
-                <small class="text-muted">all orders</small>
-              </div>
-              <div class="text-info">
-                <i class="bi bi-cash-stack fs-2"></i>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-md-3">
-        <div class="card border-danger">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <p class="text-muted mb-1 small">Amount Owed</p>
-                <h3 class="mb-0 text-danger">$<?= number_format($totalOwed, 2) ?></h3>
-                <small class="text-muted">unpaid orders</small>
-              </div>
-              <div class="text-danger">
-                <i class="bi bi-exclamation-triangle fs-2"></i>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-md-3">
-        <div class="card border-success">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <p class="text-muted mb-1 small">Total Paid</p>
-                <h3 class="mb-0 text-success">$<?= number_format($totalPaid, 2) ?></h3>
-                <small class="text-muted">completed</small>
-              </div>
-              <div class="text-success">
-                <i class="bi bi-check-circle fs-2"></i>
-              </div>
+            <div class="text-primary">
+              <i class="bi bi-cart3 fs-2"></i>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <?php if ($totalOwed > 0): ?>
-    <!-- Payment Notice -->
-    <div class="alert alert-warning d-flex align-items-center mb-4" role="alert">
-      <i class="bi bi-info-circle-fill me-3 fs-4"></i>
-      <div>
-        <strong>Payment Due: $<?= number_format($totalOwed, 2) ?></strong><br>
-        <small>You have <?= count(array_filter($wholesaleOrders, fn($o) => empty($o['paid_at']) && in_array($o['status'], ['approved', 'in_transit', 'delivered']))) ?> order(s) awaiting payment. Please contact us to arrange payment.</small>
+    <div class="col-md-3">
+      <div class="card border-info">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <p class="text-muted mb-1 small">Total Value</p>
+              <h3 class="mb-0 text-info">$<?= number_format($totalOrdered, 2) ?></h3>
+              <small class="text-muted">all orders</small>
+            </div>
+            <div class="text-info">
+              <i class="bi bi-cash-stack fs-2"></i>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-    <?php endif; ?>
 
-    <!-- Orders Table -->
-    <div class="card">
-      <div class="card-body">
-        <div class="table-responsive">
-          <table class="table table-hover">
-            <thead>
-              <tr>
-                <th>Order Date</th>
-                <th>Patient</th>
-                <th>Delivered To</th>
-                <th>Product</th>
-                <th class="text-end">Quantity</th>
-                <th class="text-end">Price/Item</th>
-                <th class="text-end">Total</th>
-                <th>Status</th>
-                <th>Payment</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php if (empty($wholesaleOrders)): ?>
-              <tr>
-                <td colspan="10" class="text-center py-4 text-muted">
-                  <i class="bi bi-inbox fs-3 d-block mb-2"></i>
-                  No wholesale orders found. <a href="?page=create-wholesale-order" class="fw-bold">Create your first order</a>
-                </td>
-              </tr>
-              <?php else: ?>
-              <?php foreach ($wholesaleOrders as $order):
-                $patientName = trim(($order['patient_first'] ?? '') . ' ' . ($order['patient_last'] ?? ''));
-                if (empty($patientName)) $patientName = 'Office Stock';
+    <div class="col-md-3">
+      <div class="card border-danger">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <p class="text-muted mb-1 small">Amount Owed</p>
+              <h3 class="mb-0 text-danger">$<?= number_format($totalOwed, 2) ?></h3>
+              <small class="text-muted">unpaid orders</small>
+            </div>
+            <div class="text-danger">
+              <i class="bi bi-exclamation-triangle fs-2"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-                $deliveredTo = $order['delivery_mode'] === 'office' ? 'Office' : 'Patient';
-                $quantity = (int)($order['shipments_remaining'] ?? 0);
-                $unitPrice = (float)($order['unit_price'] ?? $order['price_wholesale'] ?? 0);
-                $total = $quantity * $unitPrice;
+    <div class="col-md-3">
+      <div class="card border-success">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <p class="text-muted mb-1 small">Total Paid</p>
+              <h3 class="mb-0 text-success">$<?= number_format($totalPaid, 2) ?></h3>
+              <small class="text-muted">completed</small>
+            </div>
+            <div class="text-success">
+              <i class="bi bi-check-circle fs-2"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-                $statusClass = match($order['status']) {
-                  'submitted', 'pending', 'awaiting_approval' => 'warning',
-                  'approved' => 'info',
-                  'in_transit' => 'primary',
-                  'delivered' => 'success',
-                  'rejected', 'cancelled' => 'danger',
-                  default => 'secondary'
-                };
-              ?>
-              <tr>
-                <td><?= date('m/d/Y', strtotime($order['created_at'])) ?></td>
-                <td><strong><?= htmlspecialchars($patientName) ?></strong></td>
-                <td>
-                  <?php if ($deliveredTo === 'Office'): ?>
-                    <span class="badge bg-info"><i class="bi bi-building"></i> Office</span>
-                  <?php else: ?>
-                    <span class="badge bg-secondary"><i class="bi bi-house-door"></i> Patient</span>
-                  <?php endif; ?>
-                </td>
-                <td><small class="text-muted"><?= htmlspecialchars($order['product'] ?? 'N/A') ?></small></td>
-                <td class="text-end"><?= $quantity ?></td>
-                <td class="text-end">$<?= number_format($unitPrice, 2) ?></td>
-                <td class="text-end"><strong>$<?= number_format($total, 2) ?></strong></td>
-                <td>
-                  <span class="badge bg-<?= $statusClass ?>">
-                    <?= ucfirst($order['status']) ?>
+  <?php if ($totalOwed > 0): ?>
+  <!-- Payment Notice -->
+  <div class="alert alert-warning d-flex align-items-center mb-4" role="alert">
+    <i class="bi bi-info-circle-fill me-3 fs-4"></i>
+    <div>
+      <strong>Payment Due: $<?= number_format($totalOwed, 2) ?></strong><br>
+      <small>You have <?= count(array_filter($wholesaleOrders, fn($o) => empty($o['paid_at']) && in_array($o['status'], ['approved', 'in_transit', 'delivered']))) ?> order(s) awaiting payment. Please contact us to arrange payment.</small>
+    </div>
+  </div>
+  <?php endif; ?>
+
+  <!-- Orders Table -->
+  <div class="card">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>Order Date</th>
+              <th>Patient</th>
+              <th>Delivered To</th>
+              <th>Product</th>
+              <th class="text-end">Quantity</th>
+              <th class="text-end">Price/Item</th>
+              <th class="text-end">Total</th>
+              <th>Status</th>
+              <th>Payment</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php if (empty($wholesaleOrders)): ?>
+            <tr>
+              <td colspan="10" class="text-center py-4 text-muted">
+                <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                No wholesale orders found. <a href="?page=create-wholesale-order" class="fw-bold">Create your first order</a>
+              </td>
+            </tr>
+            <?php else: ?>
+            <?php foreach ($wholesaleOrders as $order):
+              $patientName = trim(($order['patient_first'] ?? '') . ' ' . ($order['patient_last'] ?? ''));
+              if (empty($patientName)) $patientName = 'Office Stock';
+
+              $deliveredTo = $order['delivery_mode'] === 'office' ? 'Office' : 'Patient';
+              $quantity = (int)($order['shipments_remaining'] ?? 0);
+              $unitPrice = (float)($order['unit_price'] ?? $order['price_wholesale'] ?? 0);
+              $total = $quantity * $unitPrice;
+
+              $statusClass = match($order['status']) {
+                'submitted', 'pending', 'awaiting_approval' => 'warning',
+                'approved' => 'info',
+                'in_transit' => 'primary',
+                'delivered' => 'success',
+                'rejected', 'cancelled' => 'danger',
+                default => 'secondary'
+              };
+            ?>
+            <tr>
+              <td><?= date('m/d/Y', strtotime($order['created_at'])) ?></td>
+              <td><strong><?= htmlspecialchars($patientName) ?></strong></td>
+              <td>
+                <?php if ($deliveredTo === 'Office'): ?>
+                  <span class="badge bg-info"><i class="bi bi-building"></i> Office</span>
+                <?php else: ?>
+                  <span class="badge bg-secondary"><i class="bi bi-house-door"></i> Patient</span>
+                <?php endif; ?>
+              </td>
+              <td><small class="text-muted"><?= htmlspecialchars($order['product'] ?? 'N/A') ?></small></td>
+              <td class="text-end"><?= $quantity ?></td>
+              <td class="text-end">$<?= number_format($unitPrice, 2) ?></td>
+              <td class="text-end"><strong>$<?= number_format($total, 2) ?></strong></td>
+              <td>
+                <span class="badge bg-<?= $statusClass ?>">
+                  <?= ucfirst($order['status']) ?>
+                </span>
+              </td>
+              <td>
+                <?php if (!empty($order['paid_at'])): ?>
+                  <span class="badge bg-success">
+                    <i class="bi bi-check-circle"></i> Paid
                   </span>
-                </td>
-                <td>
-                  <?php if (!empty($order['paid_at'])): ?>
-                    <span class="badge bg-success">
-                      <i class="bi bi-check-circle"></i> Paid
-                    </span>
-                    <br><small class="text-muted"><?= date('m/d/Y', strtotime($order['paid_at'])) ?></small>
-                  <?php elseif (in_array($order['status'], ['approved', 'in_transit', 'delivered'])): ?>
-                    <span class="badge bg-danger">
-                      <i class="bi bi-exclamation-circle"></i> Payment Due
-                    </span>
-                  <?php else: ?>
-                    <span class="badge bg-secondary">
-                      <i class="bi bi-clock"></i> Pending
-                    </span>
-                  <?php endif; ?>
-                </td>
-                <td>
-                  <a href="?page=order-detail&id=<?= urlencode($order['id']) ?>" class="btn btn-sm btn-outline-primary" title="View Details">
-                    <i class="bi bi-eye"></i>
-                  </a>
-                </td>
-              </tr>
-              <?php endforeach; ?>
-              <?php endif; ?>
-            </tbody>
-          </table>
-        </div>
+                  <br><small class="text-muted"><?= date('m/d/Y', strtotime($order['paid_at'])) ?></small>
+                <?php elseif (in_array($order['status'], ['approved', 'in_transit', 'delivered'])): ?>
+                  <span class="badge bg-danger">
+                    <i class="bi bi-exclamation-circle"></i> Payment Due
+                  </span>
+                <?php else: ?>
+                  <span class="badge bg-secondary">
+                    <i class="bi bi-clock"></i> Pending
+                  </span>
+                <?php endif; ?>
+              </td>
+              <td>
+                <a href="?page=order-detail&id=<?= urlencode($order['id']) ?>" class="btn btn-sm btn-outline-primary" title="View Details">
+                  <i class="bi bi-eye"></i>
+                </a>
+              </td>
+            </tr>
+            <?php endforeach; ?>
+            <?php endif; ?>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
