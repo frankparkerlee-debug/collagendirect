@@ -5971,18 +5971,23 @@ if ($page==='logout'){
     .product-card {
       border: 2px solid #e9ecef;
       border-radius: 8px;
-      padding: 1rem;
       cursor: pointer;
-      transition: all 0.2s;
-      margin-bottom: 1rem;
+      transition: all 0.3s ease;
+      height: 100%;
     }
     .product-card:hover {
       border-color: #0d6efd;
       box-shadow: 0 4px 12px rgba(13, 110, 253, 0.15);
+      transform: translateY(-2px);
     }
     .product-card.selected {
       border-color: #0d6efd;
-      background: #f8f9ff;
+      border-width: 3px;
+      background: linear-gradient(135deg, #f8f9ff 0%, #e8f0ff 100%);
+      box-shadow: 0 6px 16px rgba(13, 110, 253, 0.25);
+    }
+    .product-card .card-body {
+      padding: 1.5rem;
     }
     .info-banner {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -6065,27 +6070,27 @@ if ($page==='logout'){
             <div class="row g-3">
               <div class="col-md-4">
                 <div class="card product-card h-100" onclick="selectOrderType('single')" id="orderTypeSingle">
-                  <div class="card-body text-center p-4">
+                  <div class="card-body text-center">
                     <i class="bi bi-person fs-1 text-primary d-block mb-3"></i>
-                    <h5 class="card-title">Single Patient</h5>
+                    <h5 class="card-title mb-2">Single Patient</h5>
                     <p class="text-muted small mb-0">Order for one patient at a time</p>
                   </div>
                 </div>
               </div>
               <div class="col-md-4">
                 <div class="card product-card h-100" onclick="selectOrderType('bulk')" id="orderTypeBulk">
-                  <div class="card-body text-center p-4">
+                  <div class="card-body text-center">
                     <i class="bi bi-people fs-1 text-success d-block mb-3"></i>
-                    <h5 class="card-title">Multiple Patients</h5>
+                    <h5 class="card-title mb-2">Multiple Patients</h5>
                     <p class="text-muted small mb-0">Add multiple patient orders to cart</p>
                   </div>
                 </div>
               </div>
               <div class="col-md-4">
                 <div class="card product-card h-100" onclick="selectOrderType('office')" id="orderTypeOffice">
-                  <div class="card-body text-center p-4">
+                  <div class="card-body text-center">
                     <i class="bi bi-building fs-1 text-info d-block mb-3"></i>
-                    <h5 class="card-title">Office Stock</h5>
+                    <h5 class="card-title mb-2">Office Stock</h5>
                     <p class="text-muted small mb-0">Order supplies for office inventory</p>
                   </div>
                 </div>
@@ -6409,6 +6414,12 @@ if ($page==='logout'){
 
     // Set order type value
     document.getElementById('order_type').value = type;
+
+    // Enable the Continue button
+    const nextBtn = document.getElementById('orderTypeNext');
+    if (nextBtn) {
+      nextBtn.disabled = false;
+    }
 
     // Show/hide appropriate patient selection mode in step 2
     document.getElementById('singlePatientMode').style.display = type === 'single' ? 'block' : 'none';
