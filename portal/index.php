@@ -6030,22 +6030,26 @@ if ($page==='logout'){
     <div class="wholesale-stepper">
       <div class="stepper-step active" data-step="1">
         <div class="stepper-circle">1</div>
-        <div class="stepper-label">Patient</div>
+        <div class="stepper-label">Order Type</div>
       </div>
       <div class="stepper-step" data-step="2">
         <div class="stepper-circle">2</div>
-        <div class="stepper-label">Product</div>
+        <div class="stepper-label">Patient</div>
       </div>
       <div class="stepper-step" data-step="3">
         <div class="stepper-circle">3</div>
-        <div class="stepper-label">Quantity</div>
+        <div class="stepper-label">Product</div>
       </div>
       <div class="stepper-step" data-step="4">
         <div class="stepper-circle">4</div>
-        <div class="stepper-label">Shipping</div>
+        <div class="stepper-label">Quantity</div>
       </div>
       <div class="stepper-step" data-step="5">
         <div class="stepper-circle">5</div>
+        <div class="stepper-label">Shipping</div>
+      </div>
+      <div class="stepper-step" data-step="6">
+        <div class="stepper-circle">6</div>
         <div class="stepper-label">Review</div>
       </div>
     </div>
@@ -6055,29 +6059,118 @@ if ($page==='logout'){
       <div class="card-body p-4">
         <form id="wholesaleOrderForm">
 
-          <!-- Step 1: Patient Selection -->
+          <!-- Step 1: Order Type Selection -->
           <div class="form-step active" data-step="1">
-            <h4 class="mb-4"><i class="bi bi-person-fill text-primary"></i> Select Patient</h4>
-            <div class="row">
-              <div class="col-md-8">
-                <label for="patient_id" class="form-label fw-bold">Choose Patient *</label>
-                <select id="patient_id" name="patient_id" class="form-select form-select-lg" required>
-                  <option value="">-- Select a patient --</option>
-                </select>
-                <div class="mt-3">
-                  <small class="text-muted">Don't see your patient? <a href="#" id="createNewPatientLink" class="fw-bold">Create New Patient</a></small>
+            <h4 class="mb-4"><i class="bi bi-cart-check text-primary"></i> Select Order Type</h4>
+            <div class="row g-3">
+              <div class="col-md-4">
+                <div class="card product-card h-100" onclick="selectOrderType('single')" id="orderTypeSingle">
+                  <div class="card-body text-center p-4">
+                    <i class="bi bi-person fs-1 text-primary d-block mb-3"></i>
+                    <h5 class="card-title">Single Patient</h5>
+                    <p class="text-muted small mb-0">Order for one patient at a time</p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="card product-card h-100" onclick="selectOrderType('bulk')" id="orderTypeBulk">
+                  <div class="card-body text-center p-4">
+                    <i class="bi bi-people fs-1 text-success d-block mb-3"></i>
+                    <h5 class="card-title">Multiple Patients</h5>
+                    <p class="text-muted small mb-0">Add multiple patient orders to cart</p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="card product-card h-100" onclick="selectOrderType('office')" id="orderTypeOffice">
+                  <div class="card-body text-center p-4">
+                    <i class="bi bi-building fs-1 text-info d-block mb-3"></i>
+                    <h5 class="card-title">Office Stock</h5>
+                    <p class="text-muted small mb-0">Order supplies for office inventory</p>
+                  </div>
                 </div>
               </div>
             </div>
+            <input type="hidden" id="order_type" name="order_type" value="">
             <div class="mt-4 pt-4 border-top">
+              <button type="button" class="btn btn-lg btn-primary px-5" onclick="nextStep()" id="orderTypeNext" disabled>
+                Continue <i class="bi bi-arrow-right"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Step 2: Patient Selection (Single/Bulk) -->
+          <div class="form-step" data-step="2">
+            <!-- Single Patient Mode -->
+            <div id="singlePatientMode" style="display:none;">
+              <h4 class="mb-4"><i class="bi bi-person-fill text-primary"></i> Select Patient</h4>
+              <div class="row">
+                <div class="col-md-8">
+                  <label for="patient_id" class="form-label fw-bold">Choose Patient *</label>
+                  <select id="patient_id" name="patient_id" class="form-select form-select-lg">
+                    <option value="">-- Select a patient --</option>
+                  </select>
+                  <div class="mt-3">
+                    <small class="text-muted">Don't see your patient? <a href="#" id="createNewPatientLink" class="fw-bold">Create New Patient</a></small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bulk Patient Mode -->
+            <div id="bulkPatientMode" style="display:none;">
+              <h4 class="mb-4"><i class="bi bi-people text-success"></i> Add Patients to Cart</h4>
+              <div class="row">
+                <div class="col-md-12">
+                  <div class="card bg-light mb-3">
+                    <div class="card-body">
+                      <h6 class="card-title"><i class="bi bi-info-circle"></i> Bulk Ordering</h6>
+                      <p class="mb-0 small">Select multiple patients and configure their orders. All orders will be submitted together.</p>
+                    </div>
+                  </div>
+
+                  <div class="row">
+                    <div class="col-md-6">
+                      <label for="bulk_patient_select" class="form-label fw-bold">Select Patient to Add</label>
+                      <select id="bulk_patient_select" class="form-select form-select-lg">
+                        <option value="">-- Choose patient to add --</option>
+                      </select>
+                    </div>
+                    <div class="col-md-6 d-flex align-items-end">
+                      <button type="button" class="btn btn-success btn-lg" onclick="addPatientToCart()">
+                        <i class="bi bi-plus-circle"></i> Add to Cart
+                      </button>
+                    </div>
+                  </div>
+
+                  <div id="patientCart" class="mt-4" style="display:none;">
+                    <h5 class="mb-3">Patients in Cart (<span id="cartCount">0</span>)</h5>
+                    <div id="cartItems" class="list-group"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Office Stock Mode -->
+            <div id="officeStockMode" style="display:none;">
+              <h4 class="mb-4"><i class="bi bi-building text-info"></i> Office Stock Order</h4>
+              <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> <strong>Office Stock:</strong> This order is for office inventory and is not associated with any patient.
+              </div>
+            </div>
+
+            <div class="mt-4 pt-4 border-top d-flex justify-content-between">
+              <button type="button" class="btn btn-lg btn-outline-secondary px-5" onclick="prevStep()">
+                <i class="bi bi-arrow-left"></i> Back
+              </button>
               <button type="button" class="btn btn-lg btn-primary px-5" onclick="nextStep()">
                 Continue <i class="bi bi-arrow-right"></i>
               </button>
             </div>
           </div>
 
-          <!-- Step 2: Product Selection -->
-          <div class="form-step" data-step="2">
+          <!-- Step 3: Product Selection -->
+          <div class="form-step" data-step="3">
             <h4 class="mb-4"><i class="bi bi-box-seam text-primary"></i> Select Product</h4>
             <div class="row">
               <div class="col-md-7">
@@ -6127,8 +6220,8 @@ if ($page==='logout'){
             </div>
           </div>
 
-          <!-- Step 3: Quantity Details -->
-          <div class="form-step" data-step="3">
+          <!-- Step 4: Quantity Details -->
+          <div class="form-step" data-step="4">
             <h4 class="mb-4"><i class="bi bi-calculator text-primary"></i> Calculate Quantity Needed</h4>
             <div class="row g-4">
               <div class="col-md-4">
@@ -6193,8 +6286,8 @@ if ($page==='logout'){
             </div>
           </div>
 
-          <!-- Step 4: Shipping -->
-          <div class="form-step" data-step="4">
+          <!-- Step 5: Shipping -->
+          <div class="form-step" data-step="5">
             <h4 class="mb-4"><i class="bi bi-truck text-primary"></i> Shipping Information</h4>
             <div class="row">
               <div class="col-md-8">
@@ -6240,8 +6333,8 @@ if ($page==='logout'){
             </div>
           </div>
 
-          <!-- Step 5: Review & Submit -->
-          <div class="form-step" data-step="5">
+          <!-- Step 6: Review & Submit -->
+          <div class="form-step" data-step="6">
             <h4 class="mb-4"><i class="bi bi-check-circle text-success"></i> Review & Submit Order</h4>
 
             <div class="card bg-light mb-4">
@@ -6302,6 +6395,94 @@ if ($page==='logout'){
   let selectedProduct = null;
   let selectedPatient = null;
   let orderData = {};
+  window.patientCart = []; // For bulk ordering
+
+  // Order type selection
+  window.selectOrderType = function(type) {
+    // Remove selected class from all cards
+    document.querySelectorAll('#orderTypeSingle, #orderTypeBulk, #orderTypeOffice').forEach(card => {
+      card.classList.remove('selected');
+    });
+
+    // Add selected class to clicked card
+    document.getElementById(`orderType${type.charAt(0).toUpperCase() + type.slice(1)}`).classList.add('selected');
+
+    // Set order type value
+    document.getElementById('order_type').value = type;
+
+    // Show/hide appropriate patient selection mode in step 2
+    document.getElementById('singlePatientMode').style.display = type === 'single' ? 'block' : 'none';
+    document.getElementById('bulkPatientMode').style.display = type === 'bulk' ? 'block' : 'none';
+    document.getElementById('officeStockMode').style.display = type === 'office' ? 'block' : 'none';
+  };
+
+  // Add patient to cart (bulk ordering)
+  window.addPatientToCart = function() {
+    const selectElem = document.getElementById('bulk_patient_select');
+    const patientId = selectElem.value;
+
+    if (!patientId) {
+      alert('Please select a patient first');
+      return;
+    }
+
+    const opt = selectElem.options[selectElem.selectedIndex];
+    const patient = JSON.parse(opt.dataset.patient);
+
+    // Check if patient already in cart
+    if (window.patientCart.some(p => p.id === patient.id)) {
+      alert('This patient is already in your cart');
+      return;
+    }
+
+    // Add to cart
+    window.patientCart.push(patient);
+
+    // Reset dropdown
+    selectElem.value = '';
+
+    // Render cart
+    renderPatientCart();
+  };
+
+  // Remove patient from cart
+  window.removeFromCart = function(index) {
+    if (confirm('Remove this patient from the cart?')) {
+      window.patientCart.splice(index, 1);
+      renderPatientCart();
+    }
+  };
+
+  // Render patient cart
+  function renderPatientCart() {
+    const cartElem = document.getElementById('patientCart');
+    const cartItemsElem = document.getElementById('cartItems');
+    const cartCountElem = document.getElementById('cartCount');
+
+    if (window.patientCart.length === 0) {
+      cartElem.style.display = 'none';
+      return;
+    }
+
+    cartElem.style.display = 'block';
+    cartCountElem.textContent = window.patientCart.length;
+
+    cartItemsElem.innerHTML = '';
+    window.patientCart.forEach((patient, index) => {
+      const item = document.createElement('div');
+      item.className = 'list-group-item d-flex justify-content-between align-items-center';
+      item.innerHTML = `
+        <div>
+          <strong>${patient.first_name} ${patient.last_name}</strong><br>
+          <small class="text-muted">DOB: ${patient.dob || 'N/A'}</small>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeFromCart(${index})">
+          <i class="bi bi-trash"></i> Remove
+        </button>
+      `;
+      cartItemsElem.appendChild(item);
+    });
+  }
 
   // Stepper navigation
   window.nextStep = function() {
@@ -6321,12 +6502,12 @@ if ($page==='logout'){
     document.querySelector(`.stepper-step[data-step="${currentStep}"]`).classList.add('active');
 
     // Update final review on last step
-    if (currentStep === 5) {
+    if (currentStep === 6) {
       updateFinalReview();
     }
 
-    // Trigger calculation on step 3
-    if (currentStep === 3) {
+    // Trigger calculation on step 4 (quantity)
+    if (currentStep === 4) {
       calculateOrder();
     }
 
@@ -6350,18 +6531,37 @@ if ($page==='logout'){
   function validateStep(step) {
     switch(step) {
       case 1:
-        if (!document.getElementById('patient_id').value) {
-          alert('Please select a patient');
+        // Order type selection
+        if (!document.getElementById('order_type').value) {
+          alert('Please select an order type');
           return false;
         }
         break;
       case 2:
+        // Patient selection (conditional based on order type)
+        const orderType = document.getElementById('order_type').value;
+        if (orderType === 'single') {
+          if (!document.getElementById('patient_id').value) {
+            alert('Please select a patient');
+            return false;
+          }
+        } else if (orderType === 'bulk') {
+          if (!window.patientCart || window.patientCart.length === 0) {
+            alert('Please add at least one patient to the cart');
+            return false;
+          }
+        }
+        // Office stock doesn't need patient validation
+        break;
+      case 3:
+        // Product selection
         if (!selectedProduct) {
           alert('Please select a product');
           return false;
         }
         break;
-      case 3:
+      case 4:
+        // Quantity details
         const freq = document.getElementById('frequency_per_week').value;
         const duration = document.getElementById('duration_days').value;
         const qty = document.getElementById('qty_per_change').value;
@@ -6439,6 +6639,8 @@ if ($page==='logout'){
       .then(data => {
         if (data.ok && data.rows) {
           patients = data.rows;
+
+          // Populate single patient dropdown
           const select = document.getElementById('patient_id');
           patients.forEach(p => {
             const opt = document.createElement('option');
@@ -6446,6 +6648,16 @@ if ($page==='logout'){
             opt.textContent = `${p.first_name} ${p.last_name} (DOB: ${p.dob || 'N/A'})`;
             opt.dataset.patient = JSON.stringify(p);
             select.appendChild(opt);
+          });
+
+          // Populate bulk patient dropdown
+          const bulkSelect = document.getElementById('bulk_patient_select');
+          patients.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.id;
+            opt.textContent = `${p.first_name} ${p.last_name} (DOB: ${p.dob || 'N/A'})`;
+            opt.dataset.patient = JSON.stringify(p);
+            bulkSelect.appendChild(opt);
           });
         }
       });
@@ -6499,8 +6711,8 @@ if ($page==='logout'){
             document.getElementById('pricingPlaceholder').style.display = 'none';
             document.getElementById('pricingDisplay').style.display = 'block';
 
-            // Trigger calculation if we're on step 3
-            if (currentStep >= 3) {
+            // Trigger calculation if we're on step 4 (quantity) or later
+            if (currentStep >= 4) {
               calculateOrder();
             }
           }
