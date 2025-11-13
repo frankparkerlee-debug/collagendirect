@@ -5993,9 +5993,10 @@ if ($page==='logout'){
     </div>
   </div>
 
+<?php elseif ($page==='create-wholesale-order'): ?>
   <style>
     .wholesale-stepper {
-      display: none;
+      display: flex;
       border: 2px solid #dee2e6;
       display: flex;
       align-items: center;
