@@ -2320,11 +2320,15 @@ if ($action) {
       $hcpcsCol = in_array('hcpcs_code', $prodColCheck) ? 'hcpcs_code' : 'cpt_code';
       $categorySelect = in_array('category', $prodColCheck) ? ', category' : '';
 
-      $pr=$pdo->prepare("SELECT id, name, size, price_admin, {$hcpcsCol} as hcpcs_code{$categorySelect} FROM products WHERE id=? AND active=TRUE");
+      // Fetch product with both pricing models and pieces_per_box for box-based calculation
+      $pr=$pdo->prepare("SELECT id, name, size, price_admin, price_wholesale, pieces_per_box, {$hcpcsCol} as hcpcs_code{$categorySelect} FROM products WHERE id=? AND active=TRUE");
       $pr->execute([$product_id]); $prod=$pr->fetch(PDO::FETCH_ASSOC);
       if(!$prod){ $pdo->rollBack(); jerr('Product not found (ID: '.$product_id.'). Please ensure each wound has a product selected.',404); }
 
-      // REQUIRED: Patient ID must be on file (Insurance card is optional for cash pay/direct bill)
+      // Determine if this is a wholesale order (relaxed requirements)
+      $isWholesale = ($billed_by === 'practice_dme');
+
+      // REQUIRED: Patient ID must be on file (Insurance card is optional for cash pay/direct bill/wholesale)
       if(empty($p['id_card_path'])){
         $pdo->rollBack();
         jerr('Patient Photo ID must be on file before creating an order. Please upload this document first.');
@@ -2423,13 +2427,21 @@ if ($action) {
 
       if($freq_per_week<=0){ $pdo->rollBack(); jerr('Frequency per week is required for each wound.'); }
 
-      // Calculate product count: (Frequency/7 days) × Duration × Quantity per change × (1 + Refills)
-      // This gives total number of products needed for the entire treatment including refills
+      // Calculate boxes needed based on pieces required
+      // Formula: CEIL(pieces_needed / pieces_per_box)
+      $pieces_per_box = max(1, (int)($prod['pieces_per_box'] ?? 10));
       $changes_per_day = $freq_per_week / 7.0;
       $total_changes = $changes_per_day * $duration_days;
-      $products_per_fill = $total_changes * $qty_per_change;
-      $total_products = $products_per_fill * (1 + $refills_allowed);
-      $shipments_remaining = (int)ceil($total_products);
+      $pieces_per_fill = $total_changes * $qty_per_change;
+      $total_pieces_needed = $pieces_per_fill * (1 + $refills_allowed);
+
+      // Calculate boxes needed (round up to nearest whole box)
+      $boxes_needed = (int)ceil($total_pieces_needed / $pieces_per_box);
+      $shipments_remaining = $boxes_needed;
+
+      // Choose appropriate pricing based on billing route
+      $unit_price = $isWholesale ? ($prod['price_wholesale'] ?? $prod['price_admin']) : $prod['price_admin'];
+      $total_order_value = $boxes_needed * ($unit_price * $pieces_per_box);
 
       $oid=bin2hex(random_bytes(16));
       // Calculate expiration date: start_date + duration_days (including refills if needed)
@@ -2464,7 +2476,7 @@ if ($action) {
                 ?::jsonb,
                 ?,?)");
       $ins->execute([
-        $oid,$pid,$patientOwnerId,$prod['name'],$prod['id'],$prod['price_admin'],$orderStatus,$reviewStatus,$shipments_remaining,$delivery_mode,$payment_type,
+        $oid,$pid,$patientOwnerId,$prod['name'],$prod['id'],$unit_price,$orderStatus,$reviewStatus,$shipments_remaining,$delivery_mode,$payment_type,
         $wound_location,$wound_laterality,$wound_notes,
         (string)$ship_name,(string)$ship_phone,(string)$ship_addr,(string)$ship_city,(string)$ship_state,(string)$ship_zip,
         $sign_name,$sign_title,$expires_at,
