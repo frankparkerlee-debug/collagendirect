@@ -6136,140 +6136,104 @@ if ($page==='logout'){
   </div>
 
 <?php elseif ($page==='create-wholesale-order'): ?>
+  <!-- Google Places API -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=<?= getenv('GOOGLE_PLACES_API_KEY') ?: 'YOUR_API_KEY' ?>&libraries=places"></script>
+
   <style>
-    .wholesale-stepper {
+    .wholesale-container {
       display: flex;
-      border: 2px solid #dee2e6;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 0.5rem;
-      font-weight: 600;
-      transition: all 0.3s;
+      gap: 2rem;
+      align-items: flex-start;
     }
-    .stepper-step.active .stepper-circle {
-      background: #0d6efd;
-      border-color: #0d6efd;
-      color: white;
+    .wholesale-main {
+      flex: 1;
+      min-width: 0;
     }
-    .stepper-step.completed .stepper-circle {
-      background: #198754;
-      border-color: #198754;
-      color: white;
+    .wholesale-cart {
+      width: 380px;
+      flex-shrink: 0;
+      position: sticky;
+      top: 1.5rem;
     }
-    .stepper-label {
-      font-size: 0.875rem;
-      color: #6c757d;
+    .gradient-card {
+      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+      border: none;
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
     }
-    .stepper-step.active .stepper-label {
-      color: #0d6efd;
-      font-weight: 600;
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
     }
-    .form-step {
-      display: none;
+    .product-item {
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: white;
     }
-    .form-step.active {
-      display: block;
-      animation: fadeIn 0.3s;
+    .product-item:hover {
+      border-color: #3b82f6;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+    }
+    .product-item.selected {
+      border-color: #10b981;
+      border-width: 3px;
+      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    }
+    .cart-item {
+      background: white;
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+      border: 1px solid #e2e8f0;
+    }
+    .cart-empty {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: #94a3b8;
     }
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    .pricing-card {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border-radius: 12px;
-      padding: 1.5rem;
-      margin-top: 1rem;
+    .fade-in {
+      animation: fadeIn 0.3s ease;
     }
-    .pricing-card .price {
-      font-size: 2rem;
-      font-weight: 700;
-    }
-    .order-summary-card {
-      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-      color: white;
-      border-radius: 12px;
-      padding: 1.5rem;
-      margin-top: 1rem;
-    }
-    .summary-item {
-      display: flex;
-      justify-content: space-between;
-      padding: 0.75rem 0;
-      border-bottom: 1px solid rgba(255,255,255,0.2);
-    }
-    .summary-item:last-child {
-      border-bottom: none;
-      font-size: 1.25rem;
-      font-weight: 700;
-      padding-top: 1rem;
-    }
-    .product-card {
-      border: 2px solid #e9ecef;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      height: 100%;
-    }
-    .product-card:hover {
-      border-color: #0d6efd;
-      box-shadow: 0 4px 12px rgba(13, 110, 253, 0.15);
-      transform: translateY(-2px);
-    }
-    .product-card.selected {
-      border-color: #0d6efd;
-      border-width: 3px;
-      background: linear-gradient(135deg, #f8f9ff 0%, #e8f0ff 100%);
-      box-shadow: 0 6px 16px rgba(13, 110, 253, 0.25);
-    }
-    .product-card .card-body {
-      padding: 1.5rem;
+    .pac-container {
+      z-index: 10000 !important;
     }
   </style>
 
   <div class="container-fluid py-4">
     <!-- Header -->
-    <div class="row mb-4">
-      <div class="col-12">
-        <h2 class="mb-2"><i class="bi bi-basket"></i> Wholesale Order</h2>
-        <p class="text-muted">Quick ordering with wholesale pricing - No insurance paperwork required</p>
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="text-2xl font-bold" style="color: #1e293b; margin-bottom: 0.5rem;">
+          <svg style="width: 28px; height: 28px; display: inline-block; margin-right: 0.5rem; vertical-align: middle; color: #10b981;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+          </svg>
+          Create Wholesale Order
+        </h2>
+        <p class="text-sm" style="color: #64748b;">Add patients and products to your order cart</p>
       </div>
+      <a href="?page=wholesale-orders" class="btn" style="background: #f1f5f9; color: #475569; border: none; padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 600; text-decoration: none;">
+        <svg style="width: 18px; height: 18px; display: inline-block; margin-right: 0.5rem; vertical-align: middle;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+        </svg>
+        Back to Orders
+      </a>
     </div>
 
-    <!-- Progress Stepper -->
-    <div class="wholesale-stepper">
-      <div class="stepper-step active" data-step="1">
-        <div class="stepper-circle">1</div>
-        <div class="stepper-label">Order Type</div>
-      </div>
-      <div class="stepper-step" data-step="2">
-        <div class="stepper-circle">2</div>
-        <div class="stepper-label">Patient</div>
-      </div>
-      <div class="stepper-step" data-step="3">
-        <div class="stepper-circle">3</div>
-        <div class="stepper-label">Product</div>
-      </div>
-      <div class="stepper-step" data-step="4">
-        <div class="stepper-circle">4</div>
-        <div class="stepper-label">Quantity</div>
-      </div>
-      <div class="stepper-step" data-step="5">
-        <div class="stepper-circle">5</div>
-        <div class="stepper-label">Shipping</div>
-      </div>
-      <div class="stepper-step" data-step="6">
-        <div class="stepper-circle">6</div>
-        <div class="stepper-label">Review</div>
-      </div>
-    </div>
-
-    <!-- Order Form -->
-    <div class="card shadow-sm">
-      <div class="card-body p-4">
-        <form id="wholesaleOrderForm">
+    <!-- Main Container with Cart Sidebar -->
+    <div class="wholesale-container">
+      <!-- Main Form Area -->
 
           <!-- Step 1: Order Type Selection -->
           <div class="form-step active" data-step="1">
