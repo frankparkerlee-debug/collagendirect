@@ -2368,7 +2368,7 @@ if ($action) {
       $pdo->beginTransaction();
 
       // Must have provider NPI
-      $u=$pdo->prepare("SELECT npi,first_name,last_name,credentials FROM users WHERE id=? FOR UPDATE");
+      $u=$pdo->prepare("SELECT npi,first_name,last_name,sign_title FROM users WHERE id=? FOR UPDATE");
       $u->execute([$userId]); $ud=$u->fetch(PDO::FETCH_ASSOC);
       if(!$ud || empty($ud['npi'])){ $pdo->rollBack(); jerr('Provider NPI is required. Please add your NPI in your profile.'); }
 
@@ -2543,7 +2543,7 @@ if ($action) {
 
             // Signature from user profile
             $sign_name = trim($ud['first_name'] . ' ' . $ud['last_name']);
-            $sign_title = trim($ud['credentials'] ?? 'MD');
+            $sign_title = trim($ud['sign_title'] ?? 'MD');
 
             $ins=$pdo->prepare("INSERT INTO orders
               (id,patient_id,user_id,product,product_id,product_price,status,review_status,shipments_remaining,delivery_mode,payment_type,
@@ -2582,7 +2582,7 @@ if ($action) {
       // Update provider signature
       if (!empty($createdOrders)) {
         $sign_name = trim($ud['first_name'] . ' ' . $ud['last_name']);
-        $sign_title = trim($ud['credentials'] ?? 'MD');
+        $sign_title = trim($ud['sign_title'] ?? 'MD');
         $pdo->prepare("UPDATE users SET sign_name=?,sign_title=?,sign_date=CURRENT_DATE,updated_at=NOW() WHERE id=?")
             ->execute([$sign_name,$sign_title,$userId]);
       }
