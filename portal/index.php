@@ -6518,7 +6518,6 @@ if ($page==='logout'){
                 <div class="col-md-6">
                   <label style="font-weight: 500; color: #374151; display: block; margin-bottom: 0.5rem;">Phone Number *</label>
                   <input type="tel" id="new-phone" class="form-control" placeholder="(555) 123-4567" required style="border-radius: 8px;">
-                  <small style="color: #64748b; font-size: 0.75rem;">Will be standardized for SMS delivery</small>
                 </div>
                 <div class="col-12">
                   <label style="font-weight: 500; color: #374151; display: block; margin-bottom: 0.5rem;">Address *</label>
