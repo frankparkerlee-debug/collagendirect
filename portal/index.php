@@ -2231,6 +2231,137 @@ if ($action) {
     jok(['rows'=>$rows]);
   }
 
+  /* PRODUCT.DETAILS — Get full product details including wholesale pricing */
+  if ($action==='product.details'){
+    $productId = (int)($_GET['id'] ?? 0);
+    if ($productId === 0) jerr('Product ID required');
+
+    $colCheck = $pdo->query("
+      SELECT column_name FROM information_schema.columns
+      WHERE table_name = 'products' AND column_name IN ('hcpcs_code', 'cpt_code', 'price_wholesale', 'pieces_per_box')
+    ")->fetchAll(PDO::FETCH_COLUMN);
+
+    $hcpcsCol = in_array('hcpcs_code', $colCheck) ? 'hcpcs_code' : 'cpt_code';
+    $wholesaleCol = in_array('price_wholesale', $colCheck) ? ', price_wholesale' : ', price_admin as price_wholesale';
+    $piecesCol = in_array('pieces_per_box', $colCheck) ? ', pieces_per_box' : ', 10 as pieces_per_box';
+
+    $stmt = $pdo->prepare("
+      SELECT id, name, size, price_admin, {$hcpcsCol} as hcpcs_code{$wholesaleCol}{$piecesCol}
+      FROM products
+      WHERE id = ? AND active = TRUE
+    ");
+    $stmt->execute([$productId]);
+    $product = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$product) jerr('Product not found', 404);
+    jok(['product' => $product]);
+  }
+
+  /* ORDER.CREATE.WHOLESALE — Simplified wholesale/cash-pay order creation */
+  if ($action==='order.create.wholesale'){
+    try {
+      $pdo->beginTransaction();
+
+      // Must have provider NPI
+      $u=$pdo->prepare("SELECT npi FROM users WHERE id=? FOR UPDATE");
+      $u->execute([$userId]); $ud=$u->fetch(PDO::FETCH_ASSOC);
+      if(!$ud || empty($ud['npi'])){ $pdo->rollBack(); jerr('Provider NPI is required. Please add your NPI in your profile.'); }
+
+      $pid=(string)($_POST['patient_id']??''); if($pid==='') jerr('patient_id is required');
+
+      // Fetch patient (superadmins can order for any patient, others only their own)
+      if ($userRole === 'superadmin') {
+        $own=$pdo->prepare("SELECT id,first_name,last_name,address,city,state,zip,phone,user_id FROM patients WHERE id=? FOR UPDATE");
+        $own->execute([$pid]);
+      } else {
+        $own=$pdo->prepare("SELECT id,first_name,last_name,address,city,state,zip,phone,user_id FROM patients WHERE id=? AND user_id=? FOR UPDATE");
+        $own->execute([$pid,$userId]);
+      }
+      $p=$own->fetch(PDO::FETCH_ASSOC);
+      if(!$p){ $pdo->rollBack(); jerr('Patient not found',404); }
+
+      $patientOwnerId = $p['user_id'] ?? $userId;
+
+      // Get product with wholesale pricing
+      $product_id = (int)($_POST['product_id'] ?? 0);
+      if ($product_id === 0) jerr('Product is required');
+
+      $pr=$pdo->prepare("SELECT id, name, size, price_admin, price_wholesale, pieces_per_box FROM products WHERE id=? AND active=TRUE");
+      $pr->execute([$product_id]);
+      $prod=$pr->fetch(PDO::FETCH_ASSOC);
+      if(!$prod){ $pdo->rollBack(); jerr('Product not found',404); }
+
+      // Get order parameters
+      $freq_per_week = max(1,(int)($_POST['frequency_per_week']??7));
+      $duration_days = max(1,(int)($_POST['duration_days']??30));
+      $qty_per_change = max(1,(int)($_POST['qty_per_change']??1));
+      $delivery_to = $_POST['delivery_to'] ?? 'patient';
+
+      // Calculate boxes needed
+      $pieces_per_box = max(1, (int)($prod['pieces_per_box'] ?? 10));
+      $changes_per_day = $freq_per_week / 7.0;
+      $total_changes = $changes_per_day * $duration_days;
+      $pieces_needed = $total_changes * $qty_per_change;
+      $boxes_needed = (int)ceil($pieces_needed / $pieces_per_box);
+
+      // Use wholesale pricing
+      $unit_price = $prod['price_wholesale'] ?? $prod['price_admin'];
+      $total_order_value = $boxes_needed * ($unit_price * $pieces_per_box);
+
+      // Shipping info (simplified - auto-filled from patient)
+      $ship_name = ($p['first_name'] ?? '') . ' ' . ($p['last_name'] ?? '');
+      $ship_phone = $p['phone'] ?? '';
+      $ship_addr = $p['address'] ?? '';
+      $ship_city = $p['city'] ?? '';
+      $ship_state = $p['state'] ?? '';
+      $ship_zip = $p['zip'] ?? '';
+
+      // Signature
+      $sign_name = trim((string)($_POST['sign_name']??'')); if($sign_name==='') jerr('Signature name required');
+      $sign_title = trim((string)($_POST['sign_title']??''));
+      $ack = (int)($_POST['ack_sig']??0); if(!$ack) jerr('Please acknowledge the signature statement');
+
+      // Order status
+      $saveAsDraft = (int)($_POST['save_as_draft'] ?? 0);
+      $orderStatus = $saveAsDraft ? 'draft' : 'submitted';
+      $reviewStatus = $saveAsDraft ? 'draft' : 'pending_admin_review';
+
+      $oid = bin2hex(random_bytes(16));
+      $start_date = date('Y-m-d', strtotime('+1 day'));
+      $expires_at = date('Y-m-d', strtotime("+{$duration_days} days", strtotime($start_date)));
+
+      // Create order with billed_by='practice_dme' for wholesale
+      $ins=$pdo->prepare("INSERT INTO orders
+        (id,patient_id,user_id,product,product_id,product_price,status,review_status,shipments_remaining,delivery_mode,payment_type,
+         shipping_name,shipping_phone,shipping_address,shipping_city,shipping_state,shipping_zip,
+         sign_name,sign_title,signed_at,created_at,updated_at,expires_at,
+         start_date,frequency_per_week,qty_per_change,duration_days,
+         billed_by)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,
+                ?,?,?,?,?,?,
+                ?,?,NOW(),NOW(),NOW(),?,
+                ?,?,?,?,
+                ?)");
+      $ins->execute([
+        $oid,$pid,$patientOwnerId,$prod['name'],$prod['id'],$unit_price,$orderStatus,$reviewStatus,$boxes_needed,$delivery_to,'cash',
+        (string)$ship_name,(string)$ship_phone,(string)$ship_addr,(string)$ship_city,(string)$ship_state,(string)$ship_zip,
+        $sign_name,$sign_title,$expires_at,
+        $start_date,$freq_per_week,$qty_per_change,$duration_days,
+        'practice_dme' // Wholesale orders
+      ]);
+
+      // Update provider signature
+      $pdo->prepare("UPDATE users SET sign_name=?,sign_title=?,sign_date=CURRENT_DATE,updated_at=NOW() WHERE id=?")
+          ->execute([$sign_name,$sign_title,$userId]);
+
+      $pdo->commit();
+      jok(['order_id'=>$oid,'status'=>$orderStatus,'review_status'=>$reviewStatus,'billed_by'=>'practice_dme','boxes'=>$boxes_needed,'total'=>$total_order_value]);
+    } catch (Throwable $e) {
+      if ($pdo->inTransaction()) $pdo->rollBack();
+      jerr('Wholesale order create failed: '.$e->getMessage(), 500);
+    }
+  }
+
   /* ORDER.CREATE — enforce NPI, patient cards + AOB, clinical completeness; only visit note uploads per order */
   if ($action==='order.create'){
     try {
