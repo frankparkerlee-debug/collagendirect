@@ -30,9 +30,28 @@ if (empty($user['npi'])) {
   header('Location: /portal/index.php?page=profile');
   exit;
 }
-
-require_once '_header.php';
 ?>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Wholesale Order — CollagenDirect</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f8f9fa;
+    }
+    .form-label { font-weight: 500; margin-bottom: 0.5rem; }
+    .form-control, .form-select { border-radius: 0.375rem; }
+    .card { border-radius: 0.5rem; border: 1px solid #dee2e6; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .btn { border-radius: 0.375rem; font-weight: 500; }
+  </style>
+</head>
+<body>
 
 <div class="container-fluid py-4">
   <div class="row mb-4">
@@ -376,4 +395,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<?php require_once '_footer.php'; ?>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
