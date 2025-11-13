@@ -119,21 +119,41 @@ try {
     // Check if on Dressing Rule Matrix
     $onMatrix = false;
     foreach ($matrixProducts as $matrixItem) {
-      $searchTerms = [
-        strtolower($matrixItem['brand']),
-        strtolower($matrixItem['product']),
-        str_replace(['"', '.'], '', strtolower($matrixItem['size']))
-      ];
+      // More flexible matching - check brand AND (product type OR size)
+      $brand = strtolower($matrixItem['brand']);
+      $productType = strtolower($matrixItem['product']);
+      $size = str_replace(['"', '.', ' '], '', strtolower($matrixItem['size']));
 
-      $allMatch = true;
-      foreach ($searchTerms as $term) {
-        if (strpos($productName, $term) === false && strpos($productSKU, $term) === false) {
-          $allMatch = false;
+      // Normalize product name/SKU
+      $normalizedName = str_replace(['"', '.', ' '], '', $productName);
+      $normalizedSKU = str_replace(['"', '.', ' ', '-'], '', $productSKU);
+
+      // Check if brand matches
+      $brandMatch = (strpos($productName, $brand) !== false || strpos($productSKU, $brand) !== false);
+
+      // Check if size matches (flexible - handle variations like 2x2, 2"x2", 2 x 2)
+      $sizeMatch = (strpos($normalizedName, $size) !== false || strpos($normalizedSKU, $size) !== false);
+
+      // Check if product type keywords match
+      $productKeywords = [];
+      if (strpos($productType, 'alginate') !== false) $productKeywords[] = 'alginate|alg';
+      if (strpos($productType, 'silver') !== false) $productKeywords[] = 'silver|ag';
+      if (strpos($productType, 'collagen') !== false) $productKeywords[] = 'collagen|col';
+      if (strpos($productType, 'foam') !== false) $productKeywords[] = 'foam';
+      if (strpos($productType, 'absorbent') !== false) $productKeywords[] = 'absorbent|sa';
+      if (strpos($productType, 'powder') !== false || strpos($productType, 'particle') !== false) $productKeywords[] = 'powder|particle';
+      if (strpos($productType, 'rope') !== false) $productKeywords[] = 'rope';
+
+      $productMatch = false;
+      foreach ($productKeywords as $keyword) {
+        if (preg_match('/' . $keyword . '/i', $productName) || preg_match('/' . $keyword . '/i', $productSKU)) {
+          $productMatch = true;
           break;
         }
       }
 
-      if ($allMatch) {
+      // Match if brand AND size AND product type all match
+      if ($brandMatch && $sizeMatch && $productMatch) {
         $onMatrix = true;
         break;
       }
