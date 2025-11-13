@@ -5873,208 +5873,545 @@ if ($page==='logout'){
 
 <?php elseif ($page==='wholesale-order'): ?>
   <!-- Wholesale Order Form -->
+  <style>
+    .wholesale-stepper {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 2rem;
+      position: relative;
+    }
+    .wholesale-stepper::before {
+      content: '';
+      position: absolute;
+      top: 20px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: #dee2e6;
+      z-index: 0;
+    }
+    .stepper-step {
+      flex: 1;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+    .stepper-circle {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: white;
+      border: 2px solid #dee2e6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 0.5rem;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    .stepper-step.active .stepper-circle {
+      background: #0d6efd;
+      border-color: #0d6efd;
+      color: white;
+    }
+    .stepper-step.completed .stepper-circle {
+      background: #198754;
+      border-color: #198754;
+      color: white;
+    }
+    .stepper-label {
+      font-size: 0.875rem;
+      color: #6c757d;
+    }
+    .stepper-step.active .stepper-label {
+      color: #0d6efd;
+      font-weight: 600;
+    }
+    .form-step {
+      display: none;
+    }
+    .form-step.active {
+      display: block;
+      animation: fadeIn 0.3s;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .pricing-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-top: 1rem;
+    }
+    .pricing-card .price {
+      font-size: 2rem;
+      font-weight: 700;
+    }
+    .order-summary-card {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-top: 1rem;
+    }
+    .summary-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+    }
+    .summary-item:last-child {
+      border-bottom: none;
+      font-size: 1.25rem;
+      font-weight: 700;
+      padding-top: 1rem;
+    }
+    .product-card {
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      padding: 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 1rem;
+    }
+    .product-card:hover {
+      border-color: #0d6efd;
+      box-shadow: 0 4px 12px rgba(13, 110, 253, 0.15);
+    }
+    .product-card.selected {
+      border-color: #0d6efd;
+      background: #f8f9ff;
+    }
+    .info-banner {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 1.5rem;
+      border-radius: 12px;
+      margin-bottom: 2rem;
+    }
+  </style>
+
   <div class="container-fluid py-4">
+    <!-- Header -->
     <div class="row mb-4">
-      <div class="col-md-8">
-        <h2>Wholesale Order</h2>
-        <p class="text-muted">Simplified ordering for practices billing their own DME license</p>
+      <div class="col-12">
+        <h2 class="mb-2"><i class="bi bi-basket"></i> Wholesale Order</h2>
+        <p class="text-muted">Quick ordering with wholesale pricing - No insurance paperwork required</p>
       </div>
     </div>
 
-    <!-- Info Alert -->
-    <div class="alert alert-info">
-      <h5><i class="bi bi-info-circle"></i> Wholesale Ordering Benefits</h5>
-      <ul class="mb-0">
-        <li><strong>No Insurance Paperwork</strong> - No cards, AOB, or authorization required</li>
-        <li><strong>Wholesale Pricing</strong> - Lower cost per piece, you bill at Medicare rates</li>
-        <li><strong>Fast Processing</strong> - Simplified documentation, faster fulfillment</li>
-        <li><strong>Your DME License</strong> - You bill patients/insurance and keep the margin</li>
-      </ul>
+    <!-- Info Banner -->
+    <div class="info-banner">
+      <div class="row align-items-center">
+        <div class="col-md-8">
+          <h5 class="mb-2"><i class="bi bi-star-fill"></i> Wholesale Ordering Benefits</h5>
+          <div class="row">
+            <div class="col-md-6">
+              <small><i class="bi bi-check-circle-fill"></i> No Insurance Cards or AOB</small><br>
+              <small><i class="bi bi-check-circle-fill"></i> Wholesale Pricing</small>
+            </div>
+            <div class="col-md-6">
+              <small><i class="bi bi-check-circle-fill"></i> Fast Processing</small><br>
+              <small><i class="bi bi-check-circle-fill"></i> You Bill & Keep Margin</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4 text-end">
+          <div class="badge bg-light text-dark fs-6 px-3 py-2">
+            <i class="bi bi-lightning-fill text-warning"></i> Simplified Workflow
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress Stepper -->
+    <div class="wholesale-stepper">
+      <div class="stepper-step active" data-step="1">
+        <div class="stepper-circle">1</div>
+        <div class="stepper-label">Patient</div>
+      </div>
+      <div class="stepper-step" data-step="2">
+        <div class="stepper-circle">2</div>
+        <div class="stepper-label">Product</div>
+      </div>
+      <div class="stepper-step" data-step="3">
+        <div class="stepper-circle">3</div>
+        <div class="stepper-label">Quantity</div>
+      </div>
+      <div class="stepper-step" data-step="4">
+        <div class="stepper-circle">4</div>
+        <div class="stepper-label">Shipping</div>
+      </div>
+      <div class="stepper-step" data-step="5">
+        <div class="stepper-circle">5</div>
+        <div class="stepper-label">Review</div>
+      </div>
     </div>
 
     <!-- Order Form -->
-    <div class="card">
-      <div class="card-body">
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
         <form id="wholesaleOrderForm">
-          <!-- Patient Selection -->
-          <div class="mb-4">
-            <h5>1. Select Patient</h5>
+
+          <!-- Step 1: Patient Selection -->
+          <div class="form-step active" data-step="1">
+            <h4 class="mb-4"><i class="bi bi-person-fill text-primary"></i> Select Patient</h4>
             <div class="row">
               <div class="col-md-8">
-                <label for="patient_id" class="form-label">Patient *</label>
-                <select id="patient_id" name="patient_id" class="form-select" required>
-                  <option value="">Select a patient...</option>
+                <label for="patient_id" class="form-label fw-bold">Choose Patient *</label>
+                <select id="patient_id" name="patient_id" class="form-select form-select-lg" required>
+                  <option value="">-- Select a patient --</option>
                 </select>
-                <small class="text-muted">Or <a href="#" id="createNewPatientLink">create new patient</a></small>
+                <div class="mt-3">
+                  <small class="text-muted">Don't see your patient? <a href="#" id="createNewPatientLink" class="fw-bold">Create New Patient</a></small>
+                </div>
               </div>
+            </div>
+            <div class="mt-4 pt-4 border-top">
+              <button type="button" class="btn btn-lg btn-primary px-5" onclick="nextStep()">
+                Continue <i class="bi bi-arrow-right"></i>
+              </button>
             </div>
           </div>
 
-          <hr>
-
-          <!-- Product Selection -->
-          <div class="mb-4">
-            <h5>2. Select Product</h5>
+          <!-- Step 2: Product Selection -->
+          <div class="form-step" data-step="2">
+            <h4 class="mb-4"><i class="bi bi-box-seam text-primary"></i> Select Product</h4>
             <div class="row">
-              <div class="col-md-6">
-                <label for="product_id" class="form-label">Product *</label>
-                <select id="product_id" name="product_id" class="form-select" required>
-                  <option value="">Select a product...</option>
-                </select>
+              <div class="col-md-12">
+                <label class="form-label fw-bold mb-3">Choose Wound Dressing *</label>
+                <div id="productGrid"></div>
+                <input type="hidden" id="product_id" name="product_id" required>
               </div>
-              <div class="col-md-6">
-                <div class="card bg-light">
-                  <div class="card-body">
-                    <h6 class="card-title">Pricing</h6>
-                    <div id="pricingDisplay">
-                      <p class="text-muted">Select a product to see pricing</p>
+            </div>
+            <div id="pricingDisplay" class="pricing-card" style="display:none;">
+              <div class="row align-items-center">
+                <div class="col-md-8">
+                  <h5 id="selectedProductName"></h5>
+                  <div class="mt-2">
+                    <span class="badge bg-light text-dark">Wholesale Price: $<span id="wholesalePrice">0</span>/piece</span>
+                    <span class="badge bg-light text-dark">Pieces per Box: <span id="piecesPerBox">0</span></span>
+                  </div>
+                </div>
+                <div class="col-md-4 text-end">
+                  <div class="price">$<span id="boxPrice">0</span></div>
+                  <small>per box</small>
+                </div>
+              </div>
+            </div>
+            <div class="mt-4 pt-4 border-top d-flex justify-content-between">
+              <button type="button" class="btn btn-lg btn-outline-secondary px-5" onclick="prevStep()">
+                <i class="bi bi-arrow-left"></i> Back
+              </button>
+              <button type="button" class="btn btn-lg btn-primary px-5" onclick="nextStep()">
+                Continue <i class="bi bi-arrow-right"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Step 3: Quantity Details -->
+          <div class="form-step" data-step="3">
+            <h4 class="mb-4"><i class="bi bi-calculator text-primary"></i> Calculate Quantity Needed</h4>
+            <div class="row g-4">
+              <div class="col-md-4">
+                <label for="frequency_per_week" class="form-label fw-bold">
+                  <i class="bi bi-calendar-week"></i> Changes per Week *
+                </label>
+                <input type="number" id="frequency_per_week" name="frequency_per_week"
+                       class="form-control form-control-lg" min="1" max="21" value="7" required>
+                <small class="text-muted">Typical: 7 (daily changes)</small>
+              </div>
+              <div class="col-md-4">
+                <label for="duration_days" class="form-label fw-bold">
+                  <i class="bi bi-clock-history"></i> Treatment Duration (Days) *
+                </label>
+                <input type="number" id="duration_days" name="duration_days"
+                       class="form-control form-control-lg" min="1" max="90" value="30" required>
+                <small class="text-muted">Typical: 30 days (1 month)</small>
+              </div>
+              <div class="col-md-4">
+                <label for="qty_per_change" class="form-label fw-bold">
+                  <i class="bi bi-layers"></i> Pieces per Change *
+                </label>
+                <input type="number" id="qty_per_change" name="qty_per_change"
+                       class="form-control form-control-lg" min="1" max="10" value="1" required>
+                <small class="text-muted">Typical: 1-2 pieces</small>
+              </div>
+            </div>
+
+            <div class="order-summary-card">
+              <h5 class="mb-3"><i class="bi bi-clipboard-check"></i> Order Calculation</h5>
+              <div id="orderSummary">
+                <div class="summary-item">
+                  <span>Total Changes Needed:</span>
+                  <span><strong id="totalChanges">-</strong></span>
+                </div>
+                <div class="summary-item">
+                  <span>Pieces Needed:</span>
+                  <span><strong id="piecesNeeded">-</strong></span>
+                </div>
+                <div class="summary-item">
+                  <span>Boxes to Order:</span>
+                  <span><strong id="boxesNeeded">-</strong> boxes</span>
+                </div>
+                <div class="summary-item">
+                  <span>Unit Cost:</span>
+                  <span>$<strong id="unitCost">0.00</strong>/piece</span>
+                </div>
+                <div class="summary-item">
+                  <span><i class="bi bi-cart-check"></i> Total Order Cost:</span>
+                  <span>$<strong id="totalCost">0.00</strong></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-4 pt-4 border-top d-flex justify-content-between">
+              <button type="button" class="btn btn-lg btn-outline-secondary px-5" onclick="prevStep()">
+                <i class="bi bi-arrow-left"></i> Back
+              </button>
+              <button type="button" class="btn btn-lg btn-primary px-5" onclick="nextStep()">
+                Continue <i class="bi bi-arrow-right"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Step 4: Shipping -->
+          <div class="form-step" data-step="4">
+            <h4 class="mb-4"><i class="bi bi-truck text-primary"></i> Shipping Information</h4>
+            <div class="row">
+              <div class="col-md-8">
+                <label class="form-label fw-bold mb-3">Delivery Address *</label>
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <div class="card product-card" onclick="selectShipping('patient')">
+                      <div class="card-body text-center">
+                        <input class="form-check-input" type="radio" name="delivery_to" id="delivery_patient" value="patient" checked>
+                        <label class="form-check-label d-block mt-2" for="delivery_patient">
+                          <i class="bi bi-house-door fs-3 d-block mb-2"></i>
+                          <strong>Patient Address</strong>
+                          <p class="text-muted small mb-0">Ship directly to patient's home</p>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="card product-card" onclick="selectShipping('office')">
+                      <div class="card-body text-center">
+                        <input class="form-check-input" type="radio" name="delivery_to" id="delivery_office" value="office">
+                        <label class="form-check-label d-block mt-2" for="delivery_office">
+                          <i class="bi bi-building fs-3 d-block mb-2"></i>
+                          <strong>Office Address</strong>
+                          <p class="text-muted small mb-0">Ship to your practice</p>
+                        </label>
+                      </div>
                     </div>
                   </div>
                 </div>
+                <div class="alert alert-info mt-3">
+                  <i class="bi bi-info-circle"></i> Address will be auto-filled from your records
+                </div>
               </div>
+            </div>
+            <div class="mt-4 pt-4 border-top d-flex justify-content-between">
+              <button type="button" class="btn btn-lg btn-outline-secondary px-5" onclick="prevStep()">
+                <i class="bi bi-arrow-left"></i> Back
+              </button>
+              <button type="button" class="btn btn-lg btn-primary px-5" onclick="nextStep()">
+                Continue <i class="bi bi-arrow-right"></i>
+              </button>
             </div>
           </div>
 
-          <hr>
+          <!-- Step 5: Review & Submit -->
+          <div class="form-step" data-step="5">
+            <h4 class="mb-4"><i class="bi bi-check-circle text-success"></i> Review & Submit Order</h4>
 
-          <!-- Order Details -->
-          <div class="mb-4">
-            <h5>3. Order Details</h5>
-            <div class="row">
-              <div class="col-md-4">
-                <label for="frequency_per_week" class="form-label">Changes per Week *</label>
-                <input type="number" id="frequency_per_week" name="frequency_per_week" class="form-control" min="1" max="21" value="7" required>
-                <small class="text-muted">How many times per week to change dressing</small>
-              </div>
-              <div class="col-md-4">
-                <label for="duration_days" class="form-label">Duration (Days) *</label>
-                <input type="number" id="duration_days" name="duration_days" class="form-control" min="1" max="90" value="30" required>
-                <small class="text-muted">Total treatment duration</small>
-              </div>
-              <div class="col-md-4">
-                <label for="qty_per_change" class="form-label">Pieces per Change *</label>
-                <input type="number" id="qty_per_change" name="qty_per_change" class="form-control" min="1" max="10" value="1" required>
-                <small class="text-muted">How many pieces per dressing change</small>
+            <div class="card bg-light mb-4">
+              <div class="card-body">
+                <h5 class="card-title">Order Summary</h5>
+                <div id="finalReview"></div>
               </div>
             </div>
 
-            <div class="row mt-3">
-              <div class="col-md-12">
-                <div class="card bg-success text-white">
-                  <div class="card-body">
-                    <h5 class="card-title">Order Summary</h5>
-                    <div id="orderSummary">
-                      <p>Fill out the fields above to see order calculation</p>
-                    </div>
+            <div class="card border-warning mb-4">
+              <div class="card-body">
+                <h6 class="card-title"><i class="bi bi-pencil-square"></i> Physician Certification</h6>
+                <div class="row mt-3">
+                  <div class="col-md-6">
+                    <label for="sign_name" class="form-label fw-bold">Full Name *</label>
+                    <input type="text" id="sign_name" name="sign_name" class="form-control"
+                           value="<?= htmlspecialchars($user['first_name'] . ' ' . $user['last_name']) ?>" required>
+                  </div>
+                  <div class="col-md-6">
+                    <label for="sign_title" class="form-label fw-bold">Credentials</label>
+                    <input type="text" id="sign_title" name="sign_title" class="form-control"
+                           value="<?= htmlspecialchars($user['credentials'] ?? 'MD') ?>">
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
-
-          <hr>
-
-          <!-- Shipping -->
-          <div class="mb-4">
-            <h5>4. Shipping</h5>
-            <div class="row">
-              <div class="col-md-6">
-                <label class="form-label">Deliver To *</label>
-                <div class="form-check">
-                  <input class="form-check-input" type="radio" name="delivery_to" id="delivery_patient" value="patient" checked>
-                  <label class="form-check-label" for="delivery_patient">
-                    Patient Address
-                  </label>
-                </div>
-                <div class="form-check">
-                  <input class="form-check-input" type="radio" name="delivery_to" id="delivery_office" value="office">
-                  <label class="form-check-label" for="delivery_office">
-                    Office Address
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <div class="row mt-3" id="shippingFields">
-              <div class="col-md-12">
-                <p class="text-muted">Shipping address will be auto-filled from patient record</p>
-              </div>
-            </div>
-          </div>
-
-          <hr>
-
-          <!-- Physician Signature -->
-          <div class="mb-4">
-            <h5>5. Physician Signature</h5>
-            <div class="row">
-              <div class="col-md-6">
-                <label for="sign_name" class="form-label">Full Name *</label>
-                <input type="text" id="sign_name" name="sign_name" class="form-control"
-                       value="<?= htmlspecialchars($user['first_name'] . ' ' . $user['last_name']) ?>" required>
-              </div>
-              <div class="col-md-6">
-                <label for="sign_title" class="form-label">Title</label>
-                <input type="text" id="sign_title" name="sign_title" class="form-control"
-                       value="<?= htmlspecialchars($user['credentials'] ?? 'MD') ?>">
-              </div>
-            </div>
-            <div class="row mt-3">
-              <div class="col-md-12">
-                <div class="form-check">
+                <div class="form-check mt-3 p-3 bg-white rounded">
                   <input class="form-check-input" type="checkbox" id="ack_sig" name="ack_sig" required>
                   <label class="form-check-label" for="ack_sig">
-                    I certify that this order is medically necessary and that I am authorized to order medical supplies for this patient.
+                    <strong>I certify</strong> that this order is medically necessary and that I am authorized to order medical supplies for this patient.
                   </label>
                 </div>
               </div>
             </div>
-          </div>
 
-          <hr>
-
-          <!-- Submit Buttons -->
-          <div class="d-flex justify-content-between">
-            <button type="button" class="btn btn-secondary" onclick="window.location.href='?page=dashboard'">
-              Cancel
-            </button>
-            <div>
-              <button type="submit" name="save_as_draft" value="1" class="btn btn-outline-primary me-2">
-                Save as Draft
+            <div class="mt-4 pt-4 border-top d-flex justify-content-between">
+              <button type="button" class="btn btn-lg btn-outline-secondary px-5" onclick="prevStep()">
+                <i class="bi bi-arrow-left"></i> Back
               </button>
-              <button type="submit" name="save_as_draft" value="0" class="btn btn-success">
-                <i class="bi bi-check-circle"></i> Submit Order
-              </button>
+              <div>
+                <button type="submit" name="save_as_draft" value="1" class="btn btn-lg btn-outline-primary me-2 px-4">
+                  <i class="bi bi-save"></i> Save Draft
+                </button>
+                <button type="submit" name="save_as_draft" value="0" class="btn btn-lg btn-success px-5">
+                  <i class="bi bi-check-circle"></i> Submit Order
+                </button>
+              </div>
             </div>
           </div>
+
         </form>
       </div>
     </div>
   </div>
 
   <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    let products = [];
-    let patients = [];
-    let selectedProduct = null;
+  let currentStep = 1;
+  let products = [];
+  let patients = [];
+  let selectedProduct = null;
+  let selectedPatient = null;
+  let orderData = {};
 
-    // Load products (wholesale pricing)
-    fetch('/portal/index.php?action=products')
-      .then(r => r.json())
-      .then(data => {
-        if (data.ok && data.rows) {
-          products = data.rows;
-          const select = document.getElementById('product_id');
-          products.forEach(p => {
-            const opt = document.createElement('option');
-            opt.value = p.id;
-            opt.textContent = `${p.name} ${p.size}`;
-            opt.dataset.product = JSON.stringify(p);
-            select.appendChild(opt);
-          });
+  // Stepper navigation
+  window.nextStep = function() {
+    // Validate current step
+    if (!validateStep(currentStep)) {
+      return;
+    }
+
+    // Hide current step
+    document.querySelector(`.form-step[data-step="${currentStep}"]`).classList.remove('active');
+    document.querySelector(`.stepper-step[data-step="${currentStep}"]`).classList.add('completed');
+    document.querySelector(`.stepper-step[data-step="${currentStep}"]`).classList.remove('active');
+
+    // Show next step
+    currentStep++;
+    document.querySelector(`.form-step[data-step="${currentStep}"]`).classList.add('active');
+    document.querySelector(`.stepper-step[data-step="${currentStep}"]`).classList.add('active');
+
+    // Update final review on last step
+    if (currentStep === 5) {
+      updateFinalReview();
+    }
+
+    window.scrollTo(0, 0);
+  };
+
+  window.prevStep = function() {
+    // Hide current step
+    document.querySelector(`.form-step[data-step="${currentStep}"]`).classList.remove('active');
+    document.querySelector(`.stepper-step[data-step="${currentStep}"]`).classList.remove('active');
+
+    // Show previous step
+    currentStep--;
+    document.querySelector(`.form-step[data-step="${currentStep}"]`).classList.add('active');
+    document.querySelector(`.stepper-step[data-step="${currentStep}"]`).classList.add('active');
+    document.querySelector(`.stepper-step[data-step="${currentStep}"]`).classList.remove('completed');
+
+    window.scrollTo(0, 0);
+  };
+
+  function validateStep(step) {
+    switch(step) {
+      case 1:
+        if (!document.getElementById('patient_id').value) {
+          alert('Please select a patient');
+          return false;
         }
-      });
+        break;
+      case 2:
+        if (!selectedProduct) {
+          alert('Please select a product');
+          return false;
+        }
+        break;
+      case 3:
+        const freq = document.getElementById('frequency_per_week').value;
+        const duration = document.getElementById('duration_days').value;
+        const qty = document.getElementById('qty_per_change').value;
+        if (!freq || !duration || !qty) {
+          alert('Please fill out all quantity fields');
+          return false;
+        }
+        break;
+    }
+    return true;
+  }
 
+  window.selectShipping = function(type) {
+    document.querySelectorAll('.product-card').forEach(card => card.classList.remove('selected'));
+    event.currentTarget.classList.add('selected');
+    document.getElementById(`delivery_${type}`).checked = true;
+  };
+
+  function updateFinalReview() {
+    const patientSelect = document.getElementById('patient_id');
+    const patientName = patientSelect.options[patientSelect.selectedIndex].text;
+
+    const freq = document.getElementById('frequency_per_week').value;
+    const duration = document.getElementById('duration_days').value;
+    const qtyPerChange = document.getElementById('qty_per_change').value;
+
+    const piecesPerBox = selectedProduct.pieces_per_box || 10;
+    const wholesalePrice = selectedProduct.price_wholesale || 0;
+    const changesPerDay = freq / 7;
+    const totalChanges = changesPerDay * duration;
+    const piecesNeeded = Math.ceil(totalChanges * qtyPerChange);
+    const boxesNeeded = Math.ceil(piecesNeeded / piecesPerBox);
+    const totalCost = boxesNeeded * (wholesalePrice * piecesPerBox);
+
+    const deliveryType = document.querySelector('input[name="delivery_to"]:checked').value;
+    const deliveryText = deliveryType === 'patient' ? 'Patient Address' : 'Office Address';
+
+    document.getElementById('finalReview').innerHTML = `
+      <div class="row g-3">
+        <div class="col-md-6">
+          <strong><i class="bi bi-person"></i> Patient:</strong><br>
+          ${patientName}
+        </div>
+        <div class="col-md-6">
+          <strong><i class="bi bi-box-seam"></i> Product:</strong><br>
+          ${selectedProduct.name} ${selectedProduct.size}
+        </div>
+        <div class="col-md-6">
+          <strong><i class="bi bi-calculator"></i> Order Details:</strong><br>
+          ${freq}× per week, ${duration} days, ${qtyPerChange} pieces/change
+        </div>
+        <div class="col-md-6">
+          <strong><i class="bi bi-truck"></i> Shipping:</strong><br>
+          ${deliveryText}
+        </div>
+        <div class="col-12">
+          <hr>
+          <div class="row">
+            <div class="col-6"><strong>Boxes to Order:</strong></div>
+            <div class="col-6 text-end">${boxesNeeded} boxes</div>
+          </div>
+          <div class="row mt-2">
+            <div class="col-6"><strong>Total Cost:</strong></div>
+            <div class="col-6 text-end"><h4 class="text-success">$${totalCost.toFixed(2)}</h4></div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
     // Load patients
     fetch('/portal/index.php?action=patients')
       .then(r => r.json())
@@ -6092,42 +6429,56 @@ if ($page==='logout'){
         }
       });
 
-    // Product selection - show pricing
-    document.getElementById('product_id').addEventListener('change', function() {
-      const opt = this.options[this.selectedIndex];
-      if (!opt.dataset.product) {
-        document.getElementById('pricingDisplay').innerHTML = '<p class="text-muted">Select a product to see pricing</p>';
-        selectedProduct = null;
-        return;
-      }
+    // Load products and create product grid
+    fetch('/portal/index.php?action=products')
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok && data.rows) {
+          products = data.rows;
+          const grid = document.getElementById('productGrid');
 
-      selectedProduct = JSON.parse(opt.dataset.product);
+          products.forEach(p => {
+            const card = document.createElement('div');
+            card.className = 'product-card';
+            card.onclick = () => selectProduct(p);
+            card.innerHTML = `
+              <div class="row align-items-center">
+                <div class="col-md-8">
+                  <strong>${p.name}</strong>
+                  <div class="text-muted small">${p.size}</div>
+                </div>
+                <div class="col-md-4 text-end">
+                  <i class="bi bi-arrow-right-circle fs-4 text-primary"></i>
+                </div>
+              </div>
+            `;
+            grid.appendChild(card);
+          });
+        }
+      });
 
-      document.getElementById('pricingDisplay').innerHTML = `
-        <div><strong>${selectedProduct.name}</strong></div>
-        <div class="mt-2">
-          <small class="text-muted">Wholesale Price:</small> $<span id="wholesalePrice">--</span>/piece<br>
-          <small class="text-muted">Pieces per Box:</small> <span id="piecesPerBox">--</span><br>
-          <strong>Price per Box:</strong> $<span id="boxPrice">--</span>
-        </div>
-      `;
-
-      // Fetch product details with wholesale pricing
-      fetch(`/portal/index.php?action=product.details&id=${selectedProduct.id}`)
+    function selectProduct(product) {
+      // Fetch detailed pricing
+      fetch(`/portal/index.php?action=product.details&id=${product.id}`)
         .then(r => r.json())
         .then(data => {
           if (data.ok && data.product) {
-            const p = data.product;
-            document.getElementById('wholesalePrice').textContent = (p.price_wholesale || 0).toFixed(2);
-            document.getElementById('piecesPerBox').textContent = p.pieces_per_box || 10;
-            document.getElementById('boxPrice').textContent = ((p.price_wholesale || 0) * (p.pieces_per_box || 10)).toFixed(2);
-            selectedProduct = p;
-            calculateOrder();
+            selectedProduct = data.product;
+            document.getElementById('product_id').value = selectedProduct.id;
+
+            // Highlight selected card
+            document.querySelectorAll('.product-card').forEach(card => card.classList.remove('selected'));
+            event.currentTarget.classList.add('selected');
+
+            // Show pricing
+            document.getElementById('selectedProductName').textContent = selectedProduct.name + ' ' + selectedProduct.size;
+            document.getElementById('wholesalePrice').textContent = (selectedProduct.price_wholesale || 0).toFixed(2);
+            document.getElementById('piecesPerBox').textContent = selectedProduct.pieces_per_box || 10;
+            document.getElementById('boxPrice').textContent = ((selectedProduct.price_wholesale || 0) * (selectedProduct.pieces_per_box || 10)).toFixed(2);
+            document.getElementById('pricingDisplay').style.display = 'block';
           }
         });
-
-      calculateOrder();
-    });
+    }
 
     // Calculate order summary when inputs change
     ['frequency_per_week', 'duration_days', 'qty_per_change'].forEach(id => {
@@ -6136,7 +6487,6 @@ if ($page==='logout'){
 
     function calculateOrder() {
       if (!selectedProduct || !selectedProduct.price_wholesale) {
-        document.getElementById('orderSummary').innerHTML = '<p>Select a product first</p>';
         return;
       }
 
@@ -6147,7 +6497,6 @@ if ($page==='logout'){
       const wholesalePrice = selectedProduct.price_wholesale || 0;
 
       if (freq === 0 || duration === 0) {
-        document.getElementById('orderSummary').innerHTML = '<p>Enter frequency and duration</p>';
         return;
       }
 
@@ -6157,18 +6506,11 @@ if ($page==='logout'){
       const boxesNeeded = Math.ceil(piecesNeeded / piecesPerBox);
       const totalCost = boxesNeeded * (wholesalePrice * piecesPerBox);
 
-      document.getElementById('orderSummary').innerHTML = `
-        <div class="row">
-          <div class="col-md-6">
-            <strong>Pieces Needed:</strong> ${piecesNeeded}<br>
-            <strong>Boxes to Order:</strong> ${boxesNeeded} boxes
-          </div>
-          <div class="col-md-6 text-end">
-            <strong>Unit Price:</strong> $${wholesalePrice.toFixed(2)}/piece<br>
-            <strong>Total Cost:</strong> <span class="fs-4">$${totalCost.toFixed(2)}</span>
-          </div>
-        </div>
-      `;
+      document.getElementById('totalChanges').textContent = Math.ceil(totalChanges);
+      document.getElementById('piecesNeeded').textContent = piecesNeeded;
+      document.getElementById('boxesNeeded').textContent = boxesNeeded;
+      document.getElementById('unitCost').textContent = wholesalePrice.toFixed(2);
+      document.getElementById('totalCost').textContent = totalCost.toFixed(2);
     }
 
     // Form submission
