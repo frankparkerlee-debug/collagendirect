@@ -6080,24 +6080,40 @@ if ($page==='logout'){
           <div class="form-step" data-step="2">
             <h4 class="mb-4"><i class="bi bi-box-seam text-primary"></i> Select Product</h4>
             <div class="row">
-              <div class="col-md-12">
-                <label class="form-label fw-bold mb-3">Choose Wound Dressing *</label>
-                <div id="productGrid"></div>
+              <div class="col-md-7">
+                <label for="product_select" class="form-label fw-bold mb-3">Choose Wound Dressing *</label>
+                <select id="product_select" class="form-select form-select-lg" required>
+                  <option value="">-- Select a product --</option>
+                </select>
                 <input type="hidden" id="product_id" name="product_id" required>
+                <small class="text-muted mt-2 d-block">
+                  <i class="bi bi-info-circle"></i> Select a product to see wholesale pricing and details
+                </small>
               </div>
-            </div>
-            <div id="pricingDisplay" class="pricing-card" style="display:none;">
-              <div class="row align-items-center">
-                <div class="col-md-8">
-                  <h5 id="selectedProductName"></h5>
-                  <div class="mt-2">
-                    <span class="badge bg-light text-dark">Wholesale Price: $<span id="wholesalePrice">0</span>/piece</span>
-                    <span class="badge bg-light text-dark">Pieces per Box: <span id="piecesPerBox">0</span></span>
+              <div class="col-md-5">
+                <div id="pricingDisplay" class="pricing-card" style="display:none;">
+                  <div class="mb-2">
+                    <h6 class="mb-1" id="selectedProductName"></h6>
+                    <small class="opacity-75" id="selectedProductSize"></small>
+                  </div>
+                  <hr class="border-light opacity-25 my-2">
+                  <div class="d-flex justify-content-between mb-2">
+                    <span><i class="bi bi-tag"></i> Wholesale Price:</span>
+                    <strong>$<span id="wholesalePrice">0</span>/piece</strong>
+                  </div>
+                  <div class="d-flex justify-content-between mb-2">
+                    <span><i class="bi bi-box"></i> Pieces per Box:</span>
+                    <strong><span id="piecesPerBox">0</span></strong>
+                  </div>
+                  <hr class="border-light opacity-25 my-2">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <span>Price per Box:</span>
+                    <div class="price">$<span id="boxPrice">0</span></div>
                   </div>
                 </div>
-                <div class="col-md-4 text-end">
-                  <div class="price">$<span id="boxPrice">0</span></div>
-                  <small>per box</small>
+                <div id="pricingPlaceholder" class="card bg-light text-center p-4">
+                  <i class="bi bi-box-seam text-muted" style="font-size: 3rem;"></i>
+                  <p class="text-muted mb-0 mt-2">Select a product to view pricing</p>
                 </div>
               </div>
             </div>
@@ -6429,35 +6445,37 @@ if ($page==='logout'){
         }
       });
 
-    // Load products and create product grid
+    // Load products and populate dropdown
     fetch('/portal/index.php?action=products')
       .then(r => r.json())
       .then(data => {
         if (data.ok && data.rows) {
           products = data.rows;
-          const grid = document.getElementById('productGrid');
+          const select = document.getElementById('product_select');
 
           products.forEach(p => {
-            const card = document.createElement('div');
-            card.className = 'product-card';
-            card.onclick = () => selectProduct(p);
-            card.innerHTML = `
-              <div class="row align-items-center">
-                <div class="col-md-8">
-                  <strong>${p.name}</strong>
-                  <div class="text-muted small">${p.size}</div>
-                </div>
-                <div class="col-md-4 text-end">
-                  <i class="bi bi-arrow-right-circle fs-4 text-primary"></i>
-                </div>
-              </div>
-            `;
-            grid.appendChild(card);
+            const opt = document.createElement('option');
+            opt.value = p.id;
+            opt.textContent = `${p.name} - ${p.size}`;
+            opt.dataset.product = JSON.stringify(p);
+            select.appendChild(opt);
           });
         }
       });
 
-    function selectProduct(product) {
+    // Handle product selection from dropdown
+    document.getElementById('product_select').addEventListener('change', function() {
+      const opt = this.options[this.selectedIndex];
+      if (!opt.value || !opt.dataset.product) {
+        document.getElementById('pricingDisplay').style.display = 'none';
+        document.getElementById('pricingPlaceholder').style.display = 'block';
+        selectedProduct = null;
+        document.getElementById('product_id').value = '';
+        return;
+      }
+
+      const product = JSON.parse(opt.dataset.product);
+
       // Fetch detailed pricing
       fetch(`/portal/index.php?action=product.details&id=${product.id}`)
         .then(r => r.json())
@@ -6466,19 +6484,18 @@ if ($page==='logout'){
             selectedProduct = data.product;
             document.getElementById('product_id').value = selectedProduct.id;
 
-            // Highlight selected card
-            document.querySelectorAll('.product-card').forEach(card => card.classList.remove('selected'));
-            event.currentTarget.classList.add('selected');
-
             // Show pricing
-            document.getElementById('selectedProductName').textContent = selectedProduct.name + ' ' + selectedProduct.size;
+            document.getElementById('selectedProductName').textContent = selectedProduct.name;
+            document.getElementById('selectedProductSize').textContent = selectedProduct.size;
             document.getElementById('wholesalePrice').textContent = (selectedProduct.price_wholesale || 0).toFixed(2);
             document.getElementById('piecesPerBox').textContent = selectedProduct.pieces_per_box || 10;
             document.getElementById('boxPrice').textContent = ((selectedProduct.price_wholesale || 0) * (selectedProduct.pieces_per_box || 10)).toFixed(2);
+
+            document.getElementById('pricingPlaceholder').style.display = 'none';
             document.getElementById('pricingDisplay').style.display = 'block';
           }
         });
-    }
+    });
 
     // Calculate order summary when inputs change
     ['frequency_per_week', 'duration_days', 'qty_per_change'].forEach(id => {
