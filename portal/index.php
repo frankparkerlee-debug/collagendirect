@@ -5989,13 +5989,6 @@ if ($page==='logout'){
     .product-card .card-body {
       padding: 1.5rem;
     }
-    .info-banner {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 1.5rem;
-      border-radius: 12px;
-      margin-bottom: 2rem;
-    }
   </style>
 
   <div class="container-fluid py-4">
@@ -6004,30 +5997,6 @@ if ($page==='logout'){
       <div class="col-12">
         <h2 class="mb-2"><i class="bi bi-basket"></i> Wholesale Order</h2>
         <p class="text-muted">Quick ordering with wholesale pricing - No insurance paperwork required</p>
-      </div>
-    </div>
-
-    <!-- Info Banner -->
-    <div class="info-banner">
-      <div class="row align-items-center">
-        <div class="col-md-8">
-          <h5 class="mb-2"><i class="bi bi-star-fill"></i> Wholesale Ordering Benefits</h5>
-          <div class="row">
-            <div class="col-md-6">
-              <small><i class="bi bi-check-circle-fill"></i> No Insurance Cards or AOB</small><br>
-              <small><i class="bi bi-check-circle-fill"></i> Wholesale Pricing</small>
-            </div>
-            <div class="col-md-6">
-              <small><i class="bi bi-check-circle-fill"></i> Fast Processing</small><br>
-              <small><i class="bi bi-check-circle-fill"></i> You Bill & Keep Margin</small>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4 text-end">
-          <div class="badge bg-light text-dark fs-6 px-3 py-2">
-            <i class="bi bi-lightning-fill text-warning"></i> Simplified Workflow
-          </div>
-        </div>
       </div>
     </div>
 
