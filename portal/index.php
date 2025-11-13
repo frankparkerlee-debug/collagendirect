@@ -2218,16 +2218,49 @@ if ($action) {
     // Check which HCPCS column exists (backward compatibility)
     $colCheck = $pdo->query("
       SELECT column_name FROM information_schema.columns
-      WHERE table_name = 'products' AND column_name IN ('hcpcs_code', 'cpt_code')
+      WHERE table_name = 'products' AND column_name IN ('hcpcs_code', 'cpt_code', 'price_wholesale', 'pieces_per_box', 'category')
     ")->fetchAll(PDO::FETCH_COLUMN);
 
     $hcpcsCol = in_array('hcpcs_code', $colCheck) ? 'hcpcs_code' : 'cpt_code';
     $categoryCol = in_array('category', $colCheck) ? ', category' : '';
+    $wholesalePriceCol = in_array('price_wholesale', $colCheck) ? ', price_wholesale' : '';
+    $piecesPerBoxCol = in_array('pieces_per_box', $colCheck) ? ', pieces_per_box' : '';
 
-    $sql = "SELECT id, name, size, size AS uom, price_admin AS price, {$hcpcsCol} AS hcpcs{$categoryCol}
-            FROM products WHERE active=TRUE ORDER BY name ASC";
+    // Include practice-specific pricing if practice_pricing table exists
+    $practiceCheckCol = $pdo->query("
+      SELECT column_name FROM information_schema.columns
+      WHERE table_name = 'practice_pricing'
+    ")->fetchAll(PDO::FETCH_COLUMN);
 
-    $rows = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+    $hasPracticePricing = count($practiceCheckCol) > 0;
+
+    if ($hasPracticePricing) {
+      // Get products with practice-specific pricing override
+      $sql = "SELECT p.id, p.name, p.size, p.size AS uom, p.price_admin AS price, p.{$hcpcsCol} AS hcpcs{$categoryCol}{$wholesalePriceCol}{$piecesPerBoxCol},
+                     COALESCE(pp.custom_price, p.price_wholesale) AS effective_wholesale_price,
+                     pp.discount_percentage
+              FROM products p
+              LEFT JOIN practice_pricing pp ON pp.product_id = p.id AND pp.user_id = ?
+              WHERE p.active=TRUE
+              ORDER BY p.name ASC";
+      $stmt = $pdo->prepare($sql);
+      $stmt->execute([$userId]);
+      $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+      // Rename effective_wholesale_price back to price_wholesale for consistency
+      foreach ($rows as &$row) {
+        if (isset($row['effective_wholesale_price'])) {
+          $row['price_wholesale'] = $row['effective_wholesale_price'];
+          unset($row['effective_wholesale_price']);
+        }
+      }
+    } else {
+      // Fallback to standard query
+      $sql = "SELECT id, name, size, size AS uom, price_admin AS price, {$hcpcsCol} AS hcpcs{$categoryCol}{$wholesalePriceCol}{$piecesPerBoxCol}
+              FROM products WHERE active=TRUE ORDER BY name ASC";
+      $rows = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     jok(['rows'=>$rows]);
   }
 
