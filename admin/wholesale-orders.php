@@ -110,33 +110,52 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 }
 
 /* ---------- Fetch wholesale orders ---------- */
-$sql = "
-  SELECT
-    o.id,
-    o.created_at,
-    o.product,
-    o.quantity as shipments_remaining,
-    o.product_price as unit_price,
-    o.status,
-    o.paid_at,
-    u.practice_name,
-    u.first_name as phys_first,
-    u.last_name as phys_last,
-    p.first_name as pat_first,
-    p.last_name as pat_last,
-    CONCAT_WS(', ', o.ship_address, o.ship_city, o.ship_state, o.ship_zip) as shipping_address,
-    pr.pieces_per_box,
-    pr.price_wholesale
-  FROM orders o
-  JOIN users u ON o.user_id = u.id
-  JOIN patients p ON o.patient_id = p.id
-  LEFT JOIN products pr ON o.product_id = pr.id
-  WHERE o.billed_by = 'practice_dme'
-    AND (o.review_status IS NULL OR o.review_status != 'draft')
-  ORDER BY o.created_at DESC
-";
+// Check if billed_by column exists
+$hasBilledBy = false;
+try {
+  $checkCol = $pdo->query("SELECT column_name FROM information_schema.columns WHERE table_name='orders' AND column_name='billed_by'");
+  $hasBilledBy = $checkCol->rowCount() > 0;
+} catch (Throwable $e) {
+  error_log('[wholesale-orders] Column check error: ' . $e->getMessage());
+}
 
-$orders = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+if (!$hasBilledBy) {
+  // Column doesn't exist yet - show empty state with instructions
+  $orders = [];
+} else {
+  try {
+    $sql = "
+      SELECT
+        o.id,
+        o.created_at,
+        o.product,
+        o.quantity as shipments_remaining,
+        o.product_price as unit_price,
+        o.status,
+        o.paid_at,
+        u.practice_name,
+        u.first_name as phys_first,
+        u.last_name as phys_last,
+        p.first_name as pat_first,
+        p.last_name as pat_last,
+        CONCAT_WS(', ', o.ship_address, o.ship_city, o.ship_state, o.ship_zip) as shipping_address,
+        pr.pieces_per_box,
+        pr.price_wholesale
+      FROM orders o
+      JOIN users u ON o.user_id = u.id
+      JOIN patients p ON o.patient_id = p.id
+      LEFT JOIN products pr ON o.product_id = pr.id
+      WHERE o.billed_by = 'practice_dme'
+        AND (o.review_status IS NULL OR o.review_status != 'draft')
+      ORDER BY o.created_at DESC
+    ";
+
+    $orders = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+  } catch (Throwable $e) {
+    error_log('[wholesale-orders] Query error: ' . $e->getMessage());
+    $orders = [];
+  }
+}
 
 /* ---------- Calculate totals ---------- */
 $totalOrders = count($orders);
