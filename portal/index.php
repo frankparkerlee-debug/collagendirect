@@ -2343,7 +2343,7 @@ if ($action) {
                 ?,?,?,?,
                 ?)");
       $ins->execute([
-        $oid,$pid,$patientOwnerId,$prod['name'],$prod['id'],$unit_price,$orderStatus,$reviewStatus,$boxes_needed,$delivery_to,'cash',
+        $oid,$pid,$patientOwnerId,$prod['name'],$prod['id'],$unit_price,$orderStatus,$reviewStatus,$boxes_needed,$delivery_to,'wholesale',
         (string)$ship_name,(string)$ship_phone,(string)$ship_addr,(string)$ship_city,(string)$ship_state,(string)$ship_zip,
         $sign_name,$sign_title,$expires_at,
         $start_date,$freq_per_week,$qty_per_change,$duration_days,

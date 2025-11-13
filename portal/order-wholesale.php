@@ -37,7 +37,7 @@ require_once '_header.php';
 <div class="container-fluid py-4">
   <div class="row mb-4">
     <div class="col-md-8">
-      <h2>Wholesale Order (Cash Pay / Direct Bill)</h2>
+      <h2>Wholesale Order</h2>
       <p class="text-muted">Simplified ordering for practices billing their own DME license</p>
     </div>
     <div class="col-md-4 text-end">
@@ -54,7 +54,7 @@ require_once '_header.php';
       <li><strong>No Insurance Paperwork</strong> - No cards, AOB, or authorization required</li>
       <li><strong>Wholesale Pricing</strong> - Lower cost per piece, you bill at Medicare rates</li>
       <li><strong>Fast Processing</strong> - Simplified documentation, faster fulfillment</li>
-      <li><strong>Flexible Billing</strong> - Cash-pay, direct bill, or use your DME license</li>
+      <li><strong>Your DME License</strong> - You bill patients/insurance and keep the margin</li>
     </ul>
   </div>
 
