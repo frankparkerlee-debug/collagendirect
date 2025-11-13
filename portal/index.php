@@ -5877,7 +5877,7 @@ if ($page==='logout'){
     SELECT
       o.id,
       o.created_at,
-      o.delivery_to,
+      o.delivery_mode,
       o.status,
       o.product,
       o.quantity,
@@ -5945,7 +5945,7 @@ if ($page==='logout'){
                 $patientName = trim(($order['patient_first'] ?? '') . ' ' . ($order['patient_last'] ?? ''));
                 if (empty($patientName)) $patientName = 'Office Stock';
 
-                $deliveredTo = $order['delivery_to'] === 'office' ? 'Office' : 'Patient';
+                $deliveredTo = $order['delivery_mode'] === 'office' ? 'Office' : 'Patient';
                 $quantity = (int)($order['quantity'] ?? 0);
                 $unitPrice = (float)($order['unit_price'] ?? $order['price_wholesale'] ?? 0);
                 $total = $quantity * $unitPrice;
