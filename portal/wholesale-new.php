@@ -24,6 +24,15 @@ if (!isset($user) || !is_array($user) || !isset($user['id'])) {
 $userId = $user['id'];
 $step = $_GET['step'] ?? '1'; // 1=patients, 2=products, 3=review
 
+// Fetch practice locations
+$locationsStmt = $pdo->prepare("
+  SELECT * FROM practice_locations
+  WHERE user_id = ? AND is_active = TRUE
+  ORDER BY is_primary DESC, location_name ASC
+");
+$locationsStmt->execute([$userId]);
+$locations = $locationsStmt->fetchAll(PDO::FETCH_ASSOC);
+
 // Fetch available products for Step 2
 $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
 ?>
@@ -320,7 +329,32 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
   <?php if ($step == '1'): ?>
     <!-- STEP 1: Patient Information -->
     <div style="margin-bottom: 2rem;">
-      <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--ink); margin-bottom: 0.5rem;">Patient Information</h2>
+      <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--ink); margin-bottom: 0.5rem;">Wholesale Order</h2>
+      <p style="color: var(--muted); font-size: 0.875rem;">Select delivery location and add patients for this order.</p>
+    </div>
+
+    <?php if (!empty($locations)): ?>
+    <!-- Delivery Location Selection -->
+    <div style="background: white; border: 2px solid var(--brand); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 2rem;">
+      <label for="delivery-location" style="display: block; font-weight: 600; margin-bottom: 1rem; color: var(--ink);">
+        Delivery Location *
+      </label>
+      <select id="delivery-location" name="location_id" class="form-control" style="max-width: 600px;" required>
+        <option value="">Select delivery location...</option>
+        <?php foreach ($locations as $loc): ?>
+          <option value="<?= $loc['id'] ?>" <?= $loc['is_primary'] ? 'selected' : '' ?>>
+            <?= htmlspecialchars($loc['location_name']) ?> - <?= htmlspecialchars($loc['address']) ?>, <?= htmlspecialchars($loc['city']) ?>, <?= htmlspecialchars($loc['state']) ?>
+          </option>
+        <?php endforeach; ?>
+      </select>
+      <div style="font-size: 0.875rem; color: var(--muted); margin-top: 0.5rem;">
+        Don't see your location? <a href="?page=practice-locations" style="color: var(--brand); text-decoration: underline;">Manage locations</a>
+      </div>
+    </div>
+    <?php endif; ?>
+
+    <div style="margin-bottom: 1.5rem;">
+      <h3 style="font-size: 1.25rem; font-weight: 600; color: var(--ink); margin-bottom: 0.5rem;">Patient Information</h3>
       <p style="color: var(--muted); font-size: 0.875rem;">Add patients who will receive products in this wholesale order.</p>
     </div>
 
