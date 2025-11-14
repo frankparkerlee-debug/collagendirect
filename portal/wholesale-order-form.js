@@ -188,8 +188,8 @@ function renderProductsGrid() {
     div.innerHTML = `
       <div style="font-weight: 600; color: #1e293b; margin-bottom: 0.5rem;">${product.name}</div>
       <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.75rem;">${product.size || ''}</div>
-      <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.25rem;">Wholesale: $${(product.price_wholesale || 0).toFixed(2)}/pc</div>
-      <div style="font-size: 0.75rem; color: #64748b;">${product.pieces_per_box || 10} pieces/box</div>
+      <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.25rem;">Wholesale: $${parseFloat(product.price_wholesale || 0).toFixed(2)}/pc</div>
+      <div style="font-size: 0.75rem; color: #64748b;">${parseInt(product.pieces_per_box || 10)} pieces/box</div>
       <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #e2e8f0;">
         <input type="number"
                class="form-control form-control-sm product-quantity"
@@ -310,7 +310,7 @@ function renderCart() {
     let itemCost = 0;
 
     item.products.forEach(product => {
-      const productCost = (product.price_wholesale || 0) * (product.pieces_per_box || 10) * product.boxes;
+      const productCost = parseFloat(product.price_wholesale || 0) * parseInt(product.pieces_per_box || 10) * parseInt(product.boxes);
       itemCost += productCost;
       totalProducts++;
 
