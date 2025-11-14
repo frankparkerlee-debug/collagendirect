@@ -31,6 +31,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     'Unit Price (Wholesale)',
     'Total Value',
     'Status',
+    'Payment Status',
     'Shipping Address'
   ]);
 
@@ -46,6 +47,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
       o.shipments_remaining,
       o.product_price as unit_price,
       o.status,
+      o.paid_at,
       CONCAT_WS(', ', o.shipping_address, o.shipping_city, o.shipping_state, o.shipping_zip) as shipping_address,
       pr.pieces_per_box,
       pr.price_wholesale
@@ -65,6 +67,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     $pieces_per_box = (int)($row['pieces_per_box'] ?? 10);
     $unit_price = (float)($row['unit_price'] ?? $row['price_wholesale'] ?? 0);
     $total_value = $boxes * ($unit_price * $pieces_per_box);
+    $paymentStatus = $row['paid_at'] ? 'Paid (' . date('m/d/Y', strtotime($row['paid_at'])) . ')' : 'Unpaid';
 
     fputcsv($output, [
       $row['id'],
@@ -78,6 +81,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
       '$' . number_format($unit_price, 2),
       '$' . number_format($total_value, 2),
       ucfirst($row['status'] ?? ''),
+      $paymentStatus,
       $row['shipping_address'] ?? ''
     ]);
   }
@@ -92,17 +96,112 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
   $action = $_POST['action'] ?? '';
   $id = $_POST['id'] ?? '';
 
-  if ($id && $action==='mark_shipped') {
-    $pdo->prepare("UPDATE orders SET status='in_transit', updated_at=NOW() WHERE id=?")->execute([$id]);
+  if ($id && $action==='approve') {
+    $pdo->prepare("UPDATE orders SET status='approved', updated_at=NOW() WHERE id=?")->execute([$id]);
+    $_SESSION['success_msg'] = 'Order approved successfully';
+  } elseif ($id && $action==='reject') {
+    $reason = $_POST['reject_reason'] ?? '';
+    $pdo->prepare("UPDATE orders SET status='rejected', notes=?, updated_at=NOW() WHERE id=?")->execute([$reason, $id]);
+    $_SESSION['success_msg'] = 'Order rejected';
+  } elseif ($id && $action==='mark_shipped') {
+    $trackingNumber = $_POST['tracking_number'] ?? '';
+    $pdo->prepare("UPDATE orders SET status='in_transit', tracking_number=?, updated_at=NOW() WHERE id=?")->execute([$trackingNumber, $id]);
     $_SESSION['success_msg'] = 'Order marked as shipped';
+  } elseif ($id && $action==='mark_delivered') {
+    $pdo->prepare("UPDATE orders SET status='delivered', delivered_at=NOW(), updated_at=NOW() WHERE id=?")->execute([$id]);
+    $_SESSION['success_msg'] = 'Order marked as delivered';
   } elseif ($id && $action==='mark_paid') {
-    // Add paid_at timestamp if column exists
+    $pdo->prepare("UPDATE orders SET paid_at=NOW(), updated_at=NOW() WHERE id=?")->execute([$id]);
+    $_SESSION['success_msg'] = 'Payment recorded successfully';
+  } elseif ($id && $action==='mark_unpaid') {
+    $pdo->prepare("UPDATE orders SET paid_at=NULL, updated_at=NOW() WHERE id=?")->execute([$id]);
+    $_SESSION['success_msg'] = 'Payment status updated';
+  } elseif ($id && $action==='send_invoice') {
+    // Send invoice email
     try {
-      $pdo->prepare("UPDATE orders SET paid_at=NOW(), updated_at=NOW() WHERE id=?")->execute([$id]);
-      $_SESSION['success_msg'] = 'Order marked as paid';
+      require_once __DIR__ . '/../api/lib/sg_curl.php';
+
+      // Get order details
+      $orderStmt = $pdo->prepare("
+        SELECT o.*, u.email as phys_email, u.first_name as phys_first, u.last_name as phys_last,
+               u.practice_name, p.first_name as pat_first, p.last_name as pat_last,
+               pr.pieces_per_box, pr.price_wholesale
+        FROM orders o
+        JOIN users u ON o.user_id = u.id
+        JOIN patients p ON o.patient_id = p.id
+        LEFT JOIN products pr ON o.product_id = pr.id
+        WHERE o.id = ?
+      ");
+      $orderStmt->execute([$id]);
+      $order = $orderStmt->fetch(PDO::FETCH_ASSOC);
+
+      if ($order && $order['phys_email']) {
+        $boxes = (int)($order['shipments_remaining'] ?? 0);
+        $pieces_per_box = (int)($order['pieces_per_box'] ?? 10);
+        $unit_price = (float)($order['product_price'] ?? $order['price_wholesale'] ?? 0);
+        $total_value = $boxes * ($unit_price * $pieces_per_box);
+
+        $subject = "Invoice for Wholesale Order #{$order['id']}";
+        $body = "
+          <h2>CollagenDirect Wholesale Order Invoice</h2>
+          <p>Dear " . htmlspecialchars($order['phys_first'] . ' ' . $order['phys_last']) . ",</p>
+          <p>Please find below the invoice for your recent wholesale order:</p>
+
+          <h3>Order Details</h3>
+          <table style='border-collapse: collapse; width: 100%; max-width: 600px;'>
+            <tr style='border-bottom: 1px solid #ddd;'>
+              <td style='padding: 8px;'><strong>Order Number:</strong></td>
+              <td style='padding: 8px;'>#{$order['id']}</td>
+            </tr>
+            <tr style='border-bottom: 1px solid #ddd;'>
+              <td style='padding: 8px;'><strong>Order Date:</strong></td>
+              <td style='padding: 8px;'>" . date('F j, Y', strtotime($order['created_at'])) . "</td>
+            </tr>
+            <tr style='border-bottom: 1px solid #ddd;'>
+              <td style='padding: 8px;'><strong>Practice:</strong></td>
+              <td style='padding: 8px;'>" . htmlspecialchars($order['practice_name']) . "</td>
+            </tr>
+            <tr style='border-bottom: 1px solid #ddd;'>
+              <td style='padding: 8px;'><strong>Patient:</strong></td>
+              <td style='padding: 8px;'>" . htmlspecialchars($order['pat_first'] . ' ' . $order['pat_last']) . "</td>
+            </tr>
+            <tr style='border-bottom: 1px solid #ddd;'>
+              <td style='padding: 8px;'><strong>Product:</strong></td>
+              <td style='padding: 8px;'>" . htmlspecialchars($order['product']) . "</td>
+            </tr>
+            <tr style='border-bottom: 1px solid #ddd;'>
+              <td style='padding: 8px;'><strong>Quantity:</strong></td>
+              <td style='padding: 8px;'>{$boxes} boxes ({$pieces_per_box} pieces/box)</td>
+            </tr>
+            <tr style='border-bottom: 1px solid #ddd;'>
+              <td style='padding: 8px;'><strong>Unit Price:</strong></td>
+              <td style='padding: 8px;'>$" . number_format($unit_price, 2) . " per piece</td>
+            </tr>
+            <tr style='background: #f9fafb;'>
+              <td style='padding: 8px;'><strong>Total Amount Due:</strong></td>
+              <td style='padding: 8px;'><strong>$" . number_format($total_value, 2) . "</strong></td>
+            </tr>
+          </table>
+
+          <p style='margin-top: 20px;'>Payment instructions will be provided separately. Please contact us if you have any questions.</p>
+
+          <p>Best regards,<br>CollagenDirect Team</p>
+        ";
+
+        $sent = sg_send_simple($order['phys_email'], $subject, $body);
+        if ($sent) {
+          // Record invoice sent
+          $pdo->prepare("UPDATE orders SET invoice_sent_at=NOW(), updated_at=NOW() WHERE id=?")->execute([$id]);
+          $_SESSION['success_msg'] = 'Invoice sent successfully to ' . $order['phys_email'];
+        } else {
+          $_SESSION['error_msg'] = 'Failed to send invoice email';
+        }
+      } else {
+        $_SESSION['error_msg'] = 'Order not found or physician has no email';
+      }
     } catch (Throwable $e) {
-      error_log('[wholesale-orders] mark_paid error: ' . $e->getMessage());
-      $_SESSION['error_msg'] = 'Error marking as paid';
+      error_log('[wholesale-orders] send_invoice error: ' . $e->getMessage());
+      $_SESSION['error_msg'] = 'Error sending invoice';
     }
   }
 
@@ -134,9 +233,13 @@ if (!$hasBilledBy) {
         o.product_price as unit_price,
         o.status,
         o.paid_at,
+        o.invoice_sent_at,
+        o.tracking_number,
+        o.notes,
         u.practice_name,
         u.first_name as phys_first,
         u.last_name as phys_last,
+        u.email as phys_email,
         p.first_name as pat_first,
         p.last_name as pat_last,
         CONCAT_WS(', ', o.shipping_address, o.shipping_city, o.shipping_state, o.shipping_zip) as shipping_address,
@@ -148,7 +251,13 @@ if (!$hasBilledBy) {
       LEFT JOIN products pr ON o.product_id = pr.id
       WHERE o.billed_by = 'practice_dme'
         AND (o.review_status IS NULL OR o.review_status != 'draft')
-      ORDER BY o.created_at DESC
+      ORDER BY
+        CASE
+          WHEN o.status IN ('submitted', 'pending', 'awaiting_approval') THEN 1
+          WHEN o.status = 'approved' THEN 2
+          ELSE 3
+        END,
+        o.created_at DESC
     ";
 
     $orders = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
@@ -162,6 +271,7 @@ if (!$hasBilledBy) {
 $totalOrders = count($orders);
 $totalRevenue = 0.0;
 $pendingOrders = 0;
+$unpaidOrders = 0;
 
 foreach ($orders as $order) {
   $boxes = (int)($order['shipments_remaining'] ?? 0);
@@ -170,204 +280,532 @@ foreach ($orders as $order) {
   $orderValue = $boxes * ($unit_price * $pieces_per_box);
   $totalRevenue += $orderValue;
 
-  if (in_array($order['status'], ['submitted', 'pending', 'awaiting_approval', 'approved'])) {
+  if (in_array($order['status'], ['submitted', 'pending', 'awaiting_approval'])) {
     $pendingOrders++;
+  }
+
+  if (empty($order['paid_at']) && !in_array($order['status'], ['rejected', 'cancelled'])) {
+    $unpaidOrders++;
   }
 }
 
 require_once '_header.php';
 ?>
 
-<div class="container-fluid py-4">
-  <div class="row mb-4">
-    <div class="col-md-8">
-      <h2>Wholesale Orders</h2>
-      <p class="text-muted">Orders where practices bill their own DME license (billed_by = practice_dme)</p>
+<style>
+  /* Modern admin styling matching portal design system */
+  .stat-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+  }
+  .stat-label {
+    font-size: 0.875rem;
+    color: var(--muted);
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+  }
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .stat-value.success { color: var(--success); }
+  .stat-value.warning { color: var(--warning); }
+  .stat-value.error { color: var(--error); }
+
+  .order-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+  .order-table th {
+    text-align: left;
+    padding: 0.75rem;
+    border-bottom: 2px solid var(--border);
+    font-weight: 600;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .order-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .order-table tbody tr:hover {
+    background: var(--bg-gray);
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 0.25rem 0.625rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1;
+  }
+  .badge-pending { background: var(--warning-light); color: #92400e; }
+  .badge-approved { background: #dbeafe; color: #1e40af; }
+  .badge-shipped { background: #e0e7ff; color: #4338ca; }
+  .badge-delivered { background: var(--success-light); color: #065f46; }
+  .badge-rejected { background: var(--error-light); color: #991b1b; }
+  .badge-paid { background: var(--success-light); color: #065f46; }
+  .badge-unpaid { background: #fef3c7; color: #92400e; }
+
+  .btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: white;
+    color: var(--ink);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .btn-icon:hover {
+    background: var(--bg-gray);
+    border-color: var(--muted);
+  }
+  .btn-icon.primary { color: var(--info); border-color: var(--info); }
+  .btn-icon.primary:hover { background: #dbeafe; }
+  .btn-icon.success { color: var(--success); border-color: var(--success); }
+  .btn-icon.success:hover { background: var(--success-light); }
+  .btn-icon.warning { color: var(--warning); border-color: var(--warning); }
+  .btn-icon.warning:hover { background: var(--warning-light); }
+
+  /* Modal styles */
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    align-items: center;
+    justify-content: center;
+  }
+  .modal.active {
+    display: flex;
+  }
+  .modal-content {
+    background: white;
+    border-radius: var(--radius-lg);
+    max-width: 600px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  }
+  .modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .modal-body {
+    padding: 1.5rem;
+  }
+  .modal-footer {
+    padding: 1.5rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+  }
+</style>
+
+<div style="max-width: 1400px; margin: 0 auto; padding: 2rem;">
+  <!-- Header -->
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem;">
+    <div>
+      <h1 style="font-size: 1.875rem; font-weight: 700; color: var(--ink); margin-bottom: 0.5rem;">Wholesale Orders</h1>
+      <p style="color: var(--muted); font-size: 0.875rem;">Manage orders where practices bill their own DME license</p>
     </div>
-    <div class="col-md-4 text-end">
-      <a href="/admin/wholesale-orders.php?export=csv" class="btn btn-success">
-        <i class="bi bi-download"></i> Export CSV
+    <div style="display: flex; gap: 0.75rem;">
+      <a href="/admin/wholesale-orders.php?export=csv" class="btn" style="background: var(--success); color: white; border-color: var(--success);">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+        Export CSV
       </a>
-      <a href="/admin/orders.php" class="btn btn-secondary">
-        <i class="bi bi-arrow-left"></i> All Orders
+      <a href="/admin/orders.php" class="btn">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+        All Orders
       </a>
     </div>
   </div>
 
-  <!-- Summary Cards -->
-  <div class="row mb-4">
-    <div class="col-md-4">
-      <div class="card">
-        <div class="card-body">
-          <h5 class="card-title text-muted">Total Wholesale Orders</h5>
-          <h2 class="mb-0"><?= number_format($totalOrders) ?></h2>
-        </div>
-      </div>
+  <!-- Stats Cards -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+    <div class="stat-card">
+      <div class="stat-label">Total Orders</div>
+      <div class="stat-value"><?= number_format($totalOrders) ?></div>
     </div>
-    <div class="col-md-4">
-      <div class="card">
-        <div class="card-body">
-          <h5 class="card-title text-muted">Pending/In Progress</h5>
-          <h2 class="mb-0 text-warning"><?= number_format($pendingOrders) ?></h2>
-        </div>
-      </div>
+    <div class="stat-card">
+      <div class="stat-label">Pending Approval</div>
+      <div class="stat-value warning"><?= number_format($pendingOrders) ?></div>
     </div>
-    <div class="col-md-4">
-      <div class="card">
-        <div class="card-body">
-          <h5 class="card-title text-muted">Total Revenue</h5>
-          <h2 class="mb-0 text-success">$<?= number_format($totalRevenue, 2) ?></h2>
-        </div>
-      </div>
+    <div class="stat-card">
+      <div class="stat-label">Unpaid Orders</div>
+      <div class="stat-value error"><?= number_format($unpaidOrders) ?></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Revenue</div>
+      <div class="stat-value success">$<?= number_format($totalRevenue, 2) ?></div>
     </div>
   </div>
 
   <?php if (isset($_SESSION['success_msg'])): ?>
-  <div class="alert alert-success alert-dismissible fade show">
-    <?= htmlspecialchars($_SESSION['success_msg']) ?>
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  <div class="card" style="padding: 1rem; margin-bottom: 1.5rem; background: var(--success-light); border-color: var(--success); color: #065f46;">
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+      <span><?= htmlspecialchars($_SESSION['success_msg']) ?></span>
+    </div>
   </div>
   <?php unset($_SESSION['success_msg']); endif; ?>
 
   <?php if (isset($_SESSION['error_msg'])): ?>
-  <div class="alert alert-danger alert-dismissible fade show">
-    <?= htmlspecialchars($_SESSION['error_msg']) ?>
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  <div class="card" style="padding: 1rem; margin-bottom: 1.5rem; background: var(--error-light); border-color: var(--error); color: #991b1b;">
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>
+      <span><?= htmlspecialchars($_SESSION['error_msg']) ?></span>
+    </div>
   </div>
   <?php unset($_SESSION['error_msg']); endif; ?>
 
   <!-- Orders Table -->
-  <div class="card">
-    <div class="card-body">
-      <div class="table-responsive">
-        <table class="table table-hover">
-          <thead>
-            <tr>
-              <th>Order Date</th>
-              <th>Practice</th>
-              <th>Physician</th>
-              <th>Patient</th>
-              <th>Product</th>
-              <th class="text-end">Boxes</th>
-              <th class="text-end">Unit Price</th>
-              <th class="text-end">Total Value</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php if (empty($orders)): ?>
-            <tr>
-              <td colspan="10" class="text-center text-muted py-4">
-                No wholesale orders found. Wholesale orders use billing route "practice_dme".
-              </td>
-            </tr>
-            <?php else: ?>
-            <?php foreach ($orders as $order):
-              $boxes = (int)($order['shipments_remaining'] ?? 0);
-              $pieces_per_box = (int)($order['pieces_per_box'] ?? 10);
-              $unit_price = (float)($order['unit_price'] ?? $order['price_wholesale'] ?? 0);
-              $orderValue = $boxes * ($unit_price * $pieces_per_box);
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <div style="overflow-x: auto;">
+      <table class="order-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Practice</th>
+            <th>Patient</th>
+            <th>Product</th>
+            <th style="text-align: right;">Qty</th>
+            <th style="text-align: right;">Total</th>
+            <th>Status</th>
+            <th>Payment</th>
+            <th style="text-align: center;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php if (empty($orders)): ?>
+          <tr>
+            <td colspan="9" style="text-align: center; padding: 3rem; color: var(--muted);">
+              <svg width="64" height="64" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin: 0 auto 1rem; opacity: 0.3;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+              <div style="font-size: 1.125rem; font-weight: 500; margin-bottom: 0.5rem;">No wholesale orders found</div>
+              <div style="font-size: 0.875rem;">Wholesale orders use billing route "practice_dme"</div>
+            </td>
+          </tr>
+          <?php else: ?>
+          <?php foreach ($orders as $order):
+            $boxes = (int)($order['shipments_remaining'] ?? 0);
+            $pieces_per_box = (int)($order['pieces_per_box'] ?? 10);
+            $unit_price = (float)($order['unit_price'] ?? $order['price_wholesale'] ?? 0);
+            $orderValue = $boxes * ($unit_price * $pieces_per_box);
 
-              $statusClass = match($order['status']) {
-                'submitted', 'pending', 'awaiting_approval' => 'warning',
-                'approved' => 'info',
-                'in_transit' => 'primary',
-                'delivered' => 'success',
-                'rejected', 'cancelled' => 'danger',
-                default => 'secondary'
-              };
-            ?>
-            <tr>
-              <td><?= date('m/d/Y', strtotime($order['created_at'])) ?></td>
-              <td>
-                <strong><?= htmlspecialchars($order['practice_name'] ?? 'N/A') ?></strong>
-              </td>
-              <td>
-                <?= htmlspecialchars(trim(($order['phys_first'] ?? '') . ' ' . ($order['phys_last'] ?? ''))) ?>
-              </td>
-              <td>
-                <?= htmlspecialchars(trim(($order['pat_first'] ?? '') . ' ' . ($order['pat_last'] ?? ''))) ?>
-              </td>
-              <td>
-                <small class="text-muted"><?= htmlspecialchars($order['product'] ?? '') ?></small>
-              </td>
-              <td class="text-end">
-                <strong><?= $boxes ?></strong>
-                <small class="text-muted">boxes</small><br>
-                <small class="text-muted">(<?= $pieces_per_box ?>/box)</small>
-              </td>
-              <td class="text-end">
-                $<?= number_format($unit_price, 2) ?>
-                <small class="text-muted">/pc</small>
-              </td>
-              <td class="text-end">
-                <strong>$<?= number_format($orderValue, 2) ?></strong>
-              </td>
-              <td>
-                <span class="badge bg-<?= $statusClass ?>">
-                  <?= ucfirst($order['status']) ?>
-                </span>
-                <?php if ($order['paid_at']): ?>
-                <br><small class="text-success">Paid <?= date('m/d', strtotime($order['paid_at'])) ?></small>
-                <?php endif; ?>
-              </td>
-              <td>
-                <div class="btn-group btn-group-sm" role="group">
-                  <a href="/admin/order-detail.php?id=<?= urlencode($order['id']) ?>"
-                     class="btn btn-outline-primary" title="View Details">
-                    <i class="bi bi-eye"></i>
-                  </a>
+            $statusClass = match($order['status']) {
+              'submitted', 'pending', 'awaiting_approval' => 'pending',
+              'approved' => 'approved',
+              'in_transit' => 'shipped',
+              'delivered' => 'delivered',
+              'rejected', 'cancelled' => 'rejected',
+              default => 'pending'
+            };
 
-                  <?php if ($order['status'] === 'approved'): ?>
-                  <form method="POST" style="display:inline;" onsubmit="return confirm('Mark this order as shipped?');">
-                    <?= csrf_token() ?>
-                    <input type="hidden" name="action" value="mark_shipped">
-                    <input type="hidden" name="id" value="<?= htmlspecialchars($order['id']) ?>">
-                    <button type="submit" class="btn btn-outline-success" title="Mark Shipped">
-                      <i class="bi bi-truck"></i>
-                    </button>
-                  </form>
-                  <?php endif; ?>
-
-                  <?php if (!$order['paid_at']): ?>
-                  <form method="POST" style="display:inline;" onsubmit="return confirm('Mark this order as paid?');">
-                    <?= csrf_token() ?>
-                    <input type="hidden" name="action" value="mark_paid">
-                    <input type="hidden" name="id" value="<?= htmlspecialchars($order['id']) ?>">
-                    <button type="submit" class="btn btn-outline-info" title="Mark Paid">
-                      <i class="bi bi-cash"></i>
-                    </button>
-                  </form>
-                  <?php endif; ?>
+            $isPaid = !empty($order['paid_at']);
+            $needsApproval = in_array($order['status'], ['submitted', 'pending', 'awaiting_approval']);
+            $canShip = $order['status'] === 'approved';
+            $canDeliver = $order['status'] === 'in_transit';
+          ?>
+          <tr>
+            <td>
+              <div style="font-weight: 500;"><?= date('M j, Y', strtotime($order['created_at'])) ?></div>
+              <div style="font-size: 0.75rem; color: var(--muted);">Order #<?= $order['id'] ?></div>
+            </td>
+            <td>
+              <div style="font-weight: 500;"><?= htmlspecialchars($order['practice_name'] ?? 'N/A') ?></div>
+              <div style="font-size: 0.75rem; color: var(--muted);"><?= htmlspecialchars(trim(($order['phys_first'] ?? '') . ' ' . ($order['phys_last'] ?? ''))) ?></div>
+            </td>
+            <td><?= htmlspecialchars(trim(($order['pat_first'] ?? '') . ' ' . ($order['pat_last'] ?? ''))) ?></td>
+            <td>
+              <div style="font-weight: 500; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="<?= htmlspecialchars($order['product'] ?? '') ?>">
+                <?= htmlspecialchars($order['product'] ?? '') ?>
+              </div>
+            </td>
+            <td style="text-align: right;">
+              <div style="font-weight: 600;"><?= $boxes ?> boxes</div>
+              <div style="font-size: 0.75rem; color: var(--muted);"><?= $pieces_per_box ?> pcs/box</div>
+            </td>
+            <td style="text-align: right;">
+              <div style="font-weight: 600; color: var(--success);">$<?= number_format($orderValue, 2) ?></div>
+              <div style="font-size: 0.75rem; color: var(--muted);">$<?= number_format($unit_price, 2) ?>/pc</div>
+            </td>
+            <td>
+              <span class="badge badge-<?= $statusClass ?>">
+                <?= ucfirst($order['status']) ?>
+              </span>
+            </td>
+            <td>
+              <span class="badge badge-<?= $isPaid ? 'paid' : 'unpaid' ?>">
+                <?= $isPaid ? 'Paid' : 'Unpaid' ?>
+              </span>
+              <?php if ($isPaid): ?>
+                <div style="font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem;">
+                  <?= date('m/d/y', strtotime($order['paid_at'])) ?>
                 </div>
-              </td>
-            </tr>
-            <?php endforeach; ?>
-            <?php endif; ?>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
+              <?php endif; ?>
+            </td>
+            <td>
+              <div style="display: flex; gap: 0.5rem; justify-content: center;">
+                <!-- View Details -->
+                <button class="btn-icon primary" onclick="viewOrderDetail(<?= $order['id'] ?>)" title="View Details">
+                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                </button>
 
-  <!-- Info Box -->
-  <div class="alert alert-info mt-4">
-    <h5><i class="bi bi-info-circle"></i> About Wholesale Orders</h5>
-    <ul class="mb-0">
-      <li><strong>Simplified Requirements:</strong> No insurance cards, AOB, or detailed wound documentation required</li>
-      <li><strong>Wholesale Pricing:</strong> Uses price_wholesale from products table (lower than Medicare rates)</li>
-      <li><strong>Box-Based:</strong> Orders calculate boxes needed based on frequency × duration ÷ pieces_per_box</li>
-      <li><strong>Practice Bills:</strong> Practice uses their own DME license to bill patient/insurance at Medicare rates</li>
-      <li><strong>Profit Margin:</strong> Practice profit = (Medicare rate - Wholesale cost) × pieces</li>
-    </ul>
+                <!-- Approve (if pending) -->
+                <?php if ($needsApproval): ?>
+                <form method="POST" style="display: inline;" onsubmit="return confirm('Approve this order?');">
+                  <?= csrf_token() ?>
+                  <input type="hidden" name="action" value="approve">
+                  <input type="hidden" name="id" value="<?= $order['id'] ?>">
+                  <button type="submit" class="btn-icon success" title="Approve Order">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                  </button>
+                </form>
+                <?php endif; ?>
+
+                <!-- Ship (if approved) -->
+                <?php if ($canShip): ?>
+                <button class="btn-icon" onclick="openShipModal(<?= $order['id'] ?>)" title="Mark as Shipped" style="color: #4338ca; border-color: #4338ca;">
+                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"></path></svg>
+                </button>
+                <?php endif; ?>
+
+                <!-- Payment Toggle -->
+                <?php if (!$isPaid): ?>
+                <form method="POST" style="display: inline;" onsubmit="return confirm('Mark as paid?');">
+                  <?= csrf_token() ?>
+                  <input type="hidden" name="action" value="mark_paid">
+                  <input type="hidden" name="id" value="<?= $order['id'] ?>">
+                  <button type="submit" class="btn-icon" title="Mark as Paid" style="color: #059669; border-color: #059669;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                  </button>
+                </form>
+                <?php endif; ?>
+
+                <!-- Send Invoice -->
+                <form method="POST" style="display: inline;" onsubmit="return confirm('Send invoice to <?= htmlspecialchars($order['phys_email']) ?>?');">
+                  <?= csrf_token() ?>
+                  <input type="hidden" name="action" value="send_invoice">
+                  <input type="hidden" name="id" value="<?= $order['id'] ?>">
+                  <button type="submit" class="btn-icon warning" title="Send Invoice">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          <?php endforeach; ?>
+          <?php endif; ?>
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
 
-<style>
-  .table th { white-space: nowrap; }
-  .table td small { display: block; line-height: 1.2; }
-  .btn-group-sm .btn { padding: 0.25rem 0.4rem; }
-</style>
+<!-- Ship Order Modal -->
+<div id="shipModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title">Mark Order as Shipped</h3>
+    </div>
+    <form method="POST" id="shipForm">
+      <?= csrf_token() ?>
+      <input type="hidden" name="action" value="mark_shipped">
+      <input type="hidden" name="id" id="shipOrderId">
+      <div class="modal-body">
+        <div style="margin-bottom: 1rem;">
+          <label style="display: block; font-weight: 500; margin-bottom: 0.5rem; font-size: 0.875rem;">Tracking Number (Optional)</label>
+          <input type="text" name="tracking_number" class="w-full" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius);" placeholder="Enter tracking number">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn" onclick="closeShipModal()">Cancel</button>
+        <button type="submit" class="btn" style="background: var(--info); color: white; border-color: var(--info);">Mark as Shipped</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Order Detail Modal -->
+<div id="detailModal" class="modal">
+  <div class="modal-content" style="max-width: 800px;">
+    <div class="modal-header">
+      <h3 class="modal-title">Order Details</h3>
+    </div>
+    <div class="modal-body" id="orderDetailContent">
+      <div style="text-align: center; padding: 2rem; color: var(--muted);">Loading...</div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn" onclick="closeDetailModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openShipModal(orderId) {
+  document.getElementById('shipOrderId').value = orderId;
+  document.getElementById('shipModal').classList.add('active');
+}
+
+function closeShipModal() {
+  document.getElementById('shipModal').classList.remove('active');
+}
+
+function closeDetailModal() {
+  document.getElementById('detailModal').classList.remove('active');
+}
+
+async function viewOrderDetail(orderId) {
+  document.getElementById('detailModal').classList.add('active');
+  document.getElementById('orderDetailContent').innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--muted);">Loading...</div>';
+
+  try {
+    const response = await fetch(`/admin/api-order-detail.php?id=${orderId}`);
+    const data = await response.json();
+
+    if (data.ok) {
+      const o = data.order;
+      const boxes = parseInt(o.shipments_remaining || 0);
+      const piecesPerBox = parseInt(o.pieces_per_box || 10);
+      const unitPrice = parseFloat(o.unit_price || o.price_wholesale || 0);
+      const total = boxes * (unitPrice * piecesPerBox);
+
+      document.getElementById('orderDetailContent').innerHTML = `
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem;">
+          <div>
+            <h4 style="font-weight: 600; margin-bottom: 1rem; color: var(--ink);">Order Information</h4>
+            <div style="display: grid; gap: 0.75rem;">
+              <div>
+                <div style="font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem;">Order Number</div>
+                <div style="font-weight: 500;">#${o.id}</div>
+              </div>
+              <div>
+                <div style="font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem;">Order Date</div>
+                <div>${new Date(o.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+              </div>
+              <div>
+                <div style="font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem;">Status</div>
+                <div><span class="badge badge-${o.status}">${o.status}</span></div>
+              </div>
+              <div>
+                <div style="font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem;">Payment Status</div>
+                <div><span class="badge badge-${o.paid_at ? 'paid' : 'unpaid'}">${o.paid_at ? 'Paid on ' + new Date(o.paid_at).toLocaleDateString() : 'Unpaid'}</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h4 style="font-weight: 600; margin-bottom: 1rem; color: var(--ink);">Practice & Patient</h4>
+            <div style="display: grid; gap: 0.75rem;">
+              <div>
+                <div style="font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem;">Practice</div>
+                <div style="font-weight: 500;">${o.practice_name || 'N/A'}</div>
+              </div>
+              <div>
+                <div style="font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem;">Physician</div>
+                <div>${o.phys_first} ${o.phys_last}</div>
+                <div style="font-size: 0.75rem; color: var(--muted);">${o.phys_email}</div>
+              </div>
+              <div>
+                <div style="font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem;">Patient</div>
+                <div>${o.pat_first} ${o.pat_last}</div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h4 style="font-weight: 600; margin-bottom: 1rem; color: var(--ink);">Product Details</h4>
+            <div style="display: grid; gap: 0.75rem;">
+              <div>
+                <div style="font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem;">Product</div>
+                <div>${o.product}</div>
+              </div>
+              <div>
+                <div style="font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem;">Quantity</div>
+                <div>${boxes} boxes (${piecesPerBox} pieces per box)</div>
+              </div>
+              <div>
+                <div style="font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem;">Unit Price</div>
+                <div>$${unitPrice.toFixed(2)} per piece</div>
+              </div>
+              <div>
+                <div style="font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem;">Total Amount</div>
+                <div style="font-size: 1.25rem; font-weight: 700; color: var(--success);">$${total.toFixed(2)}</div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h4 style="font-weight: 600; margin-bottom: 1rem; color: var(--ink);">Shipping Information</h4>
+            <div style="display: grid; gap: 0.75rem;">
+              <div>
+                <div style="font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem;">Shipping Address</div>
+                <div>${o.shipping_address || 'N/A'}</div>
+              </div>
+              ${o.tracking_number ? `
+                <div>
+                  <div style="font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem;">Tracking Number</div>
+                  <div style="font-family: monospace;">${o.tracking_number}</div>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+
+        ${o.notes ? `
+          <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
+            <h4 style="font-weight: 600; margin-bottom: 0.75rem; color: var(--ink);">Order Notes</h4>
+            <div style="padding: 1rem; background: var(--bg-gray); border-radius: var(--radius); font-size: 0.875rem;">
+              ${o.notes}
+            </div>
+          </div>
+        ` : ''}
+      `;
+    } else {
+      document.getElementById('orderDetailContent').innerHTML = `
+        <div style="text-align: center; padding: 2rem; color: var(--error);">
+          <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin: 0 auto 1rem; opacity: 0.5;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <div style="font-weight: 500;">Failed to load order details</div>
+        </div>
+      `;
+    }
+  } catch (err) {
+    document.getElementById('orderDetailContent').innerHTML = `
+      <div style="text-align: center; padding: 2rem; color: var(--error);">
+        <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin: 0 auto 1rem; opacity: 0.5;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <div style="font-weight: 500;">Error loading order details</div>
+      </div>
+    `;
+  }
+}
+
+// Close modals on background click
+document.addEventListener('click', (e) => {
+  if (e.target.classList.contains('modal')) {
+    e.target.classList.remove('active');
+  }
+});
+</script>
 
 <?php require_once '_footer.php'; ?>
