@@ -20,7 +20,7 @@ try {
   $pdo->exec("
     CREATE TABLE IF NOT EXISTS practice_locations (
       id SERIAL PRIMARY KEY,
-      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      user_id VARCHAR(64) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       location_name VARCHAR(255) NOT NULL,
       address VARCHAR(255) NOT NULL,
       city VARCHAR(100) NOT NULL,

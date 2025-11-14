@@ -23,7 +23,7 @@ try {
   $pdo->exec("
     CREATE TABLE IF NOT EXISTS practice_balances (
       id SERIAL PRIMARY KEY,
-      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      user_id VARCHAR(64) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       current_balance DECIMAL(10,2) DEFAULT 0.00,
       balance_0_30_days DECIMAL(10,2) DEFAULT 0.00,
       balance_31_60_days DECIMAL(10,2) DEFAULT 0.00,
