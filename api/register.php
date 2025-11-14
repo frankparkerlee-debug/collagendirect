@@ -23,7 +23,7 @@ if (strlen((string)$data['password']) < 8) json_out(400, ['error'=>'Password mus
 
 // Validate user type
 $userType = $data['userType'];
-if (!in_array($userType, ['practice_admin', 'physician', 'dme_hybrid', 'dme_wholesale'], true)) {
+if (!in_array($userType, ['practice_admin', 'physician', 'dme_wholesale'], true)) {
   json_out(400, ['error'=>'Invalid user type']);
 }
 
@@ -40,11 +40,11 @@ if ($userType === 'practice_admin') {
   foreach ($requiredFields as $k) {
     if (empty($data[$k])) json_out(400, ['error' => "Missing field for Physician: $k"]);
   }
-} elseif ($userType === 'dme_hybrid' || $userType === 'dme_wholesale') {
-  // DME users: requires practice info + physician credentials + DME license
+} elseif ($userType === 'dme_wholesale') {
+  // DME Wholesale: requires practice info + physician credentials + DME license
   $requiredFields = ['practiceName', 'address', 'city', 'state', 'zip', 'phone', 'firstName', 'lastName', 'npi', 'license', 'licenseState', 'licenseExpiry', 'dmeNumber', 'dmeState', 'dmeExpiry'];
   foreach ($requiredFields as $k) {
-    if (empty($data[$k])) json_out(400, ['error' => "Missing field for DME user: $k"]);
+    if (empty($data[$k])) json_out(400, ['error' => "Missing field for DME Wholesale user: $k"]);
   }
 }
 
@@ -95,14 +95,6 @@ try {
           $parentUserId = $pm['id'];
         }
       }
-      break;
-
-    case 'dme_hybrid':
-      $accountType = 'hybrid';
-      $role = 'practice_admin';
-      $hasDmeLicense = true;
-      $isHybrid = true;
-      $canManagePhysicians = true;
       break;
 
     case 'dme_wholesale':

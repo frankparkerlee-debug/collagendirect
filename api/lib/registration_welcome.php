@@ -97,24 +97,6 @@ As a Physician within a practice, you can:
       }
       break;
 
-    case 'dme_hybrid':
-      $roleTitle = 'DME Hybrid Provider';
-      $portalAccess = "
-**Your Portal Access:**
-You now have full access to the CollagenDirect Physician Portal with hybrid billing features:
-- Create orders billed through CollagenDirect OR your practice
-- Configure insurance routing by payer
-- Track wholesale purchases for direct-billed orders
-- Manage both referral and direct billing workflows";
-
-      $nextSteps = "
-**Next Steps:**
-1. Log in to your portal at: https://collagendirect.health/portal
-2. Complete your practice and DME license information
-3. Configure your billing routing preferences (Settings → Billing)
-4. Start creating orders with flexible billing options";
-      break;
-
     case 'dme_wholesale':
       $roleTitle = 'DME Wholesale Provider';
       $portalAccess = "

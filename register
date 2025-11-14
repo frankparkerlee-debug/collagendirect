@@ -506,16 +506,7 @@
               </div>
             </label>
 
-            <!-- 2a. DME Hybrid Referrer -->
-            <label class="user-type-card" data-type="dme_hybrid">
-              <input type="radio" name="userType" value="dme_hybrid" />
-              <div class="card-content">
-                <h3>DME Hybrid Referrer</h3>
-                <p>Hold a DME license. Mix of referrals and direct billing on a case-by-case basis.</p>
-              </div>
-            </label>
-
-            <!-- 2b. DME Wholesale Only -->
+            <!-- DME Wholesale Only -->
             <label class="user-type-card" data-type="dme_wholesale">
               <input type="radio" name="userType" value="dme_wholesale" />
               <div class="card-content">
@@ -545,7 +536,7 @@
           </div>
         </section>
 
-        <!-- Step 3: Practice Information (for practice_admin, dme_hybrid, dme_wholesale) -->
+        <!-- Step 3: Practice Information (for practice_admin, dme_wholesale) -->
         <section id="practiceInfoSection" class="card" aria-labelledby="practice-title" style="border:none;box-shadow:none;padding:0;margin-top:18px" hidden>
           <h2 id="practice-title" class="section-title">Practice Information</h2>
           <div class="form-grid">
@@ -645,7 +636,7 @@
           </div>
         </section>
 
-        <!-- Step 7: DME License Information (for dme_hybrid and dme_wholesale) -->
+        <!-- Step 7: DME License Information (for dme_wholesale) -->
         <section id="dmeSection" class="card" style="border:none;box-shadow:none;padding:0;margin-top:18px" hidden>
           <h2 class="section-title">DME License Information</h2>
           <div class="form-grid">
@@ -1127,8 +1118,8 @@
           setRequired(['firstName', 'lastName', 'npi', 'license', 'licenseState', 'licenseExpiry', 'practiceManagerEmail', 'agreeMSA', 'agreeBAA', 'signName', 'signTitle', 'signDate']);
           setOptional(['practiceName', 'address', 'city', 'state', 'zip', 'phone', 'dmeNumber', 'dmeState', 'dmeExpiry']);
 
-        } else if (selectedType === 'dme_hybrid' || selectedType === 'dme_wholesale') {
-          // DME Users: Show practice info, physician creds, DME info, agreements
+        } else if (selectedType === 'dme_wholesale') {
+          // DME Wholesale: Show practice info, physician creds, DME info, agreements
           practiceInfoSection.hidden = false;
           physicianCredsSection.hidden = false;
           additionalPhysiciansSection.hidden = true;
@@ -1375,7 +1366,7 @@
         }
       }
 
-      if (userType === 'dme_hybrid' || userType === 'dme_wholesale') {
+      if (userType === 'dme_wholesale') {
         // Practice info + DME license required
         if (!document.getElementById('practiceName').value.trim()) {
           errors.push({ field: 'field-practiceName', message: 'Practice name is required' });

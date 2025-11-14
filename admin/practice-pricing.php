@@ -95,7 +95,7 @@ $pricingRules = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $stmt = $pdo->query("
   SELECT id, practice_name, first_name, last_name, user_type
   FROM users
-  WHERE user_type IN ('practice_admin', 'physician', 'dme_hybrid', 'dme_wholesale')
+  WHERE user_type IN ('practice_admin', 'physician', 'dme_wholesale')
   ORDER BY practice_name ASC, last_name ASC
 ");
 $practices = $stmt->fetchAll(PDO::FETCH_ASSOC);
