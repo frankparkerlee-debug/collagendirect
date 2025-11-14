@@ -60,8 +60,8 @@ if (isset($_GET['setup']) && $_GET['setup'] === 'temp-setup-token-2024') {
         echo "✓ Password updated\n";
     } else {
         $userId = rtrim(strtr(base64_encode(random_bytes(16)),'+/','-_'),'=');
-        $pdo->prepare("INSERT INTO users (id, email, password_hash, first_name, last_name, verified, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())")
-            ->execute([$userId, $email, $hash, 'Matt', 'Sparkman', true]);
+        $pdo->prepare("INSERT INTO users (id, email, password_hash, first_name, last_name, role, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())")
+            ->execute([$userId, $email, $hash, 'Matt', 'Sparkman', 'superadmin', 'active']);
         echo "✓ User created\n";
     }
 
