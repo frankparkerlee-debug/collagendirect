@@ -221,6 +221,7 @@ try {
 
 if (!$hasBilledBy) {
   // Column doesn't exist yet - show empty state with instructions
+  error_log('[wholesale-orders] billed_by column does not exist - please run migration');
   $orders = [];
 } else {
   try {
@@ -236,6 +237,7 @@ if (!$hasBilledBy) {
         o.invoice_sent_at,
         o.tracking_number,
         o.notes,
+        o.billed_by,
         u.practice_name,
         u.first_name as phys_first,
         u.last_name as phys_last,
@@ -246,8 +248,8 @@ if (!$hasBilledBy) {
         pr.pieces_per_box,
         pr.price_wholesale
       FROM orders o
-      JOIN users u ON o.user_id = u.id
-      JOIN patients p ON o.patient_id = p.id
+      LEFT JOIN users u ON o.user_id = u.id
+      LEFT JOIN patients p ON o.patient_id = p.id
       LEFT JOIN products pr ON o.product_id = pr.id
       WHERE o.billed_by = 'practice_dme'
         AND (o.review_status IS NULL OR o.review_status != 'draft')
@@ -261,8 +263,10 @@ if (!$hasBilledBy) {
     ";
 
     $orders = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+    error_log('[wholesale-orders] Found ' . count($orders) . ' wholesale orders');
   } catch (Throwable $e) {
     error_log('[wholesale-orders] Query error: ' . $e->getMessage());
+    error_log('[wholesale-orders] SQL: ' . $sql);
     $orders = [];
   }
 }
@@ -503,7 +507,14 @@ require_once '_header.php';
             <td colspan="9" style="text-align: center; padding: 3rem; color: var(--muted);">
               <svg width="64" height="64" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin: 0 auto 1rem; opacity: 0.3;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
               <div style="font-size: 1.125rem; font-weight: 500; margin-bottom: 0.5rem;">No wholesale orders found</div>
-              <div style="font-size: 0.875rem;">Wholesale orders use billing route "practice_dme"</div>
+              <div style="font-size: 0.875rem;">
+                <?php if (!$hasBilledBy): ?>
+                  The 'billed_by' column does not exist. Please run the migration to add it.
+                <?php else: ?>
+                  Wholesale orders have billed_by='practice_dme'. No orders currently match this criteria.
+                  <br><a href="/admin/check-wholesale-data.php" style="color: var(--info); text-decoration: underline; margin-top: 0.5rem; display: inline-block;">Run diagnostic to check database</a>
+                <?php endif; ?>
+              </div>
             </td>
           </tr>
           <?php else: ?>
