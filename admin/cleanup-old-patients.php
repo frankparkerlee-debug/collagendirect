@@ -85,11 +85,23 @@ try {
   $photoCount = $photoStmt->fetch(PDO::FETCH_ASSOC)['cnt'];
   echo "   Found $photoCount wound photo(s) associated with these patients\n\n";
 
+  // 4. Find and count related billable encounters
+  echo "5. Checking for related billable encounters...\n";
+  $encounterStmt = $pdo->prepare("
+    SELECT COUNT(*) as cnt
+    FROM billable_encounters
+    WHERE patient_id IN ($placeholders)
+  ");
+  $encounterStmt->execute($patientIds);
+  $encounterCount = $encounterStmt->fetch(PDO::FETCH_ASSOC)['cnt'];
+  echo "   Found $encounterCount billable encounter(s) associated with these patients\n\n";
+
   if ($dryRun) {
     echo "=== DRY RUN SUMMARY ===\n";
     echo "Would delete:\n";
     echo "  - $patientCount patient record(s)\n";
     echo "  - $orderCount order record(s)\n";
+    echo "  - $encounterCount billable encounter record(s)\n";
     echo "  - $photoCount wound photo record(s)\n\n";
     echo "To actually perform deletion, visit this URL without ?dry_run=1\n";
     $pdo->rollBack();
@@ -98,7 +110,7 @@ try {
 
   // 4. Delete related orders first (foreign key constraints)
   if ($orderCount > 0) {
-    echo "5. Deleting $orderCount related order(s)...\n";
+    echo "6. Deleting $orderCount related order(s)...\n";
     $deleteOrders = $pdo->prepare("
       DELETE FROM orders
       WHERE patient_id IN ($placeholders)
@@ -106,12 +118,25 @@ try {
     $deleteOrders->execute($patientIds);
     echo "   ✓ Orders deleted\n\n";
   } else {
-    echo "5. No orders to delete\n\n";
+    echo "6. No orders to delete\n\n";
   }
 
-  // 5. Delete related wound photos
+  // 5. Delete related billable encounters (must happen before wound photos)
+  if ($encounterCount > 0) {
+    echo "7. Deleting $encounterCount related billable encounter(s)...\n";
+    $deleteEncounters = $pdo->prepare("
+      DELETE FROM billable_encounters
+      WHERE patient_id IN ($placeholders)
+    ");
+    $deleteEncounters->execute($patientIds);
+    echo "   ✓ Billable encounters deleted\n\n";
+  } else {
+    echo "7. No billable encounters to delete\n\n";
+  }
+
+  // 6. Delete related wound photos
   if ($photoCount > 0) {
-    echo "6. Deleting $photoCount related wound photo(s)...\n";
+    echo "8. Deleting $photoCount related wound photo(s)...\n";
     $deletePhotos = $pdo->prepare("
       DELETE FROM wound_photos
       WHERE patient_id IN ($placeholders)
@@ -119,11 +144,11 @@ try {
     $deletePhotos->execute($patientIds);
     echo "   ✓ Wound photos deleted\n\n";
   } else {
-    echo "6. No wound photos to delete\n\n";
+    echo "8. No wound photos to delete\n\n";
   }
 
-  // 6. Delete the patients
-  echo "7. Deleting $patientCount patient record(s)...\n";
+  // 7. Delete the patients
+  echo "9. Deleting $patientCount patient record(s)...\n";
   $deletePatients = $pdo->prepare("
     DELETE FROM patients
     WHERE created_at < ?
@@ -138,6 +163,7 @@ try {
   echo "Successfully deleted:\n";
   echo "  ✓ $patientCount patient(s)\n";
   echo "  ✓ $orderCount order(s)\n";
+  echo "  ✓ $encounterCount billable encounter(s)\n";
   echo "  ✓ $photoCount wound photo(s)\n\n";
   echo "All patients created before November 1, 2025 have been removed.\n";
 
