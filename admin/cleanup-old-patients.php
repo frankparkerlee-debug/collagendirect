@@ -121,22 +121,9 @@ try {
     echo "6. No orders to delete\n\n";
   }
 
-  // 5. Delete related billable encounters (must happen before wound photos)
-  if ($encounterCount > 0) {
-    echo "7. Deleting $encounterCount related billable encounter(s)...\n";
-    $deleteEncounters = $pdo->prepare("
-      DELETE FROM billable_encounters
-      WHERE patient_id IN ($placeholders)
-    ");
-    $deleteEncounters->execute($patientIds);
-    echo "   ✓ Billable encounters deleted\n\n";
-  } else {
-    echo "7. No billable encounters to delete\n\n";
-  }
-
-  // 6. Delete related wound photos
+  // 5. Delete related wound photos first (referenced by billable_encounters)
   if ($photoCount > 0) {
-    echo "8. Deleting $photoCount related wound photo(s)...\n";
+    echo "7. Deleting $photoCount related wound photo(s)...\n";
     $deletePhotos = $pdo->prepare("
       DELETE FROM wound_photos
       WHERE patient_id IN ($placeholders)
@@ -144,7 +131,20 @@ try {
     $deletePhotos->execute($patientIds);
     echo "   ✓ Wound photos deleted\n\n";
   } else {
-    echo "8. No wound photos to delete\n\n";
+    echo "7. No wound photos to delete\n\n";
+  }
+
+  // 6. Delete related billable encounters (after wound photos)
+  if ($encounterCount > 0) {
+    echo "8. Deleting $encounterCount related billable encounter(s)...\n";
+    $deleteEncounters = $pdo->prepare("
+      DELETE FROM billable_encounters
+      WHERE patient_id IN ($placeholders)
+    ");
+    $deleteEncounters->execute($patientIds);
+    echo "   ✓ Billable encounters deleted\n\n";
+  } else {
+    echo "8. No billable encounters to delete\n\n";
   }
 
   // 7. Delete the patients
