@@ -7,6 +7,12 @@
 // This file is included by portal/index.php, so $cu (current user) and $pdo are available
 global $pdo, $cu;
 
+// Check if user is logged in
+if (!isset($cu) || !is_array($cu) || !isset($cu['id'])) {
+  header('Location: /login.php');
+  exit;
+}
+
 $userId = $cu['id'];
 $activeTab = $_GET['tab'] ?? 'create'; // 'create' or 'manage'
 
