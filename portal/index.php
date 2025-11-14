@@ -3001,6 +3001,7 @@ if ($action) {
   if ($action==='orders'){
     $q=trim((string)($_GET['q']??''));
     $status=trim((string)($_GET['status']??''));
+    $orderType=trim((string)($_GET['order_type']??'')); // New filter: 'referral', 'wholesale', or empty for all
 
     // Superadmins see all orders
     if ($userRole === 'superadmin') {
@@ -3012,7 +3013,12 @@ if ($action) {
     if($q!==''){ $where.=" AND (o.product LIKE ? OR o.shipping_name LIKE ? OR p.first_name LIKE ? OR p.last_name LIKE ?)"; $like="%$q%"; array_push($args,$like,$like,$like,$like); }
     if($status==='draft'){ $where.=" AND o.review_status='draft'"; }
     elseif($status!==''){ $where.=" AND o.status=?"; $args[]=$status; }
-    $st=$pdo->prepare("SELECT o.id,o.patient_id,o.product,o.shipments_remaining,o.status,o.review_status,o.delivery_mode,o.created_at,o.expires_at,
+
+    // Filter by order type
+    if($orderType==='wholesale'){ $where.=" AND o.billed_by='practice_dme'"; }
+    elseif($orderType==='referral'){ $where.=" AND (o.billed_by IS NULL OR o.billed_by != 'practice_dme')"; }
+
+    $st=$pdo->prepare("SELECT o.id,o.patient_id,o.product,o.shipments_remaining,o.status,o.review_status,o.delivery_mode,o.billed_by,o.created_at,o.expires_at,
                               p.first_name,p.last_name
                        FROM orders o
                        LEFT JOIN patients p ON p.id = o.patient_id
@@ -5046,6 +5052,11 @@ if ($page==='logout'){
   <div class="flex items-center gap-3 mb-4">
     <h2 class="text-lg font-semibold">Manage Orders</h2>
     <input id="oq" class="ml-auto w-full sm:w-80" placeholder="Search product or recipient…">
+    <select id="ot">
+        <option value="">All Orders</option>
+        <option value="referral">Referral Orders</option>
+        <option value="wholesale">Wholesale Orders</option>
+      </select>
     <select id="of">
         <option value="">All Status</option>
         <option value="draft">Draft</option>
@@ -8376,13 +8387,20 @@ if (<?php echo json_encode($page==='orders'); ?>){
   }
 
   async function loadOrders(){
-    const q=$('#oq').value.trim(); const s=$('#of').value;
-    const res=await api('action=orders&q='+encodeURIComponent(q)+'&status='+encodeURIComponent(s)); const rows=res.rows||[];
+    const q=$('#oq').value.trim(); const s=$('#of').value; const t=$('#ot').value;
+    const res=await api('action=orders&q='+encodeURIComponent(q)+'&status='+encodeURIComponent(s)+'&order_type='+encodeURIComponent(t)); const rows=res.rows||[];
     tb.innerHTML = rows.map(o=>{
       const isDraft = o.review_status === 'draft';
+      const isWholesale = o.billed_by === 'practice_dme';
+
       const statusDisplay = isDraft
         ? '<span class="px-2 py-1 bg-slate-100 text-slate-700 rounded text-xs font-medium">Draft</span>'
         : pill(o.status);
+
+      // Add order type badge
+      const orderTypeBadge = isWholesale
+        ? '<span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-medium" style="margin-left: 0.25rem;">Wholesale</span>'
+        : '<span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium" style="margin-left: 0.25rem;">Referral</span>';
 
       let actions = '';
       if (isDraft) {
@@ -8401,7 +8419,7 @@ if (<?php echo json_encode($page==='orders'); ?>){
         <tr class="border-b hover:bg-slate-50">
           <td class="py-2">${fmt(o.created_at)}</td>
           <td class="py-2">${esc(o.first_name||'')} ${esc(o.last_name||'')}</td>
-          <td class="py-2">${esc(o.product||'')}</td>
+          <td class="py-2">${esc(o.product||'')} ${orderTypeBadge}</td>
           <td class="py-2">${statusDisplay}</td>
           <td class="py-2">${o.shipments_remaining??0}</td>
           <td class="py-2">${o.delivery_mode==='office'?'Office':'Patient'}</td>
@@ -8413,6 +8431,7 @@ if (<?php echo json_encode($page==='orders'); ?>){
   }
   $('#oq').addEventListener('input',loadOrders);
   $('#of').addEventListener('change',loadOrders);
+  $('#ot').addEventListener('change',loadOrders);
   // Removed btn-new-order2 - using global-new-order-btn in header instead
   tb.addEventListener('click',async(e)=>{
     const b=e.target.closest('button'); if(!b) return;
