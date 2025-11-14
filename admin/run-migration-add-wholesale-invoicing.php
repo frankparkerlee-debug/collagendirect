@@ -159,10 +159,16 @@ try {
     RETURNS TRIGGER AS $$
     BEGIN
       IF TG_OP = 'DELETE' THEN
-        PERFORM update_practice_balance(OLD.user_id);
+        -- Only update balance if the deleted order was a wholesale order (had an invoice_number)
+        IF OLD.invoice_number IS NOT NULL THEN
+          PERFORM update_practice_balance(OLD.user_id);
+        END IF;
         RETURN OLD;
       ELSE
-        PERFORM update_practice_balance(NEW.user_id);
+        -- Only update balance if the order is a wholesale order (has an invoice_number)
+        IF NEW.invoice_number IS NOT NULL THEN
+          PERFORM update_practice_balance(NEW.user_id);
+        END IF;
         RETURN NEW;
       END IF;
     END;
@@ -174,10 +180,6 @@ try {
     CREATE TRIGGER trg_orders_balance_update
     AFTER INSERT OR UPDATE OF balance_due, amount_paid, due_date OR DELETE ON orders
     FOR EACH ROW
-    WHEN (
-      (TG_OP = 'DELETE' AND OLD.invoice_number IS NOT NULL) OR
-      (TG_OP != 'DELETE' AND NEW.invoice_number IS NOT NULL)
-    )
     EXECUTE FUNCTION trigger_update_practice_balance();
   ");
   echo "   ✓ Created trigger for automatic balance updates\n\n";
