@@ -238,6 +238,52 @@ function isActive($pageName) {
       flex-shrink: 0;
     }
 
+    /* Nested navigation styles */
+    .nav-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .nav-parent {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .nav-parent .nav-chevron {
+      margin-left: auto;
+      transition: transform 0.2s ease;
+    }
+
+    .nav-parent.expanded .nav-chevron {
+      transform: rotate(90deg);
+    }
+
+    .nav-submenu {
+      display: none;
+      flex-direction: column;
+      padding-left: 1rem;
+      margin-top: 0.25rem;
+    }
+
+    .nav-submenu a {
+      padding: 0.5rem 1rem;
+      font-size: 0.9rem;
+      border-left: 2px solid var(--border-sidebar);
+      margin-left: 0.5rem;
+    }
+
+    .nav-submenu a:hover {
+      background: rgba(0, 0, 0, 0.05);
+      border-left-color: var(--brand);
+    }
+
+    .nav-submenu a.active {
+      background: rgba(18, 88, 214, 0.1);
+      color: var(--brand);
+      border-left-color: var(--brand);
+    }
+
     .main-content {
       flex: 1;
       display: flex;
@@ -307,6 +353,22 @@ function isActive($pageName) {
       color: var(--brand);
     }
   </style>
+  <script>
+    function toggleSubmenu(event, submenuId) {
+      event.preventDefault();
+      const submenu = document.getElementById(submenuId);
+      const parent = event.currentTarget;
+      const chevron = parent.querySelector('.nav-chevron');
+
+      if (submenu.style.display === 'none' || submenu.style.display === '') {
+        submenu.style.display = 'flex';
+        parent.classList.add('expanded');
+      } else {
+        submenu.style.display = 'none';
+        parent.classList.remove('expanded');
+      }
+    }
+  </script>
 </head>
 <body>
 
@@ -348,14 +410,22 @@ function isActive($pageName) {
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
         <span>Manage Orders</span>
       </a>
-      <a class="<?=isActive('wholesale-orders')?>" href="/admin/wholesale-orders.php">
-        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-        <span>Wholesale Orders</span>
-      </a>
-      <a class="<?=isActive('practice-pricing')?>" href="/admin/practice-pricing.php">
-        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-        <span>Practice Pricing</span>
-      </a>
+      <!-- Wholesale Section with Submenu -->
+      <div class="nav-group">
+        <a class="nav-parent <?php echo (isActive('wholesale-orders') || isActive('practice-pricing')) ? 'active expanded' : ''; ?>" href="#" onclick="toggleSubmenu(event, 'wholesale-submenu')">
+          <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+          <span>Wholesale</span>
+          <svg class="nav-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px; margin-left: auto; transition: transform 0.2s;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </a>
+        <div id="wholesale-submenu" class="nav-submenu" style="display: <?php echo (isActive('wholesale-orders') || isActive('practice-pricing')) ? 'flex' : 'none'; ?>;">
+          <a class="<?=isActive('wholesale-orders')?>" href="/admin/wholesale-orders.php">
+            <span>Orders</span>
+          </a>
+          <a class="<?=isActive('practice-pricing')?>" href="/admin/practice-pricing.php">
+            <span>Practice Pricing</span>
+          </a>
+        </div>
+      </div>
       <a class="<?=isActive('shipments')?>" href="/admin/shipments.php">
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
         <span>Shipments</span>
