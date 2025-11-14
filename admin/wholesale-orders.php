@@ -46,10 +46,13 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
       o.shipments_remaining,
       o.product_price as unit_price,
       o.status,
-      CONCAT_WS(', ', o.ship_address, o.ship_city, o.ship_state, o.ship_zip) as shipping_address
+      CONCAT_WS(', ', o.shipping_address, o.shipping_city, o.shipping_state, o.shipping_zip) as shipping_address,
+      pr.pieces_per_box,
+      pr.price_wholesale
     FROM orders o
     JOIN users u ON o.user_id = u.id
     JOIN patients p ON o.patient_id = p.id
+    LEFT JOIN products pr ON o.product_id = pr.id
     WHERE o.billed_by = 'practice_dme'
       AND (o.review_status IS NULL OR o.review_status != 'draft')
     ORDER BY o.created_at DESC
@@ -58,11 +61,9 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
   $stmt = $pdo->query($sql);
 
   while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-    // Calculate boxes based on unit price and product
-    // For now, we'll use shipments_remaining as proxy for boxes
-    $boxes = $row['shipments_remaining'] ?? 0;
-    $pieces_per_box = 10; // Default, would need to join products table for actual value
-    $unit_price = (float)($row['unit_price'] ?? 0);
+    $boxes = (int)($row['shipments_remaining'] ?? 0);
+    $pieces_per_box = (int)($row['pieces_per_box'] ?? 10);
+    $unit_price = (float)($row['unit_price'] ?? $row['price_wholesale'] ?? 0);
     $total_value = $boxes * ($unit_price * $pieces_per_box);
 
     fputcsv($output, [
