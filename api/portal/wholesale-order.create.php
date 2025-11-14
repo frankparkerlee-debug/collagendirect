@@ -95,6 +95,12 @@ try {
         strtolower($patientData['first_name'] ?? '') === 'office'
       );
 
+      // Check if shipping to office (for delivery address determination)
+      $shipToOffice = (
+        ($patientData['delivery_mode'] ?? '') === 'ship_to_office' ||
+        $isOfficeStock
+      );
+
       if ($isOfficeStock) {
         // For office stock, create a placeholder patient
         $patientId = guid();
@@ -139,8 +145,16 @@ try {
     // 2) Create order
     $orderId = guid();
 
-    // Determine shipping details - check if office stock
-    if ($isOfficeStock) {
+    // Check if shipping to office (needed for shipping address)
+    $shipToOffice = (
+      ($patientData['delivery_mode'] ?? '') === 'ship_to_office' ||
+      ($patientData['delivery_preference'] ?? '') === 'office_stock' ||
+      ($patientData['is_office_stock'] ?? '') == '1' ||
+      strtolower($patientData['first_name'] ?? '') === 'office'
+    );
+
+    // Determine shipping details - check if shipping to office
+    if ($shipToOffice) {
       // Get practice address - check current user first, then practice admin
       $userStmt = $pdo->prepare("SELECT practice_name, address, city, state, zip, role FROM users WHERE id = ?");
       $userStmt->execute([$uid]);

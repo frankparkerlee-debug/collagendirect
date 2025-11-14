@@ -1177,17 +1177,18 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
                   $deliveryType = '';
                   $address = '';
 
-                  // Check if this is office stock (multiple ways it can be indicated)
-                  $isOfficeStock = (
+                  // Check if this should ship to office (multiple ways it can be indicated)
+                  $shipToOffice = (
+                    ($patient['delivery_mode'] ?? '') === 'ship_to_office' || // Regular patient shipping to office
                     ($patient['delivery_preference'] ?? '') === 'office_stock' ||
                     ($patient['is_office_stock'] ?? '') == '1' || // Use == for loose comparison
                     ($patient['is_office_stock'] ?? false) === true ||
                     strtolower($patient['first_name'] ?? '') === 'office'
                   );
 
-                  if ($isOfficeStock) {
+                  if ($shipToOffice) {
                     $deliveryType = 'Office';
-                    // Use practice address for office stock
+                    // Use practice address for office deliveries
                     $addressParts = array_filter([
                       $practiceAddress['address'] ?? '',
                       $practiceAddress['city'] ?? '',
@@ -1418,15 +1419,22 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
                 window.location.href = '?page=orders';
               }, 2000);
             } else {
-              // Error
-              errorDiv.textContent = 'Error: ' + (result.error || 'Failed to create order');
+              // Error - show detailed error message
+              let errorMsg = result.error || 'Failed to create order';
+              if (result.details) {
+                errorMsg += ': ' + result.details;
+              }
+              errorDiv.textContent = 'Error: ' + errorMsg;
               errorDiv.style.display = 'block';
               submitBtn.disabled = false;
               submitBtn.textContent = 'Submit Wholesale Order';
+
+              // Log full error for debugging
+              console.error('API Error Response:', result);
             }
           } catch (error) {
             console.error('Order submission error:', error);
-            errorDiv.textContent = 'Error: Failed to submit order. Please try again.';
+            errorDiv.textContent = 'Error: Failed to submit order. Please try again. ' + error.message;
             errorDiv.style.display = 'block';
             submitBtn.disabled = false;
             submitBtn.textContent = 'Submit Wholesale Order';
