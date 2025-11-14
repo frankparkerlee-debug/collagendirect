@@ -44,25 +44,25 @@ if (isset($_GET['setup']) && $_GET['setup'] === 'temp-setup-token-2024') {
         echo "✓ Schema exists\n\n";
     }
 
-    // Create user
-    $email = 'sparkingmatt@gmail.com';
+    // Create super admin user
+    $email = 'parker@collagendirect.health';
     $password = 'TempPassword123!';
     $hash = password_hash($password, PASSWORD_DEFAULT);
 
-    echo "Creating user: $email\n";
+    echo "Creating super admin: $email\n";
 
     $check = $pdo->prepare("SELECT id FROM users WHERE email = ?");
     $check->execute([$email]);
 
     if ($check->fetch()) {
-        $pdo->prepare("UPDATE users SET password_hash = ?, updated_at = NOW() WHERE email = ?")
-            ->execute([$hash, $email]);
-        echo "✓ Password updated\n";
+        $pdo->prepare("UPDATE users SET password_hash = ?, role = ?, status = ?, updated_at = NOW() WHERE email = ?")
+            ->execute([$hash, 'superadmin', 'active', $email]);
+        echo "✓ Super admin updated\n";
     } else {
         $userId = rtrim(strtr(base64_encode(random_bytes(16)),'+/','-_'),'=');
         $pdo->prepare("INSERT INTO users (id, email, password_hash, first_name, last_name, role, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())")
-            ->execute([$userId, $email, $hash, 'Matt', 'Sparkman', 'superadmin', 'active']);
-        echo "✓ User created\n";
+            ->execute([$userId, $email, $hash, 'Parker', 'Lee', 'superadmin', 'active']);
+        echo "✓ Super admin created\n";
     }
 
     echo "\n=== Setup Complete ===\n";
