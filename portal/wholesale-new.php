@@ -1059,13 +1059,250 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
 
   <?php elseif ($step == '3'): ?>
     <!-- STEP 3: Review & Submit -->
-    <div style="text-align: center; padding: 3rem;">
-      <h2 style="font-size: 1.5rem; margin-bottom: 1rem;">Review & Submit</h2>
-      <p style="color: var(--muted); margin-bottom: 2rem;">Order review and PDF generation will be implemented next.</p>
-      <div class="form-actions" style="justify-content: center;">
-        <a href="?page=wholesale&step=2" class="btn btn-secondary">← Back to Products</a>
-        <button class="btn btn-primary">Submit Order</button>
-      </div>
+    <?php
+    // Get saved products from session
+    $savedProducts = $_SESSION['wholesale_products'] ?? [];
+
+    // Calculate totals
+    $orderItems = [];
+    $grandTotal = 0;
+
+    foreach ($patients as $patIndex => $patient) {
+      $patientProducts = $savedProducts[$patIndex] ?? [];
+      foreach ($patientProducts as $rowIndex => $productData) {
+        if (isset($productData['product_id']) && isset($productData['boxes'])) {
+          $productId = $productData['product_id'];
+          $boxes = (int)$productData['boxes'];
+
+          // Find product details
+          $stmt = $pdo->prepare("SELECT id, name, price_wholesale, pieces_per_box FROM products WHERE id = ?");
+          $stmt->execute([$productId]);
+          $product = $stmt->fetch(PDO::FETCH_ASSOC);
+
+          if ($product && $boxes > 0) {
+            $pricePerBox = (float)($product['price_wholesale'] ?? 0) * (int)($product['pieces_per_box'] ?? 1);
+            $lineTotal = $pricePerBox * $boxes;
+
+            $orderItems[] = [
+              'patient_index' => $patIndex,
+              'patient' => $patient,
+              'product' => $product,
+              'boxes' => $boxes,
+              'price_per_box' => $pricePerBox,
+              'line_total' => $lineTotal
+            ];
+
+            $grandTotal += $lineTotal;
+          }
+        }
+      }
+    }
+    ?>
+
+    <div style="max-width: 900px; margin: 0 auto;">
+      <h2 style="font-size: 1.5rem; margin-bottom: 1.5rem; color: var(--ink);">Review Order</h2>
+
+      <?php if (empty($orderItems)): ?>
+        <div class="alert alert-warning" style="margin-bottom: 2rem;">
+          <strong>No products selected.</strong> Please go back to Step 2 and add products to your order.
+        </div>
+        <div class="form-actions">
+          <a href="?page=wholesale&step=2" class="btn btn-secondary">← Back to Products</a>
+        </div>
+      <?php else: ?>
+        <!-- Order Summary -->
+        <div class="card" style="margin-bottom: 1.5rem;">
+          <div class="card-body">
+            <h3 style="font-size: 1.125rem; margin-bottom: 1rem; color: var(--ink);">Order Summary</h3>
+
+            <table class="table" style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr style="border-bottom: 2px solid var(--border);">
+                  <th style="padding: 0.75rem; text-align: left; font-weight: 600; font-size: 0.875rem;">Patient</th>
+                  <th style="padding: 0.75rem; text-align: left; font-weight: 600; font-size: 0.875rem;">Delivery Address</th>
+                  <th style="padding: 0.75rem; text-align: left; font-weight: 600; font-size: 0.875rem;">Product</th>
+                  <th style="padding: 0.75rem; text-align: right; font-weight: 600; font-size: 0.875rem;">Boxes</th>
+                  <th style="padding: 0.75rem; text-align: right; font-weight: 600; font-size: 0.875rem;">Price/Box</th>
+                  <th style="padding: 0.75rem; text-align: right; font-weight: 600; font-size: 0.875rem;">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php
+                $currentPatient = null;
+                foreach ($orderItems as $item):
+                  $patient = $item['patient'];
+                  $product = $item['product'];
+                  $showPatientInfo = ($currentPatient !== $item['patient_index']);
+                  $currentPatient = $item['patient_index'];
+
+                  $patientName = htmlspecialchars($patient['first_name'] . ' ' . $patient['last_name']);
+
+                  // Format address
+                  $address = '';
+                  if ($patient['delivery_preference'] === 'office_stock') {
+                    $address = '<em style="color: var(--muted);">Office Stock</em>';
+                  } else {
+                    $addressParts = array_filter([
+                      $patient['address'] ?? '',
+                      $patient['city'] ?? '',
+                      $patient['state'] ?? '',
+                      $patient['zip'] ?? ''
+                    ]);
+                    $address = htmlspecialchars(implode(', ', $addressParts));
+                  }
+                ?>
+                  <tr style="border-bottom: 1px solid var(--border);">
+                    <?php if ($showPatientInfo): ?>
+                      <td style="padding: 0.75rem; font-size: 0.875rem; vertical-align: top;">
+                        <strong><?= $patientName ?></strong><br>
+                        <small style="color: var(--muted);"><?= htmlspecialchars($patient['phone'] ?? '') ?></small>
+                      </td>
+                      <td style="padding: 0.75rem; font-size: 0.875rem; vertical-align: top;">
+                        <?= $address ?>
+                      </td>
+                    <?php else: ?>
+                      <td colspan="2" style="padding: 0.75rem; font-size: 0.875rem;"></td>
+                    <?php endif; ?>
+                    <td style="padding: 0.75rem; font-size: 0.875rem;">
+                      <?= htmlspecialchars($product['name']) ?>
+                    </td>
+                    <td style="padding: 0.75rem; text-align: right; font-size: 0.875rem;">
+                      <?= $item['boxes'] ?>
+                    </td>
+                    <td style="padding: 0.75rem; text-align: right; font-size: 0.875rem;">
+                      $<?= number_format($item['price_per_box'], 2) ?>
+                    </td>
+                    <td style="padding: 0.75rem; text-align: right; font-size: 0.875rem; font-weight: 600;">
+                      $<?= number_format($item['line_total'], 2) ?>
+                    </td>
+                  </tr>
+                <?php endforeach; ?>
+                <tr style="border-top: 2px solid var(--border);">
+                  <td colspan="5" style="padding: 1rem; text-align: right; font-weight: 600; font-size: 1rem;">
+                    Grand Total:
+                  </td>
+                  <td style="padding: 1rem; text-align: right; font-weight: 700; font-size: 1.125rem; color: var(--primary);">
+                    $<?= number_format($grandTotal, 2) ?>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Order Notes -->
+        <div class="card" style="margin-bottom: 1.5rem;">
+          <div class="card-body">
+            <label for="order-notes" style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Order Notes (Optional)</label>
+            <textarea
+              id="order-notes"
+              name="order_notes"
+              rows="3"
+              class="form-control"
+              placeholder="Add any special instructions or notes for this order..."
+              style="width: 100%; resize: vertical;"
+            ></textarea>
+          </div>
+        </div>
+
+        <!-- Submit Section -->
+        <form id="submit-order-form" method="POST" action="/api/portal/wholesale-order.create.php">
+          <input type="hidden" name="order_data" id="order-data-input" value="">
+
+          <div class="card" style="margin-bottom: 1.5rem; background: #f8f9fa;">
+            <div class="card-body">
+              <div style="display: flex; align-items: start; gap: 0.75rem;">
+                <input type="checkbox" id="confirm-order" required style="margin-top: 0.25rem;">
+                <label for="confirm-order" style="flex: 1; font-size: 0.875rem;">
+                  I confirm that this wholesale order is accurate and authorize the creation of <?= count($orderItems) ?> order(s)
+                  totaling <strong>$<?= number_format($grandTotal, 2) ?></strong>.
+                  This will be added to the practice account balance.
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div id="submit-error" class="alert alert-danger" style="display: none; margin-bottom: 1rem;"></div>
+          <div id="submit-success" class="alert alert-success" style="display: none; margin-bottom: 1rem;"></div>
+
+          <div class="form-actions">
+            <a href="?page=wholesale&step=2" class="btn btn-secondary">← Back to Products</a>
+            <button type="submit" id="submit-btn" class="btn btn-primary">
+              Submit Wholesale Order
+            </button>
+          </div>
+        </form>
+
+        <script>
+        // Prepare order data
+        const orderData = <?= json_encode([
+          'patients' => $patients,
+          'products' => $savedProducts,
+          'items' => $orderItems,
+          'grand_total' => $grandTotal
+        ]) ?>;
+
+        // Handle form submission
+        document.getElementById('submit-order-form').addEventListener('submit', async function(e) {
+          e.preventDefault();
+
+          const submitBtn = document.getElementById('submit-btn');
+          const errorDiv = document.getElementById('submit-error');
+          const successDiv = document.getElementById('submit-success');
+
+          // Disable button and show loading
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Submitting...';
+          errorDiv.style.display = 'none';
+          successDiv.style.display = 'none';
+
+          try {
+            // Add order notes to data
+            orderData.notes = document.getElementById('order-notes').value;
+
+            // Submit the order
+            const response = await fetch('/api/portal/wholesale-order.create.php', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(orderData)
+            });
+
+            const result = await response.json();
+
+            if (result.ok) {
+              // Success - show message and redirect
+              successDiv.textContent = `Success! Created ${result.orders_created || 0} wholesale order(s).`;
+              successDiv.style.display = 'block';
+
+              // Clear session data
+              <?php
+                unset($_SESSION['wholesale_patients']);
+                unset($_SESSION['wholesale_products']);
+              ?>
+
+              // Redirect to orders page after 2 seconds
+              setTimeout(() => {
+                window.location.href = '?page=orders';
+              }, 2000);
+            } else {
+              // Error
+              errorDiv.textContent = 'Error: ' + (result.error || 'Failed to create order');
+              errorDiv.style.display = 'block';
+              submitBtn.disabled = false;
+              submitBtn.textContent = 'Submit Wholesale Order';
+            }
+          } catch (error) {
+            console.error('Order submission error:', error);
+            errorDiv.textContent = 'Error: Failed to submit order. Please try again.';
+            errorDiv.style.display = 'block';
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Submit Wholesale Order';
+          }
+        });
+        </script>
+      <?php endif; ?>
     </div>
 
   <?php endif; ?>
