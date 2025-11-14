@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 header('Content-Type: text/plain');
 
-echo "=== Database Schema Copy Tool ===\n\n";
+echo "=== Database Schema Copy Tool (v2) ===\n\n";
 
 // OLD DATABASE credentials
 $oldDb = [
