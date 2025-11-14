@@ -860,7 +860,28 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
       products.forEach(product => {
         const option = document.createElement('option');
         option.value = product.id;
-        option.textContent = product.size || 'Standard';
+
+        // Extract size from product name
+        // Product names typically end with size (e.g., "AlgiHeal AG Silver Alginate Dressing 2x2")
+        const nameParts = product.name.split(' ');
+        const lastPart = nameParts[nameParts.length - 1];
+
+        // Check if last part looks like a size (contains 'x' or is a dimension)
+        let sizeText = product.size || lastPart;
+
+        // If it's just the category name repeated, extract size differently
+        if (!sizeText || sizeText === selectedCategory) {
+          // Look for patterns like "2x2", "4.33x4.33", "6x6" in the full name
+          const sizeMatch = product.name.match(/(\d+(?:\.\d+)?)\s*x\s*(\d+(?:\.\d+)?)/i);
+          if (sizeMatch) {
+            sizeText = sizeMatch[0]; // e.g., "2x2" or "4.33x4.33"
+          } else {
+            // Fallback to showing the full product name
+            sizeText = product.name.replace(selectedCategory, '').trim() || 'Standard';
+          }
+        }
+
+        option.textContent = sizeText;
         sizeSelect.appendChild(option);
       });
 
