@@ -12,10 +12,14 @@ if (session_status() === PHP_SESSION_NONE) {
 // This file is included by portal/index.php
 global $pdo, $cu;
 
-// Check if user is logged in
+// Check if user is logged in (index.php handles auth, but double-check)
 if (!isset($cu) || !is_array($cu) || !isset($cu['id'])) {
-  header('Location: /login.php');
-  exit;
+  echo '<div style="padding: 2rem; text-align: center;">';
+  echo '<h2>Access Denied</h2>';
+  echo '<p>You must be logged in to access wholesale ordering.</p>';
+  echo '<a href="/login.php" style="color: #3b82f6;">Click here to log in</a>';
+  echo '</div>';
+  return;
 }
 
 $userId = $cu['id'];
