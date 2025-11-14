@@ -446,7 +446,7 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
     </script>
 
   <?php elseif ($step == '2'): ?>
-    <!-- STEP 2: Product Assignment with Column-Based Selection -->
+    <!-- STEP 2: Product Assignment - Patient-Centric with Grouped Products -->
     <?php
     // Get patients from POST or session
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['patients'])) {
@@ -461,11 +461,21 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
         <p style="color: var(--muted); margin-bottom: 1rem;">No patients found. Please add patients first.</p>
         <a href="?page=wholesale&step=1" class="btn btn-primary">← Back to Patient Entry</a>
       </div>
-    <?php else: ?>
+    <?php else:
+      // Group products by base name (category)
+      $productGroups = [];
+      foreach ($products as $product) {
+        $baseName = $product['name']; // e.g., "CollaHeal Collagen Wound Dressing"
+        if (!isset($productGroups[$baseName])) {
+          $productGroups[$baseName] = [];
+        }
+        $productGroups[$baseName][] = $product;
+      }
+    ?>
 
     <div style="margin-bottom: 2rem;">
       <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--ink); margin-bottom: 0.5rem;">Assign Products</h2>
-      <p style="color: var(--muted); font-size: 0.875rem;">Enter the number of boxes for each product per patient. Leave blank to skip.</p>
+      <p style="color: var(--muted); font-size: 0.875rem;">Select products and quantities for each patient. Click "Add Product" to assign items.</p>
     </div>
 
     <form method="POST" action="?page=wholesale&step=3">
@@ -478,64 +488,47 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
         <input type="hidden" name="patients[<?= $index ?>][delivery_mode]" value="<?= htmlspecialchars($patient['delivery_mode'] ?? '') ?>">
       <?php endforeach; ?>
 
-      <div style="overflow-x: auto; margin-bottom: 2rem;">
-        <table class="product-table">
-          <thead>
-            <tr>
-              <th style="min-width: 200px;">Product</th>
-              <th style="width: 120px;">Price/Box</th>
-              <th style="width: 100px;">Pcs/Box</th>
-              <?php foreach ($patients as $index => $patient): ?>
-                <th style="width: 120px; text-align: center;">
-                  <?= htmlspecialchars($patient['first_name'] ?? '') ?><br>
-                  <span style="font-weight: normal; text-transform: none; font-size: 0.7rem;">Boxes</span>
-                </th>
-              <?php endforeach; ?>
-              <th style="width: 120px; text-align: right;">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php foreach ($products as $product):
-              $pricePerPiece = (float)($product['price_wholesale'] ?? 0);
-              $piecesPerBox = (int)($product['pieces_per_box'] ?? 10);
-              $pricePerBox = $pricePerPiece * $piecesPerBox;
-            ?>
-            <tr data-product-id="<?= $product['id'] ?>" data-price-per-box="<?= $pricePerBox ?>">
-              <td>
-                <div style="font-weight: 500;"><?= htmlspecialchars($product['name']) ?> <?= htmlspecialchars($product['size']) ?></div>
-              </td>
-              <td style="color: var(--muted);">$<?= number_format($pricePerBox, 2) ?></td>
-              <td style="color: var(--muted); text-align: center;"><?= $piecesPerBox ?></td>
-              <?php foreach ($patients as $patIndex => $patient): ?>
-                <td style="text-align: center;">
-                  <input
-                    type="number"
-                    name="products[<?= $product['id'] ?>][patients][<?= $patIndex ?>]"
-                    class="quantity-input"
-                    min="0"
-                    max="100"
-                    placeholder="0"
-                    onchange="calculateTotals()"
-                  >
-                </td>
-              <?php endforeach; ?>
-              <td style="text-align: right; font-weight: 600;" class="row-total">$0.00</td>
-            </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
+      <!-- Patient-Centric Product Assignment -->
+      <div style="display: flex; flex-direction: column; gap: 2rem; margin-bottom: 2rem;">
+        <?php foreach ($patients as $patIndex => $patient): ?>
+          <div class="patient-product-card" style="background: white; border: 2px solid var(--border); border-radius: 8px; padding: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid var(--border);">
+              <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--ink); margin: 0;">
+                <?= htmlspecialchars($patient['first_name'] . ' ' . $patient['last_name']) ?>
+              </h3>
+              <div style="color: var(--muted); font-size: 0.875rem;">
+                Patient <?= $patIndex + 1 ?> of <?= count($patients) ?>
+              </div>
+            </div>
+
+            <!-- Product assignment rows for this patient -->
+            <div class="product-rows" id="patient-<?= $patIndex ?>-products">
+              <!-- Product rows will be added here dynamically -->
+            </div>
+
+            <button type="button" class="btn" onclick="addProductRow(<?= $patIndex ?>)" style="margin-top: 1rem;">
+              <span style="font-size: 1.25rem;">+</span> Add Product
+            </button>
+
+            <!-- Patient subtotal -->
+            <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border); text-align: right;">
+              <span style="font-weight: 600; color: var(--ink);">Patient Subtotal: </span>
+              <span id="patient-<?= $patIndex ?>-total" style="font-size: 1.125rem; font-weight: 700; color: var(--brand);">$0.00</span>
+            </div>
+          </div>
+        <?php endforeach; ?>
       </div>
 
-      <!-- Cost Summary -->
-      <div class="cost-summary">
+      <!-- Grand Total Summary -->
+      <div class="cost-summary" style="background: #f8f9fa; border: 2px solid var(--border); border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem;">
         <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">Order Summary</h3>
         <div id="summary-details">
-          <p style="color: var(--muted);">Select product quantities to see cost breakdown</p>
+          <p style="color: var(--muted);">Add products to see cost breakdown</p>
         </div>
-        <div class="cost-summary-total">
-          <div class="cost-summary-row">
-            <span>Grand Total:</span>
-            <span id="grand-total" style="color: var(--brand);">$0.00</span>
+        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 2px solid var(--border);">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 1.25rem; font-weight: 700;">Grand Total:</span>
+            <span id="grand-total" style="font-size: 1.5rem; font-weight: 700; color: var(--brand);">$0.00</span>
           </div>
         </div>
       </div>
@@ -547,48 +540,176 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
     </form>
 
     <script>
-    function calculateTotals() {
+    // Product catalog with grouped sizes
+    const productCatalog = <?= json_encode($productGroups) ?>;
+    const productData = <?= json_encode(array_column($products, null, 'id')) ?>;
+
+    let productRowCounters = {};
+
+    function addProductRow(patientIndex) {
+      if (!productRowCounters[patientIndex]) {
+        productRowCounters[patientIndex] = 0;
+      }
+      const rowIndex = productRowCounters[patientIndex]++;
+      const container = document.getElementById(`patient-${patientIndex}-products`);
+
+      const row = document.createElement('div');
+      row.className = 'product-assignment-row';
+      row.dataset.patientIndex = patientIndex;
+      row.dataset.rowIndex = rowIndex;
+      row.style.cssText = 'display: grid; grid-template-columns: 2fr 1fr 1fr 60px; gap: 1rem; align-items: start; padding: 1rem; background: #f8f9fa; border-radius: 6px; margin-bottom: 1rem;';
+
+      row.innerHTML = `
+        <div>
+          <label style="display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem; color: var(--ink);">Product Category</label>
+          <select class="form-control product-selector" onchange="updateSizeOptions(${patientIndex}, ${rowIndex})" required>
+            <option value="">Select product...</option>
+            ${Object.keys(productCatalog).map(category =>
+              `<option value="${category}">${category}</option>`
+            ).join('')}
+          </select>
+        </div>
+
+        <div class="size-selector-container" style="display: none;">
+          <label style="display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem; color: var(--ink);">Size</label>
+          <select class="form-control size-selector" onchange="updateProductSelection(${patientIndex}, ${rowIndex})" required>
+            <option value="">Select size...</option>
+          </select>
+        </div>
+
+        <div class="quantity-container" style="display: none;">
+          <label style="display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem; color: var(--ink);">Boxes</label>
+          <input type="number" class="form-control quantity-input" min="1" max="100" placeholder="1" onchange="calculatePatientTotal(${patientIndex})" required>
+          <div class="price-info" style="font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem;"></div>
+        </div>
+
+        <div style="padding-top: 1.75rem;">
+          <button type="button" class="remove-btn" onclick="removeProductRow(${patientIndex}, ${rowIndex})" title="Remove product" style="background: #dc3545; color: white; border: none; border-radius: 4px; width: 40px; height: 40px; cursor: pointer; font-size: 1.25rem; line-height: 1;">×</button>
+        </div>
+
+        <input type="hidden" class="product-id-input" name="products[${patientIndex}][${rowIndex}][product_id]" value="">
+        <input type="hidden" class="boxes-input" name="products[${patientIndex}][${rowIndex}][boxes]" value="">
+      `;
+
+      container.appendChild(row);
+    }
+
+    function updateSizeOptions(patientIndex, rowIndex) {
+      const row = document.querySelector(`[data-patient-index="${patientIndex}"][data-row-index="${rowIndex}"]`);
+      const productSelect = row.querySelector('.product-selector');
+      const sizeContainer = row.querySelector('.size-selector-container');
+      const sizeSelect = row.querySelector('.size-selector');
+      const quantityContainer = row.querySelector('.quantity-container');
+
+      const selectedCategory = productSelect.value;
+
+      if (!selectedCategory) {
+        sizeContainer.style.display = 'none';
+        quantityContainer.style.display = 'none';
+        return;
+      }
+
+      const products = productCatalog[selectedCategory];
+      sizeSelect.innerHTML = '<option value="">Select size...</option>';
+
+      products.forEach(product => {
+        const option = document.createElement('option');
+        option.value = product.id;
+        option.textContent = product.size || 'Standard';
+        sizeSelect.appendChild(option);
+      });
+
+      sizeContainer.style.display = 'block';
+      quantityContainer.style.display = 'none';
+    }
+
+    function updateProductSelection(patientIndex, rowIndex) {
+      const row = document.querySelector(`[data-patient-index="${patientIndex}"][data-row-index="${rowIndex}"]`);
+      const sizeSelect = row.querySelector('.size-selector');
+      const quantityContainer = row.querySelector('.quantity-container');
+      const priceInfo = row.querySelector('.price-info');
+      const productIdInput = row.querySelector('.product-id-input');
+
+      const selectedProductId = sizeSelect.value;
+
+      if (!selectedProductId) {
+        quantityContainer.style.display = 'none';
+        return;
+      }
+
+      const product = productData[selectedProductId];
+      const pricePerPiece = parseFloat(product.price_wholesale || 0);
+      const piecesPerBox = parseInt(product.pieces_per_box || 10);
+      const pricePerBox = pricePerPiece * piecesPerBox;
+
+      priceInfo.textContent = `$${pricePerBox.toFixed(2)}/box (${piecesPerBox} pieces)`;
+      productIdInput.value = selectedProductId;
+      quantityContainer.style.display = 'block';
+
+      calculatePatientTotal(patientIndex);
+    }
+
+    function removeProductRow(patientIndex, rowIndex) {
+      const row = document.querySelector(`[data-patient-index="${patientIndex}"][data-row-index="${rowIndex}"]`);
+      if (row) {
+        row.remove();
+        calculatePatientTotal(patientIndex);
+      }
+    }
+
+    function calculatePatientTotal(patientIndex) {
+      const container = document.getElementById(`patient-${patientIndex}-products`);
+      const rows = container.querySelectorAll('.product-assignment-row');
+      let patientTotal = 0;
+
+      rows.forEach(row => {
+        const productId = row.querySelector('.product-id-input').value;
+        const quantityInput = row.querySelector('.quantity-input');
+        const boxesInput = row.querySelector('.boxes-input');
+        const boxes = parseInt(quantityInput.value) || 0;
+
+        if (productId && boxes > 0) {
+          const product = productData[productId];
+          const pricePerPiece = parseFloat(product.price_wholesale || 0);
+          const piecesPerBox = parseInt(product.pieces_per_box || 10);
+          const pricePerBox = pricePerPiece * piecesPerBox;
+          patientTotal += boxes * pricePerBox;
+          boxesInput.value = boxes;
+        }
+      });
+
+      document.getElementById(`patient-${patientIndex}-total`).textContent = '$' + patientTotal.toFixed(2);
+      calculateGrandTotal();
+    }
+
+    function calculateGrandTotal() {
       let grandTotal = 0;
-      let hasAnyQuantity = false;
+      let hasAnyProducts = false;
       const summaryDetails = [];
 
-      // Calculate row totals
-      document.querySelectorAll('.product-table tbody tr').forEach(row => {
-        const pricePerBox = parseFloat(row.dataset.pricePerBox);
-        let rowTotal = 0;
-        let rowBoxCount = 0;
-
-        row.querySelectorAll('.quantity-input').forEach(input => {
-          const boxes = parseInt(input.value) || 0;
-          rowTotal += boxes * pricePerBox;
-          rowBoxCount += boxes;
-        });
-
-        if (rowBoxCount > 0) {
-          hasAnyQuantity = true;
-          const productName = row.querySelector('td:first-child div').textContent.trim();
+      <?php foreach ($patients as $patIndex => $patient): ?>
+        const patient<?= $patIndex ?>Total = parseFloat(document.getElementById('patient-<?= $patIndex ?>-total').textContent.replace('$', ''));
+        if (patient<?= $patIndex ?>Total > 0) {
+          hasAnyProducts = true;
           summaryDetails.push({
-            name: productName,
-            boxes: rowBoxCount,
-            total: rowTotal
+            name: '<?= htmlspecialchars($patient['first_name'] . ' ' . $patient['last_name']) ?>',
+            total: patient<?= $patIndex ?>Total
           });
         }
-
-        row.querySelector('.row-total').textContent = '$' + rowTotal.toFixed(2);
-        grandTotal += rowTotal;
-      });
+        grandTotal += patient<?= $patIndex ?>Total;
+      <?php endforeach; ?>
 
       // Update summary
       const summaryDiv = document.getElementById('summary-details');
       if (summaryDetails.length === 0) {
-        summaryDiv.innerHTML = '<p style="color: var(--muted);">Select product quantities to see cost breakdown</p>';
+        summaryDiv.innerHTML = '<p style="color: var(--muted);">Add products to see cost breakdown</p>';
       } else {
         let html = '<div style="display: flex; flex-direction: column; gap: 0.5rem;">';
         summaryDetails.forEach(item => {
           html += `
-            <div class="cost-summary-row" style="font-size: 0.875rem;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
               <span>${item.name}</span>
-              <span style="color: var(--muted);">${item.boxes} boxes × $${item.total.toFixed(2)}</span>
+              <span style="font-weight: 600;">$${item.total.toFixed(2)}</span>
             </div>
           `;
         });
@@ -597,11 +718,13 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
       }
 
       document.getElementById('grand-total').textContent = '$' + grandTotal.toFixed(2);
-      document.getElementById('proceed-btn').disabled = !hasAnyQuantity;
+      document.getElementById('proceed-btn').disabled = !hasAnyProducts;
     }
 
-    // Initialize
-    calculateTotals();
+    // Initialize - add first product row for each patient
+    <?php foreach ($patients as $patIndex => $patient): ?>
+      addProductRow(<?= $patIndex ?>);
+    <?php endforeach; ?>
     </script>
 
     <?php endif; ?>
