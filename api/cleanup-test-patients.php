@@ -137,9 +137,27 @@ try {
     echo "7. No orders to delete\n\n";
   }
 
-  // Delete billable encounters first (billable_encounters is referenced by wound_photos)
+  // Break circular FK references: NULL out foreign keys first
+  if ($photoCount > 0 || $encounterCount > 0) {
+    echo "8. Breaking circular foreign key references...\n";
+    // NULL out wound_photos.billable_encounter_id
+    $nullPhotoFK = $pdo->prepare("
+      UPDATE wound_photos SET billable_encounter_id = NULL
+      WHERE patient_id IN ($placeholders)
+    ");
+    $nullPhotoFK->execute($patientIds);
+    // NULL out billable_encounters.wound_photo_id
+    $nullEncounterFK = $pdo->prepare("
+      UPDATE billable_encounters SET wound_photo_id = NULL
+      WHERE patient_id IN ($placeholders)
+    ");
+    $nullEncounterFK->execute($patientIds);
+    echo "   ✓ Foreign key references cleared\n\n";
+  }
+
+  // Now delete billable encounters (safe - FKs are NULL)
   if ($encounterCount > 0) {
-    echo "8. Deleting $encounterCount billable encounter(s)...\n";
+    echo "9. Deleting $encounterCount billable encounter(s)...\n";
     $deleteEncounters = $pdo->prepare("
       DELETE FROM billable_encounters
       WHERE patient_id IN ($placeholders)
@@ -147,12 +165,12 @@ try {
     $deleteEncounters->execute($patientIds);
     echo "   ✓ Billable encounters deleted\n\n";
   } else {
-    echo "8. No billable encounters to delete\n\n";
+    echo "9. No billable encounters to delete\n\n";
   }
 
-  // Now delete wound photos (safe now that billable_encounters are gone)
+  // Now delete wound photos (safe - FKs are NULL)
   if ($photoCount > 0) {
-    echo "9. Deleting $photoCount related wound photo(s)...\n";
+    echo "10. Deleting $photoCount related wound photo(s)...\n";
     $deletePhotos = $pdo->prepare("
       DELETE FROM wound_photos
       WHERE patient_id IN ($placeholders)
@@ -160,11 +178,11 @@ try {
     $deletePhotos->execute($patientIds);
     echo "   ✓ Wound photos deleted\n\n";
   } else {
-    echo "9. No wound photos to delete\n\n";
+    echo "10. No wound photos to delete\n\n";
   }
 
   // Delete the patients
-  echo "10. Deleting $patientCount patient record(s)...\n";
+  echo "11. Deleting $patientCount patient record(s)...\n";
   $deletePatients = $pdo->prepare("
     DELETE FROM patients
     WHERE created_at < ?
