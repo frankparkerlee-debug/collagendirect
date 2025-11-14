@@ -690,15 +690,19 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
       </div>
     <?php else:
       // Extract core product names for simplified grouping
-      // e.g., "AlgiHeal Alginate Dressing" -> "AlgiHeal Alginate"
+      // e.g., "AlgiHeal AG Silver Alginate Dressing 2x2" -> "AlgiHeal AG Silver Alginate Dressing"
       $productGroups = [];
       $coreProductNames = [];
 
       foreach ($products as $product) {
         $fullName = $product['name'];
 
-        // Extract core product name (remove generic suffixes)
-        $coreName = preg_replace('/(Dressing|Powder|Foam|Hydrogel|Kit)$/i', '', $fullName);
+        // First, remove size dimensions (e.g., "2x2", "4.33x4.33", "6x6")
+        $coreName = preg_replace('/\s*\d+(?:\.\d+)?\s*x\s*\d+(?:\.\d+)?\s*$/i', '', $fullName);
+
+        // Then remove generic suffixes if they're at the end (but keep "Dressing" if it's part of the core name)
+        // Only remove if it's truly a suffix (not part of the product identity)
+        // $coreName = preg_replace('/(Dressing|Powder|Foam|Hydrogel|Kit)$/i', '', $coreName);
         $coreName = trim($coreName);
 
         // Store mapping
