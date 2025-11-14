@@ -493,7 +493,7 @@
               <input type="radio" name="userType" value="practice_admin" required />
               <div class="card-content">
                 <h3>Practice Manager / Admin</h3>
-                <p>Manage practice details, physicians, and refer patients. No DME license required.</p>
+                <p>Manage your practice and physicians. Refer patients — CollagenDirect handles billing and shipping.</p>
               </div>
             </label>
 
@@ -502,7 +502,7 @@
               <input type="radio" name="userType" value="physician" />
               <div class="card-content">
                 <h3>Physician</h3>
-                <p>Join an existing practice. Sign orders for your own patients.</p>
+                <p>Join an existing practice. Order for your patients — CollagenDirect handles billing and shipping.</p>
               </div>
             </label>
 
@@ -510,8 +510,8 @@
             <label class="user-type-card" data-type="dme_wholesale">
               <input type="radio" name="userType" value="dme_wholesale" />
               <div class="card-content">
-                <h3>DME Wholesale Only</h3>
-                <p>Hold a DME license. Direct bill all patients and purchase products wholesale.</p>
+                <h3>DME Wholesale Provider</h3>
+                <p>Hold a DME license. Purchase products at wholesale prices and bill patients directly yourself.</p>
               </div>
             </label>
           </div>
