@@ -2,8 +2,19 @@
 // /public/api/portal/wholesale-order.create.php
 // Creates multiple wholesale orders from bulk order form
 declare(strict_types=1);
-require __DIR__ . '/../../admin/db.php';
+
+// Set JSON header and error handling first
 header('Content-Type: application/json');
+error_reporting(0); // Suppress PHP warnings/notices that could break JSON
+ini_set('display_errors', '0');
+
+try {
+  require __DIR__ . '/../../admin/db.php';
+} catch (Throwable $e) {
+  http_response_code(500);
+  echo json_encode(['ok' => false, 'error' => 'database_connection_failed', 'details' => $e->getMessage()]);
+  exit;
+}
 
 if (empty($_SESSION['user_id'])) {
   http_response_code(401);

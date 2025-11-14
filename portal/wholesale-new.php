@@ -1067,6 +1067,14 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
     // Get saved products from session
     $savedProducts = $_SESSION['wholesale_products'] ?? [];
 
+    // Get practice address for office stock deliveries
+    $practiceAddress = [];
+    if (!empty($_SESSION['user_id'])) {
+      $userStmt = $pdo->prepare("SELECT practice_name, address, city, state, zip, phone FROM users WHERE id = ?");
+      $userStmt->execute([$_SESSION['user_id']]);
+      $practiceAddress = $userStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+    }
+
     // Calculate totals
     $orderItems = [];
     $grandTotal = 0;
@@ -1147,8 +1155,19 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
                   $deliveryType = '';
                   $address = '';
                   if (($patient['delivery_preference'] ?? '') === 'office_stock' || ($patient['is_office_stock'] ?? '') === '1') {
-                    $deliveryType = 'Practice';
-                    $address = '<em style="color: var(--muted);">Office Stock</em>';
+                    $deliveryType = 'Office';
+                    // Use practice address for office stock
+                    $addressParts = array_filter([
+                      $practiceAddress['address'] ?? '',
+                      $practiceAddress['city'] ?? '',
+                      $practiceAddress['state'] ?? '',
+                      $practiceAddress['zip'] ?? ''
+                    ]);
+                    if (!empty($addressParts)) {
+                      $address = htmlspecialchars(implode(', ', $addressParts));
+                    } else {
+                      $address = '<em style="color: var(--muted);">Office Address (Not Set)</em>';
+                    }
                   } else {
                     $deliveryType = 'Patient';
                     $addressParts = array_filter([
@@ -1169,7 +1188,7 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
                         <small style="color: var(--muted);"><?= htmlspecialchars($patient['phone'] ?? '') ?></small>
                       </td>
                       <td style="padding: 0.75rem; text-align: center; font-size: 0.875rem; vertical-align: top;">
-                        <span style="display: inline-block; padding: 0.25rem 0.5rem; background: <?= $deliveryType === 'Practice' ? '#e0f2fe' : '#f0fdf4' ?>; color: <?= $deliveryType === 'Practice' ? '#0369a1' : '#15803d' ?>; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">
+                        <span style="display: inline-block; padding: 0.25rem 0.5rem; background: <?= $deliveryType === 'Office' ? '#e0f2fe' : '#f0fdf4' ?>; color: <?= $deliveryType === 'Office' ? '#0369a1' : '#15803d' ?>; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">
                           <?= $deliveryType ?>
                         </span>
                       </td>
