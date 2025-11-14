@@ -1119,11 +1119,12 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
           <div class="card-body">
             <h3 style="font-size: 1.125rem; margin-bottom: 1rem; color: var(--ink);">Order Summary</h3>
 
-            <table class="table" style="width: 100%; border-collapse: collapse;">
+            <table class="table" style="width: 100%; border-collapse: collapse;" id="review-table">
               <thead>
                 <tr style="border-bottom: 2px solid var(--border);">
                   <th style="padding: 0.75rem; text-align: left; font-weight: 600; font-size: 0.875rem;">Patient</th>
-                  <th style="padding: 0.75rem; text-align: left; font-weight: 600; font-size: 0.875rem;">Delivery Address</th>
+                  <th style="padding: 0.75rem; text-align: center; font-weight: 600; font-size: 0.875rem;">Delivery</th>
+                  <th style="padding: 0.75rem; text-align: left; font-weight: 600; font-size: 0.875rem;">Address</th>
                   <th style="padding: 0.75rem; text-align: left; font-weight: 600; font-size: 0.875rem;">Product</th>
                   <th style="padding: 0.75rem; text-align: right; font-weight: 600; font-size: 0.875rem;">Boxes</th>
                   <th style="padding: 0.75rem; text-align: right; font-weight: 600; font-size: 0.875rem;">Price/Box</th>
@@ -1133,6 +1134,7 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
               <tbody>
                 <?php
                 $currentPatient = null;
+                $rowIndex = 0;
                 foreach ($orderItems as $item):
                   $patient = $item['patient'];
                   $product = $item['product'];
@@ -1141,11 +1143,14 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
 
                   $patientName = htmlspecialchars($patient['first_name'] . ' ' . $patient['last_name']);
 
-                  // Format address
+                  // Format address and delivery type
+                  $deliveryType = '';
                   $address = '';
-                  if ($patient['delivery_preference'] === 'office_stock') {
+                  if (($patient['delivery_preference'] ?? '') === 'office_stock' || ($patient['is_office_stock'] ?? '') === '1') {
+                    $deliveryType = 'Practice';
                     $address = '<em style="color: var(--muted);">Office Stock</em>';
                   } else {
+                    $deliveryType = 'Patient';
                     $addressParts = array_filter([
                       $patient['address'] ?? '',
                       $patient['city'] ?? '',
@@ -1154,38 +1159,54 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
                     ]);
                     $address = htmlspecialchars(implode(', ', $addressParts));
                   }
+
+                  $rowIndex++;
                 ?>
-                  <tr style="border-bottom: 1px solid var(--border);">
+                  <tr style="border-bottom: 1px solid var(--border);" data-row="<?= $rowIndex ?>" data-price="<?= $item['price_per_box'] ?>">
                     <?php if ($showPatientInfo): ?>
                       <td style="padding: 0.75rem; font-size: 0.875rem; vertical-align: top;">
                         <strong><?= $patientName ?></strong><br>
                         <small style="color: var(--muted);"><?= htmlspecialchars($patient['phone'] ?? '') ?></small>
                       </td>
+                      <td style="padding: 0.75rem; text-align: center; font-size: 0.875rem; vertical-align: top;">
+                        <span style="display: inline-block; padding: 0.25rem 0.5rem; background: <?= $deliveryType === 'Practice' ? '#e0f2fe' : '#f0fdf4' ?>; color: <?= $deliveryType === 'Practice' ? '#0369a1' : '#15803d' ?>; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">
+                          <?= $deliveryType ?>
+                        </span>
+                      </td>
                       <td style="padding: 0.75rem; font-size: 0.875rem; vertical-align: top;">
                         <?= $address ?>
                       </td>
                     <?php else: ?>
-                      <td colspan="2" style="padding: 0.75rem; font-size: 0.875rem;"></td>
+                      <td colspan="3" style="padding: 0.75rem; font-size: 0.875rem;"></td>
                     <?php endif; ?>
                     <td style="padding: 0.75rem; font-size: 0.875rem;">
                       <?= htmlspecialchars($product['name']) ?>
                     </td>
                     <td style="padding: 0.75rem; text-align: right; font-size: 0.875rem;">
-                      <?= $item['boxes'] ?>
+                      <input
+                        type="number"
+                        class="quantity-edit"
+                        value="<?= $item['boxes'] ?>"
+                        min="1"
+                        max="999"
+                        data-row="<?= $rowIndex ?>"
+                        style="width: 60px; padding: 0.25rem 0.5rem; border: 1px solid var(--border); border-radius: 4px; text-align: right;"
+                        onchange="updateRowTotal(this)"
+                      >
                     </td>
-                    <td style="padding: 0.75rem; text-align: right; font-size: 0.875rem;">
+                    <td style="padding: 0.75rem; text-align: right; font-size: 0.875rem;" class="price-per-box">
                       $<?= number_format($item['price_per_box'], 2) ?>
                     </td>
-                    <td style="padding: 0.75rem; text-align: right; font-size: 0.875rem; font-weight: 600;">
+                    <td style="padding: 0.75rem; text-align: right; font-size: 0.875rem; font-weight: 600;" class="row-total">
                       $<?= number_format($item['line_total'], 2) ?>
                     </td>
                   </tr>
                 <?php endforeach; ?>
                 <tr style="border-top: 2px solid var(--border);">
-                  <td colspan="5" style="padding: 1rem; text-align: right; font-weight: 600; font-size: 1rem;">
+                  <td colspan="6" style="padding: 1rem; text-align: right; font-weight: 600; font-size: 1rem;">
                     Grand Total:
                   </td>
-                  <td style="padding: 1rem; text-align: right; font-weight: 700; font-size: 1.125rem; color: var(--primary);">
+                  <td style="padding: 1rem; text-align: right; font-weight: 700; font-size: 1.125rem; color: var(--primary);" id="grand-total-display">
                     $<?= number_format($grandTotal, 2) ?>
                   </td>
                 </tr>
@@ -1218,9 +1239,10 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
               <div style="display: flex; align-items: start; gap: 0.75rem;">
                 <input type="checkbox" id="confirm-order" required style="margin-top: 0.25rem;">
                 <label for="confirm-order" style="flex: 1; font-size: 0.875rem;">
-                  I confirm that this wholesale order is accurate and authorize the creation of <?= count($orderItems) ?> order(s)
-                  totaling <strong>$<?= number_format($grandTotal, 2) ?></strong>.
-                  This will be added to the practice account balance.
+                  I confirm that this wholesale order is accurate and authorize the creation of <strong id="order-count"><?= count($orderItems) ?></strong> order(s)
+                  totaling <strong id="confirm-total">$<?= number_format($grandTotal, 2) ?></strong>.
+                  This will be added to the practice account balance. By checking this box, I agree to our
+                  <a href="?page=esignature-policy" target="_blank" style="color: var(--primary); text-decoration: underline;">Electronic Signature Policy</a>.
                 </label>
               </div>
             </div>
@@ -1239,12 +1261,67 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
 
         <script>
         // Prepare order data
-        const orderData = <?= json_encode([
+        let orderData = <?= json_encode([
           'patients' => $patients,
           'products' => $savedProducts,
           'items' => $orderItems,
           'grand_total' => $grandTotal
         ]) ?>;
+
+        // Function to update row total when quantity changes
+        function updateRowTotal(input) {
+          const row = input.closest('tr');
+          const quantity = parseInt(input.value) || 1;
+          const pricePerBox = parseFloat(row.dataset.price);
+          const rowTotal = quantity * pricePerBox;
+
+          // Update the row total display
+          row.querySelector('.row-total').textContent = '$' + rowTotal.toFixed(2);
+
+          // Recalculate grand total
+          let grandTotal = 0;
+          document.querySelectorAll('.quantity-edit').forEach(qtyInput => {
+            const qtyRow = qtyInput.closest('tr');
+            const qty = parseInt(qtyInput.value) || 1;
+            const price = parseFloat(qtyRow.dataset.price);
+            grandTotal += qty * price;
+          });
+
+          // Update grand total display
+          document.getElementById('grand-total-display').textContent = '$' + grandTotal.toFixed(2);
+          document.getElementById('confirm-total').textContent = '$' + grandTotal.toFixed(2);
+
+          // Update orderData
+          updateOrderData();
+        }
+
+        // Function to rebuild orderData from current quantities
+        function updateOrderData() {
+          const updatedItems = [];
+          let grandTotal = 0;
+
+          orderData.items.forEach((item, index) => {
+            const qtyInput = document.querySelector(`.quantity-edit[data-row="${index + 1}"]`);
+            if (qtyInput) {
+              const newQuantity = parseInt(qtyInput.value) || item.boxes;
+              const newLineTotal = newQuantity * item.price_per_box;
+
+              updatedItems.push({
+                ...item,
+                boxes: newQuantity,
+                line_total: newLineTotal
+              });
+
+              grandTotal += newLineTotal;
+            } else {
+              updatedItems.push(item);
+              grandTotal += item.line_total;
+            }
+          });
+
+          orderData.items = updatedItems;
+          orderData.grand_total = grandTotal;
+        }
 
         // Handle form submission
         document.getElementById('submit-order-form').addEventListener('submit', async function(e) {

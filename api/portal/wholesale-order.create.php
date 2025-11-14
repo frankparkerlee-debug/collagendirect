@@ -2,7 +2,7 @@
 // /public/api/portal/wholesale-order.create.php
 // Creates multiple wholesale orders from bulk order form
 declare(strict_types=1);
-require __DIR__ . '/../db.php';
+require __DIR__ . '/../../admin/db.php';
 header('Content-Type: application/json');
 
 if (empty($_SESSION['user_id'])) {
