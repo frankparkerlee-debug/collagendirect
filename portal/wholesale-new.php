@@ -308,11 +308,25 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
     </div>
 
     <form id="patients-form" method="POST" action="?page=wholesale&step=2">
-      <div id="patient-list">
-        <!-- Patient entries will be added here dynamically -->
+      <div style="overflow-x: auto; margin-bottom: 1.5rem;">
+        <table class="patient-table" style="width: 100%; border-collapse: collapse; background: white; border: 1px solid var(--border); border-radius: 8px;">
+          <thead>
+            <tr style="background-color: #f8f9fa; border-bottom: 2px solid var(--border);">
+              <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: var(--ink);">First Name</th>
+              <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: var(--ink);">Last Name</th>
+              <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: var(--ink);">Phone</th>
+              <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: var(--ink);">Address</th>
+              <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: var(--ink);">Delivery</th>
+              <th style="padding: 0.75rem; text-align: center; font-weight: 600; color: var(--ink); width: 60px;">Action</th>
+            </tr>
+          </thead>
+          <tbody id="patient-rows">
+            <!-- Patient rows will be added here dynamically -->
+          </tbody>
+        </table>
       </div>
 
-      <button type="button" class="btn" onclick="addPatient()">
+      <button type="button" class="btn" onclick="addPatientRow()" style="margin-bottom: 1.5rem;">
         <span style="font-size: 1.25rem;">+</span> Add Patient
       </button>
 
@@ -323,55 +337,72 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
     </form>
 
     <script>
-    let patientCount = 0;
+    let patientRowCount = 0;
 
-    function addPatient() {
-      const patientList = document.getElementById('patient-list');
-      const index = patientCount++;
+    function addPatientRow() {
+      const tbody = document.getElementById('patient-rows');
+      const index = patientRowCount++;
 
-      const patientDiv = document.createElement('div');
-      patientDiv.className = 'patient-card';
-      patientDiv.dataset.index = index;
-      patientDiv.innerHTML = `
-        <div class="patient-card-header">
-          <span class="patient-name">Patient ${index + 1}</span>
-          <button type="button" class="remove-btn" onclick="removePatient(${index})" title="Remove patient">×</button>
-        </div>
-
-        <div class="form-group">
-          <label>First Name *</label>
-          <input type="text" name="patients[${index}][first_name]" class="form-control" required>
-        </div>
-
-        <div class="form-group">
-          <label>Last Name *</label>
-          <input type="text" name="patients[${index}][last_name]" class="form-control" required>
-        </div>
-
-        <div class="form-group">
-          <label>Phone Number *</label>
-          <input type="tel" name="patients[${index}][phone]" class="form-control phone-input" required placeholder="(555) 123-4567">
-        </div>
-
-        <div class="form-group">
-          <label>Address *</label>
-          <input type="text" id="address-${index}" name="patients[${index}][address]" class="form-control address-input" required placeholder="Start typing address...">
-        </div>
-
-        <div class="form-group">
-          <label>Delivery Method *</label>
-          <select name="patients[${index}][delivery_mode]" class="form-control" required>
-            <option value="">Select delivery method</option>
+      const row = document.createElement('tr');
+      row.dataset.index = index;
+      row.style.borderBottom = '1px solid var(--border)';
+      row.innerHTML = `
+        <td style="padding: 0.75rem;">
+          <input type="text"
+                 name="patients[${index}][first_name]"
+                 class="form-control"
+                 placeholder="First name"
+                 required
+                 style="min-width: 120px;">
+        </td>
+        <td style="padding: 0.75rem;">
+          <input type="text"
+                 name="patients[${index}][last_name]"
+                 class="form-control"
+                 placeholder="Last name"
+                 required
+                 style="min-width: 120px;">
+        </td>
+        <td style="padding: 0.75rem;">
+          <input type="tel"
+                 name="patients[${index}][phone]"
+                 class="form-control phone-input"
+                 placeholder="(555) 123-4567"
+                 required
+                 style="min-width: 140px;">
+        </td>
+        <td style="padding: 0.75rem;">
+          <input type="text"
+                 id="address-${index}"
+                 name="patients[${index}][address]"
+                 class="form-control address-input"
+                 placeholder="Start typing address..."
+                 required
+                 style="min-width: 250px;">
+        </td>
+        <td style="padding: 0.75rem;">
+          <select name="patients[${index}][delivery_mode]"
+                  class="form-control"
+                  required
+                  style="min-width: 160px;">
+            <option value="">Select...</option>
             <option value="ship_to_patient">Ship to Patient</option>
             <option value="ship_to_office">Ship to Office</option>
           </select>
-        </div>
+        </td>
+        <td style="padding: 0.75rem; text-align: center;">
+          <button type="button"
+                  class="remove-btn"
+                  onclick="removePatientRow(${index})"
+                  title="Remove patient"
+                  style="background: #dc3545; color: white; border: none; border-radius: 4px; width: 32px; height: 32px; cursor: pointer; font-size: 1.25rem; line-height: 1;">×</button>
+        </td>
       `;
 
-      patientList.appendChild(patientDiv);
+      tbody.appendChild(row);
 
       // Initialize phone formatting
-      const phoneInput = patientDiv.querySelector('.phone-input');
+      const phoneInput = row.querySelector('.phone-input');
       phoneInput.addEventListener('input', function(e) {
         let value = e.target.value.replace(/\D/g, '');
         if (value.length > 0) {
@@ -389,30 +420,29 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
       // Initialize address autocomplete
       if (typeof initAddressAutocomplete === 'function') {
         initAddressAutocomplete(`address-${index}`, (addressData) => {
-          // Address is already filled in the input, just log for debugging
           console.log('Address selected:', addressData);
         });
       }
 
-      validateForm();
+      validatePatientForm();
     }
 
-    function removePatient(index) {
-      const patientCard = document.querySelector(`.patient-card[data-index="${index}"]`);
-      if (patientCard) {
-        patientCard.remove();
-        validateForm();
+    function removePatientRow(index) {
+      const row = document.querySelector(`tr[data-index="${index}"]`);
+      if (row) {
+        row.remove();
+        validatePatientForm();
       }
     }
 
-    function validateForm() {
-      const patients = document.querySelectorAll('.patient-card');
+    function validatePatientForm() {
+      const rows = document.querySelectorAll('#patient-rows tr');
       const nextBtn = document.getElementById('next-btn');
-      nextBtn.disabled = patients.length === 0;
+      nextBtn.disabled = rows.length === 0;
     }
 
-    // Add first patient automatically
-    addPatient();
+    // Add first patient row automatically
+    addPatientRow();
     </script>
 
   <?php elseif ($step == '2'): ?>
