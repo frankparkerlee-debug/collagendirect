@@ -23,6 +23,26 @@ if (empty($_SESSION['user_id'])) {
 }
 $uid = $_SESSION['user_id'];
 
+// Check if practice is blocked from ordering due to overdue balance
+$blockCheck = $pdo->prepare("
+  SELECT ordering_blocked, blocked_reason, balance_over_90_days
+  FROM practice_balances
+  WHERE user_id = ?
+");
+$blockCheck->execute([$uid]);
+$balanceStatus = $blockCheck->fetch(PDO::FETCH_ASSOC);
+
+if ($balanceStatus && $balanceStatus['ordering_blocked']) {
+  http_response_code(403);
+  echo json_encode([
+    'ok' => false,
+    'error' => 'ordering_blocked',
+    'message' => $balanceStatus['blocked_reason'] ?? 'Wholesale ordering is currently blocked for your account.',
+    'overdue_amount' => $balanceStatus['balance_over_90_days'] ?? 0
+  ]);
+  exit;
+}
+
 /* -------------------- Helpers -------------------- */
 function guid(): string {
   return bin2hex(random_bytes(16));
@@ -199,8 +219,16 @@ try {
     $piecesPerBox = (int)($productData['pieces_per_box'] ?? 1);
     $pricePerPiece = $priceWholesale; // Wholesale price is per-piece
     $totalPieces = $boxes * $piecesPerBox;
+    $orderTotal = $boxes * ($pricePerPiece * $piecesPerBox); // Total amount for this order
 
-    // Insert order
+    // Generate invoice number (format: INV-YYYYMMDD-XXXXX)
+    $invoiceNumber = 'INV-' . date('Ymd') . '-' . strtoupper(substr($orderId, 0, 5));
+
+    // Set invoice dates (Net 30 payment terms)
+    $invoiceDate = new DateTime();
+    $dueDate = (clone $invoiceDate)->add(new DateInterval('P30D')); // 30 days from now
+
+    // Insert order with invoice fields
     $sql = "
       INSERT INTO orders (
         id,
@@ -221,10 +249,17 @@ try {
         shipping_state,
         shipping_zip,
         notes,
+        invoice_number,
+        invoice_date,
+        due_date,
+        payment_terms,
+        amount_due,
+        amount_paid,
+        balance_due,
         created_at,
         updated_at
       ) VALUES (
-        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW()
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW()
       )
     ";
 
@@ -246,7 +281,14 @@ try {
       $shippingCity,
       $shippingState,
       $shippingZip,
-      $notes
+      $notes,
+      $invoiceNumber,
+      $invoiceDate->format('Y-m-d H:i:s'),
+      $dueDate->format('Y-m-d H:i:s'),
+      'net30',
+      $orderTotal,
+      0.00, // No payment yet
+      $orderTotal // Full balance due initially
     ]);
 
     $ordersCreated++;

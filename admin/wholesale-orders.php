@@ -238,6 +238,22 @@ if (!$hasBilledBy) {
         o.tracking_number,
         o.notes,
         o.billed_by,
+        o.invoice_number,
+        o.invoice_date,
+        o.due_date,
+        o.payment_terms,
+        o.amount_due,
+        o.amount_paid,
+        o.balance_due,
+        CASE
+          WHEN o.due_date IS NULL THEN NULL
+          WHEN CURRENT_DATE <= o.due_date THEN 0
+          WHEN CURRENT_DATE - o.due_date::DATE <= 30 THEN 1
+          WHEN CURRENT_DATE - o.due_date::DATE <= 60 THEN 2
+          WHEN CURRENT_DATE - o.due_date::DATE <= 90 THEN 3
+          ELSE 4
+        END as aging_bucket,
+        CURRENT_DATE - o.due_date::DATE as days_past_due,
         u.practice_name,
         u.first_name as phys_first,
         u.last_name as phys_last,
@@ -271,25 +287,63 @@ if (!$hasBilledBy) {
   }
 }
 
-/* ---------- Calculate totals ---------- */
+/* ---------- Calculate totals and aging ---------- */
 $totalOrders = count($orders);
 $totalRevenue = 0.0;
 $pendingOrders = 0;
 $unpaidOrders = 0;
 
-foreach ($orders as $order) {
-  $boxes = (int)($order['shipments_remaining'] ?? 0);
-  $pieces_per_box = (int)($order['pieces_per_box'] ?? 10);
-  $unit_price = (float)($order['unit_price'] ?? $order['price_wholesale'] ?? 0);
-  $orderValue = $boxes * ($unit_price * $pieces_per_box);
-  $totalRevenue += $orderValue;
+// Aging buckets
+$aging = [
+  'current' => 0.0,      // Not yet due (0 days)
+  '0-30' => 0.0,         // 1-30 days past due
+  '31-60' => 0.0,        // 31-60 days past due
+  '61-90' => 0.0,        // 61-90 days past due
+  'over_90' => 0.0       // Over 90 days past due
+];
 
+foreach ($orders as $order) {
+  // Calculate order value
+  $balanceDue = (float)($order['balance_due'] ?? 0);
+  if ($balanceDue > 0) {
+    $totalRevenue += $balanceDue;
+  } else {
+    // Fallback to old calculation if invoice fields don't exist yet
+    $boxes = (int)($order['shipments_remaining'] ?? 0);
+    $pieces_per_box = (int)($order['pieces_per_box'] ?? 10);
+    $unit_price = (float)($order['unit_price'] ?? $order['price_wholesale'] ?? 0);
+    $orderValue = $boxes * ($unit_price * $pieces_per_box);
+    $totalRevenue += $orderValue;
+  }
+
+  // Count pending orders
   if (in_array($order['status'], ['submitted', 'pending', 'awaiting_approval'])) {
     $pendingOrders++;
   }
 
-  if (empty($order['paid_at']) && !in_array($order['status'], ['rejected', 'cancelled'])) {
+  // Count unpaid orders and track aging
+  if ($balanceDue > 0 && !in_array($order['status'], ['rejected', 'cancelled'])) {
     $unpaidOrders++;
+
+    // Add to aging buckets
+    $agingBucket = $order['aging_bucket'] ?? null;
+    switch ($agingBucket) {
+      case 0:
+        $aging['current'] += $balanceDue;
+        break;
+      case 1:
+        $aging['0-30'] += $balanceDue;
+        break;
+      case 2:
+        $aging['31-60'] += $balanceDue;
+        break;
+      case 3:
+        $aging['61-90'] += $balanceDue;
+        break;
+      case 4:
+        $aging['over_90'] += $balanceDue;
+        break;
+    }
   }
 }
 
@@ -447,7 +501,7 @@ require_once '_header.php';
   </div>
 
   <!-- Stats Cards -->
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
     <div class="stat-card">
       <div class="stat-label">Total Orders</div>
       <div class="stat-value"><?= number_format($totalOrders) ?></div>
@@ -461,8 +515,40 @@ require_once '_header.php';
       <div class="stat-value error"><?= number_format($unpaidOrders) ?></div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">Total Revenue</div>
+      <div class="stat-label">Total A/R Balance</div>
       <div class="stat-value success">$<?= number_format($totalRevenue, 2) ?></div>
+    </div>
+  </div>
+
+  <!-- Aging Summary -->
+  <div class="card" style="margin-bottom: 2rem; padding: 1.5rem;">
+    <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem; color: var(--ink);">Accounts Receivable Aging</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
+      <div style="text-align: center; padding: 0.75rem; background: #f0fdf4; border-radius: var(--radius); border: 1px solid #bbf7d0;">
+        <div style="font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem; font-weight: 500;">Current</div>
+        <div style="font-size: 1.25rem; font-weight: 700; color: #15803d;">$<?= number_format($aging['current'], 2) ?></div>
+        <div style="font-size: 0.7rem; color: var(--muted);">Not yet due</div>
+      </div>
+      <div style="text-align: center; padding: 0.75rem; background: #fefce8; border-radius: var(--radius); border: 1px solid #fde047;">
+        <div style="font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem; font-weight: 500;">0-30 Days</div>
+        <div style="font-size: 1.25rem; font-weight: 700; color: #ca8a04;">$<?= number_format($aging['0-30'], 2) ?></div>
+        <div style="font-size: 0.7rem; color: var(--muted);">Past due</div>
+      </div>
+      <div style="text-align: center; padding: 0.75rem; background: #fff7ed; border-radius: var(--radius); border: 1px solid #fed7aa;">
+        <div style="font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem; font-weight: 500;">31-60 Days</div>
+        <div style="font-size: 1.25rem; font-weight: 700; color: #ea580c;">$<?= number_format($aging['31-60'], 2) ?></div>
+        <div style="font-size: 0.7rem; color: var(--muted);">Past due</div>
+      </div>
+      <div style="text-align: center; padding: 0.75rem; background: #fef2f2; border-radius: var(--radius); border: 1px solid #fecaca;">
+        <div style="font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem; font-weight: 500;">61-90 Days</div>
+        <div style="font-size: 1.25rem; font-weight: 700; color: #dc2626;">$<?= number_format($aging['61-90'], 2) ?></div>
+        <div style="font-size: 0.7rem; color: var(--muted);">Past due</div>
+      </div>
+      <div style="text-align: center; padding: 0.75rem; background: #fef2f2; border-radius: var(--radius); border: 2px solid #dc2626;">
+        <div style="font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem; font-weight: 500;">Over 90 Days</div>
+        <div style="font-size: 1.25rem; font-weight: 700; color: #991b1b;">$<?= number_format($aging['over_90'], 2) ?></div>
+        <div style="font-size: 0.7rem; color: #991b1b; font-weight: 600;">⚠️ BLOCKS ORDERING</div>
+      </div>
     </div>
   </div>
 
@@ -490,14 +576,14 @@ require_once '_header.php';
       <table class="order-table">
         <thead>
           <tr>
-            <th>Date</th>
+            <th>Invoice #</th>
             <th>Practice</th>
             <th>Patient</th>
             <th>Product</th>
             <th style="text-align: right;">Qty</th>
-            <th style="text-align: right;">Total</th>
-            <th>Status</th>
-            <th>Payment</th>
+            <th style="text-align: right;">Amount</th>
+            <th>Due Date</th>
+            <th>Aging</th>
             <th style="text-align: center;">Actions</th>
           </tr>
         </thead>
@@ -522,26 +608,52 @@ require_once '_header.php';
             $boxes = (int)($order['shipments_remaining'] ?? 0);
             $pieces_per_box = (int)($order['pieces_per_box'] ?? 10);
             $unit_price = (float)($order['unit_price'] ?? $order['price_wholesale'] ?? 0);
-            $orderValue = $boxes * ($unit_price * $pieces_per_box);
 
-            $statusClass = match($order['status']) {
-              'submitted', 'pending', 'awaiting_approval' => 'pending',
-              'approved' => 'approved',
-              'in_transit' => 'shipped',
-              'delivered' => 'delivered',
-              'rejected', 'cancelled' => 'rejected',
-              default => 'pending'
-            };
+            // Use invoice amount if available, otherwise calculate
+            $balanceDue = (float)($order['balance_due'] ?? 0);
+            $amountDue = (float)($order['amount_due'] ?? 0);
+            $amountPaid = (float)($order['amount_paid'] ?? 0);
+            if ($balanceDue > 0) {
+              $orderValue = $balanceDue;
+            } else {
+              $orderValue = $boxes * ($unit_price * $pieces_per_box);
+            }
 
-            $isPaid = !empty($order['paid_at']);
+            $isPaid = $balanceDue == 0 || !empty($order['paid_at']);
+            $agingBucket = $order['aging_bucket'] ?? null;
+            $daysPastDue = (int)($order['days_past_due'] ?? 0);
+
+            // Determine aging badge
+            $agingBadge = '';
+            $agingColor = '';
+            if ($isPaid) {
+              $agingBadge = 'Paid';
+              $agingColor = '#15803d';
+            } elseif ($agingBucket === null || $agingBucket === 0) {
+              $agingBadge = 'Current';
+              $agingColor = '#15803d';
+            } elseif ($agingBucket === 1) {
+              $agingBadge = '0-30 days';
+              $agingColor = '#ca8a04';
+            } elseif ($agingBucket === 2) {
+              $agingBadge = '31-60 days';
+              $agingColor = '#ea580c';
+            } elseif ($agingBucket === 3) {
+              $agingBadge = '61-90 days';
+              $agingColor = '#dc2626';
+            } else {
+              $agingBadge = 'Over 90 days';
+              $agingColor = '#991b1b';
+            }
+
             $needsApproval = in_array($order['status'], ['submitted', 'pending', 'awaiting_approval']);
             $canShip = $order['status'] === 'approved';
             $canDeliver = $order['status'] === 'in_transit';
           ?>
           <tr>
             <td>
-              <div style="font-weight: 500;"><?= date('M j, Y', strtotime($order['created_at'])) ?></div>
-              <div style="font-size: 0.75rem; color: var(--muted);">Order #<?= $order['id'] ?></div>
+              <div style="font-weight: 500;"><?= htmlspecialchars($order['invoice_number'] ?? 'N/A') ?></div>
+              <div style="font-size: 0.75rem; color: var(--muted);"><?= !empty($order['invoice_date']) ? date('M j, Y', strtotime($order['invoice_date'])) : date('M j, Y', strtotime($order['created_at'])) ?></div>
             </td>
             <td>
               <div style="font-weight: 500;"><?= htmlspecialchars($order['practice_name'] ?? 'N/A') ?></div>
@@ -559,22 +671,28 @@ require_once '_header.php';
             </td>
             <td style="text-align: right;">
               <div style="font-weight: 600; color: var(--success);">$<?= number_format($orderValue, 2) ?></div>
-              <div style="font-size: 0.75rem; color: var(--muted);">$<?= number_format($unit_price, 2) ?>/pc</div>
-            </td>
-            <td>
-              <span class="badge badge-<?= $statusClass ?>">
-                <?= ucfirst($order['status']) ?>
-              </span>
-            </td>
-            <td>
-              <span class="badge badge-<?= $isPaid ? 'paid' : 'unpaid' ?>">
-                <?= $isPaid ? 'Paid' : 'Unpaid' ?>
-              </span>
-              <?php if ($isPaid): ?>
-                <div style="font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem;">
-                  <?= date('m/d/y', strtotime($order['paid_at'])) ?>
-                </div>
+              <?php if ($amountPaid > 0 && !$isPaid): ?>
+                <div style="font-size: 0.75rem; color: var(--muted);">Paid: $<?= number_format($amountPaid, 2) ?></div>
+              <?php else: ?>
+                <div style="font-size: 0.75rem; color: var(--muted);"><?= $boxes ?> boxes @ $<?= number_format($unit_price, 2) ?>/pc</div>
               <?php endif; ?>
+            </td>
+            <td>
+              <?php if (!empty($order['due_date'])): ?>
+                <div style="font-weight: 500;"><?= date('M j, Y', strtotime($order['due_date'])) ?></div>
+                <?php if (!$isPaid && $daysPastDue > 0): ?>
+                  <div style="font-size: 0.75rem; color: #dc2626;"><?= $daysPastDue ?> days past due</div>
+                <?php elseif (!$isPaid): ?>
+                  <div style="font-size: 0.75rem; color: var(--muted);">Net 30</div>
+                <?php endif; ?>
+              <?php else: ?>
+                <div style="color: var(--muted); font-size: 0.875rem;">N/A</div>
+              <?php endif; ?>
+            </td>
+            <td>
+              <span style="display: inline-block; padding: 0.25rem 0.625rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; background: <?= $isPaid ? '#f0fdf4' : ($agingBucket >= 3 ? '#fef2f2' : '#fefce8') ?>; color: <?= $agingColor ?>;">
+                <?= $agingBadge ?>
+              </span>
             </td>
             <td>
               <div style="display: flex; gap: 0.5rem; justify-content: center;">
