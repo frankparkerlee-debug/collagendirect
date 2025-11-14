@@ -138,7 +138,7 @@ if (!$hasBilledBy) {
         u.last_name as phys_last,
         p.first_name as pat_first,
         p.last_name as pat_last,
-        CONCAT_WS(', ', o.ship_address, o.ship_city, o.ship_state, o.ship_zip) as shipping_address,
+        CONCAT_WS(', ', o.shipping_address, o.shipping_city, o.shipping_state, o.shipping_zip) as shipping_address,
         pr.pieces_per_box,
         pr.price_wholesale
       FROM orders o
