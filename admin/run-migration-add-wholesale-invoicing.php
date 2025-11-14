@@ -3,7 +3,7 @@
  * Migration: Add wholesale invoicing and practice balance tracking
  *
  * This migration adds:
- * 1. practice_balances table - tracks running balance per practice
+ * 1. practice_balances table - tracks running balance per practice (user_id VARCHAR(64))
  * 2. invoice fields to orders table - invoice_number, invoice_date, due_date, paid_date
  * 3. Aging calculation support
  */

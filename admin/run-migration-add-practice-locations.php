@@ -2,7 +2,7 @@
 /**
  * Migration: Add practice locations/addresses management
  *
- * Allows practices to manage multiple facility addresses for ordering
+ * Allows practices to manage multiple facility addresses for ordering (user_id VARCHAR(64))
  */
 
 declare(strict_types=1);
