@@ -678,9 +678,15 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
     // Get patients from POST or session
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['patients'])) {
       $_SESSION['wholesale_patients'] = $_POST['patients'];
+
+      // Also store products if coming back from Step 3
+      if (isset($_POST['products'])) {
+        $_SESSION['wholesale_products'] = $_POST['products'];
+      }
     }
 
     $patients = $_SESSION['wholesale_patients'] ?? [];
+    $savedProducts = $_SESSION['wholesale_products'] ?? [];
 
     if (empty($patients)):
     ?>
@@ -792,6 +798,7 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
     // Product catalog with grouped sizes
     const productCatalog = <?= json_encode($productGroups) ?>;
     const productData = <?= json_encode(array_column($products, null, 'id')) ?>;
+    const savedProducts = <?= json_encode($savedProducts) ?>;
 
     let productRowCounters = {};
 
@@ -991,9 +998,60 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
       document.getElementById('proceed-btn').disabled = !hasAnyProducts;
     }
 
-    // Initialize - add first product row for each patient
+    // Initialize - add product rows for each patient
     <?php foreach ($patients as $patIndex => $patient): ?>
-      addProductRow(<?= $patIndex ?>);
+      // Check if we have saved products for this patient
+      const patient<?= $patIndex ?>Products = savedProducts[<?= $patIndex ?>] || {};
+
+      if (Object.keys(patient<?= $patIndex ?>Products).length > 0) {
+        // Load saved products
+        Object.keys(patient<?= $patIndex ?>Products).forEach(rowIndex => {
+          const savedProduct = patient<?= $patIndex ?>Products[rowIndex];
+          addProductRow(<?= $patIndex ?>);
+
+          // Now populate the fields
+          setTimeout(() => {
+            const row = document.querySelector(`[data-patient-index="<?= $patIndex ?>"][data-row-index="${rowIndex}"]`);
+            if (row && savedProduct.product_id && savedProduct.boxes) {
+              const product = productData[savedProduct.product_id];
+              if (product) {
+                // Find the category for this product
+                let categoryName = null;
+                for (const [category, products] of Object.entries(productCatalog)) {
+                  if (products.some(p => p.id === savedProduct.product_id)) {
+                    categoryName = category;
+                    break;
+                  }
+                }
+
+                if (categoryName) {
+                  // Set the product category
+                  const productSelect = row.querySelector('.product-selector');
+                  productSelect.value = categoryName;
+                  updateSizeOptions(<?= $patIndex ?>, rowIndex);
+
+                  // Set the size (product ID)
+                  setTimeout(() => {
+                    const sizeSelect = row.querySelector('.size-selector');
+                    sizeSelect.value = savedProduct.product_id;
+                    updateProductSelection(<?= $patIndex ?>, rowIndex);
+
+                    // Set the quantity
+                    setTimeout(() => {
+                      const quantityInput = row.querySelector('.quantity-input');
+                      quantityInput.value = savedProduct.boxes;
+                      calculatePatientTotal(<?= $patIndex ?>);
+                    }, 50);
+                  }, 50);
+                }
+              }
+            }
+          }, 50);
+        });
+      } else {
+        // No saved products, add one empty row
+        addProductRow(<?= $patIndex ?>);
+      }
     <?php endforeach; ?>
     </script>
 
