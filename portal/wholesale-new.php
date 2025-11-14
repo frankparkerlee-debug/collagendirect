@@ -613,7 +613,7 @@ if ($activeTab === 'manage') {
       if ($patientCount === 0) {
         echo '<div class="alert alert-error">No patients found. Please go back and add patients.</div>';
         echo '<button type="button" class="btn-secondary" onclick="window.location.href=\'?page=wholesale&tab=create&step=1\'">← Back to Patients</button>';
-      } else:
+      } else {
       ?>
 
       <div class="patient-table-container">
@@ -803,7 +803,7 @@ if ($activeTab === 'manage') {
       }
       </script>
 
-      <?php endif; ?>
+      <?php } ?>
 
     <?php elseif ($step == '3'): ?>
       <!-- STEP 3: Review & Submit (placeholder - will be implemented) -->
