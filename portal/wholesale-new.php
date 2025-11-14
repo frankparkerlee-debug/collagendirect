@@ -326,9 +326,14 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
         </table>
       </div>
 
-      <button type="button" class="btn" onclick="addPatientRow()" style="margin-bottom: 1.5rem;">
-        <span style="font-size: 1.25rem;">+</span> Add Patient
-      </button>
+      <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+        <button type="button" class="btn" onclick="addPatientRow()" style="flex: 0 0 auto;">
+          <span style="font-size: 1.25rem;">+</span> Add Patient
+        </button>
+        <button type="button" class="btn" onclick="addOfficeStockRow()" style="flex: 0 0 auto; background: #3b82f6;">
+          📦 Office Stock
+        </button>
+      </div>
 
       <div class="form-actions">
         <a href="?page=wholesale" class="btn-secondary btn">Cancel</a>
@@ -337,48 +342,106 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
     </form>
 
     <script>
+    const USER_ID = <?= json_encode($userId) ?>;
     let patientRowCount = 0;
+    let patientSearchTimeouts = {};
 
-    function addPatientRow() {
+    function addOfficeStockRow() {
+      const tbody = document.getElementById('patient-rows');
+      const index = patientRowCount++;
+
+      const row = document.createElement('tr');
+      row.dataset.index = index;
+      row.dataset.isOfficeStock = 'true';
+      row.style.borderBottom = '1px solid var(--border)';
+      row.style.background = '#eff6ff'; // Light blue tint for office stock
+      row.innerHTML = `
+        <td style="padding: 0.75rem;" colspan="4">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span style="font-weight: 600; color: #3b82f6;">📦 Office Stock</span>
+            <span style="color: var(--muted); font-size: 0.875rem;">(Products for office inventory)</span>
+          </div>
+          <input type="hidden" name="patients[${index}][first_name]" value="Office">
+          <input type="hidden" name="patients[${index}][last_name]" value="Stock">
+          <input type="hidden" name="patients[${index}][phone]" value="N/A">
+          <input type="hidden" name="patients[${index}][address]" value="Office">
+          <input type="hidden" name="patients[${index}][is_office_stock]" value="1">
+        </td>
+        <td style="padding: 0.75rem;">
+          <select name="patients[${index}][delivery_mode]"
+                  class="form-control"
+                  required
+                  style="min-width: 160px;">
+            <option value="ship_to_office" selected>Ship to Office</option>
+          </select>
+        </td>
+        <td style="padding: 0.75rem; text-align: center;">
+          <button type="button"
+                  class="remove-btn"
+                  onclick="removePatientRow(${index})"
+                  title="Remove office stock"
+                  style="background: #dc3545; color: white; border: none; border-radius: 4px; width: 32px; height: 32px; cursor: pointer; font-size: 1.25rem; line-height: 1;">×</button>
+        </td>
+      `;
+
+      tbody.appendChild(row);
+      validatePatientForm();
+    }
+
+    function addPatientRow(existingData = null) {
       const tbody = document.getElementById('patient-rows');
       const index = patientRowCount++;
 
       const row = document.createElement('tr');
       row.dataset.index = index;
       row.style.borderBottom = '1px solid var(--border)';
+      row.style.position = 'relative';
       row.innerHTML = `
-        <td style="padding: 0.75rem;">
+        <td style="padding: 0.75rem; position: relative;">
           <input type="text"
                  name="patients[${index}][first_name]"
-                 class="form-control"
+                 class="form-control patient-name-input"
+                 data-row-index="${index}"
                  placeholder="First name"
                  required
+                 autocomplete="off"
+                 value="${existingData?.first_name || ''}"
                  style="min-width: 120px;">
+          <div id="patient-search-${index}" class="patient-search-results" style="display: none; position: absolute; z-index: 1000; background: white; border: 1px solid var(--border); border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-height: 200px; overflow-y: auto; width: calc(200% + 20px); margin-top: 2px;"></div>
         </td>
         <td style="padding: 0.75rem;">
           <input type="text"
                  name="patients[${index}][last_name]"
-                 class="form-control"
+                 class="form-control patient-name-input"
+                 data-row-index="${index}"
                  placeholder="Last name"
                  required
+                 autocomplete="off"
+                 value="${existingData?.last_name || ''}"
                  style="min-width: 120px;">
         </td>
         <td style="padding: 0.75rem;">
           <input type="tel"
                  name="patients[${index}][phone]"
                  class="form-control phone-input"
+                 data-row-index="${index}"
                  placeholder="(555) 123-4567"
                  required
+                 value="${existingData?.phone || ''}"
                  style="min-width: 140px;">
+          <div class="validation-msg" style="color: #dc3545; font-size: 0.75rem; margin-top: 0.25rem; display: none;"></div>
         </td>
         <td style="padding: 0.75rem;">
           <input type="text"
                  id="address-${index}"
                  name="patients[${index}][address]"
                  class="form-control address-input"
+                 data-row-index="${index}"
                  placeholder="Start typing address..."
                  required
+                 value="${existingData?.address || ''}"
                  style="min-width: 250px;">
+          <div class="validation-msg" style="color: #dc3545; font-size: 0.75rem; margin-top: 0.25rem; display: none;"></div>
         </td>
         <td style="padding: 0.75rem;">
           <select name="patients[${index}][delivery_mode]"
@@ -386,8 +449,8 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
                   required
                   style="min-width: 160px;">
             <option value="">Select...</option>
-            <option value="ship_to_patient">Ship to Patient</option>
-            <option value="ship_to_office">Ship to Office</option>
+            <option value="ship_to_patient" ${existingData?.delivery_mode === 'ship_to_patient' ? 'selected' : ''}>Ship to Patient</option>
+            <option value="ship_to_office" ${existingData?.delivery_mode === 'ship_to_office' ? 'selected' : ''}>Ship to Office</option>
           </select>
         </td>
         <td style="padding: 0.75rem; text-align: center;">
@@ -424,7 +487,155 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
         });
       }
 
+      // Initialize patient search on name inputs
+      const nameInputs = row.querySelectorAll('.patient-name-input');
+      nameInputs.forEach(input => {
+        input.addEventListener('input', function(e) {
+          const rowIndex = e.target.dataset.rowIndex;
+          const searchContainer = document.getElementById(`patient-search-${rowIndex}`);
+
+          // Clear timeout if exists
+          if (patientSearchTimeouts[rowIndex]) {
+            clearTimeout(patientSearchTimeouts[rowIndex]);
+          }
+
+          // Get both first and last name for better matching
+          const row = e.target.closest('tr');
+          const firstName = row.querySelector('[name*="[first_name]"]').value.trim();
+          const lastName = row.querySelector('[name*="[last_name]"]').value.trim();
+          const searchQuery = (firstName + ' ' + lastName).trim();
+
+          if (searchQuery.length < 2) {
+            searchContainer.style.display = 'none';
+            return;
+          }
+
+          // Debounce search
+          patientSearchTimeouts[rowIndex] = setTimeout(() => {
+            fetch(`/api/search-patients.php?q=${encodeURIComponent(searchQuery)}&user_id=${USER_ID}`)
+              .then(response => response.json())
+              .then(patients => {
+                if (patients.length === 0) {
+                  searchContainer.style.display = 'none';
+                  return;
+                }
+
+                // Build search results HTML
+                let html = '';
+                patients.forEach(patient => {
+                  html += `
+                    <div class="patient-search-result"
+                         data-patient='${JSON.stringify(patient).replace(/'/g, '&apos;')}'
+                         style="padding: 0.75rem; border-bottom: 1px solid var(--border); cursor: pointer;">
+                      <div style="font-weight: 600;">${patient.first_name} ${patient.last_name}</div>
+                      <div style="font-size: 0.875rem; color: var(--muted);">${patient.phone || ''}</div>
+                      <div style="font-size: 0.875rem; color: var(--muted);">${patient.address || ''}</div>
+                      ${patient.last_order ? `<div style="font-size: 0.875rem; color: #059669; margin-top: 0.25rem;">Previous order: ${patient.last_order}</div>` : ''}
+                    </div>
+                  `;
+                });
+
+                searchContainer.innerHTML = html;
+                searchContainer.style.display = 'block';
+
+                // Add click handlers to each result
+                searchContainer.querySelectorAll('.patient-search-result').forEach(resultDiv => {
+                  resultDiv.addEventListener('click', function() {
+                    const patient = JSON.parse(this.dataset.patient);
+                    const parentRow = document.querySelector(`tr[data-index="${rowIndex}"]`);
+
+                    // Populate form fields
+                    parentRow.querySelector('[name*="[first_name]"]').value = patient.first_name;
+                    parentRow.querySelector('[name*="[last_name]"]').value = patient.last_name;
+                    parentRow.querySelector('[name*="[phone]"]').value = patient.phone;
+                    parentRow.querySelector('[name*="[address]"]').value = patient.address;
+
+                    // Hide search results
+                    searchContainer.style.display = 'none';
+
+                    // Validate fields
+                    validatePhoneField(parentRow.querySelector('.phone-input'));
+                    validateAddressField(parentRow.querySelector('.address-input'));
+                  });
+
+                  resultDiv.addEventListener('mouseenter', function() {
+                    this.style.background = '#f3f4f6';
+                  });
+                  resultDiv.addEventListener('mouseleave', function() {
+                    this.style.background = 'white';
+                  });
+                });
+              })
+              .catch(error => {
+                console.error('Patient search error:', error);
+                searchContainer.style.display = 'none';
+              });
+          }, 300); // 300ms debounce
+        });
+
+        // Hide search results when clicking outside
+        input.addEventListener('blur', function(e) {
+          const rowIndex = e.target.dataset.rowIndex;
+          const searchContainer = document.getElementById(`patient-search-${rowIndex}`);
+          // Delay to allow click on search result
+          setTimeout(() => {
+            searchContainer.style.display = 'none';
+          }, 200);
+        });
+      });
+
+      // Add phone validation
+      phoneInput.addEventListener('blur', function(e) {
+        validatePhoneField(e.target);
+      });
+
+      // Add address validation
+      const addressInput = row.querySelector('.address-input');
+      addressInput.addEventListener('blur', function(e) {
+        validateAddressField(e.target);
+      });
+
       validatePatientForm();
+    }
+
+    // Validate phone field (must have 10 digits)
+    function validatePhoneField(input) {
+      const digits = input.value.replace(/\D/g, '');
+      const validationMsg = input.nextElementSibling;
+
+      if (digits.length > 0 && digits.length < 10) {
+        validationMsg.textContent = 'Phone number must be 10 digits';
+        validationMsg.style.display = 'block';
+        input.style.borderColor = '#dc3545';
+        return false;
+      } else {
+        validationMsg.style.display = 'none';
+        input.style.borderColor = '';
+        return true;
+      }
+    }
+
+    // Validate address field (must be complete)
+    function validateAddressField(input) {
+      const value = input.value.trim();
+      const validationMsg = input.nextElementSibling;
+
+      // Check if address looks complete (has street, city, state, zip)
+      const hasComma = value.includes(',');
+      const hasNumber = /\d/.test(value);
+      const hasState = /\b[A-Z]{2}\b/.test(value); // Two uppercase letters
+      const hasZip = /\d{5}/.test(value); // 5-digit zip
+
+      if (value.length > 0 && (!hasComma || !hasNumber || !hasState || !hasZip)) {
+        validationMsg.textContent = 'Please enter a complete address with city, state, and ZIP';
+        validationMsg.style.display = 'block';
+        input.style.borderColor = '#dc3545';
+        return false;
+      } else {
+        validationMsg.style.display = 'none';
+        input.style.borderColor = '';
+        return true;
+      }
     }
 
     function removePatientRow(index) {
@@ -441,8 +652,24 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
       nextBtn.disabled = rows.length === 0;
     }
 
-    // Add first patient row automatically
-    addPatientRow();
+    // Load patients from session if coming back from Step 2
+    window.addEventListener('DOMContentLoaded', function() {
+      const sessionPatients = <?= json_encode($_SESSION['wholesale_patients'] ?? []) ?>;
+
+      if (sessionPatients && Object.keys(sessionPatients).length > 0) {
+        // Load existing patients from session
+        Object.values(sessionPatients).forEach(patientData => {
+          if (patientData.is_office_stock === '1') {
+            addOfficeStockRow();
+          } else {
+            addPatientRow(patientData);
+          }
+        });
+      } else {
+        // Add first patient row automatically if no session data
+        addPatientRow();
+      }
+    });
     </script>
 
   <?php elseif ($step == '2'): ?>
