@@ -141,10 +141,28 @@ try {
 
     // Determine shipping details - check if office stock
     if ($isOfficeStock) {
-      // Get practice address from user profile
-      $userStmt = $pdo->prepare("SELECT practice_name, address, city, state, zip FROM users WHERE id = ?");
+      // Get practice address - check current user first, then practice admin
+      $userStmt = $pdo->prepare("SELECT practice_name, address, city, state, zip, role FROM users WHERE id = ?");
       $userStmt->execute([$uid]);
       $user = $userStmt->fetch(PDO::FETCH_ASSOC);
+
+      // If current user doesn't have address, find practice admin with same practice_name
+      if ($user && empty($user['address']) && !empty($user['practice_name'])) {
+        $adminStmt = $pdo->prepare("
+          SELECT practice_name, address, city, state, zip
+          FROM users
+          WHERE practice_name = ?
+            AND role = 'practice_admin'
+            AND address IS NOT NULL
+            AND address != ''
+          LIMIT 1
+        ");
+        $adminStmt->execute([$user['practice_name']]);
+        $adminUser = $adminStmt->fetch(PDO::FETCH_ASSOC);
+        if ($adminUser) {
+          $user = $adminUser; // Use practice admin's address
+        }
+      }
 
       $shippingName = $user['practice_name'] ?? 'Office Stock';
       $shippingAddress = $user['address'] ?? null;
@@ -152,7 +170,7 @@ try {
       $shippingState = $user['state'] ?? null;
       $shippingZip = $user['zip'] ?? null;
       $shippingPhone = null;
-    } else {
+    } else{
       // Use patient's address
       $shippingName = ($patientData['first_name'] ?? '') . ' ' . ($patientData['last_name'] ?? '');
       $shippingAddress = safe($patientData['address'] ?? null);

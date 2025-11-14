@@ -1070,9 +1070,31 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
     // Get practice address for office stock deliveries
     $practiceAddress = [];
     if (!empty($_SESSION['user_id'])) {
-      $userStmt = $pdo->prepare("SELECT practice_name, address, city, state, zip, phone FROM users WHERE id = ?");
+      // First get the current user's practice_name
+      $userStmt = $pdo->prepare("SELECT practice_name, address, city, state, zip, phone, role FROM users WHERE id = ?");
       $userStmt->execute([$_SESSION['user_id']]);
-      $practiceAddress = $userStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+      $currentUser = $userStmt->fetch(PDO::FETCH_ASSOC);
+
+      if ($currentUser) {
+        // If this user has an address, use it
+        if (!empty($currentUser['address'])) {
+          $practiceAddress = $currentUser;
+        }
+        // Otherwise, find the practice admin with the same practice_name
+        else if (!empty($currentUser['practice_name'])) {
+          $adminStmt = $pdo->prepare("
+            SELECT practice_name, address, city, state, zip, phone
+            FROM users
+            WHERE practice_name = ?
+              AND role = 'practice_admin'
+              AND address IS NOT NULL
+              AND address != ''
+            LIMIT 1
+          ");
+          $adminStmt->execute([$currentUser['practice_name']]);
+          $practiceAddress = $adminStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+        }
+      }
     }
 
     // Calculate totals
