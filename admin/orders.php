@@ -300,6 +300,7 @@ $search = trim((string)($_GET['search'] ?? ''));
 $statusFilter = trim((string)($_GET['status'] ?? ''));
 $carrierFilter = trim((string)($_GET['carrier'] ?? ''));
 $productFilter = trim((string)($_GET['product_id'] ?? ''));
+$orderTypeFilter = trim((string)($_GET['order_type'] ?? '')); // wholesale, referral, or empty for all
 $dateFrom = trim((string)($_GET['date_from'] ?? ''));
 $dateTo = trim((string)($_GET['date_to'] ?? ''));
 
@@ -353,6 +354,13 @@ if ($carrierFilter !== '' && $hasCarrierCol) {
 if ($productFilter !== '') {
   $where[] = "o.product_id = :product_id";
   $params['product_id'] = $productFilter;
+}
+
+// Filter by order type (wholesale vs referral)
+if ($orderTypeFilter === 'wholesale') {
+  $where[] = "o.billed_by = 'practice_dme'";
+} elseif ($orderTypeFilter === 'referral') {
+  $where[] = "(o.billed_by IS NULL OR o.billed_by != 'practice_dme')";
 }
 
 if ($dateFrom !== '') {
@@ -422,6 +430,15 @@ if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"
         <option value="rejected" <?=$statusFilter==='rejected'?'selected':''?>>Rejected</option>
         <option value="in_transit" <?=$statusFilter==='in_transit'?'selected':''?>>In Transit</option>
         <option value="delivered" <?=$statusFilter==='delivered'?'selected':''?>>Delivered</option>
+      </select>
+    </div>
+
+    <div>
+      <label class="text-xs text-slate-500 mb-1 block">Order Type</label>
+      <select name="order_type" class="w-full border rounded px-3 py-1.5 text-sm">
+        <option value="">All Orders</option>
+        <option value="referral" <?=$orderTypeFilter==='referral'?'selected':''?>>Referral Orders</option>
+        <option value="wholesale" <?=$orderTypeFilter==='wholesale'?'selected':''?>>Wholesale Orders</option>
       </select>
     </div>
 
@@ -495,6 +512,12 @@ if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"
               foreach ($products as $pr) { if ($pr['id']==$r['product_id']) { $label = $pr['name'].($pr['size']?(' '.$pr['size']):''); break; } }
             }
             echo e(($label ?: '—').' • '.($r['frequency'] ?? ''));
+
+            // Add wholesale badge if this is a wholesale order
+            $isWholesale = ($r['billed_by'] ?? '') === 'practice_dme';
+            if ($isWholesale) {
+              echo ' <span class="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-purple-100 text-purple-700">Wholesale</span>';
+            }
           ?>
         </td>
         <td class="py-3"><?=e(array_key_exists('quantity',$r)?($r['quantity'] ?? 1):1)?></td>

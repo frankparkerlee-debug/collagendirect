@@ -65,8 +65,6 @@ if ($adminRole === 'superadmin' || $adminRole === 'manufacturer' || $adminRole =
 /* ---------- Revenue Calculations ----------
    EARNED: Revenue from shipments already delivered (total - remaining)
    PROJECTED: Revenue from shipments still to be delivered (remaining)
-
-   For manufacturers: Show 30% of actual amounts (manufacturer relationship)
 --------------------------------------------------- */
 $hasProducts = has_table($pdo,'products');
 $hasRates    = has_table($pdo,'reimbursement_rates');
@@ -182,11 +180,10 @@ try {
   $projectedRevenue = $totalRevenue * 0.5;
 }
 
-// Apply sales commission factor (30% of actual revenue for sales reps)
-$revenueMultiplier = ($adminRole === 'sales') ? 0.30 : 1.0;
-$displayEarnedRevenue = $earnedRevenue * $revenueMultiplier;
-$displayProjectedRevenue = $projectedRevenue * $revenueMultiplier;
-$displayTotalRevenue = $totalRevenue * $revenueMultiplier;
+// Display full revenue amounts - no multipliers applied
+$displayEarnedRevenue = $earnedRevenue;
+$displayProjectedRevenue = $projectedRevenue;
+$displayTotalRevenue = $totalRevenue;
 
 /* ---------- Recent activity ---------- */
 $recent = [];
@@ -334,7 +331,7 @@ include __DIR__.'/_header.php';
       <div class="flex items-center justify-between">
         <div class="flex-1">
           <div class="text-xs text-slate-500 mb-1 flex items-center gap-1">
-            Revenue Overview<?php if($adminRole === 'sales'): ?> <span class="text-[10px] text-slate-400">(30% commission)</span><?php endif; ?>
+            Revenue Overview
             <span class="inline-block w-3 h-3 rounded-full bg-slate-200 text-[10px] leading-3 text-center text-slate-600 cursor-help" title="Earned: Revenue from delivered shipments | Projected: Future revenue from remaining shipments">?</span>
           </div>
           <div class="text-2xl font-bold text-brand group-hover:text-blue-700 transition-colors">$<?=number_format($displayTotalRevenue,2)?></div>
@@ -431,7 +428,7 @@ include __DIR__.'/_header.php';
 
       <div class="grid grid-cols-3 gap-6 mb-6">
         <div class="border-l-4 border-brand pl-4">
-          <div class="text-sm text-slate-600 mb-1">Total Revenue<?php if($adminRole === 'sales'): ?> <span class="text-[10px] text-slate-400">(30%)</span><?php endif; ?></div>
+          <div class="text-sm text-slate-600 mb-1">Total Revenue</div>
           <div class="text-3xl font-bold text-brand">$<?=number_format($displayTotalRevenue, 2)?></div>
           <div class="text-xs text-slate-500 mt-1">
             <span class="text-green-600">Earned: $<?=number_format($displayEarnedRevenue, 0)?></span> •
