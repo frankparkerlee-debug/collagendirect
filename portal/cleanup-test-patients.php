@@ -4,7 +4,7 @@
  * Also deletes associated orders and any related data
  */
 
-require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/../admin/db.php';
 
 header('Content-Type: text/plain; charset=utf-8');
 
