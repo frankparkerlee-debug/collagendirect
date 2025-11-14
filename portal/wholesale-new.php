@@ -462,20 +462,36 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
         <a href="?page=wholesale&step=1" class="btn btn-primary">← Back to Patient Entry</a>
       </div>
     <?php else:
-      // Group products by base name (category)
+      // Extract core product names for simplified grouping
+      // e.g., "AlgiHeal Alginate Dressing" -> "AlgiHeal Alginate"
       $productGroups = [];
+      $coreProductNames = [];
+
       foreach ($products as $product) {
-        $baseName = $product['name']; // e.g., "CollaHeal Collagen Wound Dressing"
-        if (!isset($productGroups[$baseName])) {
-          $productGroups[$baseName] = [];
+        $fullName = $product['name'];
+
+        // Extract core product name (remove generic suffixes)
+        $coreName = preg_replace('/(Dressing|Powder|Foam|Hydrogel|Kit)$/i', '', $fullName);
+        $coreName = trim($coreName);
+
+        // Store mapping
+        if (!isset($coreProductNames[$coreName])) {
+          $coreProductNames[$coreName] = $fullName;
         }
-        $productGroups[$baseName][] = $product;
+
+        if (!isset($productGroups[$coreName])) {
+          $productGroups[$coreName] = [];
+        }
+        $productGroups[$coreName][] = $product;
       }
+
+      // Sort core product names alphabetically
+      ksort($productGroups);
     ?>
 
-    <div style="margin-bottom: 2rem;">
-      <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--ink); margin-bottom: 0.5rem;">Assign Products</h2>
-      <p style="color: var(--muted); font-size: 0.875rem;">Select products and quantities for each patient. Click "Add Product" to assign items.</p>
+    <div style="margin-bottom: 1.5rem;">
+      <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--ink); margin-bottom: 0.25rem;">Assign Products</h2>
+      <p style="color: var(--muted); font-size: 0.8rem;">Select product and size, then enter quantity.</p>
     </div>
 
     <form method="POST" action="?page=wholesale&step=3">
@@ -489,15 +505,15 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
       <?php endforeach; ?>
 
       <!-- Patient-Centric Product Assignment -->
-      <div style="display: flex; flex-direction: column; gap: 2rem; margin-bottom: 2rem;">
+      <div style="display: flex; flex-direction: column; gap: 1.25rem; margin-bottom: 1.5rem;">
         <?php foreach ($patients as $patIndex => $patient): ?>
-          <div class="patient-product-card" style="background: white; border: 2px solid var(--border); border-radius: 8px; padding: 1.5rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid var(--border);">
-              <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--ink); margin: 0;">
+          <div class="patient-product-card" style="background: white; border: 1px solid var(--border); border-radius: 6px; padding: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border);">
+              <h3 style="font-size: 1rem; font-weight: 600; color: var(--ink); margin: 0;">
                 <?= htmlspecialchars($patient['first_name'] . ' ' . $patient['last_name']) ?>
               </h3>
-              <div style="color: var(--muted); font-size: 0.875rem;">
-                Patient <?= $patIndex + 1 ?> of <?= count($patients) ?>
+              <div style="color: var(--muted); font-size: 0.75rem;">
+                <?= $patIndex + 1 ?>/<?= count($patients) ?>
               </div>
             </div>
 
@@ -506,29 +522,31 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
               <!-- Product rows will be added here dynamically -->
             </div>
 
-            <button type="button" class="btn" onclick="addProductRow(<?= $patIndex ?>)" style="margin-top: 1rem;">
-              <span style="font-size: 1.25rem;">+</span> Add Product
+            <button type="button" class="btn" onclick="addProductRow(<?= $patIndex ?>)" style="margin-top: 0.75rem; padding: 0.5rem 1rem; font-size: 0.875rem;">
+              <span style="font-size: 1rem;">+</span> Add Product
             </button>
 
             <!-- Patient subtotal -->
-            <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border); text-align: right;">
-              <span style="font-weight: 600; color: var(--ink);">Patient Subtotal: </span>
-              <span id="patient-<?= $patIndex ?>-total" style="font-size: 1.125rem; font-weight: 700; color: var(--brand);">$0.00</span>
+            <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border); text-align: right;">
+              <span style="font-weight: 600; color: var(--ink); font-size: 0.875rem;">Subtotal: </span>
+              <span id="patient-<?= $patIndex ?>-total" style="font-size: 1rem; font-weight: 700; color: var(--brand);">$0.00</span>
             </div>
           </div>
         <?php endforeach; ?>
       </div>
 
       <!-- Grand Total Summary -->
-      <div class="cost-summary" style="background: #f8f9fa; border: 2px solid var(--border); border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem;">
-        <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">Order Summary</h3>
-        <div id="summary-details">
-          <p style="color: var(--muted);">Add products to see cost breakdown</p>
+      <div class="cost-summary" style="background: #f8f9fa; border: 1px solid var(--border); border-radius: 6px; padding: 1rem; margin-bottom: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+          <h3 style="font-size: 1rem; font-weight: 600; margin: 0;">Order Summary</h3>
         </div>
-        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 2px solid var(--border);">
+        <div id="summary-details" style="font-size: 0.875rem; margin-bottom: 0.75rem;">
+          <p style="color: var(--muted); margin: 0;">Add products to see breakdown</p>
+        </div>
+        <div style="padding-top: 0.75rem; border-top: 1px solid var(--border);">
           <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-size: 1.25rem; font-weight: 700;">Grand Total:</span>
-            <span id="grand-total" style="font-size: 1.5rem; font-weight: 700; color: var(--brand);">$0.00</span>
+            <span style="font-size: 1rem; font-weight: 700;">Grand Total:</span>
+            <span id="grand-total" style="font-size: 1.25rem; font-weight: 700; color: var(--brand);">$0.00</span>
           </div>
         </div>
       </div>
@@ -557,13 +575,13 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
       row.className = 'product-assignment-row';
       row.dataset.patientIndex = patientIndex;
       row.dataset.rowIndex = rowIndex;
-      row.style.cssText = 'display: grid; grid-template-columns: 2fr 1fr 1fr 60px; gap: 1rem; align-items: start; padding: 1rem; background: #f8f9fa; border-radius: 6px; margin-bottom: 1rem;';
+      row.style.cssText = 'display: grid; grid-template-columns: 2fr 1.25fr 1fr 50px; gap: 0.75rem; align-items: end; padding: 0.75rem; background: #f8f9fa; border-radius: 4px; margin-bottom: 0.5rem;';
 
       row.innerHTML = `
         <div>
-          <label style="display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem; color: var(--ink);">Product Category</label>
-          <select class="form-control product-selector" onchange="updateSizeOptions(${patientIndex}, ${rowIndex})" required>
-            <option value="">Select product...</option>
+          <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem; color: var(--ink);">Product</label>
+          <select class="form-control product-selector" onchange="updateSizeOptions(${patientIndex}, ${rowIndex})" required style="font-size: 0.875rem;">
+            <option value="">Select...</option>
             ${Object.keys(productCatalog).map(category =>
               `<option value="${category}">${category}</option>`
             ).join('')}
@@ -571,20 +589,20 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
         </div>
 
         <div class="size-selector-container" style="display: none;">
-          <label style="display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem; color: var(--ink);">Size</label>
-          <select class="form-control size-selector" onchange="updateProductSelection(${patientIndex}, ${rowIndex})" required>
-            <option value="">Select size...</option>
+          <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem; color: var(--ink);">Size</label>
+          <select class="form-control size-selector" onchange="updateProductSelection(${patientIndex}, ${rowIndex})" required style="font-size: 0.875rem;">
+            <option value="">Select...</option>
           </select>
         </div>
 
         <div class="quantity-container" style="display: none;">
-          <label style="display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem; color: var(--ink);">Boxes</label>
-          <input type="number" class="form-control quantity-input" min="1" max="100" placeholder="1" onchange="calculatePatientTotal(${patientIndex})" required>
-          <div class="price-info" style="font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem;"></div>
+          <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem; color: var(--ink);">Boxes</label>
+          <input type="number" class="form-control quantity-input" min="1" max="100" placeholder="1" onchange="calculatePatientTotal(${patientIndex})" required style="font-size: 0.875rem;">
+          <div class="price-info" style="font-size: 0.7rem; color: var(--muted); margin-top: 0.15rem;"></div>
         </div>
 
-        <div style="padding-top: 1.75rem;">
-          <button type="button" class="remove-btn" onclick="removeProductRow(${patientIndex}, ${rowIndex})" title="Remove product" style="background: #dc3545; color: white; border: none; border-radius: 4px; width: 40px; height: 40px; cursor: pointer; font-size: 1.25rem; line-height: 1;">×</button>
+        <div style="padding-bottom: 0.25rem;">
+          <button type="button" class="remove-btn" onclick="removeProductRow(${patientIndex}, ${rowIndex})" title="Remove" style="background: #dc3545; color: white; border: none; border-radius: 4px; width: 32px; height: 32px; cursor: pointer; font-size: 1.125rem; line-height: 1;">×</button>
         </div>
 
         <input type="hidden" class="product-id-input" name="products[${patientIndex}][${rowIndex}][product_id]" value="">
