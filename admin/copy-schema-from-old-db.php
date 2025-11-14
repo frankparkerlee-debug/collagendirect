@@ -12,7 +12,7 @@ echo "=== Database Schema Copy Tool ===\n\n";
 
 // OLD DATABASE credentials
 $oldDb = [
-    'host' => 'dpg-d3t3i83e5dus73flkang-a',
+    'host' => 'dpg-d3t3i83e5dus73flkang-a.oregon-postgres.render.com',
     'port' => '5432',
     'dbname' => 'collagen_db',
     'user' => 'collagen_db_user',
