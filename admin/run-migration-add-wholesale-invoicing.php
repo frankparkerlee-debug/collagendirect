@@ -174,7 +174,10 @@ try {
     CREATE TRIGGER trg_orders_balance_update
     AFTER INSERT OR UPDATE OF balance_due, amount_paid, due_date OR DELETE ON orders
     FOR EACH ROW
-    WHEN (OLD.billed_by = 'practice_dme' OR NEW.billed_by = 'practice_dme')
+    WHEN (
+      (TG_OP = 'DELETE' AND OLD.invoice_number IS NOT NULL) OR
+      (TG_OP != 'DELETE' AND NEW.invoice_number IS NOT NULL)
+    )
     EXECUTE FUNCTION trigger_update_practice_balance();
   ");
   echo "   ✓ Created trigger for automatic balance updates\n\n";
