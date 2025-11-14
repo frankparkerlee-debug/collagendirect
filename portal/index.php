@@ -6415,7 +6415,7 @@ if ($page==='logout'){
   </div>
 
 <?php elseif ($page==='wholesale'): ?>
-  <?php include __DIR__ . '/wholesale-unified.php'; ?>
+  <?php include __DIR__ . '/wholesale-new.php'; ?>
 
 <?php elseif ($page==='my-wholesale-orders'): ?>
   <?php header('Location: ?page=wholesale&tab=manage'); exit; ?>
