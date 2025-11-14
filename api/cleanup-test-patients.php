@@ -137,35 +137,9 @@ try {
     echo "7. No orders to delete\n\n";
   }
 
-  // Delete billable encounters that reference wound_photos from these patients
-  echo "8. Deleting billable encounters that reference related wound photos...\n";
-  $deleteEncountersByPhoto = $pdo->prepare("
-    DELETE FROM billable_encounters
-    WHERE wound_photo_id IN (
-      SELECT id FROM wound_photos WHERE patient_id IN ($placeholders)
-    )
-  ");
-  $deleteEncountersByPhoto->execute($patientIds);
-  $deletedByPhoto = $deleteEncountersByPhoto->rowCount();
-  echo "   ✓ Deleted $deletedByPhoto billable encounter(s) by wound photo reference\n\n";
-
-  // Delete remaining billable encounters by patient_id
-  if ($encounterCount > 0) {
-    echo "9. Deleting remaining billable encounter(s) by patient ID...\n";
-    $deleteEncounters = $pdo->prepare("
-      DELETE FROM billable_encounters
-      WHERE patient_id IN ($placeholders)
-    ");
-    $deleteEncounters->execute($patientIds);
-    $deletedByPatient = $deleteEncounters->rowCount();
-    echo "   ✓ Deleted $deletedByPatient billable encounter(s) by patient ID\n\n";
-  } else {
-    echo "9. No remaining billable encounters to delete\n\n";
-  }
-
-  // Delete related wound photos (now safe, no FK references)
+  // Delete wound photos first (wound_photos has FK to billable_encounters)
   if ($photoCount > 0) {
-    echo "10. Deleting $photoCount related wound photo(s)...\n";
+    echo "8. Deleting $photoCount related wound photo(s)...\n";
     $deletePhotos = $pdo->prepare("
       DELETE FROM wound_photos
       WHERE patient_id IN ($placeholders)
@@ -173,11 +147,24 @@ try {
     $deletePhotos->execute($patientIds);
     echo "   ✓ Wound photos deleted\n\n";
   } else {
-    echo "10. No wound photos to delete\n\n";
+    echo "8. No wound photos to delete\n\n";
+  }
+
+  // Now delete billable encounters (safe now that wound_photos are gone)
+  if ($encounterCount > 0) {
+    echo "9. Deleting $encounterCount billable encounter(s)...\n";
+    $deleteEncounters = $pdo->prepare("
+      DELETE FROM billable_encounters
+      WHERE patient_id IN ($placeholders)
+    ");
+    $deleteEncounters->execute($patientIds);
+    echo "   ✓ Billable encounters deleted\n\n";
+  } else {
+    echo "9. No billable encounters to delete\n\n";
   }
 
   // Delete the patients
-  echo "11. Deleting $patientCount patient record(s)...\n";
+  echo "10. Deleting $patientCount patient record(s)...\n";
   $deletePatients = $pdo->prepare("
     DELETE FROM patients
     WHERE created_at < ?
