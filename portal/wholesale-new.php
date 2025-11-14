@@ -1154,7 +1154,16 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
                   // Format address and delivery type
                   $deliveryType = '';
                   $address = '';
-                  if (($patient['delivery_preference'] ?? '') === 'office_stock' || ($patient['is_office_stock'] ?? '') === '1') {
+
+                  // Check if this is office stock (multiple ways it can be indicated)
+                  $isOfficeStock = (
+                    ($patient['delivery_preference'] ?? '') === 'office_stock' ||
+                    ($patient['is_office_stock'] ?? '') == '1' || // Use == for loose comparison
+                    ($patient['is_office_stock'] ?? false) === true ||
+                    strtolower($patient['first_name'] ?? '') === 'office'
+                  );
+
+                  if ($isOfficeStock) {
                     $deliveryType = 'Office';
                     // Use practice address for office stock
                     $addressParts = array_filter([

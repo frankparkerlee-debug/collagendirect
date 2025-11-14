@@ -88,7 +88,14 @@ try {
 
     // If not found, create new patient (unless it's office stock)
     if (!$patientId) {
-      if ($patientData['delivery_preference'] === 'office_stock') {
+      // Check if this is office stock (multiple ways it can be indicated)
+      $isOfficeStock = (
+        ($patientData['delivery_preference'] ?? '') === 'office_stock' ||
+        ($patientData['is_office_stock'] ?? '') == '1' ||
+        strtolower($patientData['first_name'] ?? '') === 'office'
+      );
+
+      if ($isOfficeStock) {
         // For office stock, create a placeholder patient
         $patientId = guid();
         $pdo->prepare("
@@ -132,8 +139,8 @@ try {
     // 2) Create order
     $orderId = guid();
 
-    // Determine shipping details
-    if ($patientData['delivery_preference'] === 'office_stock') {
+    // Determine shipping details - check if office stock
+    if ($isOfficeStock) {
       // Get practice address from user profile
       $userStmt = $pdo->prepare("SELECT practice_name, address, city, state, zip FROM users WHERE id = ?");
       $userStmt->execute([$uid]);
