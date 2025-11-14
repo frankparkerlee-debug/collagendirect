@@ -12,16 +12,16 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // This file is included by portal/index.php
-// index.php handles authentication - we can trust $cu is valid
-global $pdo, $cu;
+// index.php handles authentication - $user and $pdo are available
+global $pdo, $user;
 
-// Safety check for $cu
-if (!isset($cu) || !is_array($cu) || !isset($cu['id'])) {
+// Safety check (should never happen since index.php handles auth)
+if (!isset($user) || !is_array($user) || !isset($user['id'])) {
   echo '<div style="padding: 2rem; text-align: center;">Please log in to access wholesale ordering.</div>';
   return;
 }
 
-$userId = $cu['id'];
+$userId = $user['id'];
 $step = $_GET['step'] ?? '1'; // 1=patients, 2=products, 3=review
 
 // Fetch available products for Step 2
