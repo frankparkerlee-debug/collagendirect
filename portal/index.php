@@ -2227,12 +2227,17 @@ if ($action) {
     $piecesPerBoxCol = in_array('pieces_per_box', $colCheck) ? ', pieces_per_box' : '';
 
     // Include practice-specific pricing if practice_pricing table exists
-    $practiceCheckCol = $pdo->query("
-      SELECT column_name FROM information_schema.columns
-      WHERE table_name = 'practice_pricing'
-    ")->fetchAll(PDO::FETCH_COLUMN);
-
-    $hasPracticePricing = count($practiceCheckCol) > 0;
+    $hasPracticePricing = false;
+    try {
+      $practiceCheckCol = $pdo->query("
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'practice_pricing'
+      ")->fetchAll(PDO::FETCH_COLUMN);
+      $hasPracticePricing = count($practiceCheckCol) > 0;
+    } catch (Exception $e) {
+      // Table doesn't exist yet, use fallback
+      $hasPracticePricing = false;
+    }
 
     if ($hasPracticePricing) {
       // Get products with practice-specific pricing override
