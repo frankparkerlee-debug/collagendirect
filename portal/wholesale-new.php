@@ -300,6 +300,23 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
     </div>
   </div>
 
+  <?php
+  // Load session data for all steps
+  // Store patients from POST (from Step 1 submission)
+  if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['patients'])) {
+    $_SESSION['wholesale_patients'] = $_POST['patients'];
+
+    // Also store products if coming back from Step 3
+    if (isset($_POST['products'])) {
+      $_SESSION['wholesale_products'] = $_POST['products'];
+    }
+  }
+
+  // Retrieve patients and products from session
+  $patients = $_SESSION['wholesale_patients'] ?? [];
+  $savedProducts = $_SESSION['wholesale_products'] ?? [];
+  ?>
+
   <?php if ($step == '1'): ?>
     <!-- STEP 1: Patient Information -->
     <div style="margin-bottom: 2rem;">
@@ -675,19 +692,6 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
   <?php elseif ($step == '2'): ?>
     <!-- STEP 2: Product Assignment - Patient-Centric with Grouped Products -->
     <?php
-    // Get patients from POST or session
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['patients'])) {
-      $_SESSION['wholesale_patients'] = $_POST['patients'];
-
-      // Also store products if coming back from Step 3
-      if (isset($_POST['products'])) {
-        $_SESSION['wholesale_products'] = $_POST['products'];
-      }
-    }
-
-    $patients = $_SESSION['wholesale_patients'] ?? [];
-    $savedProducts = $_SESSION['wholesale_products'] ?? [];
-
     if (empty($patients)):
     ?>
       <div style="text-align: center; padding: 3rem;">
