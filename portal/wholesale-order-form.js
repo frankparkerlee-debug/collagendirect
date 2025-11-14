@@ -185,11 +185,14 @@ function renderProductsGrid() {
     div.dataset.productId = product.id;
     div.onclick = () => toggleProductSelection(product.id);
 
+    const pricePerBox = parseFloat(product.price_wholesale || 0) * parseInt(product.pieces_per_box || 10);
+    const piecesPerBox = parseInt(product.pieces_per_box || 10);
+
     div.innerHTML = `
       <div style="font-weight: 600; color: #1e293b; margin-bottom: 0.5rem;">${product.name}</div>
       <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.75rem;">${product.size || ''}</div>
-      <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.25rem;">Wholesale: $${parseFloat(product.price_wholesale || 0).toFixed(2)}/pc</div>
-      <div style="font-size: 0.75rem; color: #64748b;">${parseInt(product.pieces_per_box || 10)} pieces/box</div>
+      <div style="font-size: 0.875rem; color: #10b981; font-weight: 600; margin-bottom: 0.25rem;">$${pricePerBox.toFixed(2)} per box</div>
+      <div style="font-size: 0.75rem; color: #64748b;">${piecesPerBox} pieces per box</div>
       <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #e2e8f0;">
         <input type="number"
                class="form-control form-control-sm product-quantity"
@@ -310,13 +313,14 @@ function renderCart() {
     let itemCost = 0;
 
     item.products.forEach(product => {
-      const productCost = parseFloat(product.price_wholesale || 0) * parseInt(product.pieces_per_box || 10) * parseInt(product.boxes);
+      const pricePerBox = parseFloat(product.price_wholesale || 0) * parseInt(product.pieces_per_box || 10);
+      const productCost = pricePerBox * parseInt(product.boxes);
       itemCost += productCost;
       totalProducts++;
 
       productsHtml += `
         <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #64748b; margin-top: 0.25rem;">
-          <span>• ${product.name} (${product.boxes} boxes)</span>
+          <span>• ${product.name} (${product.boxes} boxes × $${pricePerBox.toFixed(2)})</span>
           <span style="font-weight: 600;">$${productCost.toFixed(2)}</span>
         </div>
       `;

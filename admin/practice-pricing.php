@@ -82,7 +82,8 @@ $stmt = $pdo->query("
     u.user_type,
     p.name AS product_name,
     p.size AS product_size,
-    p.price_wholesale AS default_price
+    p.price_wholesale AS default_price,
+    p.pieces_per_box
   FROM practice_pricing pp
   JOIN users u ON u.id = pp.user_id
   JOIN products p ON p.id = pp.product_id
@@ -167,12 +168,17 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <select name="product_id" id="product-select" required style="width: 100%;">
               <option value="">-- Select Product --</option>
               <?php foreach ($products as $product): ?>
+                <?php
+                  $pricePerPiece = $product['price_wholesale'] ?? 0;
+                  $piecesPerBox = $product['pieces_per_box'] ?? 10;
+                  $pricePerBox = $pricePerPiece * $piecesPerBox;
+                ?>
                 <option value="<?= $product['id'] ?>"
-                        data-default-price="<?= number_format($product['price_wholesale'] ?? 0, 2) ?>"
-                        data-pieces-per-box="<?= $product['pieces_per_box'] ?? 10 ?>">
+                        data-default-price="<?= number_format($pricePerPiece, 2) ?>"
+                        data-pieces-per-box="<?= $piecesPerBox ?>">
                   <?= htmlspecialchars($product['name']) ?>
                   <?= htmlspecialchars($product['size']) ?>
-                  (Default: $<?= number_format($product['price_wholesale'] ?? 0, 2) ?>)
+                  (Default: $<?= number_format($pricePerBox, 2) ?>/box)
                 </option>
               <?php endforeach; ?>
             </select>
@@ -255,8 +261,13 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <tbody>
               <?php foreach ($pricingRules as $rule): ?>
                 <?php
-                  $savings = ($rule['default_price'] ?? 0) - $rule['custom_price'];
-                  $savingsPercent = $rule['default_price'] > 0 ? ($savings / $rule['default_price']) * 100 : 0;
+                  $piecesPerBox = $rule['pieces_per_box'] ?? 10;
+                  $defaultPricePerPiece = $rule['default_price'] ?? 0;
+                  $customPricePerPiece = $rule['custom_price'];
+                  $defaultPricePerBox = $defaultPricePerPiece * $piecesPerBox;
+                  $customPricePerBox = $customPricePerPiece * $piecesPerBox;
+                  $savings = $defaultPricePerBox - $customPricePerBox;
+                  $savingsPercent = $defaultPricePerBox > 0 ? ($savings / $defaultPricePerBox) * 100 : 0;
                 ?>
                 <tr>
                   <td>
@@ -272,12 +283,16 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                       <?= htmlspecialchars($rule['product_name']) ?>
                     </div>
                     <div style="font-size: 0.75rem; color: var(--muted);">
-                      <?= htmlspecialchars($rule['product_size']) ?>
+                      <?= htmlspecialchars($rule['product_size']) ?> (<?= $piecesPerBox ?> pcs/box)
                     </div>
                   </td>
-                  <td>$<?= number_format($rule['default_price'] ?? 0, 2) ?></td>
+                  <td>
+                    <div>$<?= number_format($defaultPricePerBox, 2) ?>/box</div>
+                    <div style="font-size: 0.75rem; color: var(--muted);">$<?= number_format($defaultPricePerPiece, 2) ?>/pc</div>
+                  </td>
                   <td style="font-weight: 600; color: var(--brand);">
-                    $<?= number_format($rule['custom_price'], 2) ?>
+                    <div>$<?= number_format($customPricePerBox, 2) ?>/box</div>
+                    <div style="font-size: 0.75rem; color: var(--muted);">$<?= number_format($customPricePerPiece, 2) ?>/pc</div>
                   </td>
                   <td>
                     <?= $rule['discount_percentage'] ? number_format($rule['discount_percentage'], 1) . '%' : '-' ?>
