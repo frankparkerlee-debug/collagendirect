@@ -31,7 +31,7 @@ $newDb = [
 echo "Connecting to OLD database...\n";
 try {
     $oldPdo = new PDO(
-        "pgsql:host={$oldDb['host']};port={$oldDb['port']};dbname={$oldDb['dbname']}",
+        "pgsql:host={$oldDb['host']};port={$oldDb['port']};dbname={$oldDb['dbname']};sslmode=require",
         $oldDb['user'],
         $oldDb['password'],
         [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
