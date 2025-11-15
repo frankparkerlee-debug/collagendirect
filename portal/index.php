@@ -954,21 +954,33 @@ if ($action) {
     }
     // Practice admins can only see patients from their practice physicians
     elseif ($userRole === 'practice_admin') {
-      // Check which column exists in practice_physicians table (backward compatibility)
-      $ppCols = $pdo->query("
-        SELECT column_name FROM information_schema.columns
-        WHERE table_name = 'practice_physicians'
-        AND column_name IN ('physician_id', 'physician_npi', 'practice_admin_id', 'practice_manager_id')
-      ")->fetchAll(PDO::FETCH_COLUMN);
+      // Check if practice_physicians table exists and which columns it has
+      $physicianIds = [$userId]; // Default: include practice admin's own patients
 
-      $physicianCol = in_array('physician_id', $ppCols) ? 'physician_id' : 'physician_npi';
-      $adminCol = in_array('practice_admin_id', $ppCols) ? 'practice_admin_id' : 'practice_manager_id';
+      try {
+        // Check which column exists in practice_physicians table (backward compatibility)
+        $ppCols = $pdo->query("
+          SELECT column_name FROM information_schema.columns
+          WHERE table_name = 'practice_physicians'
+          AND column_name IN ('physician_id', 'physician_npi', 'practice_admin_id', 'practice_manager_id')
+        ")->fetchAll(PDO::FETCH_COLUMN);
 
-      // Get list of physician IDs in this practice
-      $pracStmt = $pdo->prepare("SELECT {$physicianCol} FROM practice_physicians WHERE {$adminCol} = ?");
-      $pracStmt->execute([$userId]);
-      $physicianIds = $pracStmt->fetchAll(PDO::FETCH_COLUMN);
-      $physicianIds[] = $userId; // Include practice admin's own patients
+        if (!empty($ppCols)) {
+          $physicianCol = in_array('physician_id', $ppCols) ? 'physician_id' : 'physician_npi';
+          $adminCol = in_array('practice_admin_id', $ppCols) ? 'practice_admin_id' : 'practice_manager_id';
+
+          // Get list of physician IDs in this practice
+          $pracStmt = $pdo->prepare("SELECT {$physicianCol} FROM practice_physicians WHERE {$adminCol} = ?");
+          $pracStmt->execute([$userId]);
+          $practicePhysicians = $pracStmt->fetchAll(PDO::FETCH_COLUMN);
+
+          // Merge practice physicians with admin's own ID
+          $physicianIds = array_merge($physicianIds, $practicePhysicians);
+        }
+      } catch (Throwable $e) {
+        // Table doesn't exist or query failed - just show practice admin's own patients
+        error_log("practice_physicians table check failed: " . $e->getMessage());
+      }
 
       // Show patients from all practice physicians
       $placeholders = implode(',', array_fill(0, count($physicianIds), '?'));
