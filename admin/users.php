@@ -35,6 +35,18 @@ $emps = $pdo->query("SELECT id, name, email, role, created_at FROM admin_users W
 /* Manufacturer list - separate from employees */
 $manufacturers = $pdo->query("SELECT id, name, email, role, created_at FROM admin_users WHERE role = 'manufacturer' ORDER BY created_at DESC LIMIT 200")->fetchAll();
 
+/* Practice Locations list - all locations for practices */
+$locationsQuery = "
+  SELECT pl.id, pl.user_id, pl.location_name, pl.address, pl.city, pl.state, pl.zip, pl.phone, pl.is_primary, pl.is_active, pl.created_at,
+         u.first_name, u.last_name, u.practice_name
+  FROM practice_locations pl
+  JOIN users u ON u.id = pl.user_id
+  WHERE u.role = 'practice_admin'
+  ORDER BY u.practice_name, pl.is_primary DESC, pl.location_name
+  LIMIT 500
+";
+$locations = $pdo->query($locationsQuery)->fetchAll();
+
 /* Actions */
 if ($_SERVER['REQUEST_METHOD']==='POST') {
   verify_csrf();
@@ -86,19 +98,20 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $password = $_POST['password'];
     $firstName = trim($_POST['first_name']);
     $lastName = trim($_POST['last_name']);
+    $securityRole = $_POST['security_role'] ?? 'physician'; // Practice Manager or Physician
     $userId = bin2hex(random_bytes(16));
 
     if ($providerType === 'practice') {
       // Creating a practice owner (practice_admin)
       $practiceName = trim($_POST['practice_name'] ?? '');
-      $pdo->prepare("INSERT INTO users(id,email,password_hash,first_name,last_name,practice_name,role,account_type,status,created_at,updated_at) VALUES(?,?,?,?,?,?,'practice_admin','referral','active',NOW(),NOW())")
-          ->execute([$userId, $email, password_hash($password, PASSWORD_DEFAULT), $firstName, $lastName, $practiceName]);
+      $pdo->prepare("INSERT INTO users(id,email,password_hash,first_name,last_name,practice_name,role,user_type,account_type,status,created_at,updated_at) VALUES(?,?,?,?,?,?,'practice_admin',?,'referral','active',NOW(),NOW())")
+          ->execute([$userId, $email, password_hash($password, PASSWORD_DEFAULT), $firstName, $lastName, $practiceName, $securityRole]);
       $msg = 'Practice owner created';
     } else {
       // Creating a physician and linking to practice
       $practiceId = $_POST['practice_id'] ?? '';
-      $pdo->prepare("INSERT INTO users(id,email,password_hash,first_name,last_name,role,account_type,status,created_at,updated_at) VALUES(?,?,?,?,?,'physician','referral','active',NOW(),NOW())")
-          ->execute([$userId, $email, password_hash($password, PASSWORD_DEFAULT), $firstName, $lastName]);
+      $pdo->prepare("INSERT INTO users(id,email,password_hash,first_name,last_name,role,user_type,account_type,status,created_at,updated_at) VALUES(?,?,?,?,?,'physician',?,'referral','active',NOW(),NOW())")
+          ->execute([$userId, $email, password_hash($password, PASSWORD_DEFAULT), $firstName, $lastName, $securityRole]);
 
       // Link physician to practice via practice_physicians table
       if ($practiceId) {
@@ -154,13 +167,69 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $msg = "Assigned $assigned physician(s) to employee";
     $tab = 'employees';
   }
+
+  // Practice Locations Management
+  if ($act==='create_location' && $isAdmin) {
+    $userId = trim($_POST['user_id']);
+    $locationName = trim($_POST['location_name']);
+    $address = trim($_POST['address']);
+    $city = trim($_POST['city']);
+    $state = trim($_POST['state']);
+    $zip = trim($_POST['zip']);
+    $phone = trim($_POST['phone'] ?? '');
+    $isPrimary = isset($_POST['is_primary']) ? 1 : 0;
+
+    // If this is set as primary, unset other primary locations for this user
+    if ($isPrimary) {
+      $pdo->prepare("UPDATE practice_locations SET is_primary = FALSE WHERE user_id = ?")->execute([$userId]);
+    }
+
+    $pdo->prepare("INSERT INTO practice_locations(user_id, location_name, address, city, state, zip, phone, is_primary, is_active, created_at, updated_at) VALUES(?,?,?,?,?,?,?,?,TRUE,NOW(),NOW())")
+        ->execute([$userId, $locationName, $address, $city, $state, $zip, $phone, $isPrimary]);
+    $msg = 'Practice location created';
+    $tab = 'locations';
+  }
+
+  if ($act==='update_location' && $isAdmin) {
+    $locationId = (int)$_POST['location_id'];
+    $locationName = trim($_POST['location_name']);
+    $address = trim($_POST['address']);
+    $city = trim($_POST['city']);
+    $state = trim($_POST['state']);
+    $zip = trim($_POST['zip']);
+    $phone = trim($_POST['phone'] ?? '');
+    $isPrimary = isset($_POST['is_primary']) ? 1 : 0;
+    $isActive = isset($_POST['is_active']) ? 1 : 0;
+
+    // Get user_id for this location
+    $loc = $pdo->prepare("SELECT user_id FROM practice_locations WHERE id = ?");
+    $loc->execute([$locationId]);
+    $userId = $loc->fetchColumn();
+
+    // If this is set as primary, unset other primary locations for this user
+    if ($isPrimary && $userId) {
+      $pdo->prepare("UPDATE practice_locations SET is_primary = FALSE WHERE user_id = ? AND id != ?")->execute([$userId, $locationId]);
+    }
+
+    $pdo->prepare("UPDATE practice_locations SET location_name=?, address=?, city=?, state=?, zip=?, phone=?, is_primary=?, is_active=?, updated_at=NOW() WHERE id=?")
+        ->execute([$locationName, $address, $city, $state, $zip, $phone, $isPrimary, $isActive, $locationId]);
+    $msg = 'Practice location updated';
+    $tab = 'locations';
+  }
+
+  if ($act==='delete_location' && $isAdmin) {
+    $pdo->prepare("DELETE FROM practice_locations WHERE id=?")->execute([(int)$_POST['location_id']]);
+    $msg = 'Practice location deleted';
+    $tab = 'locations';
+  }
+
   header('Location: /admin/users.php?tab='.$tab); exit;
 }
 ?>
 <?php include __DIR__ . '/_header.php'; ?>
 
 <div class="flex items-center justify-between mb-4">
-  <div class="text-xl font-semibold">Users</div>
+  <div class="text-xl font-semibold">Admin Settings</div>
 </div>
 
 <?php if ($msg): ?><div class="mb-3 text-sm bg-teal-50 border border-teal-200 text-teal-700 p-2 rounded"><?=$msg?></div><?php endif; ?>
@@ -171,6 +240,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
   <?php if ($adminRole !== 'sales'): ?>
   <a class="px-3 py-2 border rounded-t <?=($tab==='manufacturer'?'bg-white border-b-0':'')?>" href="/admin/users.php?tab=manufacturer">Manufacturer</a>
   <?php endif; ?>
+  <a class="px-3 py-2 border rounded-t <?=($tab==='locations'?'bg-white border-b-0':'')?>" href="/admin/users.php?tab=locations">Practice Locations</a>
 </div>
 
 <div class="bg-white border rounded-b rounded-r p-4">
@@ -264,6 +334,17 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         <input class="border rounded px-2 py-1 w-full mb-2" name="first_name" placeholder="First name" required>
         <input class="border rounded px-2 py-1 w-full mb-2" name="last_name" placeholder="Last name" required>
         <input class="border rounded px-2 py-1 w-full mb-2" type="email" name="email" placeholder="Email" required>
+
+        <!-- Security Role Dropdown -->
+        <div class="mb-2">
+          <label class="text-sm text-slate-600 block mb-1">Security Role</label>
+          <select class="border rounded px-2 py-1 w-full" name="security_role" required>
+            <option value="">Select Role</option>
+            <option value="practice_manager">Practice Manager</option>
+            <option value="physician">Physician</option>
+          </select>
+        </div>
+
         <input class="border rounded px-2 py-1 w-full mb-2" type="password" name="password" placeholder="Temp password" required>
         <button class="bg-brand text-white rounded px-3 py-1">Create</button>
       </form>
@@ -412,6 +493,146 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         </div>
         <button class="mt-2 bg-brand text-white rounded px-3 py-1">Create</button>
       </form>
+    </div>
+    <?php endif; ?>
+  </div>
+
+<?php elseif ($tab==='locations'): ?>
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-2 overflow-x-auto">
+      <div class="font-semibold mb-2">Practice Locations</div>
+      <table class="w-full text-sm min-w-[800px]">
+        <thead class="border-b">
+          <tr class="text-left">
+            <th class="py-2">Practice</th>
+            <th class="py-2">Location Name</th>
+            <th class="py-2">Address</th>
+            <th class="py-2">Phone</th>
+            <th class="py-2">Primary</th>
+            <th class="py-2">Status</th>
+            <th class="py-2">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($locations as $loc): ?>
+          <tr class="border-b hover:bg-slate-50">
+            <td class="py-3"><?=e($loc['practice_name'] ?? '')?></td>
+            <td class="py-3"><?=e($loc['location_name'])?></td>
+            <td class="py-3 text-xs"><?=e($loc['address'])?>, <?=e($loc['city'])?>, <?=e($loc['state'])?> <?=e($loc['zip'])?></td>
+            <td class="py-3"><?=e($loc['phone'] ?? '')?></td>
+            <td class="py-3"><?=$loc['is_primary'] ? '✓' : ''?></td>
+            <td class="py-3"><?=$loc['is_active'] ? '<span class="text-green-600">Active</span>' : '<span class="text-gray-400">Inactive</span>'?></td>
+            <td class="py-3 space-x-2">
+              <?php if ($isAdmin): ?>
+              <button onclick="editLocation(<?=htmlspecialchars(json_encode($loc), ENT_QUOTES, 'UTF-8')?>)" class="text-brand text-xs">Edit</button>
+              <form method="post" class="inline" onsubmit="return confirm('Delete location?')"><?=csrf_field()?>
+                <input type="hidden" name="action" value="delete_location">
+                <input type="hidden" name="location_id" value="<?=e($loc['id'])?>">
+                <button class="text-rose-600 text-xs">Delete</button>
+              </form>
+              <?php else: ?>
+              <span class="text-slate-400 text-xs">View only</span>
+              <?php endif; ?>
+            </td>
+          </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+    <?php if ($isAdmin): ?>
+    <div>
+      <div class="font-semibold mb-2">Add Practice Location</div>
+      <form method="post" class="bg-slate-50 border rounded p-3 text-sm" id="location-form">
+        <?=csrf_field()?>
+        <input type="hidden" name="action" value="create_location" id="location-action">
+        <input type="hidden" name="location_id" id="location-id">
+
+        <div class="mb-2">
+          <label class="text-xs text-slate-600 block mb-1">Practice</label>
+          <select name="user_id" id="location-user-id" class="border rounded px-2 py-1 w-full" required>
+            <option value="">Select Practice</option>
+            <?php
+            $practicesForLoc = $pdo->query("SELECT id, practice_name, CONCAT(first_name, ' ', last_name) as owner_name FROM users WHERE role='practice_admin' AND practice_name IS NOT NULL ORDER BY practice_name")->fetchAll();
+            foreach ($practicesForLoc as $p):
+            ?>
+              <option value="<?=e($p['id'])?>"><?=e($p['practice_name'])?> (<?=e($p['owner_name'])?>)</option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+
+        <input class="border rounded px-2 py-1 w-full mb-2" name="location_name" id="location-name" placeholder="Location name" required>
+        <input class="border rounded px-2 py-1 w-full mb-2" name="address" id="location-address" placeholder="Address" required>
+        <div class="grid grid-cols-2 gap-2 mb-2">
+          <input class="border rounded px-2 py-1" name="city" id="location-city" placeholder="City" required>
+          <select class="border rounded px-2 py-1" name="state" id="location-state" required>
+            <option value="">State</option>
+            <option value="AL">AL</option><option value="AK">AK</option><option value="AZ">AZ</option><option value="AR">AR</option>
+            <option value="CA">CA</option><option value="CO">CO</option><option value="CT">CT</option><option value="DE">DE</option>
+            <option value="FL">FL</option><option value="GA">GA</option><option value="HI">HI</option><option value="ID">ID</option>
+            <option value="IL">IL</option><option value="IN">IN</option><option value="IA">IA</option><option value="KS">KS</option>
+            <option value="KY">KY</option><option value="LA">LA</option><option value="ME">ME</option><option value="MD">MD</option>
+            <option value="MA">MA</option><option value="MI">MI</option><option value="MN">MN</option><option value="MS">MS</option>
+            <option value="MO">MO</option><option value="MT">MT</option><option value="NE">NE</option><option value="NV">NV</option>
+            <option value="NH">NH</option><option value="NJ">NJ</option><option value="NM">NM</option><option value="NY">NY</option>
+            <option value="NC">NC</option><option value="ND">ND</option><option value="OH">OH</option><option value="OK">OK</option>
+            <option value="OR">OR</option><option value="PA">PA</option><option value="RI">RI</option><option value="SC">SC</option>
+            <option value="SD">SD</option><option value="TN">TN</option><option value="TX">TX</option><option value="UT">UT</option>
+            <option value="VT">VT</option><option value="VA">VA</option><option value="WA">WA</option><option value="WV">WV</option>
+            <option value="WI">WI</option><option value="WY">WY</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-2 mb-2">
+          <input class="border rounded px-2 py-1" name="zip" id="location-zip" placeholder="ZIP" required>
+          <input class="border rounded px-2 py-1" name="phone" id="location-phone" placeholder="Phone">
+        </div>
+
+        <div class="mb-2">
+          <label class="flex items-center text-xs">
+            <input type="checkbox" name="is_primary" id="location-is-primary" class="mr-2">
+            <span>Set as primary location</span>
+          </label>
+        </div>
+
+        <div class="mb-2" id="location-active-field" style="display:none;">
+          <label class="flex items-center text-xs">
+            <input type="checkbox" name="is_active" id="location-is-active" class="mr-2" checked>
+            <span>Active</span>
+          </label>
+        </div>
+
+        <button type="submit" class="bg-brand text-white rounded px-3 py-1 w-full" id="location-submit-btn">Create Location</button>
+        <button type="button" onclick="resetLocationForm()" class="mt-2 bg-gray-200 text-gray-700 rounded px-3 py-1 w-full text-sm" id="location-cancel-btn" style="display:none;">Cancel</button>
+      </form>
+
+      <script>
+      function editLocation(loc) {
+        document.getElementById('location-action').value = 'update_location';
+        document.getElementById('location-id').value = loc.id;
+        document.getElementById('location-user-id').value = loc.user_id;
+        document.getElementById('location-name').value = loc.location_name;
+        document.getElementById('location-address').value = loc.address;
+        document.getElementById('location-city').value = loc.city;
+        document.getElementById('location-state').value = loc.state;
+        document.getElementById('location-zip').value = loc.zip;
+        document.getElementById('location-phone').value = loc.phone || '';
+        document.getElementById('location-is-primary').checked = loc.is_primary == 1;
+        document.getElementById('location-is-active').checked = loc.is_active == 1;
+        document.getElementById('location-active-field').style.display = 'block';
+        document.getElementById('location-submit-btn').textContent = 'Update Location';
+        document.getElementById('location-cancel-btn').style.display = 'block';
+        document.getElementById('location-user-id').disabled = true; // Can't change practice for existing location
+      }
+
+      function resetLocationForm() {
+        document.getElementById('location-form').reset();
+        document.getElementById('location-action').value = 'create_location';
+        document.getElementById('location-id').value = '';
+        document.getElementById('location-active-field').style.display = 'none';
+        document.getElementById('location-submit-btn').textContent = 'Create Location';
+        document.getElementById('location-cancel-btn').style.display = 'none';
+        document.getElementById('location-user-id').disabled = false;
+      }
+      </script>
     </div>
     <?php endif; ?>
   </div>
