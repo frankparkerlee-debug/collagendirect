@@ -41,16 +41,22 @@ $emps = $pdo->query("SELECT id, name, email, role, created_at FROM admin_users W
 $manufacturers = $pdo->query("SELECT id, name, email, role, created_at FROM admin_users WHERE role = 'manufacturer' ORDER BY created_at DESC LIMIT 200")->fetchAll();
 
 /* Practice Locations list - all locations for practices */
-$locationsQuery = "
-  SELECT pl.id, pl.user_id, pl.location_name, pl.address, pl.city, pl.state, pl.zip, pl.phone, pl.is_primary, pl.is_active, pl.created_at,
-         u.first_name, u.last_name, u.practice_name
-  FROM practice_locations pl
-  JOIN users u ON u.id = pl.user_id
-  WHERE u.role = 'practice_admin'
-  ORDER BY u.practice_name, pl.is_primary DESC, pl.location_name
-  LIMIT 500
-";
-$locations = $pdo->query($locationsQuery)->fetchAll();
+try {
+  $locationsQuery = "
+    SELECT pl.id, pl.user_id, pl.location_name, pl.address, pl.city, pl.state, pl.zip, pl.phone, pl.is_primary, pl.is_active, pl.created_at,
+           u.first_name, u.last_name, u.practice_name
+    FROM practice_locations pl
+    JOIN users u ON u.id = pl.user_id
+    WHERE u.role = 'practice_admin'
+    ORDER BY u.practice_name, pl.is_primary DESC, pl.location_name
+    LIMIT 500
+  ";
+  $locations = $pdo->query($locationsQuery)->fetchAll();
+} catch (Throwable $e) {
+  // Table might not exist yet - that's okay
+  $locations = [];
+  error_log("practice_locations table query failed: " . $e->getMessage());
+}
 
 /* Actions */
 if ($_SERVER['REQUEST_METHOD']==='POST') {
