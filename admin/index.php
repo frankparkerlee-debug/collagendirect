@@ -181,6 +181,7 @@ try {
 }
 
 // Display full revenue amounts - no multipliers applied
+$revenueMultiplier = 1.0;
 $displayEarnedRevenue = $earnedRevenue;
 $displayProjectedRevenue = $projectedRevenue;
 $displayTotalRevenue = $totalRevenue;
