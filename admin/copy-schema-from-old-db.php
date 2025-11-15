@@ -16,7 +16,7 @@ $oldDb = [
     'port' => '5432',
     'dbname' => 'collagen_db',
     'user' => 'collagen_db_user',
-    'password' => 'collagen_db_user'
+    'password' => 'VkpgEhrxzbe4P6yPIlVB6Jqauuw5wqPY'
 ];
 
 // NEW DATABASE credentials (from environment variables)
