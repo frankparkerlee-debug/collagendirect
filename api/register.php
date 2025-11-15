@@ -41,8 +41,9 @@ if ($userType === 'practice_admin') {
     if (empty($data[$k])) json_out(400, ['error' => "Missing field for Physician: $k"]);
   }
 } elseif ($userType === 'dme_wholesale') {
-  // DME Wholesale: requires practice info + physician credentials + DME license
-  $requiredFields = ['practiceName', 'address', 'city', 'state', 'zip', 'phone', 'firstName', 'lastName', 'npi', 'license', 'licenseState', 'licenseExpiry', 'dmeNumber', 'dmeState', 'dmeExpiry'];
+  // DME Wholesale: Exclusive wholesale account - NO physician credentials required
+  // Only DME NPI and DME licensing requirements
+  $requiredFields = ['practiceName', 'address', 'city', 'state', 'zip', 'phone', 'firstName', 'lastName', 'dmeNumber', 'dmeState', 'dmeExpiry'];
   foreach ($requiredFields as $k) {
     if (empty($data[$k])) json_out(400, ['error' => "Missing field for DME Wholesale user: $k"]);
   }
@@ -98,10 +99,12 @@ try {
       break;
 
     case 'dme_wholesale':
+      // Exclusive DME wholesale account - NO referral access
       $accountType = 'wholesale';
-      $role = 'practice_admin';
+      $role = 'dme_wholesale';
+      $isReferralOnly = false; // They can ONLY do wholesale, not referrals
       $hasDmeLicense = true;
-      $canManagePhysicians = true;
+      $canManagePhysicians = false; // DME wholesale users don't manage physicians
       break;
   }
 

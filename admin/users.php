@@ -6,26 +6,31 @@ require_once __DIR__ . '/../api/lib/email_notifications.php'; // Email notificat
 
 $admin = current_admin();
 $adminRole = $admin['role'] ?? '';
+$isSuperadmin = $adminRole === 'superadmin'; // Only parker@collagendirect.health
 $isOwner = in_array($adminRole, ['owner','superadmin','admin','practice_admin']); // Full user management access
 $isAdmin = in_array($adminRole, ['owner','superadmin','admin']); // Can edit employees and manufacturers
-$isManufacturer = $adminRole === 'manufacturer';
+$isSales = $adminRole === 'sales'; // Sales role - can manage physicians/practices but not admin users
+$isManufacturer = $adminRole === 'manufacturer'; // Manufacturer - one step below superadmin, full access except can't delete superadmin/employees
 $tab = $_GET['tab'] ?? 'physicians';
 $msg='';
 
 /* Physician scope: only those mapped to this admin unless owner/superadmin/practice_admin */
 /* IMPORTANT: Exclude superadmin from Physicians tab - they belong in admin portal, not as physicians */
+/* Sales role can see all physicians (not just assigned) and can create new ones */
 $physQuery = "
   SELECT u.id, u.first_name, u.last_name, u.email, u.account_type, u.status, u.created_at, u.role, u.practice_name
   FROM users u
 ";
-if (!$isOwner) {
+if (!$isOwner && !$isSales) {
+  // Regular employees see only assigned physicians
   $physQuery .= " JOIN admin_physicians ap ON ap.physician_user_id = u.id WHERE ap.admin_id = :aid AND (u.role IS NULL OR u.role IN ('physician', 'practice_admin'))";
 } else {
+  // Owner, superadmin, admin, and Sales see all physicians
   $physQuery .= " WHERE (u.role IS NULL OR u.role IN ('physician', 'practice_admin'))";
 }
 $physQuery .= " ORDER BY u.created_at DESC LIMIT 300";
 $physStmt = $pdo->prepare($physQuery);
-if (!$isOwner) $physStmt->execute(['aid'=>$admin['id']]);
+if (!$isOwner && !$isSales) $physStmt->execute(['aid'=>$admin['id']]);
 else $physStmt->execute();
 $phys = $physStmt->fetchAll();
 
@@ -52,14 +57,26 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
   verify_csrf();
   $act = $_POST['action'] ?? '';
 
-  // Block manufacturers from all user management operations
-  if ($isManufacturer) {
-    $msg = 'Manufacturers do not have permission to manage users';
+  // Manufacturer permissions: Can read/write everything except delete superadmins and employees
+  if ($isManufacturer && in_array($act, ['delete_emp'])) {
+    // Check if trying to delete superadmin or employee
+    $targetId = (int)($_POST['emp_id'] ?? 0);
+    $targetUser = $pdo->query("SELECT role FROM admin_users WHERE id = $targetId")->fetch();
+    if ($targetUser && in_array($targetUser['role'], ['superadmin', 'employee', 'admin', 'sales', 'ops'])) {
+      $msg = 'Manufacturers cannot delete superadmins or employees';
+      header('Location: /admin/users.php?tab='.$tab.'&error='.urlencode($msg));
+      exit;
+    }
+  }
+
+  // Sales can manage physicians/practices but not employees, manufacturers, or other admins
+  if ($isSales && in_array($act, ['create_employee', 'delete_emp', 'reset_emp_pw'])) {
+    $msg = 'Sales role cannot manage employees, manufacturers, or admin users';
     header('Location: /admin/users.php?tab='.$tab.'&error='.urlencode($msg));
     exit;
   }
 
-  if ($act==='create_employee' && $isAdmin) {
+  if ($act==='create_employee' && ($isAdmin || $isManufacturer)) {
     $name = trim($_POST['name']);
     $email = trim($_POST['email']);
     $role = trim($_POST['role']);
@@ -80,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     }
     $tab = ($role === 'manufacturer') ? 'manufacturer' : 'employees';
   }
-  if ($act==='reset_emp_pw' && $isAdmin) {
+  if ($act==='reset_emp_pw' && ($isAdmin || $isManufacturer)) {
     $pdo->prepare("UPDATE admin_users SET password_hash=? WHERE id=?")->execute([password_hash($_POST['newpw'], PASSWORD_DEFAULT), (int)$_POST['emp_id']]);
     $msg='Employee password updated'; $tab='employees';
   }
@@ -169,7 +186,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
   }
 
   // Practice Locations Management
-  if ($act==='create_location' && $isAdmin) {
+  if ($act==='create_location' && ($isAdmin || $isManufacturer || $isSales)) {
     $userId = trim($_POST['user_id']);
     $locationName = trim($_POST['location_name']);
     $address = trim($_POST['address']);
@@ -190,7 +207,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $tab = 'locations';
   }
 
-  if ($act==='update_location' && $isAdmin) {
+  if ($act==='update_location' && ($isAdmin || $isManufacturer || $isSales)) {
     $locationId = (int)$_POST['location_id'];
     $locationName = trim($_POST['location_name']);
     $address = trim($_POST['address']);
@@ -217,9 +234,16 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $tab = 'locations';
   }
 
-  if ($act==='delete_location' && $isAdmin) {
-    $pdo->prepare("DELETE FROM practice_locations WHERE id=?")->execute([(int)$_POST['location_id']]);
-    $msg = 'Practice location deleted';
+  if ($act==='delete_location' && ($isAdmin || $isManufacturer)) {
+    // Soft delete if manufacturer, hard delete if superadmin
+    if ($isManufacturer) {
+      $pdo->prepare("UPDATE practice_locations SET deleted_at = NOW(), deleted_by = ? WHERE id = ?")
+          ->execute([$admin['email'] ?? 'manufacturer', (int)$_POST['location_id']]);
+      $msg = 'Practice location deleted';
+    } else {
+      $pdo->prepare("DELETE FROM practice_locations WHERE id=?")->execute([(int)$_POST['location_id']]);
+      $msg = 'Practice location permanently deleted';
+    }
     $tab = 'locations';
   }
 
