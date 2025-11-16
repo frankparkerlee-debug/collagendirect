@@ -467,7 +467,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     </div>
     <?php endif; ?>
   </div>
-<?php else: ?>
+<?php elseif ($tab==='manufacturer'): ?>
   <!-- Manufacturer Tab -->
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
     <div class="overflow-x-auto">
