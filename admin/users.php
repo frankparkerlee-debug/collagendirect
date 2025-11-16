@@ -124,22 +124,65 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $securityRole = $_POST['security_role'] ?? 'physician'; // Practice Manager or Physician
     $userId = bin2hex(random_bytes(16));
 
+    // Physician credentials (required for all providers)
+    $npi = preg_replace('/\D/', '', $_POST['npi'] ?? '');
+    $license = trim($_POST['license'] ?? '');
+    $licenseState = $_POST['license_state'] ?? '';
+    $licenseExpiry = $_POST['license_expiry'] ?? '';
+
     if ($providerType === 'practice') {
       // Creating a practice owner (practice_admin)
       $practiceName = trim($_POST['practice_name'] ?? '');
-      $pdo->prepare("INSERT INTO users(id,email,password_hash,first_name,last_name,practice_name,role,user_type,account_type,status,created_at,updated_at) VALUES(?,?,?,?,?,?,'practice_admin',?,'referral','active',NOW(),NOW())")
-          ->execute([$userId, $email, password_hash($password, PASSWORD_DEFAULT), $firstName, $lastName, $practiceName, $securityRole]);
+      $address = trim($_POST['address'] ?? '');
+      $city = trim($_POST['city'] ?? '');
+      $state = $_POST['state'] ?? '';
+      $zip = trim($_POST['zip'] ?? '');
+      $phone = trim($_POST['phone'] ?? '');
+
+      $pdo->prepare("
+        INSERT INTO users(
+          id, email, password_hash, first_name, last_name, practice_name,
+          address, city, state, zip, phone,
+          npi, license, license_state, license_expiry,
+          role, user_type, account_type, status, can_manage_physicians,
+          created_at, updated_at
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'practice_admin',?,'referral','active',TRUE,NOW(),NOW())
+      ")->execute([
+        $userId, $email, password_hash($password, PASSWORD_DEFAULT), $firstName, $lastName, $practiceName,
+        $address, $city, $state, $zip, $phone,
+        $npi, $license, $licenseState, $licenseExpiry,
+        $securityRole
+      ]);
       $msg = 'Practice owner created';
     } else {
       // Creating a physician and linking to practice
       $practiceId = $_POST['practice_id'] ?? '';
-      $pdo->prepare("INSERT INTO users(id,email,password_hash,first_name,last_name,role,user_type,account_type,status,created_at,updated_at) VALUES(?,?,?,?,?,'physician',?,'referral','active',NOW(),NOW())")
-          ->execute([$userId, $email, password_hash($password, PASSWORD_DEFAULT), $firstName, $lastName, $securityRole]);
+
+      $pdo->prepare("
+        INSERT INTO users(
+          id, email, password_hash, first_name, last_name,
+          npi, license, license_state, license_expiry,
+          role, user_type, account_type, status,
+          created_at, updated_at
+        ) VALUES (?,?,?,?,?,?,?,?,?,'physician',?,'referral','active',NOW(),NOW())
+      ")->execute([
+        $userId, $email, password_hash($password, PASSWORD_DEFAULT), $firstName, $lastName,
+        $npi, $license, $licenseState, $licenseExpiry,
+        $securityRole
+      ]);
 
       // Link physician to practice via practice_physicians table
       if ($practiceId) {
-        $pdo->prepare("INSERT INTO practice_physicians(practice_admin_id,physician_id,first_name,last_name,physician_email,created_at) VALUES(?,?,?,?,?,NOW())")
-            ->execute([$practiceId, $userId, $firstName, $lastName, $email]);
+        $pdo->prepare("
+          INSERT INTO practice_physicians(
+            practice_admin_id, physician_id, first_name, last_name, physician_email,
+            physician_npi, physician_license, physician_license_state, physician_license_expiry,
+            created_at
+          ) VALUES (?,?,?,?,?,?,?,?,?,NOW())
+        ")->execute([
+          $practiceId, $userId, $firstName, $lastName, $email,
+          $npi, $license, $licenseState, $licenseExpiry
+        ]);
       }
       $msg = 'Physician created and linked to practice';
     }
@@ -330,6 +373,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
       <div class="font-semibold mb-2">Add Provider</div>
       <form method="post" class="bg-slate-50 border rounded p-3 text-sm" id="provider-form">
         <?=csrf_field()?>
+        <input type="hidden" name="action" value="create_phys">
 
         <!-- Provider Type Selection -->
         <div class="mb-3">
@@ -356,18 +400,41 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
           </select>
         </div>
 
-        <!-- Practice Name (for practice owners) -->
-        <div id="practice-name-field" class="mb-2">
-          <input class="border rounded px-2 py-1 w-full" name="practice_name" placeholder="Practice name">
+        <!-- Practice Information (for practice owners only) -->
+        <div id="practice-info-fields">
+          <div class="mb-2">
+            <input class="border rounded px-2 py-1 w-full" name="practice_name" placeholder="Practice name *" id="practice-name-input">
+          </div>
+          <div class="mb-2">
+            <input class="border rounded px-2 py-1 w-full" name="address" placeholder="Address *" id="address-input">
+          </div>
+          <div class="grid grid-cols-2 gap-2 mb-2">
+            <input class="border rounded px-2 py-1" name="city" placeholder="City *" id="city-input">
+            <select class="border rounded px-2 py-1" name="state" id="state-input">
+              <option value="">State *</option>
+              <option value="AL">AL</option><option value="AK">AK</option><option value="AZ">AZ</option><option value="AR">AR</option><option value="CA">CA</option><option value="CO">CO</option><option value="CT">CT</option><option value="DE">DE</option><option value="FL">FL</option><option value="GA">GA</option><option value="HI">HI</option><option value="ID">ID</option><option value="IL">IL</option><option value="IN">IN</option><option value="IA">IA</option><option value="KS">KS</option><option value="KY">KY</option><option value="LA">LA</option><option value="ME">ME</option><option value="MD">MD</option><option value="MA">MA</option><option value="MI">MI</option><option value="MN">MN</option><option value="MS">MS</option><option value="MO">MO</option><option value="MT">MT</option><option value="NE">NE</option><option value="NV">NV</option><option value="NH">NH</option><option value="NJ">NJ</option><option value="NM">NM</option><option value="NY">NY</option><option value="NC">NC</option><option value="ND">ND</option><option value="OH">OH</option><option value="OK">OK</option><option value="OR">OR</option><option value="PA">PA</option><option value="RI">RI</option><option value="SC">SC</option><option value="SD">SD</option><option value="TN">TN</option><option value="TX">TX</option><option value="UT">UT</option><option value="VT">VT</option><option value="VA">VA</option><option value="WA">WA</option><option value="WV">WV</option><option value="WI">WI</option><option value="WY">WY</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-2 gap-2 mb-2">
+            <input class="border rounded px-2 py-1" name="zip" placeholder="Zip *" id="zip-input">
+            <input class="border rounded px-2 py-1" name="phone" placeholder="Phone *" id="phone-input">
+          </div>
         </div>
 
-        <input class="border rounded px-2 py-1 w-full mb-2" name="first_name" placeholder="First name" required>
-        <input class="border rounded px-2 py-1 w-full mb-2" name="last_name" placeholder="Last name" required>
-        <input class="border rounded px-2 py-1 w-full mb-2" type="email" name="email" placeholder="Email" required>
+        <!-- Personal Information -->
+        <div class="mb-2">
+          <input class="border rounded px-2 py-1 w-full" name="first_name" placeholder="First name *" required>
+        </div>
+        <div class="mb-2">
+          <input class="border rounded px-2 py-1 w-full" name="last_name" placeholder="Last name *" required>
+        </div>
+        <div class="mb-2">
+          <input class="border rounded px-2 py-1 w-full" type="email" name="email" placeholder="Email *" required>
+        </div>
 
         <!-- Security Role Dropdown -->
         <div class="mb-2">
-          <label class="text-sm text-slate-600 block mb-1">Security Role</label>
+          <label class="text-sm text-slate-600 block mb-1">Security Role *</label>
           <select class="border rounded px-2 py-1 w-full" name="security_role" required>
             <option value="">Select Role</option>
             <option value="practice_manager">Practice Manager</option>
@@ -375,28 +442,68 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
           </select>
         </div>
 
-        <input class="border rounded px-2 py-1 w-full mb-2" type="password" name="password" placeholder="Temp password" required>
-        <button class="bg-brand text-white rounded px-3 py-1">Create</button>
+        <!-- Physician Credentials -->
+        <div class="mb-2">
+          <input class="border rounded px-2 py-1 w-full" name="npi" placeholder="NPI (10 digits) *" maxlength="10" required>
+        </div>
+        <div class="mb-2">
+          <input class="border rounded px-2 py-1 w-full" name="license" placeholder="Medical License Number *" required>
+        </div>
+        <div class="grid grid-cols-2 gap-2 mb-2">
+          <select class="border rounded px-2 py-1" name="license_state" required>
+            <option value="">License State *</option>
+            <option value="AL">AL</option><option value="AK">AK</option><option value="AZ">AZ</option><option value="AR">AR</option><option value="CA">CA</option><option value="CO">CO</option><option value="CT">CT</option><option value="DE">DE</option><option value="FL">FL</option><option value="GA">GA</option><option value="HI">HI</option><option value="ID">ID</option><option value="IL">IL</option><option value="IN">IN</option><option value="IA">IA</option><option value="KS">KS</option><option value="KY">KY</option><option value="LA">LA</option><option value="ME">ME</option><option value="MD">MD</option><option value="MA">MA</option><option value="MI">MI</option><option value="MN">MN</option><option value="MS">MS</option><option value="MO">MO</option><option value="MT">MT</option><option value="NE">NE</option><option value="NV">NV</option><option value="NH">NH</option><option value="NJ">NJ</option><option value="NM">NM</option><option value="NY">NY</option><option value="NC">NC</option><option value="ND">ND</option><option value="OH">OH</option><option value="OK">OK</option><option value="OR">OR</option><option value="PA">PA</option><option value="RI">RI</option><option value="SC">SC</option><option value="SD">SD</option><option value="TN">TN</option><option value="TX">TX</option><option value="UT">UT</option><option value="VT">VT</option><option value="VA">VA</option><option value="WA">WA</option><option value="WV">WV</option><option value="WI">WI</option><option value="WY">WY</option>
+          </select>
+          <input class="border rounded px-2 py-1" name="license_expiry" type="date" placeholder="License Expiry *" required>
+        </div>
+
+        <div class="mb-2">
+          <input class="border rounded px-2 py-1 w-full" type="password" name="password" placeholder="Temporary Password *" required>
+        </div>
+        <button class="bg-brand text-white rounded px-3 py-1">Create Provider</button>
       </form>
 
       <script>
       function toggleProviderFields() {
         const type = document.querySelector('input[name="provider_type"]:checked').value;
         const practiceSelectField = document.getElementById('practice-select-field');
-        const practiceNameField = document.getElementById('practice-name-field');
+        const practiceInfoFields = document.getElementById('practice-info-fields');
         const practiceSelect = document.querySelector('select[name="practice_id"]');
-        const practiceNameInput = document.querySelector('input[name="practice_name"]');
+
+        // Get practice info field elements
+        const practiceNameInput = document.getElementById('practice-name-input');
+        const addressInput = document.getElementById('address-input');
+        const cityInput = document.getElementById('city-input');
+        const stateInput = document.getElementById('state-input');
+        const zipInput = document.getElementById('zip-input');
+        const phoneInput = document.getElementById('phone-input');
 
         if (type === 'physician') {
+          // Show practice selection dropdown, hide practice info fields
           practiceSelectField.style.display = 'block';
-          practiceNameField.style.display = 'none';
+          practiceInfoFields.style.display = 'none';
           practiceSelect.required = true;
+
+          // Make practice info fields not required
           practiceNameInput.required = false;
+          addressInput.required = false;
+          cityInput.required = false;
+          stateInput.required = false;
+          zipInput.required = false;
+          phoneInput.required = false;
         } else {
+          // Hide practice selection, show practice info fields
           practiceSelectField.style.display = 'none';
-          practiceNameField.style.display = 'block';
+          practiceInfoFields.style.display = 'block';
           practiceSelect.required = false;
+
+          // Make practice info fields required
           practiceNameInput.required = true;
+          addressInput.required = true;
+          cityInput.required = true;
+          stateInput.required = true;
+          zipInput.required = true;
+          phoneInput.required = true;
         }
       }
       </script>
