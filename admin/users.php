@@ -509,7 +509,16 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 </div>
                 <div>
                   <label class="text-xs text-slate-600">State</label>
-                  <input class="border rounded px-2 py-1 w-full" name="state" value="<?=e($u['state']??'')?>">
+                  <select class="border rounded px-2 py-1 w-full" name="state">
+                    <option value="">Select State</option>
+                    <?php
+                    $states = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'];
+                    foreach ($states as $st) {
+                      $selected = ($u['state']??'') === $st ? 'selected' : '';
+                      echo "<option value=\"$st\" $selected>$st</option>";
+                    }
+                    ?>
+                  </select>
                 </div>
                 <div>
                   <label class="text-xs text-slate-600">Zip</label>
@@ -544,6 +553,95 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                   <button type="button" onclick="toggleUserDetails('user-<?=e($u['id'])?>')" class="bg-slate-200 rounded px-4 py-2 text-sm">Cancel</button>
                 </div>
               </form>
+
+              <?php if (($u['role'] ?? '') === 'practice_admin'): ?>
+              <!-- Practice Locations Section -->
+              <div class="mt-6 pt-6 border-t">
+                <div class="font-semibold text-sm mb-3">Practice Locations</div>
+
+                <?php
+                // Get locations for this practice
+                $practiceLocations = [];
+                try {
+                  $locStmt = $pdo->prepare("
+                    SELECT * FROM practice_locations
+                    WHERE user_id = ? AND (deleted_at IS NULL OR deleted_at = '')
+                    ORDER BY is_primary DESC, location_name ASC
+                  ");
+                  $locStmt->execute([$u['id']]);
+                  $practiceLocations = $locStmt->fetchAll();
+                } catch (Throwable $e) {
+                  // Table might not exist yet
+                }
+                ?>
+
+                <?php if (count($practiceLocations) > 0): ?>
+                <div class="mb-3">
+                  <table class="w-full text-xs">
+                    <thead class="border-b">
+                      <tr>
+                        <th class="text-left py-1">Location</th>
+                        <th class="text-left py-1">Address</th>
+                        <th class="text-left py-1">Primary</th>
+                        <th class="text-left py-1">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <?php foreach ($practiceLocations as $loc): ?>
+                      <tr class="border-b">
+                        <td class="py-2"><?=e($loc['location_name'])?></td>
+                        <td class="py-2 text-xs"><?=e($loc['city'])?>, <?=e($loc['state'])?></td>
+                        <td class="py-2"><?=$loc['is_primary'] ? '✓' : ''?></td>
+                        <td class="py-2">
+                          <button onclick="editPracticeLocation(<?=htmlspecialchars(json_encode($loc), ENT_QUOTES, 'UTF-8')?>, '<?=e($u['id'])?>')" class="text-blue-600 text-xs">Edit</button>
+                          <form method="post" class="inline ml-2" onsubmit="return confirm('Delete this location?')">
+                            <?=csrf_field()?>
+                            <input type="hidden" name="action" value="delete_location">
+                            <input type="hidden" name="location_id" value="<?=e($loc['id'])?>">
+                            <button class="text-rose-600 text-xs">Delete</button>
+                          </form>
+                        </td>
+                      </tr>
+                      <?php endforeach; ?>
+                    </tbody>
+                  </table>
+                </div>
+                <?php endif; ?>
+
+                <!-- Add Location Form -->
+                <div class="bg-slate-100 p-3 rounded">
+                  <div class="text-xs font-semibold mb-2">Add Location</div>
+                  <form method="post" class="grid grid-cols-2 gap-2" id="add-location-form-<?=e($u['id'])?>">
+                    <?=csrf_field()?>
+                    <input type="hidden" name="action" value="create_location" id="location-action-<?=e($u['id'])?>">
+                    <input type="hidden" name="location_id" id="location-id-<?=e($u['id'])?>">
+                    <input type="hidden" name="user_id" value="<?=e($u['id'])?>">
+
+                    <input class="border rounded px-2 py-1 text-xs col-span-2" name="location_name" id="location-name-<?=e($u['id'])?>" placeholder="Location name" required>
+                    <input class="border rounded px-2 py-1 text-xs col-span-2" name="address" id="location-address-<?=e($u['id'])?>" placeholder="Address" required>
+                    <input class="border rounded px-2 py-1 text-xs" name="city" id="location-city-<?=e($u['id'])?>" placeholder="City" required>
+                    <select class="border rounded px-2 py-1 text-xs" name="state" id="location-state-<?=e($u['id'])?>" required>
+                      <option value="">State</option>
+                      <?php foreach ($states as $st): ?>
+                        <option value="<?=$st?>"><?=$st?></option>
+                      <?php endforeach; ?>
+                    </select>
+                    <input class="border rounded px-2 py-1 text-xs" name="zip" id="location-zip-<?=e($u['id'])?>" placeholder="ZIP" required>
+                    <input class="border rounded px-2 py-1 text-xs" name="phone" id="location-phone-<?=e($u['id'])?>" placeholder="Phone">
+                    <div class="col-span-2">
+                      <label class="flex items-center text-xs">
+                        <input type="checkbox" name="is_primary" id="location-is-primary-<?=e($u['id'])?>" class="mr-2">
+                        <span>Set as primary location</span>
+                      </label>
+                    </div>
+                    <div class="col-span-2 flex gap-2">
+                      <button class="bg-brand text-white rounded px-3 py-1 text-xs" id="location-submit-btn-<?=e($u['id'])?>">Add Location</button>
+                      <button type="button" onclick="resetLocationForm('<?=e($u['id'])?>')" class="bg-slate-300 rounded px-3 py-1 text-xs" id="location-cancel-btn-<?=e($u['id'])?>" style="display:none;">Cancel</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+              <?php endif; ?>
             </td>
           </tr>
           <?php endforeach; ?>
@@ -1171,6 +1269,31 @@ function filterLocations() {
       row.style.display = 'none';
     }
   });
+}
+
+// Edit practice location (in accordion)
+function editPracticeLocation(location, userId) {
+  document.getElementById('location-action-' + userId).value = 'update_location';
+  document.getElementById('location-id-' + userId).value = location.id;
+  document.getElementById('location-name-' + userId).value = location.location_name;
+  document.getElementById('location-address-' + userId).value = location.address;
+  document.getElementById('location-city-' + userId).value = location.city;
+  document.getElementById('location-state-' + userId).value = location.state;
+  document.getElementById('location-zip-' + userId).value = location.zip;
+  document.getElementById('location-phone-' + userId).value = location.phone || '';
+  document.getElementById('location-is-primary-' + userId).checked = location.is_primary ? true : false;
+  document.getElementById('location-submit-btn-' + userId).textContent = 'Update Location';
+  document.getElementById('location-cancel-btn-' + userId).style.display = 'inline-block';
+}
+
+// Reset location form (in accordion)
+function resetLocationForm(userId) {
+  const form = document.getElementById('add-location-form-' + userId);
+  form.reset();
+  document.getElementById('location-action-' + userId).value = 'create_location';
+  document.getElementById('location-id-' + userId).value = '';
+  document.getElementById('location-submit-btn-' + userId).textContent = 'Add Location';
+  document.getElementById('location-cancel-btn-' + userId).style.display = 'none';
 }
 </script>
 
