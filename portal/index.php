@@ -1275,17 +1275,17 @@ if ($action) {
         if($mrn===''){ $mrn = 'CD-'.date('Ymd').'-'.strtoupper(substr(bin2hex(random_bytes(2)),0,4)); }
         $pid=bin2hex(random_bytes(16));
         $st=$pdo->prepare("INSERT INTO patients
-          (id,user_id,first_name,last_name,dob,mrn,city,address_state,phone,cell_phone,email,address,zip,
-           insurance_provider,insurance_member_id,insurance_group_id,insurance_payer_phone,accepts_sms,state,created_at,updated_at)
-          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending',NOW(),NOW())");
-        $st->execute([$pid,$userId,$first,$last,$dob,$mrn,$city,$state,$phone,$cell_phone,$email,$address,$zip,
-                      $ins_provider,$ins_member_id,$ins_group_id,$ins_payer_phone,$accepts_sms]);
+          (id,user_id,first_name,last_name,dob,mrn,city,state,phone,email,address,zip,
+           insurance_provider,insurance_member_id,insurance_group_id,insurance_payer_phone,created_at,updated_at)
+          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),NOW())");
+        $st->execute([$pid,$userId,$first,$last,$dob,$mrn,$city,$state,$phone,$email,$address,$zip,
+                      $ins_provider,$ins_member_id,$ins_group_id,$ins_payer_phone]);
       } else {
-        $st=$pdo->prepare("UPDATE patients SET first_name=?,last_name=?,dob=?,mrn=?,city=?,address_state=?,phone=?,cell_phone=?,email=?,address=?,zip=?,
-                           insurance_provider=?,insurance_member_id=?,insurance_group_id=?,insurance_payer_phone=?,accepts_sms=?,updated_at=NOW()
+        $st=$pdo->prepare("UPDATE patients SET first_name=?,last_name=?,dob=?,mrn=?,city=?,state=?,phone=?,email=?,address=?,zip=?,
+                           insurance_provider=?,insurance_member_id=?,insurance_group_id=?,insurance_payer_phone=?,updated_at=NOW()
                            WHERE id=? AND user_id=?");
-        $st->execute([$first,$last,$dob,$mrn,$city,$state,$phone,$cell_phone,$email,$address,$zip,
-                      $ins_provider,$ins_member_id,$ins_group_id,$ins_payer_phone,$accepts_sms,$pid,$userId]);
+        $st->execute([$first,$last,$dob,$mrn,$city,$state,$phone,$email,$address,$zip,
+                      $ins_provider,$ins_member_id,$ins_group_id,$ins_payer_phone,$pid,$userId]);
       }
 
       // Auto-generate AI approval score for NEW patients only (created today or later)
