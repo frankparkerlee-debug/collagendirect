@@ -1196,26 +1196,26 @@ function toggleUserDetails(rowId) {
   const row = document.getElementById(rowId);
   if (row.classList.contains('hidden')) {
     row.classList.remove('hidden');
+    // Initialize autocomplete for newly visible address fields
+    setTimeout(initAutocomplete, 100);
   } else {
     row.classList.add('hidden');
   }
 }
 
 // Google Places Autocomplete for address standardization
-let autocompleteInstances = [];
-
 function initAutocomplete() {
   // Don't initialize if Google Maps isn't loaded
   if (typeof google === 'undefined' || !google.maps || !google.maps.places) {
-    console.log('Google Maps Places API not loaded');
     return;
   }
 
-  // Find all address input fields
-  const addressInputs = document.querySelectorAll('input[name="address"]');
+  // Find all address input fields that haven't been initialized yet
+  const addressInputs = document.querySelectorAll('input[name="address"]:not([data-autocomplete-initialized])');
 
-  addressInputs.forEach((addressInput, index) => {
-    if (!addressInput) return;
+  addressInputs.forEach((addressInput) => {
+    // Mark as initialized to prevent duplicate initialization
+    addressInput.setAttribute('data-autocomplete-initialized', 'true');
 
     const autocomplete = new google.maps.places.Autocomplete(addressInput, {
       types: ['address'],
@@ -1254,7 +1254,6 @@ function initAutocomplete() {
       }
 
       // Populate the form fields
-      // Find the closest form parent
       const form = addressInput.closest('form');
       if (form) {
         const cityInput = form.querySelector('input[name="city"]');
@@ -1267,31 +1266,11 @@ function initAutocomplete() {
         if (zip && zipInput) zipInput.value = zip;
       }
     });
-
-    autocompleteInstances.push(autocomplete);
   });
 }
 
 // Initialize when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initAutocomplete);
-} else {
-  initAutocomplete();
-}
-
-// Re-initialize when new content is added (for accordion views)
-const observer = new MutationObserver(function(mutations) {
-  mutations.forEach(function(mutation) {
-    if (mutation.addedNodes.length) {
-      initAutocomplete();
-    }
-  });
-});
-
-observer.observe(document.body, {
-  childList: true,
-  subtree: true
-});
+document.addEventListener('DOMContentLoaded', initAutocomplete);
 
 // Filter locations by practice name
 function filterLocations() {
