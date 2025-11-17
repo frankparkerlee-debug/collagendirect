@@ -10,11 +10,28 @@ require __DIR__ . '/../api/lib/sg_curl.php'; // SendGrid email helper
 $adminImpersonating = false;
 $adminUser = null;
 
-if (!empty($_GET['admin_as_user']) && isset($_SESSION['admin'])) {
-  $adminRole = $_SESSION['admin']['role'] ?? '';
+if (!empty($_GET['admin_as_user'])) {
+  // Check if user is admin (from admin_users table OR superadmin from users table)
+  $isAdmin = false;
+  $adminRole = null;
 
-  // Only superadmin and manufacturer can impersonate
-  if (in_array($adminRole, ['superadmin', 'manufacturer'])) {
+  if (isset($_SESSION['admin'])) {
+    $isAdmin = true;
+    $adminRole = $_SESSION['admin']['role'] ?? '';
+    $adminUser = $_SESSION['admin'];
+  } elseif (isset($_SESSION['user_id'])) {
+    // Check if logged in user is superadmin
+    $stmt = $pdo->prepare("SELECT role FROM users WHERE id = ? AND role = 'superadmin'");
+    $stmt->execute([$_SESSION['user_id']]);
+    $superadminCheck = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($superadminCheck) {
+      $isAdmin = true;
+      $adminRole = 'superadmin';
+      $adminUser = ['role' => 'superadmin', 'id' => $_SESSION['user_id']];
+    }
+  }
+
+  if ($isAdmin && in_array($adminRole, ['superadmin', 'manufacturer'])) {
     $impersonateUserId = $_GET['admin_as_user'];
 
     // Load the practice user being impersonated
@@ -24,7 +41,6 @@ if (!empty($_GET['admin_as_user']) && isset($_SESSION['admin'])) {
 
     if ($user && in_array($user['user_type'], ['practice_admin', 'physician', 'dme_wholesale'])) {
       $adminImpersonating = true;
-      $adminUser = $_SESSION['admin'];
       $userId = $user['id'];
 
       // Set session user_id temporarily for this request only (don't persist)
@@ -32,8 +48,10 @@ if (!empty($_GET['admin_as_user']) && isset($_SESSION['admin'])) {
     } else {
       die('Invalid practice user for impersonation');
     }
-  } else {
+  } elseif ($isAdmin) {
     die('Unauthorized: Only superadmin and manufacturer can create orders on behalf of practices');
+  } else {
+    die('Unauthorized: You must be logged in as an admin to impersonate users');
   }
 }
 

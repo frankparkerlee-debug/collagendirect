@@ -71,59 +71,32 @@ if ($selectedPracticeId) {
     </div>
 
     <?php if ($selectedPractice): ?>
-      <!-- Embed Wholesale Ordering Interface -->
-      <div class="card" style="padding: 1.5rem;">
-        <div style="background: var(--brand-light); border: 1px solid var(--brand); border-radius: var(--radius); padding: 1rem; margin-bottom: 1.5rem;">
-          <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <svg style="width: 20px; height: 20px; color: var(--brand);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            <div>
-              <strong>Creating order for:</strong> <?= htmlspecialchars($selectedPractice['practice_name'] ?? ($selectedPractice['first_name'] . ' ' . $selectedPractice['last_name'])) ?>
-              <br>
-              <span style="font-size: 0.875rem; color: var(--muted);">
-                Orders will be attributed to this practice's account
-              </span>
-            </div>
-          </div>
-        </div>
+      <!-- Redirect to portal with impersonation -->
+      <script>
+        window.location.href = '/portal/index.php?page=wholesale&admin_as_user=<?= urlencode($selectedPracticeId) ?>';
+      </script>
 
-        <!-- Iframe to load wholesale ordering page -->
-        <iframe id="wholesale-order-iframe"
-                src="/portal/index.php?page=wholesale&admin_as_user=<?= urlencode($selectedPracticeId) ?>"
-                style="width: 100%; min-height: 1200px; border: none; border-radius: var(--radius);"
-                onload="adjustIframeHeight(this)">
-        </iframe>
+      <!-- Fallback message while redirecting -->
+      <div class="card" style="padding: 3rem; text-align: center;">
+        <div style="margin-bottom: 1rem;">
+          <svg style="width: 48px; height: 48px; margin: 0 auto; color: var(--brand); animation: spin 1s linear infinite;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+        </div>
+        <p style="font-size: 1rem; font-weight: 500; color: var(--ink); margin-bottom: 0.5rem;">
+          Loading Wholesale Order Form...
+        </p>
+        <p style="font-size: 0.875rem; color: var(--muted);">
+          Creating order for: <?= htmlspecialchars($selectedPractice['practice_name'] ?? ($selectedPractice['first_name'] . ' ' . $selectedPractice['last_name'])) ?>
+        </p>
       </div>
 
-      <script>
-        function adjustIframeHeight(iframe) {
-          try {
-            // Attempt to adjust iframe height based on content
-            const iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
-            iframe.style.height = iframeDocument.body.scrollHeight + 'px';
-          } catch (e) {
-            // If cross-origin, use default height
-            iframe.style.height = '1200px';
-          }
+      <style>
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
-
-        // Adjust height on window resize
-        window.addEventListener('resize', function() {
-          const iframe = document.getElementById('wholesale-order-iframe');
-          if (iframe) {
-            adjustIframeHeight(iframe);
-          }
-        });
-
-        // Periodically adjust height for dynamic content
-        setInterval(function() {
-          const iframe = document.getElementById('wholesale-order-iframe');
-          if (iframe) {
-            adjustIframeHeight(iframe);
-          }
-        }, 1000);
-      </script>
+      </style>
     <?php else: ?>
       <!-- Empty State -->
       <div class="card" style="padding: 3rem; text-align: center;">
