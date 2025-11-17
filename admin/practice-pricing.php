@@ -7,48 +7,77 @@
 require_once __DIR__ . '/_header.php';
 require_once __DIR__ . '/db.php';
 
-$action = $_GET['action'] ?? 'list';
+$selectedPractice = $_GET['practice_id'] ?? '';
 $message = '';
 $error = '';
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  if ($action === 'save') {
+  $action = $_POST['action'] ?? '';
+
+  if ($action === 'save_pricing') {
     try {
       $userId = $_POST['user_id'] ?? '';
-      $productId = (int)($_POST['product_id'] ?? 0);
-      $customPrice = (float)($_POST['custom_price'] ?? 0);
-      $discountPercentage = !empty($_POST['discount_percentage']) ? (float)$_POST['discount_percentage'] : null;
-      $notes = $_POST['notes'] ?? '';
+      $catalogDiscount = !empty($_POST['catalog_discount']) ? (float)$_POST['catalog_discount'] : null;
+      $productPrices = $_POST['product_prices'] ?? [];
+      $productDiscounts = $_POST['product_discounts'] ?? [];
 
-      if (empty($userId) || $productId <= 0 || $customPrice <= 0) {
-        throw new Exception('Please fill in all required fields');
+      if (empty($userId)) {
+        throw new Exception('Please select a practice');
       }
 
-      // Check if pricing already exists
-      $stmt = $pdo->prepare("SELECT id FROM practice_pricing WHERE user_id = ? AND product_id = ?");
-      $stmt->execute([$userId, $productId]);
-      $existing = $stmt->fetch();
+      $pdo->beginTransaction();
 
-      if ($existing) {
-        // Update existing
-        $stmt = $pdo->prepare("
-          UPDATE practice_pricing
-          SET custom_price = ?, discount_percentage = ?, notes = ?, updated_at = NOW(), created_by = ?
-          WHERE user_id = ? AND product_id = ?
-        ");
-        $stmt->execute([$customPrice, $discountPercentage, $notes, $admin['id'], $userId, $productId]);
-        $message = 'Custom pricing updated successfully';
+      // If catalog discount is set, apply to all products
+      if ($catalogDiscount !== null && $catalogDiscount > 0) {
+        // Get all products
+        $stmt = $pdo->query("SELECT id, price_wholesale FROM products WHERE active = TRUE");
+        $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($products as $product) {
+          $defaultPrice = $product['price_wholesale'];
+          $customPrice = $defaultPrice * (1 - ($catalogDiscount / 100));
+
+          // Upsert pricing
+          $stmt = $pdo->prepare("
+            INSERT INTO practice_pricing (user_id, product_id, custom_price, discount_percentage, created_by, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, NOW(), NOW())
+            ON CONFLICT (user_id, product_id)
+            DO UPDATE SET custom_price = EXCLUDED.custom_price, discount_percentage = EXCLUDED.discount_percentage, updated_at = NOW(), created_by = EXCLUDED.created_by
+          ");
+          $stmt->execute([$userId, $product['id'], $customPrice, $catalogDiscount, $admin['id']]);
+        }
+        $message = "Catalog-wide {$catalogDiscount}% discount applied to all products";
       } else {
-        // Insert new
-        $stmt = $pdo->prepare("
-          INSERT INTO practice_pricing (user_id, product_id, custom_price, discount_percentage, notes, created_by)
-          VALUES (?, ?, ?, ?, ?, ?)
-        ");
-        $stmt->execute([$userId, $productId, $customPrice, $discountPercentage, $notes, $admin['id']]);
-        $message = 'Custom pricing added successfully';
+        // Apply individual product pricing
+        foreach ($productPrices as $productId => $customPrice) {
+          $productId = (int)$productId;
+          $customPrice = (float)$customPrice;
+          $discount = isset($productDiscounts[$productId]) ? (float)$productDiscounts[$productId] : null;
+
+          if ($customPrice > 0) {
+            // Upsert pricing
+            $stmt = $pdo->prepare("
+              INSERT INTO practice_pricing (user_id, product_id, custom_price, discount_percentage, created_by, created_at, updated_at)
+              VALUES (?, ?, ?, ?, ?, NOW(), NOW())
+              ON CONFLICT (user_id, product_id)
+              DO UPDATE SET custom_price = EXCLUDED.custom_price, discount_percentage = EXCLUDED.discount_percentage, updated_at = NOW(), created_by = EXCLUDED.created_by
+            ");
+            $stmt->execute([$userId, $productId, $customPrice, $discount, $admin['id']]);
+          } else {
+            // Remove pricing if custom price is empty/zero
+            $stmt = $pdo->prepare("DELETE FROM practice_pricing WHERE user_id = ? AND product_id = ?");
+            $stmt->execute([$userId, $productId]);
+          }
+        }
+        $message = 'Custom pricing saved successfully';
       }
+
+      $pdo->commit();
     } catch (Exception $e) {
+      if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+      }
       $error = $e->getMessage();
     }
   } elseif ($action === 'delete') {
@@ -62,34 +91,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } catch (Exception $e) {
       $error = $e->getMessage();
     }
+  } elseif ($action === 'clear_all') {
+    try {
+      $userId = $_POST['user_id'] ?? '';
+      if (!empty($userId)) {
+        $stmt = $pdo->prepare("DELETE FROM practice_pricing WHERE user_id = ?");
+        $stmt->execute([$userId]);
+        $message = 'All custom pricing cleared for this practice';
+      }
+    } catch (Exception $e) {
+      $error = $e->getMessage();
+    }
   }
 }
-
-// Fetch all practice pricing
-$stmt = $pdo->query("
-  SELECT
-    pp.id,
-    pp.user_id,
-    pp.product_id,
-    pp.custom_price,
-    pp.discount_percentage,
-    pp.notes,
-    pp.created_at,
-    pp.updated_at,
-    u.practice_name,
-    u.first_name,
-    u.last_name,
-    u.user_type,
-    p.name AS product_name,
-    p.size AS product_size,
-    p.price_wholesale AS default_price,
-    p.pieces_per_box
-  FROM practice_pricing pp
-  JOIN users u ON u.id = pp.user_id
-  JOIN products p ON p.id = pp.product_id
-  ORDER BY u.practice_name ASC, p.name ASC
-");
-$pricingRules = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch all practices (for dropdown)
 $stmt = $pdo->query("
@@ -100,18 +114,44 @@ $stmt = $pdo->query("
 ");
 $practices = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Fetch all products (for dropdown)
+// Fetch all products
 $stmt = $pdo->query("
-  SELECT id, name, size, price_wholesale, pieces_per_box
+  SELECT id, name, size, price_wholesale, pieces_per_box, category
   FROM products
   WHERE active = TRUE
   ORDER BY name ASC
 ");
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch existing pricing for selected practice
+$existingPricing = [];
+if ($selectedPractice) {
+  $stmt = $pdo->prepare("
+    SELECT product_id, custom_price, discount_percentage
+    FROM practice_pricing
+    WHERE user_id = ?
+  ");
+  $stmt->execute([$selectedPractice]);
+  $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+  foreach ($rows as $row) {
+    $existingPricing[$row['product_id']] = $row;
+  }
+}
+
+// Get practice details
+$practiceDetails = null;
+if ($selectedPractice) {
+  foreach ($practices as $p) {
+    if ($p['id'] === $selectedPractice) {
+      $practiceDetails = $p;
+      break;
+    }
+  }
+}
 ?>
 
 <div class="main-content">
-  <div class="container" style="max-width: 1400px; margin: 0 auto; padding: 2rem;">
+  <div class="container" style="max-width: 1600px; margin: 0 auto; padding: 2rem;">
 
     <!-- Page Header -->
     <div style="margin-bottom: 2rem;">
@@ -119,7 +159,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
         Practice Pricing
       </h1>
       <p style="color: var(--ink-light); font-size: 0.875rem;">
-        Set custom wholesale pricing for specific practices and providers
+        Set custom wholesale pricing for practices - apply catalog-wide discounts or individual product pricing
       </p>
     </div>
 
@@ -135,233 +175,283 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
       </div>
     <?php endif; ?>
 
-    <!-- Add New Pricing Form -->
+    <!-- Practice Selection -->
     <div class="card" style="padding: 1.5rem; margin-bottom: 2rem;">
       <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--ink); margin-bottom: 1.5rem;">
-        Add Custom Pricing
+        Select Practice
       </h3>
 
-      <form method="POST" action="?action=save">
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
-
-          <!-- Practice Selection -->
-          <div>
+      <form method="GET" id="practice-form">
+        <div style="display: flex; gap: 1rem; align-items: flex-end;">
+          <div style="flex: 1; max-width: 500px;">
             <label style="display: block; font-weight: 500; color: var(--ink); margin-bottom: 0.5rem; font-size: 0.875rem;">
-              Practice / Provider *
+              Practice / Provider
             </label>
-            <select name="user_id" required style="width: 100%;">
+            <select name="practice_id" onchange="this.form.submit()" style="width: 100%; padding: 0.625rem; font-size: 0.875rem;">
               <option value="">-- Select Practice --</option>
               <?php foreach ($practices as $practice): ?>
-                <option value="<?= htmlspecialchars($practice['id']) ?>">
+                <option value="<?= htmlspecialchars($practice['id']) ?>" <?= $selectedPractice === $practice['id'] ? 'selected' : '' ?>>
                   <?= htmlspecialchars($practice['practice_name'] ?? ($practice['first_name'] . ' ' . $practice['last_name'])) ?>
                   (<?= htmlspecialchars($practice['user_type']) ?>)
                 </option>
               <?php endforeach; ?>
             </select>
           </div>
-
-          <!-- Product Selection -->
-          <div>
-            <label style="display: block; font-weight: 500; color: var(--ink); margin-bottom: 0.5rem; font-size: 0.875rem;">
-              Product *
-            </label>
-            <select name="product_id" id="product-select" required style="width: 100%;">
-              <option value="">-- Select Product --</option>
-              <?php foreach ($products as $product): ?>
-                <?php
-                  $pricePerPiece = $product['price_wholesale'] ?? 0;
-                  $piecesPerBox = $product['pieces_per_box'] ?? 10;
-                  $pricePerBox = $pricePerPiece * $piecesPerBox;
-                ?>
-                <option value="<?= $product['id'] ?>"
-                        data-default-price="<?= number_format($pricePerPiece, 2) ?>"
-                        data-pieces-per-box="<?= $piecesPerBox ?>">
-                  <?= htmlspecialchars($product['name']) ?>
-                  <?= htmlspecialchars($product['size']) ?>
-                  (Default: $<?= number_format($pricePerBox, 2) ?>/box)
-                </option>
-              <?php endforeach; ?>
-            </select>
-            <small style="color: var(--muted); font-size: 0.75rem; display: block; margin-top: 0.25rem;">
-              Default wholesale price shown in parentheses
-            </small>
-          </div>
-
-          <!-- Custom Price -->
-          <div>
-            <label style="display: block; font-weight: 500; color: var(--ink); margin-bottom: 0.5rem; font-size: 0.875rem;">
-              Custom Price (per piece) *
-            </label>
-            <input type="number" name="custom_price" id="custom-price" step="0.01" min="0.01" required placeholder="0.00" style="width: 100%;">
-            <small style="color: var(--muted); font-size: 0.75rem; display: block; margin-top: 0.25rem;">
-              Price per individual piece
-            </small>
-          </div>
-
-          <!-- Discount Percentage (Optional) -->
-          <div>
-            <label style="display: block; font-weight: 500; color: var(--ink); margin-bottom: 0.5rem; font-size: 0.875rem;">
-              Discount % (Optional)
-            </label>
-            <input type="number" name="discount_percentage" id="discount-percentage" step="0.01" min="0" max="100" placeholder="0.00" style="width: 100%;">
-            <small style="color: var(--muted); font-size: 0.75rem; display: block; margin-top: 0.25rem;">
-              For reporting purposes only
-            </small>
-          </div>
-
         </div>
-
-        <!-- Notes -->
-        <div style="margin-bottom: 1.5rem;">
-          <label style="display: block; font-weight: 500; color: var(--ink); margin-bottom: 0.5rem; font-size: 0.875rem;">
-            Notes (Optional)
-          </label>
-          <textarea name="notes" rows="2" placeholder="Reason for custom pricing, agreement details, etc." style="width: 100%; resize: vertical;"></textarea>
-        </div>
-
-        <button type="submit" class="btn btn-primary">
-          <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-          </svg>
-          Add Custom Pricing
-        </button>
       </form>
     </div>
 
-    <!-- Existing Pricing Rules -->
-    <div class="card" style="padding: 1.5rem;">
-      <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--ink); margin-bottom: 1.5rem;">
-        Active Pricing Rules (<?= count($pricingRules) ?>)
-      </h3>
+    <?php if ($selectedPractice && $practiceDetails): ?>
+      <!-- Pricing Management -->
+      <form method="POST">
+        <input type="hidden" name="action" value="save_pricing">
+        <input type="hidden" name="user_id" value="<?= htmlspecialchars($selectedPractice) ?>">
 
-      <?php if (empty($pricingRules)): ?>
-        <div style="text-align: center; padding: 3rem 1rem; color: var(--muted);">
-          <svg style="width: 48px; height: 48px; margin: 0 auto 1rem; display: block; color: var(--muted);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
-          <p style="font-size: 0.875rem;">No custom pricing rules configured yet</p>
-          <p style="font-size: 0.75rem; margin-top: 0.5rem;">All practices use default wholesale pricing</p>
+        <!-- Catalog-Wide Discount -->
+        <div class="card" style="padding: 1.5rem; margin-bottom: 2rem; background: linear-gradient(135deg, var(--brand-light) 0%, var(--brand-lighter) 100%); border: 2px solid var(--brand);">
+          <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--brand); margin-bottom: 1rem;">
+            Catalog-Wide Discount
+          </h3>
+          <p style="font-size: 0.875rem; color: var(--ink-light); margin-bottom: 1.5rem;">
+            Apply the same discount percentage to all products. This will override any individual product pricing below.
+          </p>
+
+          <div style="display: flex; gap: 1rem; align-items: flex-end;">
+            <div style="flex: 0 0 200px;">
+              <label style="display: block; font-weight: 500; color: var(--ink); margin-bottom: 0.5rem; font-size: 0.875rem;">
+                Discount Percentage
+              </label>
+              <div style="position: relative;">
+                <input type="number" name="catalog_discount" id="catalog-discount" step="0.01" min="0" max="100" placeholder="0.00"
+                       style="width: 100%; padding-right: 2rem;" onchange="toggleCatalogMode(this.value)">
+                <span style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--muted); font-weight: 600;">%</span>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary" onclick="return confirm('Apply catalog-wide discount? This will override all individual product pricing.')">
+              Apply to All Products
+            </button>
+          </div>
         </div>
-      <?php else: ?>
-        <div style="overflow-x: auto;">
-          <table>
-            <thead>
-              <tr>
-                <th>Practice / Provider</th>
-                <th>Product</th>
-                <th>Default Price</th>
-                <th>Custom Price</th>
-                <th>Discount %</th>
-                <th>Savings</th>
-                <th>Notes</th>
-                <th>Updated</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach ($pricingRules as $rule): ?>
-                <?php
-                  $piecesPerBox = $rule['pieces_per_box'] ?? 10;
-                  $defaultPricePerPiece = $rule['default_price'] ?? 0;
-                  $customPricePerPiece = $rule['custom_price'];
-                  $defaultPricePerBox = $defaultPricePerPiece * $piecesPerBox;
-                  $customPricePerBox = $customPricePerPiece * $piecesPerBox;
-                  $savings = $defaultPricePerBox - $customPricePerBox;
-                  $savingsPercent = $defaultPricePerBox > 0 ? ($savings / $defaultPricePerBox) * 100 : 0;
-                ?>
+
+        <!-- Individual Product Pricing -->
+        <div class="card" style="padding: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--ink);">
+              Product Pricing (<?= count($products) ?> products)
+            </h3>
+            <div style="display: flex; gap: 1rem;">
+              <?php if (!empty($existingPricing)): ?>
+                <button type="button" onclick="if(confirm('Clear all custom pricing for this practice?')) { document.getElementById('clear-form').submit(); }"
+                        class="btn" style="color: var(--error);">
+                  Clear All Pricing
+                </button>
+              <?php endif; ?>
+              <button type="submit" class="btn btn-primary">
+                Save Individual Pricing
+              </button>
+            </div>
+          </div>
+
+          <div style="overflow-x: auto;">
+            <table>
+              <thead>
                 <tr>
-                  <td>
-                    <div style="font-weight: 500; color: var(--ink);">
-                      <?= htmlspecialchars($rule['practice_name'] ?? ($rule['first_name'] . ' ' . $rule['last_name'])) ?>
-                    </div>
-                    <div style="font-size: 0.75rem; color: var(--muted);">
-                      <?= htmlspecialchars($rule['user_type']) ?>
-                    </div>
-                  </td>
-                  <td>
-                    <div style="font-weight: 500; color: var(--ink);">
-                      <?= htmlspecialchars($rule['product_name']) ?>
-                    </div>
-                    <div style="font-size: 0.75rem; color: var(--muted);">
-                      <?= htmlspecialchars($rule['product_size']) ?> (<?= $piecesPerBox ?> pcs/box)
-                    </div>
-                  </td>
-                  <td>
-                    <div>$<?= number_format($defaultPricePerBox, 2) ?>/box</div>
-                    <div style="font-size: 0.75rem; color: var(--muted);">$<?= number_format($defaultPricePerPiece, 2) ?>/pc</div>
-                  </td>
-                  <td style="font-weight: 600; color: var(--brand);">
-                    <div>$<?= number_format($customPricePerBox, 2) ?>/box</div>
-                    <div style="font-size: 0.75rem; color: var(--muted);">$<?= number_format($customPricePerPiece, 2) ?>/pc</div>
-                  </td>
-                  <td>
-                    <?= $rule['discount_percentage'] ? number_format($rule['discount_percentage'], 1) . '%' : '-' ?>
-                  </td>
-                  <td>
-                    <?php if ($savings > 0): ?>
-                      <span style="color: var(--success); font-weight: 500;">
-                        -$<?= number_format($savings, 2) ?>
-                        (<?= number_format($savingsPercent, 1) ?>%)
-                      </span>
-                    <?php elseif ($savings < 0): ?>
-                      <span style="color: var(--error); font-weight: 500;">
-                        +$<?= number_format(abs($savings), 2) ?>
-                      </span>
-                    <?php else: ?>
-                      <span style="color: var(--muted);">-</span>
-                    <?php endif; ?>
-                  </td>
-                  <td>
-                    <?php if ($rule['notes']): ?>
-                      <div style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="<?= htmlspecialchars($rule['notes']) ?>">
-                        <?= htmlspecialchars($rule['notes']) ?>
-                      </div>
-                    <?php else: ?>
-                      <span style="color: var(--muted);">-</span>
-                    <?php endif; ?>
-                  </td>
-                  <td>
-                    <div style="font-size: 0.75rem; color: var(--muted);">
-                      <?= date('M j, Y', strtotime($rule['updated_at'] ?? $rule['created_at'])) ?>
-                    </div>
-                  </td>
-                  <td>
-                    <form method="POST" action="?action=delete" style="display: inline;" onsubmit="return confirm('Remove this custom pricing rule?');">
-                      <input type="hidden" name="id" value="<?= $rule['id'] ?>">
-                      <button type="submit" class="btn" style="color: var(--error); padding: 0.25rem 0.625rem; font-size: 0.75rem;">
-                        <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                        </svg>
-                        Remove
-                      </button>
-                    </form>
-                  </td>
+                  <th style="width: 40%;">Product</th>
+                  <th>Default Price</th>
+                  <th>Custom Price/pc</th>
+                  <th>Discount %</th>
+                  <th>Custom Price/box</th>
+                  <th>Savings</th>
                 </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                <?php foreach ($products as $product): ?>
+                  <?php
+                    $piecesPerBox = $product['pieces_per_box'] ?? 10;
+                    $defaultPricePerPiece = $product['price_wholesale'] ?? 0;
+                    $defaultPricePerBox = $defaultPricePerPiece * $piecesPerBox;
+
+                    $existing = $existingPricing[$product['id']] ?? null;
+                    $customPricePerPiece = $existing ? $existing['custom_price'] : '';
+                    $discount = $existing ? $existing['discount_percentage'] : '';
+                  ?>
+                  <tr data-product-id="<?= $product['id'] ?>">
+                    <td>
+                      <div style="font-weight: 500; color: var(--ink);">
+                        <?= htmlspecialchars($product['name']) ?>
+                      </div>
+                      <div style="font-size: 0.75rem; color: var(--muted);">
+                        <?= htmlspecialchars($product['size']) ?> - <?= $piecesPerBox ?> pieces/box
+                      </div>
+                    </td>
+                    <td>
+                      <div style="font-weight: 500;">$<?= number_format($defaultPricePerBox, 2) ?>/box</div>
+                      <div style="font-size: 0.75rem; color: var(--muted);">$<?= number_format($defaultPricePerPiece, 2) ?>/pc</div>
+                    </td>
+                    <td>
+                      <input type="number"
+                             name="product_prices[<?= $product['id'] ?>]"
+                             class="custom-price-input"
+                             data-product-id="<?= $product['id'] ?>"
+                             data-default-price="<?= $defaultPricePerPiece ?>"
+                             data-pieces-per-box="<?= $piecesPerBox ?>"
+                             step="0.01"
+                             min="0"
+                             placeholder="<?= number_format($defaultPricePerPiece, 2) ?>"
+                             value="<?= $customPricePerPiece !== '' ? number_format($customPricePerPiece, 2) : '' ?>"
+                             style="width: 100px; text-align: right;"
+                             onchange="calculateDiscount(this)">
+                    </td>
+                    <td>
+                      <div style="position: relative;">
+                        <input type="number"
+                               name="product_discounts[<?= $product['id'] ?>]"
+                               class="discount-input"
+                               data-product-id="<?= $product['id'] ?>"
+                               step="0.01"
+                               min="0"
+                               max="100"
+                               placeholder="0"
+                               value="<?= $discount !== '' ? number_format($discount, 2) : '' ?>"
+                               style="width: 80px; text-align: right; padding-right: 1.5rem;"
+                               onchange="calculatePrice(this)">
+                        <span style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 0.75rem;">%</span>
+                      </div>
+                    </td>
+                    <td class="custom-box-price" style="font-weight: 600; color: var(--brand);">
+                      <?php if ($customPricePerPiece): ?>
+                        $<?= number_format($customPricePerPiece * $piecesPerBox, 2) ?>
+                      <?php else: ?>
+                        <span style="color: var(--muted);">-</span>
+                      <?php endif; ?>
+                    </td>
+                    <td class="savings">
+                      <?php if ($customPricePerPiece): ?>
+                        <?php
+                          $customPricePerBox = $customPricePerPiece * $piecesPerBox;
+                          $savings = $defaultPricePerBox - $customPricePerBox;
+                          $savingsPercent = $defaultPricePerBox > 0 ? ($savings / $defaultPricePerBox) * 100 : 0;
+                        ?>
+                        <?php if ($savings > 0): ?>
+                          <span style="color: var(--success); font-weight: 500;">
+                            -$<?= number_format($savings, 2) ?> (<?= number_format($savingsPercent, 1) ?>%)
+                          </span>
+                        <?php elseif ($savings < 0): ?>
+                          <span style="color: var(--error); font-weight: 500;">
+                            +$<?= number_format(abs($savings), 2) ?>
+                          </span>
+                        <?php else: ?>
+                          <span style="color: var(--muted);">-</span>
+                        <?php endif; ?>
+                      <?php else: ?>
+                        <span style="color: var(--muted);">-</span>
+                      <?php endif; ?>
+                    </td>
+                  </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
         </div>
-      <?php endif; ?>
-    </div>
+      </form>
+
+      <!-- Hidden form for clearing all pricing -->
+      <form method="POST" id="clear-form" style="display: none;">
+        <input type="hidden" name="action" value="clear_all">
+        <input type="hidden" name="user_id" value="<?= htmlspecialchars($selectedPractice) ?>">
+      </form>
+    <?php endif; ?>
 
   </div>
 </div>
 
 <script>
-// Calculate discount percentage when custom price is entered
-document.getElementById('product-select').addEventListener('change', function() {
-  const selected = this.options[this.selectedIndex];
-  const defaultPrice = parseFloat(selected.dataset.defaultPrice) || 0;
+function calculateDiscount(priceInput) {
+  const productId = priceInput.dataset.productId;
+  const defaultPrice = parseFloat(priceInput.dataset.defaultPrice);
+  const customPrice = parseFloat(priceInput.value) || 0;
+  const piecesPerBox = parseInt(priceInput.dataset.piecesPerBox) || 10;
 
-  document.getElementById('custom-price').addEventListener('input', function() {
-    const customPrice = parseFloat(this.value) || 0;
-    if (defaultPrice > 0 && customPrice > 0) {
-      const discount = ((defaultPrice - customPrice) / defaultPrice) * 100;
-      if (discount > 0) {
-        document.getElementById('discount-percentage').value = discount.toFixed(2);
-      }
+  const discountInput = document.querySelector(`.discount-input[data-product-id="${productId}"]`);
+  const boxPriceCell = priceInput.closest('tr').querySelector('.custom-box-price');
+  const savingsCell = priceInput.closest('tr').querySelector('.savings');
+
+  if (customPrice > 0 && defaultPrice > 0) {
+    const discount = ((defaultPrice - customPrice) / defaultPrice) * 100;
+    discountInput.value = discount.toFixed(2);
+
+    // Update box price
+    const customBoxPrice = customPrice * piecesPerBox;
+    boxPriceCell.innerHTML = `$${customBoxPrice.toFixed(2)}`;
+
+    // Update savings
+    const defaultBoxPrice = defaultPrice * piecesPerBox;
+    const savings = defaultBoxPrice - customBoxPrice;
+    const savingsPercent = (savings / defaultBoxPrice) * 100;
+
+    if (savings > 0) {
+      savingsCell.innerHTML = `<span style="color: var(--success); font-weight: 500;">-$${savings.toFixed(2)} (${savingsPercent.toFixed(1)}%)</span>`;
+    } else if (savings < 0) {
+      savingsCell.innerHTML = `<span style="color: var(--error); font-weight: 500;">+$${Math.abs(savings).toFixed(2)}</span>`;
+    } else {
+      savingsCell.innerHTML = '<span style="color: var(--muted);">-</span>';
+    }
+  } else {
+    discountInput.value = '';
+    boxPriceCell.innerHTML = '<span style="color: var(--muted);">-</span>';
+    savingsCell.innerHTML = '<span style="color: var(--muted);">-</span>';
+  }
+}
+
+function calculatePrice(discountInput) {
+  const productId = discountInput.dataset.productId;
+  const discount = parseFloat(discountInput.value) || 0;
+
+  const priceInput = document.querySelector(`.custom-price-input[data-product-id="${productId}"]`);
+  const defaultPrice = parseFloat(priceInput.dataset.defaultPrice);
+  const piecesPerBox = parseInt(priceInput.dataset.piecesPerBox) || 10;
+
+  if (discount > 0 && defaultPrice > 0) {
+    const customPrice = defaultPrice * (1 - (discount / 100));
+    priceInput.value = customPrice.toFixed(2);
+
+    // Update box price and savings
+    const boxPriceCell = priceInput.closest('tr').querySelector('.custom-box-price');
+    const savingsCell = priceInput.closest('tr').querySelector('.savings');
+
+    const customBoxPrice = customPrice * piecesPerBox;
+    boxPriceCell.innerHTML = `$${customBoxPrice.toFixed(2)}`;
+
+    const defaultBoxPrice = defaultPrice * piecesPerBox;
+    const savings = defaultBoxPrice - customBoxPrice;
+    const savingsPercent = (savings / defaultBoxPrice) * 100;
+
+    savingsCell.innerHTML = `<span style="color: var(--success); font-weight: 500;">-$${savings.toFixed(2)} (${savingsPercent.toFixed(1)}%)</span>`;
+  }
+}
+
+function toggleCatalogMode(value) {
+  const hasValue = value && parseFloat(value) > 0;
+  const productInputs = document.querySelectorAll('.custom-price-input, .discount-input');
+
+  productInputs.forEach(input => {
+    input.disabled = hasValue;
+    if (hasValue) {
+      input.style.opacity = '0.5';
+      input.style.cursor = 'not-allowed';
+    } else {
+      input.style.opacity = '1';
+      input.style.cursor = 'text';
     }
   });
+}
+
+// Initialize on page load if catalog discount is set
+document.addEventListener('DOMContentLoaded', function() {
+  const catalogDiscount = document.getElementById('catalog-discount');
+  if (catalogDiscount && catalogDiscount.value) {
+    toggleCatalogMode(catalogDiscount.value);
+  }
 });
 </script>
 
