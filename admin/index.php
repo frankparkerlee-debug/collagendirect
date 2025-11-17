@@ -112,7 +112,7 @@ try {
       o.billed_by,
       " . ($hasShipRem ? "o.shipments_remaining," : "0 AS shipments_remaining,") . "
       u.practice_name,
-      " . ($hasProducts ? "pr.name AS product_name, pr.hcpcs_code AS cpt_code" : "'Unknown' AS product_name, '' AS cpt_code") . "
+      " . ($hasProducts ? "pr.name AS product_name, pr.hcpcs_code AS cpt_code, pr.pieces_per_box" : "'Unknown' AS product_name, '' AS cpt_code, 10 AS pieces_per_box") . "
     FROM orders o
     LEFT JOIN users u ON u.id = o.user_id
     " . ($hasProducts ? "LEFT JOIN products pr ON pr.id = o.product_id" : "") . "
@@ -129,27 +129,34 @@ try {
     $days = max(0, (int)($order['duration_days'] ?? 0));
     $refills = max(0, (int)($order['refills_allowed'] ?? 0));
 
-    // Calculate total shipments for this order
-    $weeks = ($days > 0) ? (int)ceil($days / 7) : 4;
-    $total_weeks = $weeks * (1 + $refills);
-    $total_shipments = $fpw * $total_weeks * $qty;
+    // Calculate total BOXES needed for this order
+    // Formula: Boxes = (Frequency × Days × Qty) / Pieces Per Box
+    // Where: Frequency = Changes Per Week / 7
+    $pieces_per_box = max(1, (int)($order['pieces_per_box'] ?? 10));
+    $changes_per_day = $fpw / 7.0;
+    $total_changes = $changes_per_day * $days * (1 + $refills);
+    $total_pieces_needed = $total_changes * $qty;
+    $total_boxes = (int)ceil($total_pieces_needed / $pieces_per_box);
 
-    // Get unit price (reimbursement rate or product price)
-    $unit_price = 0.0;
+    // Get price per BOX (not per piece)
+    $price_per_box = 0.0;
     $cpt = $order['cpt_code'] ?? '';
     if ($hasRates && $cpt && isset($rates[$cpt]) && $rates[$cpt] > 0) {
-      $unit_price = $rates[$cpt];
+      // Use CPT reimbursement rate (this is per box)
+      $price_per_box = $rates[$cpt];
     } else {
-      $unit_price = (float)($order['product_price'] ?? 0);
+      // Use product_price from order (this should be per box)
+      $price_per_box = (float)($order['product_price'] ?? 0);
     }
-    if ($unit_price <= 0) $unit_price = 150.0; // Conservative fallback
+    if ($price_per_box <= 0) $price_per_box = 150.0; // Conservative fallback
 
     // Calculate earned (delivered) and projected (remaining) revenue
-    $shipments_remaining = (int)($order['shipments_remaining'] ?? 0);
-    $shipments_delivered = max(0, $total_shipments - $shipments_remaining);
+    // shipments_remaining is in BOXES
+    $boxes_remaining = (int)($order['shipments_remaining'] ?? 0);
+    $boxes_delivered = max(0, $total_boxes - $boxes_remaining);
 
-    $order_earned = $shipments_delivered * $unit_price;
-    $order_projected = $shipments_remaining * $unit_price;
+    $order_earned = $boxes_delivered * $price_per_box;
+    $order_projected = $boxes_remaining * $price_per_box;
     $order_total = $order_earned + $order_projected;
 
     $earnedRevenue += $order_earned;
