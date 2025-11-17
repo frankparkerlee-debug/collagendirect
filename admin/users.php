@@ -237,14 +237,19 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
     if ($accountTypeInput === 'referral') {
       $accountType = 'referral';
-      $isReferralOnly = true;
+      $isReferralOnly = 1;
+      $hasDmeLicense = 0;
+      $isHybrid = 0;
     } elseif ($accountTypeInput === 'wholesale') {
       $accountType = 'wholesale';
-      $hasDmeLicense = true;
+      $isReferralOnly = 0;
+      $hasDmeLicense = 1;
+      $isHybrid = 0;
     } elseif ($accountTypeInput === 'both') {
       $accountType = 'referral';
-      $isHybrid = true;
-      $hasDmeLicense = true;
+      $isReferralOnly = 0;
+      $isHybrid = 1;
+      $hasDmeLicense = 1;
     }
 
     $pdo->prepare("
