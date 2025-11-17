@@ -91,9 +91,9 @@ try {
       $productName .= ' (' . $p['hcpcs'] . ')';
     }
 
-    // Check if product exists by ref number
-    $existing = $pdo->prepare("SELECT id FROM products WHERE ref_number = ?");
-    $existing->execute([$p['ref']]);
+    // Check if product exists by ref number or SKU
+    $existing = $pdo->prepare("SELECT id FROM products WHERE ref_number = ? OR sku = ?");
+    $existing->execute([$p['ref'], $p['ref']]);
     $existingId = $existing->fetchColumn();
 
     if ($existingId) {
