@@ -150,6 +150,30 @@ if ($selectedPractice) {
     }
   }
 }
+
+// Get summary of all practices with custom pricing
+$stmt = $pdo->query("
+  SELECT
+    u.id,
+    u.practice_name,
+    u.first_name,
+    u.last_name,
+    u.user_type,
+    COUNT(DISTINCT pp.product_id) as products_with_custom_pricing,
+    AVG(pp.discount_percentage) as avg_discount,
+    MIN(pp.discount_percentage) as min_discount,
+    MAX(pp.discount_percentage) as max_discount,
+    MAX(pp.updated_at) as last_updated
+  FROM users u
+  INNER JOIN practice_pricing pp ON u.id = pp.user_id
+  WHERE u.user_type IN ('practice_admin', 'physician', 'dme_wholesale')
+  GROUP BY u.id, u.practice_name, u.first_name, u.last_name, u.user_type
+  ORDER BY u.practice_name ASC, u.last_name ASC
+");
+$practicesWithPricing = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Get total product count for percentage calculations
+$totalProductCount = count($products);
 ?>
 
 <div class="main-content">
@@ -174,6 +198,126 @@ if ($selectedPractice) {
     <?php if ($error): ?>
       <div style="background: var(--error-light); border: 1px solid var(--error); border-radius: var(--radius); padding: 1rem; margin-bottom: 1.5rem; color: var(--error);">
         <?= htmlspecialchars($error) ?>
+      </div>
+    <?php endif; ?>
+
+    <!-- Pricing Overview Summary -->
+    <?php if (!empty($practicesWithPricing)): ?>
+      <div class="card" style="padding: 1.5rem; margin-bottom: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+          <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--ink);">
+            Practices with Custom Pricing
+          </h3>
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <input type="text" id="overview-search" placeholder="Search practices..."
+                   style="padding: 0.5rem 1rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.875rem; width: 250px;"
+                   onkeyup="filterOverviewTable()">
+            <span style="font-size: 0.875rem; color: var(--muted);">
+              <?= count($practicesWithPricing) ?> practice<?= count($practicesWithPricing) !== 1 ? 's' : '' ?> with custom pricing
+            </span>
+          </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;" id="overview-table">
+            <thead>
+              <tr style="border-bottom: 2px solid var(--border);">
+                <th style="text-align: left; padding: 0.75rem; font-weight: 600; color: var(--muted);">Practice Name</th>
+                <th style="text-align: left; padding: 0.75rem; font-weight: 600; color: var(--muted);">Type</th>
+                <th style="text-align: center; padding: 0.75rem; font-weight: 600; color: var(--muted);">Products</th>
+                <th style="text-align: center; padding: 0.75rem; font-weight: 600; color: var(--muted);">Coverage</th>
+                <th style="text-align: center; padding: 0.75rem; font-weight: 600; color: var(--muted);">Avg Discount</th>
+                <th style="text-align: center; padding: 0.75rem; font-weight: 600; color: var(--muted);">Discount Range</th>
+                <th style="text-align: left; padding: 0.75rem; font-weight: 600; color: var(--muted);">Last Updated</th>
+                <th style="text-align: center; padding: 0.75rem; font-weight: 600; color: var(--muted);">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ($practicesWithPricing as $practice): ?>
+                <?php
+                  $practiceName = $practice['practice_name'] ?? ($practice['first_name'] . ' ' . $practice['last_name']);
+                  $productCount = (int)$practice['products_with_custom_pricing'];
+                  $coveragePercent = $totalProductCount > 0 ? ($productCount / $totalProductCount) * 100 : 0;
+                  $avgDiscount = $practice['avg_discount'] ? (float)$practice['avg_discount'] : null;
+                  $minDiscount = $practice['min_discount'] ? (float)$practice['min_discount'] : null;
+                  $maxDiscount = $practice['max_discount'] ? (float)$practice['max_discount'] : null;
+                  $lastUpdated = $practice['last_updated'] ? date('M j, Y', strtotime($practice['last_updated'])) : 'N/A';
+
+                  // Determine if this is a catalog-wide discount (all products have same discount)
+                  $isCatalogWide = ($productCount == $totalProductCount && $minDiscount == $maxDiscount);
+
+                  // Coverage color coding
+                  $coverageColor = $coveragePercent >= 90 ? 'var(--success)' : ($coveragePercent >= 50 ? 'var(--warning)' : 'var(--muted)');
+                ?>
+                <tr style="border-bottom: 1px solid var(--border-light);" class="overview-row" data-practice-name="<?= strtolower($practiceName) ?>">
+                  <td style="padding: 1rem;">
+                    <div style="font-weight: 500; color: var(--ink);">
+                      <?= htmlspecialchars($practiceName) ?>
+                    </div>
+                    <?php if ($isCatalogWide): ?>
+                      <div style="display: inline-block; margin-top: 0.25rem; padding: 0.125rem 0.5rem; background: var(--brand-light); color: var(--brand); border-radius: 9999px; font-size: 0.75rem; font-weight: 500;">
+                        Catalog-wide
+                      </div>
+                    <?php endif; ?>
+                  </td>
+                  <td style="padding: 1rem;">
+                    <span style="display: inline-block; padding: 0.25rem 0.75rem; background: var(--bg-secondary); border-radius: var(--radius); font-size: 0.75rem;">
+                      <?= htmlspecialchars($practice['user_type']) ?>
+                    </span>
+                  </td>
+                  <td style="padding: 1rem; text-align: center;">
+                    <span style="font-weight: 600; color: var(--ink);"><?= $productCount ?></span>
+                    <span style="color: var(--muted);">/ <?= $totalProductCount ?></span>
+                  </td>
+                  <td style="padding: 1rem; text-align: center;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                      <div style="flex: 1; max-width: 80px; height: 6px; background: var(--bg-secondary); border-radius: 9999px; overflow: hidden;">
+                        <div style="height: 100%; background: <?= $coverageColor ?>; width: <?= round($coveragePercent) ?>%;"></div>
+                      </div>
+                      <span style="font-size: 0.75rem; font-weight: 600; color: <?= $coverageColor ?>; min-width: 40px;">
+                        <?= round($coveragePercent) ?>%
+                      </span>
+                    </div>
+                  </td>
+                  <td style="padding: 1rem; text-align: center;">
+                    <?php if ($avgDiscount !== null): ?>
+                      <span style="font-weight: 600; color: var(--success); font-size: 1rem;">
+                        <?= number_format($avgDiscount, 1) ?>%
+                      </span>
+                    <?php else: ?>
+                      <span style="color: var(--muted);">-</span>
+                    <?php endif; ?>
+                  </td>
+                  <td style="padding: 1rem; text-align: center;">
+                    <?php if ($minDiscount !== null && $maxDiscount !== null): ?>
+                      <?php if ($minDiscount == $maxDiscount): ?>
+                        <span style="color: var(--success); font-weight: 500;">
+                          <?= number_format($minDiscount, 1) ?>%
+                        </span>
+                      <?php else: ?>
+                        <span style="color: var(--muted); font-size: 0.875rem;">
+                          <?= number_format($minDiscount, 1) ?>% - <?= number_format($maxDiscount, 1) ?>%
+                        </span>
+                      <?php endif; ?>
+                    <?php else: ?>
+                      <span style="color: var(--muted);">-</span>
+                    <?php endif; ?>
+                  </td>
+                  <td style="padding: 1rem; color: var(--muted);">
+                    <?= $lastUpdated ?>
+                  </td>
+                  <td style="padding: 1rem; text-align: center;">
+                    <a href="?practice_id=<?= urlencode($practice['id']) ?>"
+                       class="btn btn-sm btn-outline-primary"
+                       style="padding: 0.375rem 0.75rem; font-size: 0.75rem; text-decoration: none;">
+                      View/Edit
+                    </a>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
       </div>
     <?php endif; ?>
 
@@ -444,6 +588,21 @@ function toggleCatalogMode(value) {
     } else {
       input.style.opacity = '1';
       input.style.cursor = 'text';
+    }
+  });
+}
+
+function filterOverviewTable() {
+  const searchInput = document.getElementById('overview-search');
+  const filter = searchInput.value.toLowerCase();
+  const rows = document.querySelectorAll('.overview-row');
+
+  rows.forEach(row => {
+    const practiceName = row.dataset.practiceName || '';
+    if (practiceName.includes(filter)) {
+      row.style.display = '';
+    } else {
+      row.style.display = 'none';
     }
   });
 }
