@@ -1334,9 +1334,9 @@ function resetLocationForm(userId) {
 }
 </script>
 
-<?php if (defined('GOOGLE_MAPS_API_KEY') && !empty(GOOGLE_MAPS_API_KEY)): ?>
+<?php if (defined('GOOGLE_PLACES_API_KEY') && !empty(GOOGLE_PLACES_API_KEY)): ?>
 <!-- Google Maps Places API for address autocomplete -->
-<script src="https://maps.googleapis.com/maps/api/js?key=<?=htmlspecialchars(GOOGLE_MAPS_API_KEY)?>&libraries=places&callback=initAutocomplete" async defer></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=<?=htmlspecialchars(GOOGLE_PLACES_API_KEY)?>&libraries=places&callback=initAutocomplete" async defer></script>
 <?php endif; ?>
 
 <?php include __DIR__ . '/_footer.php'; ?>

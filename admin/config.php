@@ -15,4 +15,4 @@ define('USPS_USERID', getenv('USPS_USERID') ?: '');  // e.g., 'ABCD1234ABCD'
 // define('FEDEX_SECRET', getenv('FEDEX_SECRET') ?: '');
 
 // Google Maps API (for address autocomplete and validation)
-define('GOOGLE_MAPS_API_KEY', getenv('GOOGLE_MAPS_API_KEY') ?: '');
+define('GOOGLE_PLACES_API_KEY', getenv('GOOGLE_PLACES_API_KEY') ?: '');
