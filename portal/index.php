@@ -3018,11 +3018,11 @@ if ($action) {
         $photoId = bin2hex(random_bytes(16));
         $pdo->prepare("
           INSERT INTO wound_photos
-          (id, patient_id, order_id, photo_path, photo_mime, photo_size_bytes, uploaded_via, uploaded_at, reviewed_at)
-          VALUES (?, ?, ?, ?, ?, ?, 'portal_order', NOW(), NOW())
+          (id, patient_id, order_id, photo_path, photo_mime, photo_size_bytes, uploaded_via, uploaded_at, reviewed_at, photo_type)
+          VALUES (?, ?, ?, ?, ?, ?, 'portal_order', NOW(), NOW(), 'baseline')
         ")->execute([$photoId, $pid, $oid, $photoRel, $photoMime, $photoFile['size']]);
 
-        // Note: reviewed_at is set to NOW() to mark as non-billable (already processed as part of order)
+        // Note: photo_type='baseline' and reviewed_at=NOW() mark as non-billable (already processed as part of order)
       }
 
       // snapshot provider signature
@@ -9472,18 +9472,25 @@ function viewOrderDetails(order) {
         </div>
       ` : ''}
 
-      <!-- Clinical Notes -->
-      ${order.rx_note_name ? `
+      <!-- Clinical Notes / Visit Note -->
+      ${order.rx_note_name || order.rx_note_path ? `
         <div>
-          <h5 class="font-semibold text-sm mb-2">Clinical Notes</h5>
-          <div class="text-sm">
+          <h5 class="font-semibold text-sm mb-2">Visit Note</h5>
+          <div class="text-sm flex flex-col gap-2">
+            ${order.rx_note_path ? `
+              <a href="${esc(order.rx_note_path)}" target="_blank" class="inline-flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors border border-blue-200">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                View Visit Note: ${esc(order.rx_note_name || 'Clinical Note')}
+              </a>
+            ` : ''}
             <a href="/portal/order.pdf.php?id=${esc(order.id)}&csrf=${esc(window.CSRF_TOKEN || '')}" target="_blank" class="inline-flex items-center gap-2 px-3 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200 transition-colors border border-slate-300">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
               </svg>
-              ${esc(order.rx_note_name)}
+              View Complete Order PDF
             </a>
-            <p class="text-xs text-slate-500 mt-1">Included in Order PDF</p>
           </div>
         </div>
       ` : ''}
