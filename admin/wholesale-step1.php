@@ -179,7 +179,8 @@ function toggleShippingOptions() {
 function addPatient() {
   const container = document.getElementById('patients-container');
   const index = patientCounter++;
-  const shippingType = document.getElementById('shipping-type').value;
+  const shippingTypeElement = document.getElementById('shipping-type');
+  const shippingType = shippingTypeElement ? shippingTypeElement.value : 'patients';
   const showAddress = shippingType === 'patients';
 
   const patientCard = document.createElement('div');
