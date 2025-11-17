@@ -13,3 +13,6 @@ define('USPS_USERID', getenv('USPS_USERID') ?: '');  // e.g., 'ABCD1234ABCD'
 // FedEx Tracking API
 // define('FEDEX_KEY', getenv('FEDEX_KEY') ?: '');
 // define('FEDEX_SECRET', getenv('FEDEX_SECRET') ?: '');
+
+// Google Maps API (for address autocomplete and validation)
+define('GOOGLE_MAPS_API_KEY', getenv('GOOGLE_MAPS_API_KEY') ?: '');

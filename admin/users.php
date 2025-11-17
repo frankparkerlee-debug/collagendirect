@@ -3,6 +3,7 @@ declare(strict_types=1);
 require __DIR__ . '/auth.php';
 require_admin();
 require_once __DIR__ . '/../api/lib/email_notifications.php'; // Email notifications
+require_once __DIR__ . '/config.php'; // For Google Maps API key
 
 $admin = current_admin();
 $adminRole = $admin['role'] ?? '';
@@ -1200,7 +1201,97 @@ function toggleUserDetails(rowId) {
   }
 }
 
-// Google Places API removed - using standard form inputs instead
+// Google Places Autocomplete for address standardization
+let autocompleteInstances = [];
+
+function initAutocomplete() {
+  // Don't initialize if Google Maps isn't loaded
+  if (typeof google === 'undefined' || !google.maps || !google.maps.places) {
+    console.log('Google Maps Places API not loaded');
+    return;
+  }
+
+  // Find all address input fields
+  const addressInputs = document.querySelectorAll('input[name="address"]');
+
+  addressInputs.forEach((addressInput, index) => {
+    if (!addressInput) return;
+
+    const autocomplete = new google.maps.places.Autocomplete(addressInput, {
+      types: ['address'],
+      componentRestrictions: { country: 'us' }
+    });
+
+    autocomplete.addListener('place_changed', function() {
+      const place = autocomplete.getPlace();
+      if (!place.geometry) return;
+
+      // Extract address components
+      let street = '';
+      let city = '';
+      let state = '';
+      let zip = '';
+
+      for (const component of place.address_components) {
+        const componentType = component.types[0];
+        switch (componentType) {
+          case 'street_number':
+            street = component.long_name + ' ';
+            break;
+          case 'route':
+            street += component.long_name;
+            break;
+          case 'locality':
+            city = component.long_name;
+            break;
+          case 'administrative_area_level_1':
+            state = component.short_name;
+            break;
+          case 'postal_code':
+            zip = component.long_name;
+            break;
+        }
+      }
+
+      // Populate the form fields
+      // Find the closest form parent
+      const form = addressInput.closest('form');
+      if (form) {
+        const cityInput = form.querySelector('input[name="city"]');
+        const stateSelect = form.querySelector('select[name="state"]');
+        const zipInput = form.querySelector('input[name="zip"]');
+
+        if (street) addressInput.value = street;
+        if (city && cityInput) cityInput.value = city;
+        if (state && stateSelect) stateSelect.value = state;
+        if (zip && zipInput) zipInput.value = zip;
+      }
+    });
+
+    autocompleteInstances.push(autocomplete);
+  });
+}
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initAutocomplete);
+} else {
+  initAutocomplete();
+}
+
+// Re-initialize when new content is added (for accordion views)
+const observer = new MutationObserver(function(mutations) {
+  mutations.forEach(function(mutation) {
+    if (mutation.addedNodes.length) {
+      initAutocomplete();
+    }
+  });
+});
+
+observer.observe(document.body, {
+  childList: true,
+  subtree: true
+});
 
 // Filter locations by practice name
 function filterLocations() {
@@ -1242,5 +1333,10 @@ function resetLocationForm(userId) {
   document.getElementById('location-cancel-btn-' + userId).style.display = 'none';
 }
 </script>
+
+<?php if (defined('GOOGLE_MAPS_API_KEY') && !empty(GOOGLE_MAPS_API_KEY)): ?>
+<!-- Google Maps Places API for address autocomplete -->
+<script src="https://maps.googleapis.com/maps/api/js?key=<?=htmlspecialchars(GOOGLE_MAPS_API_KEY)?>&libraries=places&callback=initAutocomplete" async defer></script>
+<?php endif; ?>
 
 <?php include __DIR__ . '/_footer.php'; ?>
