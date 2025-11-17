@@ -31,21 +31,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       // If catalog discount is set, apply to all products
       if ($catalogDiscount !== null && $catalogDiscount > 0) {
         // Get all products
-        $stmt = $pdo->query("SELECT id, price_wholesale FROM products WHERE active = TRUE");
+        $stmt = $pdo->query("SELECT id, price_wholesale, pieces_per_box FROM products WHERE active = TRUE");
         $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         foreach ($products as $product) {
-          $defaultPrice = $product['price_wholesale'];
-          $customPrice = $defaultPrice * (1 - ($catalogDiscount / 100));
+          $defaultPricePerBox = $product['price_wholesale']; // price_wholesale is per BOX
+          $piecesPerBox = $product['pieces_per_box'] ?? 10;
+          $defaultPricePerPiece = $piecesPerBox > 0 ? $defaultPricePerBox / $piecesPerBox : 0;
+          $customPricePerPiece = $defaultPricePerPiece * (1 - ($catalogDiscount / 100));
 
-          // Upsert pricing
+          // Upsert pricing (storing price per piece)
           $stmt = $pdo->prepare("
             INSERT INTO practice_pricing (user_id, product_id, custom_price, discount_percentage, created_by, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, NOW(), NOW())
             ON CONFLICT (user_id, product_id)
             DO UPDATE SET custom_price = EXCLUDED.custom_price, discount_percentage = EXCLUDED.discount_percentage, updated_at = NOW(), created_by = EXCLUDED.created_by
           ");
-          $stmt->execute([$userId, $product['id'], $customPrice, $catalogDiscount, $admin['id']]);
+          $stmt->execute([$userId, $product['id'], $customPricePerPiece, $catalogDiscount, $admin['id']]);
         }
         $message = "Catalog-wide {$catalogDiscount}% discount applied to all products";
       } else {
@@ -268,8 +270,8 @@ if ($selectedPractice) {
                 <?php foreach ($products as $product): ?>
                   <?php
                     $piecesPerBox = $product['pieces_per_box'] ?? 10;
-                    $defaultPricePerPiece = $product['price_wholesale'] ?? 0;
-                    $defaultPricePerBox = $defaultPricePerPiece * $piecesPerBox;
+                    $defaultPricePerBox = $product['price_wholesale'] ?? 0; // price_wholesale is per BOX
+                    $defaultPricePerPiece = $piecesPerBox > 0 ? $defaultPricePerBox / $piecesPerBox : 0;
 
                     $existing = $existingPricing[$product['id']] ?? null;
                     $customPricePerPiece = $existing ? $existing['custom_price'] : '';
