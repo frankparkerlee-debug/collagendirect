@@ -111,26 +111,26 @@
               </div>
             </div>
 
-            <!-- Patient Address (only if shipping to patients) -->
-            <div class="patient-address-fields" style="display: <?= ($shipping['type'] ?? '') === 'patients' ? 'block' : 'none' ?>;">
+            <!-- Patient Address (always shown for record keeping) -->
+            <div class="patient-address-fields">
               <div style="margin-bottom: 1rem;">
-                <label style="display: block; font-weight: 500; color: var(--ink); margin-bottom: 0.5rem; font-size: 0.75rem;">Street Address *</label>
+                <label style="display: block; font-weight: 500; color: var(--ink); margin-bottom: 0.5rem; font-size: 0.75rem;">Street Address</label>
                 <input type="text" name="patients[<?= $index ?>][address]" value="<?= htmlspecialchars($patient['address'] ?? '') ?>"
                        style="width: 100%; padding: 0.5rem; font-size: 0.875rem; border: 1px solid var(--border); border-radius: var(--radius);">
               </div>
               <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 1rem;">
                 <div>
-                  <label style="display: block; font-weight: 500; color: var(--ink); margin-bottom: 0.5rem; font-size: 0.75rem;">City *</label>
+                  <label style="display: block; font-weight: 500; color: var(--ink); margin-bottom: 0.5rem; font-size: 0.75rem;">City</label>
                   <input type="text" name="patients[<?= $index ?>][city]" value="<?= htmlspecialchars($patient['city'] ?? '') ?>"
                          style="width: 100%; padding: 0.5rem; font-size: 0.875rem; border: 1px solid var(--border); border-radius: var(--radius);">
                 </div>
                 <div>
-                  <label style="display: block; font-weight: 500; color: var(--ink); margin-bottom: 0.5rem; font-size: 0.75rem;">State *</label>
+                  <label style="display: block; font-weight: 500; color: var(--ink); margin-bottom: 0.5rem; font-size: 0.75rem;">State</label>
                   <input type="text" name="patients[<?= $index ?>][state]" value="<?= htmlspecialchars($patient['state'] ?? '') ?>" maxlength="2"
                          style="width: 100%; padding: 0.5rem; font-size: 0.875rem; border: 1px solid var(--border); border-radius: var(--radius);">
                 </div>
                 <div>
-                  <label style="display: block; font-weight: 500; color: var(--ink); margin-bottom: 0.5rem; font-size: 0.75rem;">Zip *</label>
+                  <label style="display: block; font-weight: 500; color: var(--ink); margin-bottom: 0.5rem; font-size: 0.75rem;">Zip</label>
                   <input type="text" name="patients[<?= $index ?>][zip]" value="<?= htmlspecialchars($patient['zip'] ?? '') ?>" maxlength="10"
                          style="width: 100%; padding: 0.5rem; font-size: 0.875rem; border: 1px solid var(--border); border-radius: var(--radius);">
                 </div>
@@ -237,39 +237,22 @@ function toggleShippingOptions() {
   const shippingType = document.getElementById('shipping-type').value;
   const practiceLocationSelect = document.getElementById('practice-location-select');
   const patientShippingNote = document.getElementById('patient-shipping-note');
-  const addressFields = document.querySelectorAll('.patient-address-fields');
 
   if (shippingType === 'practice') {
     practiceLocationSelect.style.display = 'block';
     patientShippingNote.style.display = 'none';
-    addressFields.forEach(field => field.style.display = 'none');
-
-    // Make address fields not required
-    addressFields.forEach(container => {
-      container.querySelectorAll('input').forEach(input => input.removeAttribute('required'));
-    });
   } else if (shippingType === 'patients') {
     practiceLocationSelect.style.display = 'none';
     patientShippingNote.style.display = 'block';
-    addressFields.forEach(field => field.style.display = 'block');
-
-    // Make address fields required
-    addressFields.forEach(container => {
-      container.querySelectorAll('input').forEach(input => input.setAttribute('required', ''));
-    });
   } else {
     practiceLocationSelect.style.display = 'none';
     patientShippingNote.style.display = 'none';
-    addressFields.forEach(field => field.style.display = 'none');
   }
 }
 
 function addPatient() {
   const container = document.getElementById('patients-container');
   const index = patientCounter++;
-  const shippingTypeElement = document.getElementById('shipping-type');
-  const shippingType = shippingTypeElement ? shippingTypeElement.value : 'patients';
-  const showAddress = shippingType === 'patients';
 
   const patientCard = document.createElement('div');
   patientCard.className = 'patient-card';
@@ -304,26 +287,26 @@ function addPatient() {
       </div>
     </div>
 
-    <div class="patient-address-fields" style="display: ${showAddress ? 'block' : 'none'};">
+    <div class="patient-address-fields">
       <div style="margin-bottom: 1rem;">
-        <label style="display: block; font-weight: 500; color: var(--ink); margin-bottom: 0.5rem; font-size: 0.75rem;">Street Address *</label>
-        <input type="text" name="patients[${index}][address]" ${showAddress ? 'required' : ''}
+        <label style="display: block; font-weight: 500; color: var(--ink); margin-bottom: 0.5rem; font-size: 0.75rem;">Street Address</label>
+        <input type="text" name="patients[${index}][address]"
                style="width: 100%; padding: 0.5rem; font-size: 0.875rem; border: 1px solid var(--border); border-radius: var(--radius);">
       </div>
       <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 1rem;">
         <div>
-          <label style="display: block; font-weight: 500; color: var(--ink); margin-bottom: 0.5rem; font-size: 0.75rem;">City *</label>
-          <input type="text" name="patients[${index}][city]" ${showAddress ? 'required' : ''}
+          <label style="display: block; font-weight: 500; color: var(--ink); margin-bottom: 0.5rem; font-size: 0.75rem;">City</label>
+          <input type="text" name="patients[${index}][city]"
                  style="width: 100%; padding: 0.5rem; font-size: 0.875rem; border: 1px solid var(--border); border-radius: var(--radius);">
         </div>
         <div>
-          <label style="display: block; font-weight: 500; color: var(--ink); margin-bottom: 0.5rem; font-size: 0.75rem;">State *</label>
-          <input type="text" name="patients[${index}][state]" maxlength="2" ${showAddress ? 'required' : ''}
+          <label style="display: block; font-weight: 500; color: var(--ink); margin-bottom: 0.5rem; font-size: 0.75rem;">State</label>
+          <input type="text" name="patients[${index}][state]" maxlength="2"
                  style="width: 100%; padding: 0.5rem; font-size: 0.875rem; border: 1px solid var(--border); border-radius: var(--radius);">
         </div>
         <div>
-          <label style="display: block; font-weight: 500; color: var(--ink); margin-bottom: 0.5rem; font-size: 0.75rem;">Zip *</label>
-          <input type="text" name="patients[${index}][zip]" maxlength="10" ${showAddress ? 'required' : ''}
+          <label style="display: block; font-weight: 500; color: var(--ink); margin-bottom: 0.5rem; font-size: 0.75rem;">Zip</label>
+          <input type="text" name="patients[${index}][zip]" maxlength="10"
                  style="width: 100%; padding: 0.5rem; font-size: 0.875rem; border: 1px solid var(--border); border-radius: var(--radius);">
         </div>
       </div>
