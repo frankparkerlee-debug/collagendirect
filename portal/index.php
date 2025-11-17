@@ -5916,7 +5916,6 @@ if ($page==='logout'){
         <?php endif; ?>
       </div>
     </div>
-
     <?php endif; ?>
 
     <!-- Security Tab -->
@@ -5948,37 +5947,45 @@ if ($page==='logout'){
         <!-- Signed Agreements Section -->
         <div class="card p-6">
           <h2 class="text-lg font-semibold mb-4">Signed Agreements</h2>
+          <?php if ($user['agree_baa'] || $user['agree_msa']): ?>
+            <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+              <h3 class="font-semibold text-green-900 mb-2">✓ E-Signature on File</h3>
+              <div class="text-sm text-green-800 space-y-1">
+                <p><strong>Signed by:</strong> <?= htmlspecialchars($user['sign_name'] ?? 'N/A') ?> (<?= htmlspecialchars($user['sign_title'] ?? 'N/A') ?>)</p>
+                <p><strong>Date Signed:</strong> <?= $user['sign_date'] ? date('F j, Y', strtotime($user['sign_date'])) : 'N/A' ?></p>
+                <?php if (!empty($user['signed_ip'])): ?>
+                  <p><strong>IP Address:</strong> <?= htmlspecialchars($user['signed_ip']) ?></p>
+                <?php endif; ?>
+              </div>
+            </div>
+          <?php endif; ?>
+
           <div class="space-y-3">
-            <div class="flex items-start gap-3 p-4 bg-slate-50 rounded-lg">
-              <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            <?php if ($user['agree_baa']): ?>
+            <div class="flex items-start gap-3 p-4 bg-slate-50 rounded-lg border-l-4 border-green-500">
+              <svg class="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
               </svg>
               <div class="flex-1">
                 <h3 class="font-medium">Business Associate Agreement (BAA)</h3>
                 <p class="text-sm text-slate-600 mt-1">HIPAA-compliant agreement for handling protected health information</p>
-                <a href="/assets/baa.pdf" target="_blank" class="text-blue-600 hover:underline text-sm mt-2 inline-block">View Document →</a>
+                <a href="#baa-modal" onclick="showBAAModal()" class="text-blue-600 hover:underline text-sm mt-2 inline-block">View Full Agreement →</a>
               </div>
             </div>
-            <div class="flex items-start gap-3 p-4 bg-slate-50 rounded-lg">
-              <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            <?php endif; ?>
+
+            <?php if ($user['agree_msa']): ?>
+            <div class="flex items-start gap-3 p-4 bg-slate-50 rounded-lg border-l-4 border-green-500">
+              <svg class="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
               </svg>
               <div class="flex-1">
-                <h3 class="font-medium">Master Spend Agreement</h3>
+                <h3 class="font-medium">Master Services & Supply Agreement</h3>
                 <p class="text-sm text-slate-600 mt-1">Wholesale ordering and payment terms agreement</p>
-                <a href="/assets/master-spend-agreement.pdf" target="_blank" class="text-blue-600 hover:underline text-sm mt-2 inline-block">View Document →</a>
+                <a href="#msa-modal" onclick="showMSAModal()" class="text-blue-600 hover:underline text-sm mt-2 inline-block">View Full Agreement →</a>
               </div>
             </div>
-            <div class="flex items-start gap-3 p-4 bg-slate-50 rounded-lg">
-              <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-              </svg>
-              <div class="flex-1">
-                <h3 class="font-medium">Terms & Conditions</h3>
-                <p class="text-sm text-slate-600 mt-1">Terms of service and usage agreement</p>
-                <a href="/assets/terms.pdf" target="_blank" class="text-blue-600 hover:underline text-sm mt-2 inline-block">View Document →</a>
-              </div>
-            </div>
+            <?php endif; ?>
           </div>
         </div>
 
@@ -6028,6 +6035,28 @@ if ($page==='logout'){
                 <p><strong>Compliance:</strong> Providers must verify patient eligibility, comply with LCDs, maintain documentation for 7+ years, and respond to payer audits.</p>
                 <p class="text-red-700 bg-red-50 p-2 rounded"><strong>Consequences:</strong> Violations may result in civil penalties up to $11,000 per false claim, treble damages, program exclusion, criminal prosecution, and license loss.</p>
                 <a href="?page=policies#billing-policy" class="text-blue-600 hover:underline inline-block mt-2">View Full Billing & Compliance Policy →</a>
+              </div>
+            </details>
+
+            <!-- Terms & Conditions -->
+            <details class="group">
+              <summary class="flex items-center justify-between cursor-pointer p-3 bg-slate-50 rounded-lg hover:bg-slate-100">
+                <div class="flex items-center gap-3">
+                  <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                  </svg>
+                  <span class="font-medium">Terms & Conditions</span>
+                </div>
+                <svg class="w-5 h-5 text-slate-400 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </summary>
+              <div class="mt-4 px-3 text-sm text-slate-700 space-y-3">
+                <p><strong>General Terms:</strong> By accessing and using the CollagenDirect platform, you agree to be bound by these Terms & Conditions.</p>
+                <p><strong>User Obligations:</strong> Users must maintain accurate account information, protect login credentials, and comply with all applicable laws and regulations.</p>
+                <p><strong>Service Availability:</strong> CollagenDirect reserves the right to modify, suspend, or discontinue any part of the service with or without notice.</p>
+                <p><strong>Limitation of Liability:</strong> CollagenDirect is not liable for indirect, incidental, or consequential damages arising from use of the platform.</p>
+                <a href="https://collagendirect.health/terms" target="_blank" class="text-blue-600 hover:underline inline-block mt-2">View Full Terms & Conditions →</a>
               </div>
             </details>
 

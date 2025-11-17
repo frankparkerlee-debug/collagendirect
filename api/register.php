@@ -108,6 +108,13 @@ try {
       break;
   }
 
+  // Capture user's IP address for agreement signature tracking
+  $signedIp = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? null;
+  if ($signedIp && strpos($signedIp, ',') !== false) {
+    // X-Forwarded-For may contain multiple IPs, take the first one
+    $signedIp = trim(explode(',', $signedIp)[0]);
+  }
+
   // Insert main user
   $stmt = $pdo->prepare("
     INSERT INTO users(
@@ -115,10 +122,10 @@ try {
       practice_name, address, city, state, zip, tax_id, phone,
       npi, license, license_state, license_expiry,
       dme_number, dme_state, dme_expiry,
-      agree_msa, agree_baa, sign_name, sign_title, sign_date,
+      agree_msa, agree_baa, sign_name, sign_title, sign_date, signed_ip,
       is_referral_only, has_dme_license, is_hybrid, can_manage_physicians, parent_user_id,
       status
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
   ");
 
   $stmt->execute([
@@ -149,6 +156,7 @@ try {
     trim((string)$data['signName']),
     trim((string)$data['signTitle']),
     !empty($data['signDate']) ? $data['signDate'] : null,
+    $signedIp,
     $isReferralOnly ? 1 : 0,
     $hasDmeLicense ? 1 : 0,
     $isHybrid ? 1 : 0,
