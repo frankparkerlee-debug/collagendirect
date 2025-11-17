@@ -94,17 +94,22 @@ $isOfficeStock = ($orderType === 'office_stock');
           if (!empty($patientProducts)):
             foreach ($patientProducts as $prodIndex => $prod):
           ?>
-            <div class="product-row" data-patient="<?= $patIndex ?>" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 0.75rem; align-items: end; padding: 0.75rem; background: var(--bg-gray); border-radius: var(--radius); margin-bottom: 0.5rem;">
+            <div class="product-row" data-patient="<?= $patIndex ?>" style="display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr 1fr auto; gap: 0.5rem; align-items: end; padding: 0.75rem; background: var(--bg-gray); border-radius: var(--radius); margin-bottom: 0.5rem;">
+              <!-- Hidden field to store selected product ID -->
+              <input type="hidden" name="products[<?= $patIndex ?>][<?= $prodIndex ?>][product_id]" class="product-id-input" value="<?= htmlspecialchars($prod['product_id'] ?? '') ?>">
+
               <div>
-                <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem;">Product</label>
-                <select name="products[<?= $patIndex ?>][<?= $prodIndex ?>][product_id]" class="product-select" onchange="updateRowPrice(this)"
+                <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem;">Product Type</label>
+                <select class="product-type-select" onchange="updateSizeDropdown(this)"
                         style="width: 100%; padding: 0.5rem; font-size: 0.875rem; border: 1px solid var(--border); border-radius: var(--radius);">
-                  <option value="">Select product...</option>
-                  <?php foreach ($products as $product): ?>
-                    <option value="<?= htmlspecialchars($product['id']) ?>" <?= ($prod['product_id'] ?? '') == $product['id'] ? 'selected' : '' ?>>
-                      <?= htmlspecialchars($product['name']) ?>
-                    </option>
-                  <?php endforeach; ?>
+                  <option value="">Select type...</option>
+                </select>
+              </div>
+              <div>
+                <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem;">Size</label>
+                <select class="size-select" onchange="updateProductId(this)"
+                        style="width: 100%; padding: 0.5rem; font-size: 0.875rem; border: 1px solid var(--border); border-radius: var(--radius);" disabled>
+                  <option value="">Select size...</option>
                 </select>
               </div>
               <div>
@@ -113,12 +118,16 @@ $isOfficeStock = ($orderType === 'office_stock');
                        style="width: 100%; padding: 0.5rem; font-size: 0.875rem; border: 1px solid var(--border); border-radius: var(--radius);">
               </div>
               <div>
+                <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem;">Pcs/Box</label>
+                <div class="pieces-per-box" style="padding: 0.5rem; font-size: 0.75rem; color: var(--muted); text-align: center;">-</div>
+              </div>
+              <div>
                 <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem;">Price/Box</label>
-                <div class="price-per-box" style="padding: 0.5rem; font-weight: 600;">$<?= isset($productDataForJS[$prod['product_id'] ?? '']) ? number_format($productDataForJS[$prod['product_id']]['price_per_box'], 2) : '0.00' ?></div>
+                <div class="price-per-box" style="padding: 0.5rem; font-weight: 600; font-size: 0.875rem;">$<?= isset($productDataForJS[$prod['product_id'] ?? '']) ? number_format($productDataForJS[$prod['product_id']]['price_per_box'], 2) : '0.00' ?></div>
               </div>
               <div>
                 <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem;">Total</label>
-                <div class="row-total" style="padding: 0.5rem; font-weight: 700; color: var(--brand);">$<?= isset($productDataForJS[$prod['product_id'] ?? '']) ? number_format($productDataForJS[$prod['product_id']]['price_per_box'] * ($prod['boxes'] ?? 1), 2) : '0.00' ?></div>
+                <div class="row-total" style="padding: 0.5rem; font-weight: 700; color: var(--brand); font-size: 0.875rem;">$<?= isset($productDataForJS[$prod['product_id'] ?? '']) ? number_format($productDataForJS[$prod['product_id']]['price_per_box'] * ($prod['boxes'] ?? 1), 2) : '0.00' ?></div>
               </div>
               <div>
                 <button type="button" onclick="removeRow(this)"
@@ -173,31 +182,111 @@ $isOfficeStock = ($orderType === 'office_stock');
 <script>
 const productCatalog = <?= json_encode($productDataForJS) ?>;
 
+// Parse products to create cascading structure
+const productsByType = {};
+Object.values(productCatalog).forEach(product => {
+  // Extract type and size from product name
+  // Pattern: "Product Type Size" (e.g., "Calcium Alginate 2x2", "Collagen 1\"x6\"")
+  const nameParts = product.name.trim().split(/\s+/);
+  let size = nameParts[nameParts.length - 1]; // Last part is size
+  let type = nameParts.slice(0, -1).join(' '); // Everything else is type
+
+  // If type is empty, it means we have a single-word product name, use it as type
+  if (!type) {
+    type = product.name;
+    size = 'Standard';
+  }
+
+  if (!productsByType[type]) {
+    productsByType[type] = {};
+  }
+  productsByType[type][size] = product;
+});
+
+function updateSizeDropdown(typeSelect) {
+  const row = typeSelect.closest('.product-row');
+  const sizeSelect = row.querySelector('.size-select');
+  const productType = typeSelect.value;
+
+  // Clear size dropdown
+  sizeSelect.innerHTML = '<option value="">Select size...</option>';
+  sizeSelect.disabled = !productType;
+
+  // Clear product selection
+  const productIdInput = row.querySelector('.product-id-input');
+  productIdInput.value = '';
+
+  if (productType && productsByType[productType]) {
+    // Populate size dropdown
+    Object.keys(productsByType[productType]).sort().forEach(size => {
+      const option = document.createElement('option');
+      option.value = size;
+      option.textContent = size;
+      sizeSelect.appendChild(option);
+    });
+    sizeSelect.disabled = false;
+  }
+
+  // Reset price displays
+  row.querySelector('.pieces-per-box').textContent = '-';
+  row.querySelector('.price-per-box').textContent = '-';
+  row.querySelector('.row-total').textContent = '-';
+
+  updatePatientTotal(row.dataset.patient);
+}
+
+function updateProductId(sizeSelect) {
+  const row = sizeSelect.closest('.product-row');
+  const typeSelect = row.querySelector('.product-type-select');
+  const productIdInput = row.querySelector('.product-id-input');
+  const productType = typeSelect.value;
+  const size = sizeSelect.value;
+
+  if (productType && size && productsByType[productType] && productsByType[productType][size]) {
+    const product = productsByType[productType][size];
+    productIdInput.value = product.id;
+    updateRowPrice(row);
+  } else {
+    productIdInput.value = '';
+    row.querySelector('.pieces-per-box').textContent = '-';
+    row.querySelector('.price-per-box').textContent = '-';
+    row.querySelector('.row-total').textContent = '-';
+    updatePatientTotal(row.dataset.patient);
+  }
+}
+
 function updateRowPrice(element) {
-  const row = element.closest('.product-row');
+  const row = element.closest ? element.closest('.product-row') : element;
   if (!row) return;
 
-  const productSelect = row.querySelector('.product-select');
+  const productIdInput = row.querySelector('.product-id-input');
   const boxesInput = row.querySelector('.boxes-input');
+  const piecesPerBoxDiv = row.querySelector('.pieces-per-box');
   const pricePerBoxDiv = row.querySelector('.price-per-box');
   const rowTotalDiv = row.querySelector('.row-total');
 
-  const productId = productSelect?.value;
+  const productId = productIdInput?.value;
   const boxes = parseInt(boxesInput?.value) || 0;
 
   if (productId && productCatalog[productId]) {
-    const pricePerBox = productCatalog[productId].price_per_box;
+    const product = productCatalog[productId];
+    const pricePerBox = product.price_per_box;
+    const piecesPerBox = product.pieces_per_box || 1;
     const total = pricePerBox * boxes;
 
+    piecesPerBoxDiv.textContent = piecesPerBox;
     pricePerBoxDiv.textContent = '$' + pricePerBox.toFixed(2);
     rowTotalDiv.textContent = '$' + total.toFixed(2);
   } else {
+    piecesPerBoxDiv.textContent = '-';
     pricePerBoxDiv.textContent = '-';
     rowTotalDiv.textContent = '-';
   }
 
   // Update patient total
-  updatePatientTotal(row.dataset.patient);
+  if (row.dataset.patient) {
+    updatePatientTotal(row.dataset.patient);
+  }
 }
 
 function updatePatientTotal(patientIndex) {
@@ -252,15 +341,27 @@ function addProductRow(patientIndex) {
   const row = document.createElement('div');
   row.className = 'product-row';
   row.dataset.patient = patientIndex;
-  row.style.cssText = 'display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 0.75rem; align-items: end; padding: 0.75rem; background: var(--bg-gray); border-radius: var(--radius); margin-bottom: 0.5rem;';
+  row.style.cssText = 'display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr 1fr auto; gap: 0.5rem; align-items: end; padding: 0.75rem; background: var(--bg-gray); border-radius: var(--radius); margin-bottom: 0.5rem;';
+
+  // Build product type options
+  const productTypes = Object.keys(productsByType).sort();
+  const typeOptions = productTypes.map(type => `<option value="${type}">${type}</option>`).join('');
 
   row.innerHTML = `
+    <input type="hidden" name="products[${patientIndex}][${prodIndex}][product_id]" class="product-id-input" value="">
     <div>
-      <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem;">Product</label>
-      <select name="products[${patientIndex}][${prodIndex}][product_id]" class="product-select" onchange="updateRowPrice(this)"
+      <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem;">Product Type</label>
+      <select class="product-type-select" onchange="updateSizeDropdown(this)"
               style="width: 100%; padding: 0.5rem; font-size: 0.875rem; border: 1px solid var(--border); border-radius: var(--radius);">
-        <option value="">Select product...</option>
-        ${Object.values(productCatalog).map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+        <option value="">Select type...</option>
+        ${typeOptions}
+      </select>
+    </div>
+    <div>
+      <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem;">Size</label>
+      <select class="size-select" onchange="updateProductId(this)"
+              style="width: 100%; padding: 0.5rem; font-size: 0.875rem; border: 1px solid var(--border); border-radius: var(--radius);" disabled>
+        <option value="">Select size...</option>
       </select>
     </div>
     <div>
@@ -269,12 +370,16 @@ function addProductRow(patientIndex) {
              style="width: 100%; padding: 0.5rem; font-size: 0.875rem; border: 1px solid var(--border); border-radius: var(--radius);">
     </div>
     <div>
+      <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem;">Pcs/Box</label>
+      <div class="pieces-per-box" style="padding: 0.5rem; font-size: 0.75rem; color: var(--muted); text-align: center;">-</div>
+    </div>
+    <div>
       <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem;">Price/Box</label>
-      <div class="price-per-box" style="padding: 0.5rem; font-weight: 600;">-</div>
+      <div class="price-per-box" style="padding: 0.5rem; font-weight: 600; font-size: 0.875rem;">-</div>
     </div>
     <div>
       <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem;">Total</label>
-      <div class="row-total" style="padding: 0.5rem; font-weight: 700; color: var(--brand);">-</div>
+      <div class="row-total" style="padding: 0.5rem; font-weight: 700; color: var(--brand); font-size: 0.875rem;">-</div>
     </div>
     <div>
       <button type="button" onclick="removeRow(this)"
@@ -320,6 +425,71 @@ function addOfficeStockRow() {
   container.appendChild(row);
 }
 
+// Initialize existing rows with saved data
+function initializeExistingRow(row) {
+  const productIdInput = row.querySelector('.product-id-input');
+  const typeSelect = row.querySelector('.product-type-select');
+  const sizeSelect = row.querySelector('.size-select');
+
+  const productId = productIdInput?.value;
+
+  if (productId && productCatalog[productId]) {
+    const product = productCatalog[productId];
+
+    // Find which type and size this product belongs to
+    let foundType = null;
+    let foundSize = null;
+
+    for (const [type, sizes] of Object.entries(productsByType)) {
+      for (const [size, prod] of Object.entries(sizes)) {
+        if (prod.id === productId) {
+          foundType = type;
+          foundSize = size;
+          break;
+        }
+      }
+      if (foundType) break;
+    }
+
+    if (foundType && foundSize) {
+      // Populate product type dropdown
+      const productTypes = Object.keys(productsByType).sort();
+      typeSelect.innerHTML = '<option value="">Select type...</option>';
+      productTypes.forEach(type => {
+        const option = document.createElement('option');
+        option.value = type;
+        option.textContent = type;
+        option.selected = (type === foundType);
+        typeSelect.appendChild(option);
+      });
+
+      // Populate size dropdown
+      sizeSelect.innerHTML = '<option value="">Select size...</option>';
+      sizeSelect.disabled = false;
+      Object.keys(productsByType[foundType]).sort().forEach(size => {
+        const option = document.createElement('option');
+        option.value = size;
+        option.textContent = size;
+        option.selected = (size === foundSize);
+        sizeSelect.appendChild(option);
+      });
+
+      // Update price display
+      updateRowPrice(row);
+    }
+  } else {
+    // New row - populate type dropdown
+    const productTypes = Object.keys(productsByType).sort();
+    typeSelect.innerHTML = '<option value="">Select type...</option>';
+    productTypes.forEach(type => {
+      const option = document.createElement('option');
+      option.value = type;
+      option.textContent = type;
+      typeSelect.appendChild(option);
+    });
+  }
+}
+
 // Add initial product row for each patient if none exist
 document.addEventListener('DOMContentLoaded', function() {
   <?php if ($isOfficeStock): ?>
@@ -330,9 +500,12 @@ document.addEventListener('DOMContentLoaded', function() {
   <?php else: ?>
     // Add initial patient product rows
     <?php foreach ($patients as $patIndex => $patient): ?>
-      if (document.querySelectorAll('#patient-<?= $patIndex ?>-products .product-row').length === 0) {
+      const existingRows<?= $patIndex ?> = document.querySelectorAll('#patient-<?= $patIndex ?>-products .product-row');
+      if (existingRows<?= $patIndex ?>.length === 0) {
         addProductRow(<?= $patIndex ?>);
       } else {
+        // Initialize existing rows with cascading dropdowns
+        existingRows<?= $patIndex ?>.forEach(row => initializeExistingRow(row));
         // Calculate initial totals for existing rows
         updatePatientTotal(<?= $patIndex ?>);
       }
