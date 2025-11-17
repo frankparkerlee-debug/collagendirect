@@ -37,7 +37,7 @@ This application uses Google Maps Places API for address autocomplete and standa
 2. Select your web service
 3. Go to "Environment" tab
 4. Add a new environment variable:
-   - Key: `GOOGLE_MAPS_API_KEY`
+   - Key: `GOOGLE_PLACES_API_KEY`
    - Value: `[your-api-key-here]`
 5. Click "Save Changes"
 6. Your service will automatically redeploy
@@ -45,7 +45,7 @@ This application uses Google Maps Places API for address autocomplete and standa
 #### For local development:
 Add to your environment or `.env` file:
 ```bash
-export GOOGLE_MAPS_API_KEY="your-api-key-here"
+export GOOGLE_PLACES_API_KEY="your-api-key-here"
 ```
 
 ## Pricing
@@ -71,7 +71,7 @@ After setting up the API key:
 
 ### "InvalidKeyMapError" in browser console
 - The API key is invalid or not set
-- Check that `GOOGLE_MAPS_API_KEY` environment variable is set correctly
+- Check that `GOOGLE_PLACES_API_KEY` environment variable is set correctly
 - Verify the API key in Google Cloud Console
 
 ### No autocomplete suggestions appearing
