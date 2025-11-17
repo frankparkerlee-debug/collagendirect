@@ -165,10 +165,11 @@
 
         <div>
           <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: var(--ink); font-size: 0.875rem;">
-            Practice Location
+            Practice Location *
           </label>
           <select name="shipping[location_id]"
-                  style="width: 100%; max-width: 600px; padding: 0.625rem; font-size: 0.875rem; border: 1px solid var(--border); border-radius: var(--radius);">
+                  style="width: 100%; max-width: 600px; padding: 0.625rem; font-size: 0.875rem; border: 1px solid var(--border); border-radius: var(--radius);"
+                  required>
             <option value="">Select location...</option>
             <?php foreach ($practiceLocations as $loc): ?>
               <option value="<?= htmlspecialchars($loc['id']) ?>" <?= ($shipping['location_id'] ?? '') == $loc['id'] ? 'selected' : '' ?>>

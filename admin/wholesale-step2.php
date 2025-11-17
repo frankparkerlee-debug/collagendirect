@@ -165,13 +165,10 @@ $isOfficeStock = ($orderType === 'office_stock');
   <!-- End Patient/Office Stock Conditional -->
 
   <div style="display: flex; justify-content: space-between; padding-top: 1.5rem; border-top: 1px solid var(--border);">
-    <form method="POST" style="display: inline;">
-      <input type="hidden" name="action" value="back_to_patients">
-      <button type="submit"
-              style="padding: 0.75rem 1.5rem; font-size: 0.875rem; font-weight: 500; border: 1px solid var(--border); border-radius: var(--radius); background: white; color: var(--ink); cursor: pointer;">
-        ← Back to Patients
-      </button>
-    </form>
+    <button type="button" onclick="window.location.href='?practice_id=<?= urlencode($selectedPracticeId) ?>&step=1'"
+            style="padding: 0.75rem 1.5rem; font-size: 0.875rem; font-weight: 500; border: 1px solid var(--border); border-radius: var(--radius); background: white; color: var(--ink); cursor: pointer;">
+      ← Back to Patients
+    </button>
     <button type="submit"
             style="padding: 0.75rem 1.5rem; font-size: 0.875rem; font-weight: 500; border: none; border-radius: var(--radius); background: var(--brand); color: white; cursor: pointer;">
       Next: Review Order →
