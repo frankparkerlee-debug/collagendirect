@@ -1244,65 +1244,73 @@ if ($action) {
   }
 
   if ($action==='patient.save'){
-    $pid=(string)($_POST['id']??'');
-    $first=trim((string)($_POST['first_name']??''));
-    $last =trim((string)($_POST['last_name']??''));
-    $dob  =$_POST['dob']??null;
-    $mrn  =trim((string)($_POST['mrn']??''));
-    $phone=$_POST['phone']??null; $cell_phone=$_POST['cell_phone']??null; $email=$_POST['email']??null;
-    $accepts_sms = isset($_POST['accepts_sms']) && ($_POST['accepts_sms'] === '1' || $_POST['accepts_sms'] === 'true');
-    $address=$_POST['address']??null; $city=$_POST['city']??null; $state=$_POST['state']??null; $zip=$_POST['zip']??null;
-    $ins_provider=$_POST['insurance_provider']??null; $ins_member_id=$_POST['insurance_member_id']??null;
-    $ins_group_id=$_POST['insurance_group_id']??null; $ins_payer_phone=$_POST['insurance_payer_phone']??null;
+    try {
+      $pid=(string)($_POST['id']??'');
+      $first=trim((string)($_POST['first_name']??''));
+      $last =trim((string)($_POST['last_name']??''));
+      $dob  =$_POST['dob']??null;
+      $mrn  =trim((string)($_POST['mrn']??''));
+      $phone=$_POST['phone']??null; $cell_phone=$_POST['cell_phone']??null; $email=$_POST['email']??null;
+      $accepts_sms = isset($_POST['accepts_sms']) && ($_POST['accepts_sms'] === '1' || $_POST['accepts_sms'] === 'true');
+      $address=$_POST['address']??null; $city=$_POST['city']??null; $state=$_POST['state']??null; $zip=$_POST['zip']??null;
+      $ins_provider=$_POST['insurance_provider']??null; $ins_member_id=$_POST['insurance_member_id']??null;
+      $ins_group_id=$_POST['insurance_group_id']??null; $ins_payer_phone=$_POST['insurance_payer_phone']??null;
 
-    if($first===''||$last==='') jerr('First and last name are required');
-    if(!validPhone($phone)) jerr('Invalid phone number format');
-    if(!validPhone($cell_phone)) jerr('Invalid cell phone number format');
-    if(!validPhone($ins_payer_phone)) jerr('Invalid insurance phone number format');
-    if(!validEmail($email)) jerr('Invalid email');
+      if($first===''||$last==='') jerr('First and last name are required');
+      if(!validPhone($phone)) jerr('Invalid phone number format');
+      if(!validPhone($cell_phone)) jerr('Invalid cell phone number format');
+      if(!validPhone($ins_payer_phone)) jerr('Invalid insurance phone number format');
+      if(!validEmail($email)) jerr('Invalid email');
 
-    // Normalize phone numbers to E.164 format for consistent storage and Twilio compatibility
-    require_once __DIR__ . '/../api/lib/twilio_sms.php';
-    if ($phone) $phone = normalize_phone_number($phone);
-    if ($cell_phone) $cell_phone = normalize_phone_number($cell_phone);
-    if ($ins_payer_phone) $ins_payer_phone = normalize_phone_number($ins_payer_phone);
+      // Normalize phone numbers to E.164 format for consistent storage and Twilio compatibility
+      require_once __DIR__ . '/../api/lib/twilio_sms.php';
+      if ($phone) $phone = normalize_phone_number($phone);
+      if ($cell_phone) $cell_phone = normalize_phone_number($cell_phone);
+      if ($ins_payer_phone) $ins_payer_phone = normalize_phone_number($ins_payer_phone);
 
-    // Track if this is a new patient (for auto-scoring)
-    $isNewPatient = ($pid === '');
+      // Track if this is a new patient (for auto-scoring)
+      $isNewPatient = ($pid === '');
 
-    if ($pid===''){
-      if($mrn===''){ $mrn = 'CD-'.date('Ymd').'-'.strtoupper(substr(bin2hex(random_bytes(2)),0,4)); }
-      $pid=bin2hex(random_bytes(16));
-      $st=$pdo->prepare("INSERT INTO patients
-        (id,user_id,first_name,last_name,dob,mrn,city,address_state,phone,cell_phone,email,address,zip,
-         insurance_provider,insurance_member_id,insurance_group_id,insurance_payer_phone,accepts_sms,status,created_at,updated_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending',NOW(),NOW())");
-      $st->execute([$pid,$userId,$first,$last,$dob,$mrn,$city,$state,$phone,$cell_phone,$email,$address,$zip,
-                    $ins_provider,$ins_member_id,$ins_group_id,$ins_payer_phone,$accepts_sms]);
-    } else {
-      $st=$pdo->prepare("UPDATE patients SET first_name=?,last_name=?,dob=?,mrn=?,city=?,address_state=?,phone=?,cell_phone=?,email=?,address=?,zip=?,
-                         insurance_provider=?,insurance_member_id=?,insurance_group_id=?,insurance_payer_phone=?,accepts_sms=?,updated_at=NOW()
-                         WHERE id=? AND user_id=?");
-      $st->execute([$first,$last,$dob,$mrn,$city,$state,$phone,$cell_phone,$email,$address,$zip,
-                    $ins_provider,$ins_member_id,$ins_group_id,$ins_payer_phone,$accepts_sms,$pid,$userId]);
-    }
-
-    // Auto-generate AI approval score for NEW patients only (created today or later)
-    // Only auto-score if this is a new patient (not an update to existing patient)
-    if ($isNewPatient) {
-      require_once __DIR__ . '/../api/lib/auto_score.php';
-      $patientData = [
-        'first_name' => $first,
-        'last_name' => $last,
-        'dob' => $dob,
-        'insurance_provider' => $ins_provider
-      ];
-      if (shouldAutoScore($patientData)) {
-        queueApprovalScore($pid, $pdo, true); // true = async
+      if ($pid===''){
+        if($mrn===''){ $mrn = 'CD-'.date('Ymd').'-'.strtoupper(substr(bin2hex(random_bytes(2)),0,4)); }
+        $pid=bin2hex(random_bytes(16));
+        $st=$pdo->prepare("INSERT INTO patients
+          (id,user_id,first_name,last_name,dob,mrn,city,address_state,phone,cell_phone,email,address,zip,
+           insurance_provider,insurance_member_id,insurance_group_id,insurance_payer_phone,accepts_sms,state,created_at,updated_at)
+          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending',NOW(),NOW())");
+        $st->execute([$pid,$userId,$first,$last,$dob,$mrn,$city,$state,$phone,$cell_phone,$email,$address,$zip,
+                      $ins_provider,$ins_member_id,$ins_group_id,$ins_payer_phone,$accepts_sms]);
+      } else {
+        $st=$pdo->prepare("UPDATE patients SET first_name=?,last_name=?,dob=?,mrn=?,city=?,address_state=?,phone=?,cell_phone=?,email=?,address=?,zip=?,
+                           insurance_provider=?,insurance_member_id=?,insurance_group_id=?,insurance_payer_phone=?,accepts_sms=?,updated_at=NOW()
+                           WHERE id=? AND user_id=?");
+        $st->execute([$first,$last,$dob,$mrn,$city,$state,$phone,$cell_phone,$email,$address,$zip,
+                      $ins_provider,$ins_member_id,$ins_group_id,$ins_payer_phone,$accepts_sms,$pid,$userId]);
       }
-    }
 
-    jok(['id'=>$pid,'mrn'=>$mrn]);
+      // Auto-generate AI approval score for NEW patients only (created today or later)
+      // Only auto-score if this is a new patient (not an update to existing patient)
+      if ($isNewPatient) {
+        require_once __DIR__ . '/../api/lib/auto_score.php';
+        $patientData = [
+          'first_name' => $first,
+          'last_name' => $last,
+          'dob' => $dob,
+          'insurance_provider' => $ins_provider
+        ];
+        if (shouldAutoScore($patientData)) {
+          queueApprovalScore($pid, $pdo, true); // true = async
+        }
+      }
+
+      jok(['id'=>$pid,'mrn'=>$mrn]);
+    } catch (PDOException $e) {
+      error_log("Patient save error: " . $e->getMessage());
+      jerr('Database error: ' . $e->getMessage());
+    } catch (Throwable $e) {
+      error_log("Patient save error: " . $e->getMessage());
+      jerr('Error saving patient: ' . $e->getMessage());
+    }
   }
 
   /* ---- Request wound photo from patient via SMS ---- */
