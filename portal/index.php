@@ -3732,7 +3732,8 @@ if ($action) {
 
     // Validate required fields
     if ($firstName === '' || $lastName === '') jerr('First and last name are required');
-    if ($practiceName === '') jerr('Practice name is required');
+    // Practice name is only required if user is a practice admin or if practice name was provided
+    if ($userRole === 'practice_admin' && $practiceName === '') jerr('Practice name is required');
 
     // Check which columns exist in users table (backward compatibility)
     $userCols = $pdo->query("
