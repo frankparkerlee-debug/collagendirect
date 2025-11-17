@@ -1,7 +1,7 @@
 <?php
 /**
  * Admin API: Create Wholesale Order on Behalf of Practice
- * Supports multiple patients with multiple products + office stock orders
+ * Handles 3-step workflow with patients, products, and shipping
  */
 declare(strict_types=1);
 
@@ -60,8 +60,9 @@ try {
   }
 
   $practiceId = safe($data['practice_id'] ?? null);
-  $patientOrders = $data['patient_orders'] ?? [];
-  $officeStock = $data['office_stock'] ?? [];
+  $patients = $data['patients'] ?? [];
+  $products = $data['products'] ?? [];
+  $shipping = $data['shipping'] ?? [];
   $notes = safe($data['notes'] ?? null);
   $adminId = safe($data['admin_id'] ?? null);
 
@@ -71,7 +72,7 @@ try {
     exit;
   }
 
-  if (empty($patientOrders) && empty($officeStock)) {
+  if (empty($patients) || empty($products)) {
     http_response_code(400);
     echo json_encode(['ok' => false, 'error' => 'no_items']);
     exit;
@@ -94,17 +95,20 @@ try {
   $ordersCreated = 0;
   $billedBy = $practice['practice_name'] ?? ($practice['first_name'] . ' ' . $practice['last_name']);
 
-  // 1) Process patient orders
-  foreach ($patientOrders as $patientOrder) {
-    $patientData = $patientOrder['patient'] ?? [];
-    $products = $patientOrder['products'] ?? [];
+  // Process each patient and their products
+  foreach ($patients as $patientIndex => $patientData) {
+    $patientProducts = $products[$patientIndex] ?? [];
+
+    if (empty($patientProducts)) {
+      continue; // Skip patients with no products
+    }
 
     $patientFirstName = safe($patientData['first_name'] ?? null);
     $patientLastName = safe($patientData['last_name'] ?? null);
     $patientDob = safe($patientData['dob'] ?? null);
 
-    if (!$patientFirstName || !$patientLastName || !$patientDob || empty($products)) {
-      continue; // Skip incomplete patient orders
+    if (!$patientFirstName || !$patientLastName || !$patientDob) {
+      continue; // Skip incomplete patients
     }
 
     // Check if patient exists for this practice
@@ -123,29 +127,32 @@ try {
       // Create new patient
       $patientId = guid();
       $patientInsertStmt = $pdo->prepare("
-        INSERT INTO patients (id, user_id, first_name, last_name, dob, created_at)
-        VALUES (?, ?, ?, ?, ?, NOW())
+        INSERT INTO patients (id, user_id, first_name, last_name, dob, address, city, state, zip, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
       ");
       $patientInsertStmt->execute([
         $patientId,
         $practiceId,
         $patientFirstName,
         $patientLastName,
-        $patientDob
+        $patientDob,
+        safe($patientData['address'] ?? null),
+        safe($patientData['city'] ?? null),
+        safe($patientData['state'] ?? null),
+        safe($patientData['zip'] ?? null)
       ]);
     }
 
     // Create orders for each product for this patient
-    foreach ($products as $productData) {
+    foreach ($patientProducts as $productData) {
       $productId = safe($productData['product_id'] ?? null);
       $boxes = (int)($productData['boxes'] ?? 0);
-      $pricePerBox = (float)($productData['price_per_box'] ?? 0);
 
-      if (!$productId || $boxes <= 0 || $pricePerBox <= 0) {
+      if (!$productId || $boxes <= 0) {
         continue; // Skip invalid items
       }
 
-      // Get product details
+      // Get product details and pricing
       $productStmt = $pdo->prepare("SELECT * FROM products WHERE id = ?");
       $productStmt->execute([$productId]);
       $product = $productStmt->fetch(PDO::FETCH_ASSOC);
@@ -155,6 +162,23 @@ try {
       }
 
       $piecesPerBox = (int)($product['pieces_per_box'] ?? 1);
+
+      // Check for custom pricing
+      $customPriceStmt = $pdo->prepare("
+        SELECT custom_price
+        FROM practice_pricing
+        WHERE user_id = ? AND product_id = ?
+      ");
+      $customPriceStmt->execute([$practiceId, $productId]);
+      $customPricing = $customPriceStmt->fetch(PDO::FETCH_ASSOC);
+
+      if ($customPricing && $customPricing['custom_price'] > 0) {
+        $pricePerPiece = (float)$customPricing['custom_price'];
+        $pricePerBox = $pricePerPiece * $piecesPerBox;
+      } else {
+        $pricePerBox = (float)($product['price_wholesale'] ?? 0);
+      }
+
       $totalPieces = $boxes * $piecesPerBox;
       $orderTotal = $boxes * $pricePerBox;
 
@@ -185,56 +209,6 @@ try {
 
       $ordersCreated++;
     }
-  }
-
-  // 2) Process office stock orders (no patient required)
-  foreach ($officeStock as $stockItem) {
-    $productId = safe($stockItem['product_id'] ?? null);
-    $boxes = (int)($stockItem['boxes'] ?? 0);
-    $pricePerBox = (float)($stockItem['price_per_box'] ?? 0);
-
-    if (!$productId || $boxes <= 0 || $pricePerBox <= 0) {
-      continue; // Skip invalid items
-    }
-
-    // Get product details
-    $productStmt = $pdo->prepare("SELECT * FROM products WHERE id = ?");
-    $productStmt->execute([$productId]);
-    $product = $productStmt->fetch(PDO::FETCH_ASSOC);
-
-    if (!$product) {
-      continue; // Skip if product doesn't exist
-    }
-
-    $piecesPerBox = (int)($product['pieces_per_box'] ?? 1);
-    $totalPieces = $boxes * $piecesPerBox;
-    $orderTotal = $boxes * $pricePerBox;
-
-    // Create order (patient_id is NULL for office stock)
-    $orderId = guid();
-    $orderInsertStmt = $pdo->prepare("
-      INSERT INTO orders (
-        id, user_id, patient_id, product_id, product_name, quantity_ordered,
-        pieces_per_box, price_per_box, order_total, status, ordered_at,
-        billed_by, notes, created_by_admin, created_by_admin_id
-      ) VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, TRUE, ?)
-    ");
-    $orderInsertStmt->execute([
-      $orderId,
-      $practiceId,
-      $product['id'],
-      $product['name'],
-      $totalPieces,
-      $piecesPerBox,
-      $pricePerBox,
-      $orderTotal,
-      'pending',
-      $billedBy,
-      $notes,
-      $adminId
-    ]);
-
-    $ordersCreated++;
   }
 
   if ($ordersCreated === 0) {
