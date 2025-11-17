@@ -29,13 +29,9 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction
 # Copy application files
 COPY . /var/www/html/
 
-# Create uploads directory with proper permissions
-RUN mkdir -p /var/www/html/uploads/ids \
-    /var/www/html/uploads/insurance \
-    /var/www/html/uploads/notes \
-    /var/www/html/uploads/aob \
-    /var/www/html/uploads/rx \
-    /var/www/html/uploads/wound_photos \
+# Create uploads directory structure (will be replaced by persistent disk mount on Render)
+# The entrypoint script will ensure proper permissions and subdirectories
+RUN mkdir -p /var/www/html/uploads \
     && chown -R www-data:www-data /var/www/html/uploads \
     && chmod -R 755 /var/www/html/uploads
 

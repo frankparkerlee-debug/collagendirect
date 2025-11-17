@@ -35,7 +35,7 @@ services:
     healthCheckPath: /portal/health.php
     disk:
       name: uploads
-      mountPath: /opt/render/project/src/uploads
+      mountPath: /var/www/html/uploads
       sizeGB: 1
 
 databases:

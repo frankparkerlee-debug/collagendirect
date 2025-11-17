@@ -2,21 +2,32 @@
 set -e
 
 # Initialize persistent disk directories if they don't exist
-if [ -d "/var/data/uploads" ]; then
+# Render mounts the disk at /var/www/html/uploads
+if [ -d "/var/www/html/uploads" ]; then
   echo "Initializing persistent disk directories..."
-  mkdir -p /var/data/uploads/ids \
-           /var/data/uploads/insurance \
-           /var/data/uploads/notes \
-           /var/data/uploads/aob \
-           /var/data/uploads/rx
+  mkdir -p /var/www/html/uploads/ids \
+           /var/www/html/uploads/insurance \
+           /var/www/html/uploads/notes \
+           /var/www/html/uploads/aob \
+           /var/www/html/uploads/rx \
+           /var/www/html/uploads/wound_photos
 
   # Set proper ownership and permissions
-  chown -R www-data:www-data /var/data/uploads
-  chmod -R 755 /var/data/uploads
+  chown -R www-data:www-data /var/www/html/uploads
+  chmod -R 755 /var/www/html/uploads
 
-  echo "Persistent disk directories initialized successfully"
+  echo "Persistent disk directories initialized at /var/www/html/uploads"
 else
-  echo "Persistent disk not found at /var/data/uploads (using local uploads/)"
+  echo "WARNING: Persistent disk not found at /var/www/html/uploads"
+  echo "Creating local uploads directory (files will be lost on container restart)"
+  mkdir -p /var/www/html/uploads/ids \
+           /var/www/html/uploads/insurance \
+           /var/www/html/uploads/notes \
+           /var/www/html/uploads/aob \
+           /var/www/html/uploads/rx \
+           /var/www/html/uploads/wound_photos
+  chown -R www-data:www-data /var/www/html/uploads
+  chmod -R 755 /var/www/html/uploads
 fi
 
 # Set up cron jobs
