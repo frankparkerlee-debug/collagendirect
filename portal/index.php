@@ -3704,7 +3704,8 @@ if ($action) {
   }
 
   if ($action==='practice.update_info'){
-    if ($userRole !== 'practice_admin') jerr('Access denied', 403);
+    // Allow practice admins, physicians, and superadmins to update their practice info
+    if (!in_array($userRole, ['practice_admin', 'physician', 'superadmin'])) jerr('Access denied', 403);
 
     // Personal information
     $firstName = trim((string)($_POST['first_name'] ?? ''));
