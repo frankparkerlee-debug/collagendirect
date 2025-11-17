@@ -102,7 +102,8 @@ try {
         UPDATE products SET
           name = ?,
           hcpcs_code = ?,
-          price = ?,
+          price_admin = ?,
+          price_wholesale = ?,
           pieces_per_box = ?,
           price_per_piece = ?,
           medicare_allowable = ?,
@@ -114,7 +115,8 @@ try {
       $stmt->execute([
         $productName,
         $p['hcpcs'],
-        $p['price_box'],
+        $p['medicare'], // price_admin is Medicare Allowable (what insurance reimburses)
+        $p['price_box'], // price_wholesale is the cost to practice
         $p['pieces_box'],
         $p['price_piece'],
         $p['medicare'],
@@ -129,14 +131,15 @@ try {
       // Insert new product
       $stmt = $pdo->prepare("
         INSERT INTO products (
-          name, hcpcs_code, price, pieces_per_box, price_per_piece, medicare_allowable,
-          can_be_primary, can_be_secondary, can_be_additional, ref_number
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          name, hcpcs_code, price_admin, price_wholesale, pieces_per_box, price_per_piece, medicare_allowable,
+          can_be_primary, can_be_secondary, can_be_additional, ref_number, active
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE)
       ");
       $stmt->execute([
         $productName,
         $p['hcpcs'],
-        $p['price_box'],
+        $p['medicare'], // price_admin is Medicare Allowable
+        $p['price_box'], // price_wholesale is the cost to practice
         $p['pieces_box'],
         $p['price_piece'],
         $p['medicare'],
