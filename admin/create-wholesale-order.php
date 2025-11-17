@@ -173,21 +173,21 @@ $shipping = $_SESSION['admin_order_shipping'] ?? [];
       <!-- Step Indicator -->
       <div style="display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 3rem;">
         <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <div style="width: 2rem; height: 2rem; border-radius: 50%; <?= $step == '1' ? 'background: var(--brand); border: 2px solid var(--brand); color: white;' : ($step > '1' ? 'background: var(--brand); border: 2px solid var(--brand); color: white;' : 'background: var(--bg-gray); border: 2px solid var(--border); color: var(--muted);') ?> display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.875rem;">
+          <div style="width: 2rem; height: 2rem; border-radius: 50%; <?= $step == '1' ? 'background: var(--brand); border: 2px solid var(--brand); color: white;' : ($step > '1' ? 'background: var(--brand); border: 2px solid var(--brand); color: white;' : 'background: var(--bg-gray); border: 2px solid var(--border); color: var(--muted);') ?>; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.875rem;">
             1
           </div>
           <span style="font-size: 0.875rem; font-weight: 500;">Patients & Shipping</span>
         </div>
         <div style="color: var(--muted);">→</div>
         <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <div style="width: 2rem; height: 2rem; border-radius: 50%; <?= $step == '2' ? 'background: var(--brand); border: 2px solid var(--brand); color: white;' : ($step > '2' ? 'background: var(--brand); border: 2px solid var(--brand); color: white;' : 'background: var(--bg-gray); border: 2px solid var(--border); color: var(--muted);') ?> display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.875rem;">
+          <div style="width: 2rem; height: 2rem; border-radius: 50%; <?= $step == '2' ? 'background: var(--brand); border: 2px solid var(--brand); color: white;' : ($step > '2' ? 'background: var(--brand); border: 2px solid var(--brand); color: white;' : 'background: var(--bg-gray); border: 2px solid var(--border); color: var(--muted);') ?>; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.875rem;">
             2
           </div>
           <span style="font-size: 0.875rem; font-weight: 500;">Assign Products</span>
         </div>
         <div style="color: var(--muted);">→</div>
         <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <div style="width: 2rem; height: 2rem; border-radius: 50%; <?= $step == '3' ? 'background: var(--brand); border: 2px solid var(--brand); color: white;' : 'background: var(--bg-gray); border: 2px solid var(--border); color: var(--muted);') ?> display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.875rem;">
+          <div style="width: 2rem; height: 2rem; border-radius: 50%; <?= $step == '3' ? 'background: var(--brand); border: 2px solid var(--brand); color: white;' : 'background: var(--bg-gray); border: 2px solid var(--border); color: var(--muted);' ?>; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.875rem;">
             3
           </div>
           <span style="font-size: 0.875rem; font-weight: 500;">Review & Submit</span>
