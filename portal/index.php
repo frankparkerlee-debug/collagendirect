@@ -1275,7 +1275,7 @@ if ($action) {
       $pid=bin2hex(random_bytes(16));
       $st=$pdo->prepare("INSERT INTO patients
         (id,user_id,first_name,last_name,dob,mrn,city,address_state,phone,cell_phone,email,address,zip,
-         insurance_provider,insurance_member_id,insurance_group_id,insurance_payer_phone,accepts_sms,state,created_at,updated_at)
+         insurance_provider,insurance_member_id,insurance_group_id,insurance_payer_phone,accepts_sms,status,created_at,updated_at)
         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending',NOW(),NOW())");
       $st->execute([$pid,$userId,$first,$last,$dob,$mrn,$city,$state,$phone,$cell_phone,$email,$address,$zip,
                     $ins_provider,$ins_member_id,$ins_group_id,$ins_payer_phone,$accepts_sms]);
