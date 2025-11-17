@@ -134,20 +134,20 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
     // Map account type to database fields
     $accountType = 'referral'; // Default
-    $isReferralOnly = false;
-    $hasDmeLicense = false;
-    $isHybrid = false;
+    $isReferralOnly = 0;
+    $hasDmeLicense = 0;
+    $isHybrid = 0;
 
     if ($accountTypeInput === 'referral') {
       $accountType = 'referral';
-      $isReferralOnly = true;
+      $isReferralOnly = 1;
     } elseif ($accountTypeInput === 'wholesale') {
       $accountType = 'wholesale';
-      $hasDmeLicense = true;
+      $hasDmeLicense = 1;
     } elseif ($accountTypeInput === 'both') {
       $accountType = 'referral'; // Primary type
-      $isHybrid = true;
-      $hasDmeLicense = true;
+      $isHybrid = 1;
+      $hasDmeLicense = 1;
     }
 
     if ($providerType === 'practice') {
