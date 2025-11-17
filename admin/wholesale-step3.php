@@ -3,24 +3,27 @@
  * Step 3: Review and Submit Order
  */
 
+// Determine order type
+$orderType = $_SESSION['admin_order_type'] ?? 'patient_orders';
+$isOfficeStock = ($orderType === 'office_stock');
+
 // Build order summary
 $orderSummary = [];
 $grandTotal = 0;
 
-foreach ($patients as $patIndex => $patient) {
-  $patientProducts = $savedProducts[$patIndex] ?? [];
-  $patientTotal = 0;
-
-  foreach ($patientProducts as $prod) {
+if ($isOfficeStock) {
+  // Office stock: products stored at index 0, no patients
+  $officeProducts = $savedProducts[0] ?? [];
+  foreach ($officeProducts as $prod) {
     if (!empty($prod['product_id']) && !empty($prod['boxes'])) {
       $product = $productDataForJS[$prod['product_id']] ?? null;
       if ($product) {
         $boxes = (int)$prod['boxes'];
         $total = $boxes * $product['price_per_box'];
-        $patientTotal += $total;
+        $grandTotal += $total;
 
         $orderSummary[] = [
-          'patient' => $patient,
+          'patient' => null, // No patient for office stock
           'product' => $product,
           'boxes' => $boxes,
           'total' => $total
@@ -28,8 +31,32 @@ foreach ($patients as $patIndex => $patient) {
       }
     }
   }
+} else {
+  // Patient orders: loop through each patient
+  foreach ($patients as $patIndex => $patient) {
+    $patientProducts = $savedProducts[$patIndex] ?? [];
+    $patientTotal = 0;
 
-  $grandTotal += $patientTotal;
+    foreach ($patientProducts as $prod) {
+      if (!empty($prod['product_id']) && !empty($prod['boxes'])) {
+        $product = $productDataForJS[$prod['product_id']] ?? null;
+        if ($product) {
+          $boxes = (int)$prod['boxes'];
+          $total = $boxes * $product['price_per_box'];
+          $patientTotal += $total;
+
+          $orderSummary[] = [
+            'patient' => $patient,
+            'product' => $product,
+            'boxes' => $boxes,
+            'total' => $total
+          ];
+        }
+      }
+    }
+
+    $grandTotal += $patientTotal;
+  }
 }
 ?>
 
@@ -64,7 +91,9 @@ foreach ($patients as $patIndex => $patient) {
       <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
         <thead>
           <tr style="border-bottom: 2px solid var(--border);">
-            <th style="text-align: left; padding: 0.75rem;">Patient</th>
+            <?php if (!$isOfficeStock): ?>
+              <th style="text-align: left; padding: 0.75rem;">Patient</th>
+            <?php endif; ?>
             <th style="text-align: left; padding: 0.75rem;">Product</th>
             <th style="text-align: center; padding: 0.75rem;">Boxes</th>
             <th style="text-align: right; padding: 0.75rem;">Price/Box</th>
@@ -74,9 +103,11 @@ foreach ($patients as $patIndex => $patient) {
         <tbody>
           <?php foreach ($orderSummary as $item): ?>
             <tr style="border-bottom: 1px solid var(--border);">
-              <td style="padding: 0.75rem;">
-                <?= htmlspecialchars($item['patient']['first_name'] . ' ' . $item['patient']['last_name']) ?>
-              </td>
+              <?php if (!$isOfficeStock): ?>
+                <td style="padding: 0.75rem;">
+                  <?= htmlspecialchars($item['patient']['first_name'] . ' ' . $item['patient']['last_name']) ?>
+                </td>
+              <?php endif; ?>
               <td style="padding: 0.75rem;"><?= htmlspecialchars($item['product']['name']) ?></td>
               <td style="padding: 0.75rem; text-align: center;"><?= $item['boxes'] ?></td>
               <td style="padding: 0.75rem; text-align: right;">$<?= number_format($item['product']['price_per_box'], 2) ?></td>
@@ -86,7 +117,7 @@ foreach ($patients as $patIndex => $patient) {
         </tbody>
         <tfoot>
           <tr style="border-top: 2px solid var(--border);">
-            <td colspan="4" style="padding: 1rem; text-align: right; font-weight: 700;">Grand Total:</td>
+            <td colspan="<?= $isOfficeStock ? '3' : '4' ?>" style="padding: 1rem; text-align: right; font-weight: 700;">Grand Total:</td>
             <td style="padding: 1rem; text-align: right; font-weight: 700; font-size: 1.125rem; color: var(--brand);">
               $<?= number_format($grandTotal, 2) ?>
             </td>
@@ -133,6 +164,7 @@ function submitOrder() {
   // Prepare order data
   const orderData = {
     practice_id: practiceId,
+    order_type: '<?= htmlspecialchars($orderType) ?>',
     patients: <?= json_encode($patients) ?>,
     products: <?= json_encode($savedProducts) ?>,
     shipping: <?= json_encode($shipping) ?>,
