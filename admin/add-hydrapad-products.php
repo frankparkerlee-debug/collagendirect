@@ -7,12 +7,12 @@ require_once __DIR__ . '/db.php';
 header('Content-Type: text/plain');
 
 $hydrapadProducts = [
-  ['name' => 'Hydrapad Adherent 2x2', 'pieces_per_box' => 10, 'price_wholesale' => 25.00],
-  ['name' => 'Hydrapad Adherent 4x4', 'pieces_per_box' => 10, 'price_wholesale' => 45.00],
-  ['name' => 'Hydrapad Adherent 6x6', 'pieces_per_box' => 5, 'price_wholesale' => 55.00],
-  ['name' => 'Hydrapad Non-Adherent 2x2', 'pieces_per_box' => 10, 'price_wholesale' => 25.00],
-  ['name' => 'Hydrapad Non-Adherent 4x4', 'pieces_per_box' => 10, 'price_wholesale' => 45.00],
-  ['name' => 'Hydrapad Non-Adherent 6x6', 'pieces_per_box' => 5, 'price_wholesale' => 55.00],
+  ['name' => 'Hydrapad Adherent 2x2', 'sku' => 'HYDRA-ADH-22', 'pieces_per_box' => 10, 'price_wholesale' => 25.00],
+  ['name' => 'Hydrapad Adherent 4x4', 'sku' => 'HYDRA-ADH-44', 'pieces_per_box' => 10, 'price_wholesale' => 45.00],
+  ['name' => 'Hydrapad Adherent 6x6', 'sku' => 'HYDRA-ADH-66', 'pieces_per_box' => 5, 'price_wholesale' => 55.00],
+  ['name' => 'Hydrapad Non-Adherent 2x2', 'sku' => 'HYDRA-NADH-22', 'pieces_per_box' => 10, 'price_wholesale' => 25.00],
+  ['name' => 'Hydrapad Non-Adherent 4x4', 'sku' => 'HYDRA-NADH-44', 'pieces_per_box' => 10, 'price_wholesale' => 45.00],
+  ['name' => 'Hydrapad Non-Adherent 6x6', 'sku' => 'HYDRA-NADH-66', 'pieces_per_box' => 5, 'price_wholesale' => 55.00],
 ];
 
 $added = 0;
@@ -32,16 +32,17 @@ foreach ($hydrapadProducts as $product) {
 
   // Insert new product
   $insertStmt = $pdo->prepare("
-    INSERT INTO products (name, pieces_per_box, price_wholesale, active, created_at)
-    VALUES (?, ?, ?, TRUE, NOW())
+    INSERT INTO products (name, sku, pieces_per_box, price_wholesale, active, created_at)
+    VALUES (?, ?, ?, ?, TRUE, NOW())
   ");
   $insertStmt->execute([
     $product['name'],
+    $product['sku'],
     $product['pieces_per_box'],
     $product['price_wholesale']
   ]);
 
-  echo "ADDED: {$product['name']} - {$product['pieces_per_box']} pieces/box @ \${$product['price_wholesale']}\n";
+  echo "ADDED: {$product['name']} (SKU: {$product['sku']}) - {$product['pieces_per_box']} pieces/box @ \${$product['price_wholesale']}\n";
   $added++;
 }
 
