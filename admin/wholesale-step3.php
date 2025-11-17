@@ -40,7 +40,7 @@ foreach ($patients as $patIndex => $patient) {
     <!-- Shipping Info -->
     <div style="background: var(--bg-gray); border-radius: var(--radius); padding: 1rem; margin-bottom: 1.5rem;">
       <div style="font-weight: 600; color: var(--ink); margin-bottom: 0.5rem;">Shipping:</div>
-      <?php if ($shipping['type'] === 'practice'): ?>
+      <?php if (($shipping['type'] ?? '') === 'practice'): ?>
         <div style="font-size: 0.875rem; color: var(--muted);">
           Ship to Practice/Office
           <?php
