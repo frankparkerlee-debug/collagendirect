@@ -152,25 +152,31 @@ if ($selectedPractice) {
 }
 
 // Get summary of all practices with custom pricing
-$stmt = $pdo->query("
-  SELECT
-    u.id,
-    u.practice_name,
-    u.first_name,
-    u.last_name,
-    u.user_type,
-    COUNT(DISTINCT pp.product_id) as products_with_custom_pricing,
-    AVG(pp.discount_percentage) as avg_discount,
-    MIN(pp.discount_percentage) as min_discount,
-    MAX(pp.discount_percentage) as max_discount,
-    MAX(pp.updated_at) as last_updated
-  FROM users u
-  INNER JOIN practice_pricing pp ON u.id = pp.user_id
-  WHERE u.user_type IN ('practice_admin', 'physician', 'dme_wholesale')
-  GROUP BY u.id, u.practice_name, u.first_name, u.last_name, u.user_type
-  ORDER BY u.practice_name ASC, u.last_name ASC
-");
-$practicesWithPricing = $stmt->fetchAll(PDO::FETCH_ASSOC);
+try {
+  $stmt = $pdo->query("
+    SELECT
+      u.id,
+      u.practice_name,
+      u.first_name,
+      u.last_name,
+      u.user_type,
+      COUNT(DISTINCT pp.product_id) as products_with_custom_pricing,
+      AVG(pp.discount_percentage) as avg_discount,
+      MIN(pp.discount_percentage) as min_discount,
+      MAX(pp.discount_percentage) as max_discount,
+      MAX(pp.updated_at) as last_updated
+    FROM users u
+    INNER JOIN practice_pricing pp ON u.id = pp.user_id
+    WHERE u.user_type IN ('practice_admin', 'physician', 'dme_wholesale')
+    GROUP BY u.id, u.practice_name, u.first_name, u.last_name, u.user_type
+    ORDER BY u.practice_name ASC, u.last_name ASC
+  ");
+  $practicesWithPricing = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+  // Table might not exist yet, or no data
+  error_log("Practice pricing overview error: " . $e->getMessage());
+  $practicesWithPricing = [];
+}
 
 // Get total product count for percentage calculations
 $totalProductCount = count($products);
@@ -202,12 +208,12 @@ $totalProductCount = count($products);
     <?php endif; ?>
 
     <!-- Pricing Overview Summary -->
-    <?php if (!empty($practicesWithPricing)): ?>
-      <div class="card" style="padding: 1.5rem; margin-bottom: 2rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-          <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--ink);">
-            Practices with Custom Pricing
-          </h3>
+    <div class="card" style="padding: 1.5rem; margin-bottom: 2rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--ink);">
+          Practices with Custom Pricing
+        </h3>
+        <?php if (!empty($practicesWithPricing)): ?>
           <div style="display: flex; align-items: center; gap: 1rem;">
             <input type="text" id="overview-search" placeholder="Search practices..."
                    style="padding: 0.5rem 1rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.875rem; width: 250px;"
@@ -216,7 +222,10 @@ $totalProductCount = count($products);
               <?= count($practicesWithPricing) ?> practice<?= count($practicesWithPricing) !== 1 ? 's' : '' ?> with custom pricing
             </span>
           </div>
-        </div>
+        <?php endif; ?>
+      </div>
+
+      <?php if (!empty($practicesWithPricing)): ?>
 
         <div style="overflow-x: auto;">
           <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;" id="overview-table">
@@ -318,8 +327,20 @@ $totalProductCount = count($products);
             </tbody>
           </table>
         </div>
-      </div>
-    <?php endif; ?>
+      <?php else: ?>
+        <div style="text-align: center; padding: 3rem 1rem; color: var(--muted);">
+          <svg style="width: 64px; height: 64px; margin: 0 auto 1rem; opacity: 0.3;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+          </svg>
+          <p style="font-size: 1rem; font-weight: 500; color: var(--ink); margin-bottom: 0.5rem;">
+            No custom pricing configured yet
+          </p>
+          <p style="font-size: 0.875rem;">
+            Select a practice below to set up custom wholesale pricing
+          </p>
+        </div>
+      <?php endif; ?>
+    </div>
 
     <!-- Practice Selection -->
     <div class="card" style="padding: 1.5rem; margin-bottom: 2rem;">
