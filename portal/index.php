@@ -5,6 +5,7 @@ declare(strict_types=1);
 /* ------------ DB + session/bootstrap ------------ */
 require __DIR__ . '/../api/db.php'; // defines $pdo + session helpers
 require __DIR__ . '/../api/lib/sg_curl.php'; // SendGrid email helper
+require __DIR__ . '/../api/lib/create_multi_product_orders.php'; // Multi-product order creation
 
 // BLOCK ADMIN USERS (employees, manufacturer) from accessing physician portal
 // Exception: super admin can access both portals
@@ -2937,6 +2938,37 @@ if ($action) {
         $prod['hcpcs_code'] ?? null,
         $billed_by
       ]);
+
+      // Create additional orders for secondary and additional products
+      $additional_orders_created = create_multi_product_orders(
+        $pdo,
+        $oid,
+        $wounds_data,
+        [
+          'patient_id' => $pid,
+          'user_id' => $patientOwnerId,
+          'status' => $orderStatus,
+          'review_status' => $reviewStatus,
+          'delivery_mode' => $delivery_mode,
+          'payment_type' => $payment_type,
+          'shipping_name' => (string)$ship_name,
+          'shipping_phone' => (string)$ship_phone,
+          'shipping_address' => (string)$ship_addr,
+          'shipping_city' => (string)$ship_city,
+          'shipping_state' => (string)$ship_state,
+          'shipping_zip' => (string)$ship_zip,
+          'sign_name' => $sign_name,
+          'sign_title' => $sign_title,
+          'expires_at' => $expires_at,
+          'last_eval_date' => $last_eval,
+          'start_date' => $start_date,
+          'refills_allowed' => $refills_allowed,
+          'billed_by' => $billed_by
+        ],
+        $wounds_json,
+        $hcpcsCol,
+        $isWholesale
+      );
 
       // Visit note (optional) - file upload takes precedence over text
       $allowed=['application/pdf'=>'pdf','image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp','image/heic'=>'heic','text/plain'=>'txt'];
@@ -10085,19 +10117,44 @@ function collectWoundsData() {
   const woundEls = document.querySelectorAll('[data-wound-index]');
 
   woundEls.forEach((el) => {
-    const productSelect = el.querySelector('.wound-product');
-    const selectedOption = productSelect?.options[productSelect.selectedIndex];
+    // Get primary product (required)
+    const primarySelect = el.querySelector('.wound-primary-dressing');
+    const primaryOption = primarySelect?.options[primarySelect.selectedIndex];
+
+    // Get secondary product (optional)
+    const secondarySelect = el.querySelector('.wound-secondary-dressing');
+    const secondaryOption = secondarySelect?.options[secondarySelect.selectedIndex];
+
+    // Get additional materials (optional)
+    const additionalSelect = el.querySelector('.wound-additional-materials');
+    const additionalOption = additionalSelect?.options[additionalSelect.selectedIndex];
 
     const wound = {
-      // Product details for this wound
-      product_id: el.querySelector('.wound-product')?.value || '',
-      product_name: selectedOption?.dataset.productName || '',
-      product_cpt: selectedOption?.dataset.cpt || '',
-      product_price: parseFloat(selectedOption?.dataset.price) || 0,
+      // Primary product details (required) - backward compatibility: product_id is primary
+      product_id: primarySelect?.value || '',
+      product_name: primaryOption?.dataset.productName || '',
+      product_cpt: primaryOption?.dataset.cpt || '',
+      product_price: parseFloat(primaryOption?.dataset.price) || 0,
+      pieces_per_box: parseInt(primaryOption?.dataset.piecesPerBox) || 10,
+
+      // Secondary product (optional)
+      secondary_product_id: (secondarySelect?.value && secondarySelect?.value !== '') ? secondarySelect.value : null,
+      secondary_product_name: secondaryOption?.dataset.productName || '',
+      secondary_product_cpt: secondaryOption?.dataset.cpt || '',
+      secondary_product_price: parseFloat(secondaryOption?.dataset.price) || 0,
+      secondary_pieces_per_box: parseInt(secondaryOption?.dataset.piecesPerBox) || 10,
+
+      // Additional materials (optional)
+      additional_product_id: (additionalSelect?.value && additionalSelect?.value !== '') ? additionalSelect.value : null,
+      additional_product_name: additionalOption?.dataset.productName || '',
+      additional_product_cpt: additionalOption?.dataset.cpt || '',
+      additional_product_price: parseFloat(additionalOption?.dataset.price) || 0,
+      additional_pieces_per_box: parseInt(additionalOption?.dataset.piecesPerBox) || 10,
+
+      // Order details (apply to all products for this wound)
       frequency_per_week: parseInt(el.querySelector('.wound-frequency')?.value) || 0,
       qty_per_change: parseInt(el.querySelector('.wound-qty')?.value) || 1,
       duration_days: parseInt(el.querySelector('.wound-duration')?.value) || 30,
-      secondary_dressing: el.querySelector('.wound-secondary-dressing')?.value || '',
 
       // Wound details
       location: el.querySelector('.wound-location').value,
