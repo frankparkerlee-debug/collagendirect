@@ -94,40 +94,40 @@ $isOfficeStock = ($orderType === 'office_stock');
           if (!empty($patientProducts)):
             foreach ($patientProducts as $prodIndex => $prod):
           ?>
-            <div class="product-row" data-patient="<?= $patIndex ?>" style="display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr 1fr auto; gap: 0.5rem; align-items: end; padding: 0.75rem; background: var(--bg-gray); border-radius: var(--radius); margin-bottom: 0.5rem;">
+            <div class="product-row" data-patient="<?= $patIndex ?>" style="display: grid; grid-template-columns: 1.5fr 0.9fr 0.6fr 0.6fr 0.8fr 0.8fr auto; gap: 0.4rem; align-items: end; padding: 0.5rem 0.75rem; background: var(--bg-gray); border-radius: var(--radius); margin-bottom: 0.4rem;">
               <!-- Hidden field to store selected product ID -->
               <input type="hidden" name="products[<?= $patIndex ?>][<?= $prodIndex ?>][product_id]" class="product-id-input" value="<?= htmlspecialchars($prod['product_id'] ?? '') ?>">
 
               <div>
-                <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem;">Product Type</label>
+                <label style="display: block; font-size: 0.7rem; font-weight: 500; margin-bottom: 0.2rem; color: var(--muted);">Product Type</label>
                 <select class="product-type-select" onchange="updateSizeDropdown(this)"
-                        style="width: 100%; padding: 0.5rem; font-size: 0.875rem; border: 1px solid var(--border); border-radius: var(--radius);">
+                        style="width: 100%; padding: 0.4rem 0.5rem; font-size: 0.8rem; border: 1px solid var(--border); border-radius: var(--radius);">
                   <option value="">Select type...</option>
                 </select>
               </div>
               <div>
-                <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem;">Size</label>
+                <label style="display: block; font-size: 0.7rem; font-weight: 500; margin-bottom: 0.2rem; color: var(--muted);">Size</label>
                 <select class="size-select" onchange="updateProductId(this)"
-                        style="width: 100%; padding: 0.5rem; font-size: 0.875rem; border: 1px solid var(--border); border-radius: var(--radius);" disabled>
+                        style="width: 100%; padding: 0.4rem 0.5rem; font-size: 0.8rem; border: 1px solid var(--border); border-radius: var(--radius);" disabled>
                   <option value="">Select size...</option>
                 </select>
               </div>
               <div>
-                <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem;">Boxes</label>
+                <label style="display: block; font-size: 0.7rem; font-weight: 500; margin-bottom: 0.2rem; color: var(--muted);">Boxes</label>
                 <input type="number" name="products[<?= $patIndex ?>][<?= $prodIndex ?>][boxes]" value="<?= htmlspecialchars($prod['boxes'] ?? '1') ?>" min="1" class="boxes-input" onchange="updateRowPrice(this)"
-                       style="width: 100%; padding: 0.5rem; font-size: 0.875rem; border: 1px solid var(--border); border-radius: var(--radius);">
+                       style="width: 100%; padding: 0.4rem 0.5rem; font-size: 0.8rem; border: 1px solid var(--border); border-radius: var(--radius);">
               </div>
               <div>
-                <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem;">Pcs/Box</label>
-                <div class="pieces-per-box" style="padding: 0.5rem; font-size: 0.75rem; color: var(--muted); text-align: center;">-</div>
+                <label style="display: block; font-size: 0.7rem; font-weight: 500; margin-bottom: 0.2rem; color: var(--muted);">Pcs/Box</label>
+                <div class="pieces-per-box" style="padding: 0.4rem 0.25rem; font-size: 0.75rem; color: var(--muted); text-align: center;">-</div>
               </div>
               <div>
-                <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem;">Price/Box</label>
-                <div class="price-per-box" style="padding: 0.5rem; font-weight: 600; font-size: 0.875rem;">$<?= isset($productDataForJS[$prod['product_id'] ?? '']) ? number_format($productDataForJS[$prod['product_id']]['price_per_box'], 2) : '0.00' ?></div>
+                <label style="display: block; font-size: 0.7rem; font-weight: 500; margin-bottom: 0.2rem; color: var(--muted);">Price/Box</label>
+                <div class="price-per-box" style="padding: 0.4rem 0.25rem; font-weight: 600; font-size: 0.8rem; text-align: right;">$<?= isset($productDataForJS[$prod['product_id'] ?? '']) ? number_format($productDataForJS[$prod['product_id']]['price_per_box'], 2) : '0.00' ?></div>
               </div>
               <div>
-                <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem;">Total</label>
-                <div class="row-total" style="padding: 0.5rem; font-weight: 700; color: var(--brand); font-size: 0.875rem;">$<?= isset($productDataForJS[$prod['product_id'] ?? '']) ? number_format($productDataForJS[$prod['product_id']]['price_per_box'] * ($prod['boxes'] ?? 1), 2) : '0.00' ?></div>
+                <label style="display: block; font-size: 0.7rem; font-weight: 500; margin-bottom: 0.2rem; color: var(--muted);">Total</label>
+                <div class="row-total" style="padding: 0.4rem 0.25rem; font-weight: 700; color: var(--brand); font-size: 0.85rem; text-align: right;">$<?= isset($productDataForJS[$prod['product_id'] ?? '']) ? number_format($productDataForJS[$prod['product_id']]['price_per_box'] * ($prod['boxes'] ?? 1), 2) : '0.00' ?></div>
               </div>
               <div>
                 <button type="button" onclick="removeRow(this)"
@@ -188,8 +188,28 @@ Object.values(productCatalog).forEach(product => {
   // Extract type and size from product name
   // Pattern: "Product Type Size" (e.g., "Calcium Alginate 2x2", "Collagen 1\"x6\"")
   const nameParts = product.name.trim().split(/\s+/);
+
   let size = nameParts[nameParts.length - 1]; // Last part is size
   let type = nameParts.slice(0, -1).join(' '); // Everything else is type
+
+  // Special handling for Hydrapad products (e.g., "Hydrapad Adherent 4x4")
+  // If second-to-last word is "Adherent" or "Non-Adherent", include it in the type
+  if (nameParts.length >= 3) {
+    const secondToLast = nameParts[nameParts.length - 2];
+    const thirdToLast = nameParts.length >= 4 ? nameParts[nameParts.length - 3] : '';
+
+    // Check for "Non-Adherent" pattern (two words)
+    if (thirdToLast.toLowerCase() === 'non-adherent' ||
+        (thirdToLast.toLowerCase() === 'non' && secondToLast.toLowerCase() === 'adherent')) {
+      // Product is like "Hydrapad Non Adherent 4x4" or "Hydrapad Non-Adherent 4x4"
+      size = nameParts[nameParts.length - 1];
+      type = nameParts.slice(0, -1).join(' ');
+    } else if (secondToLast.toLowerCase() === 'adherent' || secondToLast.toLowerCase() === 'non-adherent') {
+      // Product is like "Hydrapad Adherent 4x4"
+      size = nameParts[nameParts.length - 1];
+      type = nameParts.slice(0, -1).join(' ');
+    }
+  }
 
   // If type is empty, it means we have a single-word product name, use it as type
   if (!type) {
@@ -341,7 +361,7 @@ function addProductRow(patientIndex) {
   const row = document.createElement('div');
   row.className = 'product-row';
   row.dataset.patient = patientIndex;
-  row.style.cssText = 'display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr 1fr auto; gap: 0.5rem; align-items: end; padding: 0.75rem; background: var(--bg-gray); border-radius: var(--radius); margin-bottom: 0.5rem;';
+  row.style.cssText = 'display: grid; grid-template-columns: 1.5fr 0.9fr 0.6fr 0.6fr 0.8fr 0.8fr auto; gap: 0.4rem; align-items: end; padding: 0.5rem 0.75rem; background: var(--bg-gray); border-radius: var(--radius); margin-bottom: 0.4rem;';
 
   // Build product type options
   const productTypes = Object.keys(productsByType).sort();
@@ -350,36 +370,36 @@ function addProductRow(patientIndex) {
   row.innerHTML = `
     <input type="hidden" name="products[${patientIndex}][${prodIndex}][product_id]" class="product-id-input" value="">
     <div>
-      <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem;">Product Type</label>
+      <label style="display: block; font-size: 0.7rem; font-weight: 500; margin-bottom: 0.2rem; color: var(--muted);">Product Type</label>
       <select class="product-type-select" onchange="updateSizeDropdown(this)"
-              style="width: 100%; padding: 0.5rem; font-size: 0.875rem; border: 1px solid var(--border); border-radius: var(--radius);">
+              style="width: 100%; padding: 0.4rem 0.5rem; font-size: 0.8rem; border: 1px solid var(--border); border-radius: var(--radius);">
         <option value="">Select type...</option>
         ${typeOptions}
       </select>
     </div>
     <div>
-      <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem;">Size</label>
+      <label style="display: block; font-size: 0.7rem; font-weight: 500; margin-bottom: 0.2rem; color: var(--muted);">Size</label>
       <select class="size-select" onchange="updateProductId(this)"
-              style="width: 100%; padding: 0.5rem; font-size: 0.875rem; border: 1px solid var(--border); border-radius: var(--radius);" disabled>
+              style="width: 100%; padding: 0.4rem 0.5rem; font-size: 0.8rem; border: 1px solid var(--border); border-radius: var(--radius);" disabled>
         <option value="">Select size...</option>
       </select>
     </div>
     <div>
-      <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem;">Boxes</label>
+      <label style="display: block; font-size: 0.7rem; font-weight: 500; margin-bottom: 0.2rem; color: var(--muted);">Boxes</label>
       <input type="number" name="products[${patientIndex}][${prodIndex}][boxes]" value="1" min="1" class="boxes-input" onchange="updateRowPrice(this)"
-             style="width: 100%; padding: 0.5rem; font-size: 0.875rem; border: 1px solid var(--border); border-radius: var(--radius);">
+             style="width: 100%; padding: 0.4rem 0.5rem; font-size: 0.8rem; border: 1px solid var(--border); border-radius: var(--radius);">
     </div>
     <div>
-      <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem;">Pcs/Box</label>
-      <div class="pieces-per-box" style="padding: 0.5rem; font-size: 0.75rem; color: var(--muted); text-align: center;">-</div>
+      <label style="display: block; font-size: 0.7rem; font-weight: 500; margin-bottom: 0.2rem; color: var(--muted);">Pcs/Box</label>
+      <div class="pieces-per-box" style="padding: 0.4rem 0.25rem; font-size: 0.75rem; color: var(--muted); text-align: center;">-</div>
     </div>
     <div>
-      <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem;">Price/Box</label>
-      <div class="price-per-box" style="padding: 0.5rem; font-weight: 600; font-size: 0.875rem;">-</div>
+      <label style="display: block; font-size: 0.7rem; font-weight: 500; margin-bottom: 0.2rem; color: var(--muted);">Price/Box</label>
+      <div class="price-per-box" style="padding: 0.4rem 0.25rem; font-weight: 600; font-size: 0.8rem; text-align: right;">-</div>
     </div>
     <div>
-      <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem;">Total</label>
-      <div class="row-total" style="padding: 0.5rem; font-weight: 700; color: var(--brand); font-size: 0.875rem;">-</div>
+      <label style="display: block; font-size: 0.7rem; font-weight: 500; margin-bottom: 0.2rem; color: var(--muted);">Total</label>
+      <div class="row-total" style="padding: 0.4rem 0.25rem; font-weight: 700; color: var(--brand); font-size: 0.85rem; text-align: right;">-</div>
     </div>
     <div>
       <button type="button" onclick="removeRow(this)"

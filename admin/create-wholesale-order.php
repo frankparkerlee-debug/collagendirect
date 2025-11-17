@@ -60,9 +60,13 @@ $practicesStmt = $pdo->query("
 ");
 $practices = $practicesStmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Clear session if changing practice
+// Clear session ONLY if changing practice AND not in the middle of the workflow
 if (isset($_GET['practice_id']) && $_GET['practice_id'] !== ($_SESSION['admin_order_practice_id'] ?? '')) {
-  unset($_SESSION['admin_order_patients'], $_SESSION['admin_order_products'], $_SESSION['admin_order_shipping']);
+  // Only clear if we're on step 1 or no step specified (initial load)
+  $currentStep = $_GET['step'] ?? '1';
+  if ($currentStep === '1' || !isset($_GET['step'])) {
+    unset($_SESSION['admin_order_patients'], $_SESSION['admin_order_products'], $_SESSION['admin_order_shipping'], $_SESSION['admin_order_type']);
+  }
   $_SESSION['admin_order_practice_id'] = $_GET['practice_id'];
 }
 
