@@ -4871,12 +4871,6 @@ if ($page==='logout'){
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
         <span>Orders</span>
       </a>
-      <?php if (!$isReferralOnly): ?>
-      <a class="<?php echo $page==='dme-orders'?'active':''; ?>" href="?page=dme-orders">
-        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-        <span>DME Orders</span>
-      </a>
-      <?php endif; ?>
       <a class="<?php echo $page==='wholesale'?'active':''; ?>" href="?page=wholesale">
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
         <span>Wholesale Orders</span>
@@ -4885,19 +4879,9 @@ if ($page==='logout'){
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
         <span>Messages</span>
       </a>
-      <?php if (!$isReferralOnly): ?>
-      <a class="<?php echo $page==='practice-locations'?'active':''; ?>" href="?page=practice-locations">
-        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-        <span>Practice Locations</span>
-      </a>
-      <?php endif; ?>
       <a class="<?php echo $page==='profile'?'active':''; ?>" href="?page=profile">
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
         <span>Profile</span>
-      </a>
-      <a class="<?php echo $page==='policies'?'active':''; ?>" href="?page=policies">
-        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-        <span>Policies</span>
       </a>
     </nav>
   </aside>
@@ -5517,12 +5501,15 @@ if ($page==='logout'){
       <button class="profile-tab px-4 py-2 border-b-2 border-transparent text-slate-600 hover:text-slate-900 font-medium" data-tab="physicians">
         Physician Roster
       </button>
+      <button class="profile-tab px-4 py-2 border-b-2 border-transparent text-slate-600 hover:text-slate-900 font-medium" data-tab="locations">
+        Practice Locations
+      </button>
       <?php endif; ?>
       <button class="profile-tab px-4 py-2 border-b-2 border-transparent text-slate-600 hover:text-slate-900 font-medium" data-tab="security">
         Security
       </button>
-      <button class="profile-tab px-4 py-2 border-b-2 border-transparent text-slate-600 hover:text-slate-900 font-medium" data-tab="legal">
-        Legal
+      <button class="profile-tab px-4 py-2 border-b-2 border-transparent text-slate-600 hover:text-slate-900 font-medium" data-tab="documents">
+        Documents
       </button>
     </div>
   </div>
@@ -5859,6 +5846,77 @@ if ($page==='logout'){
         </div>
       </div>
     </div>
+
+    <!-- Practice Locations Tab -->
+    <div class="profile-tab-content hidden" data-tab-content="locations">
+      <?php
+      // Fetch practice locations for this user
+      $practiceLocations = [];
+      if ($isPracticeAdmin) {
+        $locationsStmt = $pdo->prepare("
+          SELECT * FROM practice_locations
+          WHERE user_id = ? AND is_active = TRUE
+          ORDER BY is_primary DESC, location_name ASC
+        ");
+        $locationsStmt->execute([$userId]);
+        $practiceLocations = $locationsStmt->fetchAll(PDO::FETCH_ASSOC);
+      }
+      ?>
+      <div class="max-w-6xl">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h2 class="text-lg font-semibold">Practice Locations</h2>
+            <p class="text-sm text-slate-600 mt-1">Manage delivery addresses for wholesale orders</p>
+          </div>
+          <button onclick="openAddLocationModal()" class="btn btn-primary">
+            + Add Location
+          </button>
+        </div>
+
+        <div id="profile-locations-success" class="hidden bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg mb-4"></div>
+        <div id="profile-locations-error" class="hidden bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-4"></div>
+
+        <?php if (empty($practiceLocations)): ?>
+          <div class="text-center py-12 bg-white rounded-lg border border-slate-200">
+            <svg width="64" height="64" fill="none" stroke="currentColor" viewBox="0 0 24 24" class="mx-auto mb-4 opacity-30">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+            <h3 class="text-lg font-medium mb-2">No locations yet</h3>
+            <p class="text-slate-600 mb-4">Add your first practice location to start ordering</p>
+            <button onclick="openAddLocationModal()" class="btn btn-primary">Add Location</button>
+          </div>
+        <?php else: ?>
+          <div id="locations-list" class="space-y-3">
+            <?php foreach ($practiceLocations as $location): ?>
+              <div class="bg-white rounded-lg border <?= $location['is_primary'] ? 'border-green-500 border-2' : 'border-slate-200' ?> p-4 relative">
+                <?php if ($location['is_primary']): ?>
+                  <span class="absolute top-4 right-4 bg-green-500 text-white text-xs font-semibold px-2 py-1 rounded">PRIMARY</span>
+                <?php endif; ?>
+
+                <h3 class="text-base font-semibold mb-2"><?= htmlspecialchars($location['location_name']) ?></h3>
+                <div class="text-sm text-slate-600 space-y-1">
+                  <div><?= htmlspecialchars($location['address']) ?></div>
+                  <div><?= htmlspecialchars($location['city']) ?>, <?= htmlspecialchars($location['state']) ?> <?= htmlspecialchars($location['zip']) ?></div>
+                  <?php if ($location['phone']): ?>
+                    <div>Phone: <?= htmlspecialchars($location['phone']) ?></div>
+                  <?php endif; ?>
+                </div>
+
+                <div class="flex gap-2 mt-3">
+                  <button onclick='editLocation(<?= json_encode($location) ?>)' class="text-sm px-3 py-1 bg-slate-100 hover:bg-slate-200 rounded">Edit</button>
+                  <?php if (!$location['is_primary']): ?>
+                    <button onclick="setPrimaryLocation(<?= $location['id'] ?>)" class="text-sm px-3 py-1 bg-slate-100 hover:bg-slate-200 rounded">Set as Primary</button>
+                    <button onclick="deleteLocation(<?= $location['id'] ?>)" class="text-sm px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded">Delete</button>
+                  <?php endif; ?>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        <?php endif; ?>
+      </div>
+    </div>
+
     <?php endif; ?>
 
     <!-- Security Tab -->
@@ -5884,29 +5942,105 @@ if ($page==='logout'){
       </div>
     </div>
 
-    <!-- Legal Tab -->
-    <div class="profile-tab-content hidden" data-tab-content="legal">
-      <div class="card p-6 max-w-4xl">
-        <h2 class="text-lg font-semibold mb-4">Business Agreements</h2>
-        <div class="space-y-3">
-          <div class="flex items-start gap-3 p-4 bg-slate-50 rounded-lg">
-            <svg class="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-            </svg>
-            <div class="flex-1">
-              <h3 class="font-medium">Business Associate Agreement (BAA)</h3>
-              <p class="text-sm text-slate-600 mt-1">HIPAA-compliant agreement for handling protected health information</p>
-              <a href="/assets/baa.pdf" target="_blank" class="text-blue-600 hover:underline text-sm mt-2 inline-block">View Document →</a>
+    <!-- Documents Tab -->
+    <div class="profile-tab-content hidden" data-tab-content="documents">
+      <div class="max-w-4xl space-y-6">
+        <!-- Signed Agreements Section -->
+        <div class="card p-6">
+          <h2 class="text-lg font-semibold mb-4">Signed Agreements</h2>
+          <div class="space-y-3">
+            <div class="flex items-start gap-3 p-4 bg-slate-50 rounded-lg">
+              <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              <div class="flex-1">
+                <h3 class="font-medium">Business Associate Agreement (BAA)</h3>
+                <p class="text-sm text-slate-600 mt-1">HIPAA-compliant agreement for handling protected health information</p>
+                <a href="/assets/baa.pdf" target="_blank" class="text-blue-600 hover:underline text-sm mt-2 inline-block">View Document →</a>
+              </div>
+            </div>
+            <div class="flex items-start gap-3 p-4 bg-slate-50 rounded-lg">
+              <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              <div class="flex-1">
+                <h3 class="font-medium">Master Spend Agreement</h3>
+                <p class="text-sm text-slate-600 mt-1">Wholesale ordering and payment terms agreement</p>
+                <a href="/assets/master-spend-agreement.pdf" target="_blank" class="text-blue-600 hover:underline text-sm mt-2 inline-block">View Document →</a>
+              </div>
+            </div>
+            <div class="flex items-start gap-3 p-4 bg-slate-50 rounded-lg">
+              <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              <div class="flex-1">
+                <h3 class="font-medium">Terms & Conditions</h3>
+                <p class="text-sm text-slate-600 mt-1">Terms of service and usage agreement</p>
+                <a href="/assets/terms.pdf" target="_blank" class="text-blue-600 hover:underline text-sm mt-2 inline-block">View Document →</a>
+              </div>
             </div>
           </div>
-          <div class="flex items-start gap-3 p-4 bg-slate-50 rounded-lg">
-            <svg class="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-            </svg>
-            <div class="flex-1">
-              <h3 class="font-medium">Terms & Conditions</h3>
-              <p class="text-sm text-slate-600 mt-1">Terms of service and usage agreement</p>
-              <a href="/assets/terms.pdf" target="_blank" class="text-blue-600 hover:underline text-sm mt-2 inline-block">View Document →</a>
+        </div>
+
+        <!-- Platform Policies Section -->
+        <div class="card p-6">
+          <h2 class="text-lg font-semibold mb-4">Platform Policies</h2>
+          <div class="space-y-4">
+            <!-- AI Use Policy -->
+            <details class="group">
+              <summary class="flex items-center justify-between cursor-pointer p-3 bg-slate-50 rounded-lg hover:bg-slate-100">
+                <div class="flex items-center gap-3">
+                  <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                  </svg>
+                  <span class="font-medium">Artificial Intelligence Use Policy</span>
+                </div>
+                <svg class="w-5 h-5 text-slate-400 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </summary>
+              <div class="mt-4 px-3 text-sm text-slate-700 space-y-3">
+                <p><strong>Overview:</strong> CollageDirect utilizes AI to assist healthcare providers in generating clinical documentation for wound assessment and telehealth services.</p>
+                <p><strong>Provider Responsibility:</strong> Providers MUST review, verify, and edit all AI-generated clinical notes. Final clinical decisions rest solely with the licensed healthcare provider.</p>
+                <p><strong>Limitations:</strong> AI cannot replace clinical examination or provider judgment. AI-generated content may contain inaccuracies and must be validated against actual clinical findings.</p>
+                <p><strong>Data Privacy:</strong> All patient data processed by AI systems is encrypted and HIPAA-compliant on SOC 2 certified infrastructure.</p>
+                <a href="?page=policies#ai-policy" class="text-blue-600 hover:underline inline-block mt-2">View Full AI Use Policy →</a>
+              </div>
+            </details>
+
+            <!-- Billing & Compliance Policy -->
+            <details class="group">
+              <summary class="flex items-center justify-between cursor-pointer p-3 bg-slate-50 rounded-lg hover:bg-slate-100">
+                <div class="flex items-center gap-3">
+                  <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                  </svg>
+                  <span class="font-medium">Billing and Compliance Policy</span>
+                </div>
+                <svg class="w-5 h-5 text-slate-400 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </summary>
+              <div class="mt-4 px-3 text-sm text-slate-700 space-y-3">
+                <p><strong>Documentation Standards:</strong> All billable services must be medically necessary, properly documented, and accurately coded with patient-specific notes.</p>
+                <p><strong>Telehealth Requirements:</strong> Appropriate modifiers (e.g., 95 for synchronous telehealth), Place of Service code 02, and HIPAA-compliant technology required.</p>
+                <p><strong>Prohibited Practices:</strong> Upcoding, duplicate billing, unbundling, false documentation, kickbacks, and billing without service are strictly prohibited.</p>
+                <p><strong>Compliance:</strong> Providers must verify patient eligibility, comply with LCDs, maintain documentation for 7+ years, and respond to payer audits.</p>
+                <p class="text-red-700 bg-red-50 p-2 rounded"><strong>Consequences:</strong> Violations may result in civil penalties up to $11,000 per false claim, treble damages, program exclusion, criminal prosecution, and license loss.</p>
+                <a href="?page=policies#billing-policy" class="text-blue-600 hover:underline inline-block mt-2">View Full Billing & Compliance Policy →</a>
+              </div>
+            </details>
+
+            <!-- Provider Acknowledgment -->
+            <div class="bg-green-50 border-2 border-green-500 rounded-lg p-4 mt-4">
+              <h3 class="font-semibold text-green-900 mb-2">Provider Acknowledgment</h3>
+              <p class="text-sm text-green-800">
+                By using this platform, you acknowledge that you have read, understood, and agree to comply with both
+                the AI Use Policy and the Billing and Compliance Policy outlined above.
+              </p>
+              <p class="text-sm text-green-800 mt-2">
+                <strong>Questions?</strong> Contact support@collagendirect.health for clarification on any policy matter.
+              </p>
             </div>
           </div>
         </div>
@@ -9007,6 +9141,158 @@ if (<?php echo json_encode($page==='profile'); ?>){
   // Load physicians on physician tab
   <?php if ($userRole === 'practice_admin'): ?>
   loadPhysicians();
+  <?php endif; ?>
+
+  // Practice Locations Management
+  <?php if ($userRole === 'practice_admin'): ?>
+  window.openAddLocationModal = () => {
+    const locationName = prompt('Location Name (e.g., Main Office, Satellite Clinic):');
+    if (!locationName) return;
+
+    const address = prompt('Street Address:');
+    if (!address) return;
+
+    const city = prompt('City:');
+    if (!city) return;
+
+    const state = prompt('State (2 letters, e.g., TX):');
+    if (!state || state.length !== 2) {
+      alert('Please enter a valid 2-letter state code');
+      return;
+    }
+
+    const zip = prompt('ZIP Code (5 digits):');
+    if (!zip || !/^\d{5}$/.test(zip)) {
+      alert('Please enter a valid 5-digit ZIP code');
+      return;
+    }
+
+    const phone = prompt('Phone Number (optional):') || '';
+
+    addLocation({locationName, address, city, state: state.toUpperCase(), zip, phone});
+  };
+
+  window.editLocation = (location) => {
+    const locationName = prompt('Location Name:', location.location_name);
+    if (!locationName) return;
+
+    const address = prompt('Street Address:', location.address);
+    if (!address) return;
+
+    const city = prompt('City:', location.city);
+    if (!city) return;
+
+    const state = prompt('State (2 letters):', location.state);
+    if (!state || state.length !== 2) {
+      alert('Please enter a valid 2-letter state code');
+      return;
+    }
+
+    const zip = prompt('ZIP Code (5 digits):', location.zip);
+    if (!zip || !/^\d{5}$/.test(zip)) {
+      alert('Please enter a valid 5-digit ZIP code');
+      return;
+    }
+
+    const phone = prompt('Phone Number:', location.phone || '') || '';
+
+    updateLocation(location.id, {locationName, address, city, state: state.toUpperCase(), zip, phone});
+  };
+
+  async function addLocation(data) {
+    try {
+      const formData = new FormData();
+      formData.append('location_name', data.locationName);
+      formData.append('address', data.address);
+      formData.append('city', data.city);
+      formData.append('state', data.state);
+      formData.append('zip', data.zip);
+      formData.append('phone', data.phone);
+
+      const r = await fetch('?action=practice.add_location', {method: 'POST', body: formData});
+      const j = await r.json();
+
+      if (j.ok) {
+        alert('Location added successfully!');
+        window.location.reload();
+      } else {
+        alert(j.error || 'Failed to add location');
+      }
+    } catch (err) {
+      console.error('Error adding location:', err);
+      alert('Error adding location: ' + err.message);
+    }
+  }
+
+  async function updateLocation(locationId, data) {
+    try {
+      const formData = new FormData();
+      formData.append('location_id', locationId);
+      formData.append('location_name', data.locationName);
+      formData.append('address', data.address);
+      formData.append('city', data.city);
+      formData.append('state', data.state);
+      formData.append('zip', data.zip);
+      formData.append('phone', data.phone);
+
+      const r = await fetch('?action=practice.update_location', {method: 'POST', body: formData});
+      const j = await r.json();
+
+      if (j.ok) {
+        alert('Location updated successfully!');
+        window.location.reload();
+      } else {
+        alert(j.error || 'Failed to update location');
+      }
+    } catch (err) {
+      console.error('Error updating location:', err);
+      alert('Error updating location: ' + err.message);
+    }
+  }
+
+  window.setPrimaryLocation = async (locationId) => {
+    if (!confirm('Set this as your primary location?')) return;
+
+    try {
+      const formData = new FormData();
+      formData.append('location_id', locationId);
+
+      const r = await fetch('?action=practice.set_primary_location', {method: 'POST', body: formData});
+      const j = await r.json();
+
+      if (j.ok) {
+        alert('Primary location updated!');
+        window.location.reload();
+      } else {
+        alert(j.error || 'Failed to set primary location');
+      }
+    } catch (err) {
+      console.error('Error setting primary:', err);
+      alert('Error setting primary location: ' + err.message);
+    }
+  };
+
+  window.deleteLocation = async (locationId) => {
+    if (!confirm('Are you sure you want to delete this location? This cannot be undone.')) return;
+
+    try {
+      const formData = new FormData();
+      formData.append('location_id', locationId);
+
+      const r = await fetch('?action=practice.delete_location', {method: 'POST', body: formData});
+      const j = await r.json();
+
+      if (j.ok) {
+        alert('Location deleted successfully!');
+        window.location.reload();
+      } else {
+        alert(j.error || 'Failed to delete location');
+      }
+    } catch (err) {
+      console.error('Error deleting location:', err);
+      alert('Error deleting location: ' + err.message);
+    }
+  };
   <?php endif; ?>
 
   // Password change form
