@@ -2236,16 +2236,19 @@ if ($action) {
   }
 
   if ($action==='products'){
-    // Check which HCPCS column exists (backward compatibility)
+    // Check which columns exist (backward compatibility)
     $colCheck = $pdo->query("
       SELECT column_name FROM information_schema.columns
-      WHERE table_name = 'products' AND column_name IN ('hcpcs_code', 'cpt_code', 'price_wholesale', 'pieces_per_box', 'category')
+      WHERE table_name = 'products' AND column_name IN ('hcpcs_code', 'cpt_code', 'price_wholesale', 'pieces_per_box', 'category', 'can_be_primary', 'can_be_secondary', 'can_be_additional')
     ")->fetchAll(PDO::FETCH_COLUMN);
 
     $hcpcsCol = in_array('hcpcs_code', $colCheck) ? 'hcpcs_code' : 'cpt_code';
     $categoryCol = in_array('category', $colCheck) ? ', category' : '';
     $wholesalePriceCol = in_array('price_wholesale', $colCheck) ? ', price_wholesale' : '';
     $piecesPerBoxCol = in_array('pieces_per_box', $colCheck) ? ', pieces_per_box' : '';
+    $canBePrimaryCol = in_array('can_be_primary', $colCheck) ? ', can_be_primary' : '';
+    $canBeSecondaryCol = in_array('can_be_secondary', $colCheck) ? ', can_be_secondary' : '';
+    $canBeAdditionalCol = in_array('can_be_additional', $colCheck) ? ', can_be_additional' : '';
 
     // Include practice-specific pricing if practice_pricing table exists
     $hasPracticePricing = false;
@@ -2262,7 +2265,7 @@ if ($action) {
 
     if ($hasPracticePricing) {
       // Get products with practice-specific pricing override
-      $sql = "SELECT p.id, p.name, p.size, p.size AS uom, p.price_admin AS price, p.{$hcpcsCol} AS hcpcs{$categoryCol}{$wholesalePriceCol}{$piecesPerBoxCol},
+      $sql = "SELECT p.id, p.name, p.size, p.size AS uom, p.price_admin AS price, p.{$hcpcsCol} AS hcpcs_code{$categoryCol}{$wholesalePriceCol}{$piecesPerBoxCol}{$canBePrimaryCol}{$canBeSecondaryCol}{$canBeAdditionalCol},
                      COALESCE(pp.custom_price, p.price_wholesale) AS effective_wholesale_price,
                      pp.discount_percentage
               FROM products p
@@ -2282,7 +2285,7 @@ if ($action) {
       }
     } else {
       // Fallback to standard query
-      $sql = "SELECT id, name, size, size AS uom, price_admin AS price, {$hcpcsCol} AS hcpcs{$categoryCol}{$wholesalePriceCol}{$piecesPerBoxCol}
+      $sql = "SELECT id, name, size, size AS uom, price_admin AS price, {$hcpcsCol} AS hcpcs_code{$categoryCol}{$wholesalePriceCol}{$piecesPerBoxCol}{$canBePrimaryCol}{$canBeSecondaryCol}{$canBeAdditionalCol}
               FROM products WHERE active=TRUE ORDER BY name ASC";
       $rows = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -9818,24 +9821,58 @@ function initWoundsManager() {
 
 // Populate product dropdown for a wound
 async function populateWoundProductDropdown(woundEl) {
-  const productSelect = woundEl.querySelector('.wound-product');
-  if (!productSelect) return;
+  const primarySelect = woundEl.querySelector('.wound-primary-dressing');
+  const secondarySelect = woundEl.querySelector('.wound-secondary-dressing');
+  const additionalSelect = woundEl.querySelector('.wound-additional-materials');
+
+  if (!primarySelect) return;
 
   try {
     const res = await api('action=products');
     const products = res.rows || [];
 
-    // Clear existing options except the first one
-    productSelect.innerHTML = '<option value="">Select product...</option>';
+    // Clear existing options
+    primarySelect.innerHTML = '<option value="">Select primary dressing...</option>';
+    secondarySelect.innerHTML = '<option value="">None</option>';
+    additionalSelect.innerHTML = '<option value="">None</option>';
 
+    // Filter and populate each dropdown based on category flags
     products.forEach(p => {
-      const option = document.createElement('option');
-      option.value = p.id;
-      option.textContent = p.name + (p.size ? ' ' + p.size : '');
-      option.dataset.productName = p.name;
-      option.dataset.cpt = p.cpt || '';
-      option.dataset.price = p.price || '0';
-      productSelect.appendChild(option);
+      // Primary dressings (can_be_primary = true)
+      if (p.can_be_primary) {
+        const option = document.createElement('option');
+        option.value = p.id;
+        option.textContent = p.name; // Now includes HCPCS code
+        option.dataset.productName = p.name;
+        option.dataset.cpt = p.hcpcs_code || '';
+        option.dataset.price = p.price || '0';
+        option.dataset.piecesPerBox = p.pieces_per_box || '10';
+        primarySelect.appendChild(option);
+      }
+
+      // Secondary dressings (can_be_secondary = true)
+      if (p.can_be_secondary) {
+        const option = document.createElement('option');
+        option.value = p.id;
+        option.textContent = p.name;
+        option.dataset.productName = p.name;
+        option.dataset.cpt = p.hcpcs_code || '';
+        option.dataset.price = p.price || '0';
+        option.dataset.piecesPerBox = p.pieces_per_box || '10';
+        secondarySelect.appendChild(option);
+      }
+
+      // Additional materials (can_be_additional = true)
+      if (p.can_be_additional) {
+        const option = document.createElement('option');
+        option.value = p.id;
+        option.textContent = p.name;
+        option.dataset.productName = p.name;
+        option.dataset.cpt = p.hcpcs_code || '';
+        option.dataset.price = p.price || '0';
+        option.dataset.piecesPerBox = p.pieces_per_box || '10';
+        additionalSelect.appendChild(option);
+      }
     });
   } catch (e) {
     console.error('Failed to load products for wound:', e);
@@ -9868,9 +9905,21 @@ function addWound() {
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
       <div class="md:col-span-2">
-        <label class="text-sm">Product <span class="text-red-600">*</span></label>
-        <select class="wound-product w-full">
-          <option value="">Select product...</option>
+        <label class="text-sm">Primary Dressing <span class="text-red-600">*</span></label>
+        <select class="wound-product wound-primary-dressing w-full">
+          <option value="">Select primary dressing...</option>
+        </select>
+      </div>
+      <div class="md:col-span-2">
+        <label class="text-sm">Secondary Dressing (Optional)</label>
+        <select class="wound-secondary-dressing w-full">
+          <option value="">None</option>
+        </select>
+      </div>
+      <div class="md:col-span-2">
+        <label class="text-sm">Additional Materials (Optional)</label>
+        <select class="wound-additional-materials w-full">
+          <option value="">None</option>
         </select>
       </div>
       <div>
@@ -9893,24 +9942,6 @@ function addWound() {
         <label class="text-sm">Duration (days) <span class="text-red-600">*</span></label>
         <input type="number" class="wound-duration w-full" min="1" max="60" value="30" required placeholder="Enter days (1-60)">
         <div class="text-xs text-slate-500 mt-1">Maximum 60 days</div>
-      </div>
-      <div>
-        <label class="text-sm">Secondary Dressing</label>
-        <select class="wound-secondary-dressing w-full">
-          <option value="">None</option>
-          <option value="Dermal Wound Cleaner 8oz">Dermal Wound Cleaner 8oz bottle</option>
-          <option value="Gauze - 2x2">Gauze - 2x2</option>
-          <option value="Gauze - 4x4">Gauze - 4x4</option>
-          <option value="Sterile Gauze 4x4">Sterile Gauze 4x4</option>
-          <option value="Gauze - 6x6">Gauze - 6x6</option>
-          <option value="Sterile Gauze roll">Sterile Gauze roll</option>
-          <option value="Non-adherent pad">Non-adherent pad</option>
-          <option value="Foam dressing">Foam dressing</option>
-          <option value="Transparent film">Transparent film</option>
-          <option value="Compression wrap">Compression wrap</option>
-          <option value="Tubular bandage">Tubular bandage</option>
-          <option value="Other">Other (specify in instructions)</option>
-        </select>
       </div>
       <div class="md:col-span-2">
         <label class="text-sm">Wound Location <span class="text-red-600">*</span></label>
