@@ -1,7 +1,7 @@
 <?php
 /**
  * Admin API: Create Wholesale Order on Behalf of Practice
- * Secure server-side order creation with proper authorization
+ * Supports multiple patients with multiple products + office stock orders
  */
 declare(strict_types=1);
 
@@ -47,6 +47,8 @@ function safe(?string $s): ?string {
 
 /* -------------------- Main -------------------- */
 try {
+  global $pdo;
+
   // Get JSON input
   $input = file_get_contents('php://input');
   $data = json_decode($input, true);
@@ -58,8 +60,8 @@ try {
   }
 
   $practiceId = safe($data['practice_id'] ?? null);
-  $patient = $data['patient'] ?? [];
-  $items = $data['items'] ?? [];
+  $patientOrders = $data['patient_orders'] ?? [];
+  $officeStock = $data['office_stock'] ?? [];
   $notes = safe($data['notes'] ?? null);
   $adminId = safe($data['admin_id'] ?? null);
 
@@ -69,7 +71,7 @@ try {
     exit;
   }
 
-  if (empty($items)) {
+  if (empty($patientOrders) && empty($officeStock)) {
     http_response_code(400);
     echo json_encode(['ok' => false, 'error' => 'no_items']);
     exit;
@@ -89,57 +91,107 @@ try {
   // Begin transaction
   $pdo->beginTransaction();
 
-  // 1) Create or find patient
-  $patientId = null;
-  $patientFirstName = safe($patient['first_name'] ?? null);
-  $patientLastName = safe($patient['last_name'] ?? null);
-  $patientDob = safe($patient['dob'] ?? null);
+  $ordersCreated = 0;
+  $billedBy = $practice['practice_name'] ?? ($practice['first_name'] . ' ' . $practice['last_name']);
 
-  if (!$patientFirstName || !$patientLastName || !$patientDob) {
-    http_response_code(400);
-    echo json_encode(['ok' => false, 'error' => 'missing_patient_info']);
-    exit;
-  }
+  // 1) Process patient orders
+  foreach ($patientOrders as $patientOrder) {
+    $patientData = $patientOrder['patient'] ?? [];
+    $products = $patientOrder['products'] ?? [];
 
-  // Check if patient exists for this practice
-  $patientCheckStmt = $pdo->prepare("
-    SELECT id FROM patients
-    WHERE user_id = ? AND first_name = ? AND last_name = ? AND dob = ?
-    LIMIT 1
-  ");
-  $patientCheckStmt->execute([$practiceId, $patientFirstName, $patientLastName, $patientDob]);
-  $existingPatient = $patientCheckStmt->fetch(PDO::FETCH_ASSOC);
+    $patientFirstName = safe($patientData['first_name'] ?? null);
+    $patientLastName = safe($patientData['last_name'] ?? null);
+    $patientDob = safe($patientData['dob'] ?? null);
 
-  if ($existingPatient) {
-    $patientId = $existingPatient['id'];
-  } else {
-    // Create new patient
-    $patientId = guid();
-    $patientInsertStmt = $pdo->prepare("
-      INSERT INTO patients (id, user_id, first_name, last_name, dob, phone, address, city, state, zip, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+    if (!$patientFirstName || !$patientLastName || !$patientDob || empty($products)) {
+      continue; // Skip incomplete patient orders
+    }
+
+    // Check if patient exists for this practice
+    $patientCheckStmt = $pdo->prepare("
+      SELECT id FROM patients
+      WHERE user_id = ? AND first_name = ? AND last_name = ? AND dob = ?
+      LIMIT 1
     ");
-    $patientInsertStmt->execute([
-      $patientId,
-      $practiceId,
-      $patientFirstName,
-      $patientLastName,
-      $patientDob,
-      safe($patient['phone'] ?? null),
-      safe($patient['address'] ?? null),
-      safe($patient['city'] ?? null),
-      safe($patient['state'] ?? null),
-      safe($patient['zip'] ?? null)
-    ]);
+    $patientCheckStmt->execute([$practiceId, $patientFirstName, $patientLastName, $patientDob]);
+    $existingPatient = $patientCheckStmt->fetch(PDO::FETCH_ASSOC);
+
+    $patientId = null;
+    if ($existingPatient) {
+      $patientId = $existingPatient['id'];
+    } else {
+      // Create new patient
+      $patientId = guid();
+      $patientInsertStmt = $pdo->prepare("
+        INSERT INTO patients (id, user_id, first_name, last_name, dob, created_at)
+        VALUES (?, ?, ?, ?, ?, NOW())
+      ");
+      $patientInsertStmt->execute([
+        $patientId,
+        $practiceId,
+        $patientFirstName,
+        $patientLastName,
+        $patientDob
+      ]);
+    }
+
+    // Create orders for each product for this patient
+    foreach ($products as $productData) {
+      $productId = safe($productData['product_id'] ?? null);
+      $boxes = (int)($productData['boxes'] ?? 0);
+      $pricePerBox = (float)($productData['price_per_box'] ?? 0);
+
+      if (!$productId || $boxes <= 0 || $pricePerBox <= 0) {
+        continue; // Skip invalid items
+      }
+
+      // Get product details
+      $productStmt = $pdo->prepare("SELECT * FROM products WHERE id = ?");
+      $productStmt->execute([$productId]);
+      $product = $productStmt->fetch(PDO::FETCH_ASSOC);
+
+      if (!$product) {
+        continue; // Skip if product doesn't exist
+      }
+
+      $piecesPerBox = (int)($product['pieces_per_box'] ?? 1);
+      $totalPieces = $boxes * $piecesPerBox;
+      $orderTotal = $boxes * $pricePerBox;
+
+      // Create order
+      $orderId = guid();
+      $orderInsertStmt = $pdo->prepare("
+        INSERT INTO orders (
+          id, user_id, patient_id, product_id, product_name, quantity_ordered,
+          pieces_per_box, price_per_box, order_total, status, ordered_at,
+          billed_by, notes, created_by_admin, created_by_admin_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, TRUE, ?)
+      ");
+      $orderInsertStmt->execute([
+        $orderId,
+        $practiceId,
+        $patientId,
+        $product['id'],
+        $product['name'],
+        $totalPieces,
+        $piecesPerBox,
+        $pricePerBox,
+        $orderTotal,
+        'pending',
+        $billedBy,
+        $notes,
+        $adminId
+      ]);
+
+      $ordersCreated++;
+    }
   }
 
-  // 2) Create orders for each item
-  $ordersCreated = [];
-
-  foreach ($items as $item) {
-    $productId = safe($item['product_id'] ?? null);
-    $boxes = (int)($item['boxes'] ?? 0);
-    $pricePerBox = (float)($item['price_per_box'] ?? 0);
+  // 2) Process office stock orders (no patient required)
+  foreach ($officeStock as $stockItem) {
+    $productId = safe($stockItem['product_id'] ?? null);
+    $boxes = (int)($stockItem['boxes'] ?? 0);
+    $pricePerBox = (float)($stockItem['price_per_box'] ?? 0);
 
     if (!$productId || $boxes <= 0 || $pricePerBox <= 0) {
       continue; // Skip invalid items
@@ -158,19 +210,18 @@ try {
     $totalPieces = $boxes * $piecesPerBox;
     $orderTotal = $boxes * $pricePerBox;
 
-    // Create order
+    // Create order (patient_id is NULL for office stock)
     $orderId = guid();
     $orderInsertStmt = $pdo->prepare("
       INSERT INTO orders (
         id, user_id, patient_id, product_id, product_name, quantity_ordered,
         pieces_per_box, price_per_box, order_total, status, ordered_at,
         billed_by, notes, created_by_admin, created_by_admin_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, TRUE, ?)
+      ) VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, TRUE, ?)
     ");
     $orderInsertStmt->execute([
       $orderId,
       $practiceId,
-      $patientId,
       $product['id'],
       $product['name'],
       $totalPieces,
@@ -178,15 +229,15 @@ try {
       $pricePerBox,
       $orderTotal,
       'pending',
-      $practice['practice_name'] ?? ($practice['first_name'] . ' ' . $practice['last_name']),
+      $billedBy,
       $notes,
       $adminId
     ]);
 
-    $ordersCreated[] = $orderId;
+    $ordersCreated++;
   }
 
-  if (empty($ordersCreated)) {
+  if ($ordersCreated === 0) {
     $pdo->rollBack();
     http_response_code(400);
     echo json_encode(['ok' => false, 'error' => 'no_valid_items']);
@@ -199,9 +250,7 @@ try {
   // Success response
   echo json_encode([
     'ok' => true,
-    'orders_created' => count($ordersCreated),
-    'order_id' => $ordersCreated[0], // Return first order ID for reference
-    'patient_id' => $patientId
+    'orders_created' => $ordersCreated
   ]);
 
 } catch (Throwable $e) {
@@ -214,6 +263,6 @@ try {
   echo json_encode([
     'ok' => false,
     'error' => 'server_error',
-    'message' => 'An error occurred while creating the order'
+    'message' => 'An error occurred while creating the order: ' . $e->getMessage()
   ]);
 }
