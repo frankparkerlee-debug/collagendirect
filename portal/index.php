@@ -5947,12 +5947,12 @@ if ($page==='logout'){
         <!-- Signed Agreements Section -->
         <div class="card p-6">
           <h2 class="text-lg font-semibold mb-4">Signed Agreements</h2>
-          <?php if ($user['agree_baa'] || $user['agree_msa']): ?>
+          <?php if (!empty($user['sign_name']) && !empty($user['sign_date'])): ?>
             <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
               <h3 class="font-semibold text-green-900 mb-2">✓ E-Signature on File</h3>
               <div class="text-sm text-green-800 space-y-1">
-                <p><strong>Signed by:</strong> <?= htmlspecialchars($user['sign_name'] ?? 'N/A') ?> (<?= htmlspecialchars($user['sign_title'] ?? 'N/A') ?>)</p>
-                <p><strong>Date Signed:</strong> <?= $user['sign_date'] ? date('F j, Y', strtotime($user['sign_date'])) : 'N/A' ?></p>
+                <p><strong>Signed by:</strong> <?= htmlspecialchars($user['sign_name']) ?><?= !empty($user['sign_title']) ? ' (' . htmlspecialchars($user['sign_title']) . ')' : '' ?></p>
+                <p><strong>Date Signed:</strong> <?= date('F j, Y', strtotime($user['sign_date'])) ?></p>
                 <?php if (!empty($user['signed_ip'])): ?>
                   <p><strong>IP Address:</strong> <?= htmlspecialchars($user['signed_ip']) ?></p>
                 <?php endif; ?>
@@ -5961,7 +5961,6 @@ if ($page==='logout'){
           <?php endif; ?>
 
           <div class="space-y-3">
-            <?php if ($user['agree_baa']): ?>
             <div class="flex items-start gap-3 p-4 bg-slate-50 rounded-lg border-l-4 border-green-500">
               <svg class="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -5969,12 +5968,10 @@ if ($page==='logout'){
               <div class="flex-1">
                 <h3 class="font-medium">Business Associate Agreement (BAA)</h3>
                 <p class="text-sm text-slate-600 mt-1">HIPAA-compliant agreement for handling protected health information</p>
-                <a href="#baa-modal" onclick="showBAAModal()" class="text-blue-600 hover:underline text-sm mt-2 inline-block">View Full Agreement →</a>
+                <p class="text-xs text-green-700 mt-2"><strong>Status:</strong> Signed during registration</p>
               </div>
             </div>
-            <?php endif; ?>
 
-            <?php if ($user['agree_msa']): ?>
             <div class="flex items-start gap-3 p-4 bg-slate-50 rounded-lg border-l-4 border-green-500">
               <svg class="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -5982,10 +5979,9 @@ if ($page==='logout'){
               <div class="flex-1">
                 <h3 class="font-medium">Master Services & Supply Agreement</h3>
                 <p class="text-sm text-slate-600 mt-1">Wholesale ordering and payment terms agreement</p>
-                <a href="#msa-modal" onclick="showMSAModal()" class="text-blue-600 hover:underline text-sm mt-2 inline-block">View Full Agreement →</a>
+                <p class="text-xs text-green-700 mt-2"><strong>Status:</strong> Signed during registration</p>
               </div>
             </div>
-            <?php endif; ?>
           </div>
         </div>
 
