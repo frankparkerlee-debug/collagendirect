@@ -4,14 +4,51 @@
  * 3-step workflow: Patients → Products → Review
  */
 
-require_once __DIR__ . '/_header.php';
-require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/config.php';
-
-// Initialize session for multi-step workflow
+// Initialize session FIRST, before any output
 if (session_status() === PHP_SESSION_NONE) {
   session_start();
 }
+
+// Load database and config BEFORE any output
+require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/auth.php';
+
+// Get selected practice ID early for POST handling
+$selectedPracticeId = $_GET['practice_id'] ?? $_SESSION['admin_order_practice_id'] ?? '';
+if ($selectedPracticeId) {
+  $_SESSION['admin_order_practice_id'] = $selectedPracticeId;
+}
+
+// Handle form submissions BEFORE any output (headers)
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  if (isset($_POST['action'])) {
+    switch ($_POST['action']) {
+      case 'save_patients':
+        $_SESSION['admin_order_type'] = $_POST['order_type'] ?? 'patient_orders';
+        $_SESSION['admin_order_patients'] = $_POST['patients'] ?? [];
+        $_SESSION['admin_order_shipping'] = $_POST['shipping'] ?? [];
+        header('Location: ?practice_id=' . urlencode($selectedPracticeId) . '&step=2');
+        exit;
+
+      case 'save_products':
+        $_SESSION['admin_order_products'] = $_POST['products'] ?? [];
+        header('Location: ?practice_id=' . urlencode($selectedPracticeId) . '&step=3');
+        exit;
+
+      case 'back_to_patients':
+        header('Location: ?practice_id=' . urlencode($selectedPracticeId) . '&step=1');
+        exit;
+
+      case 'back_to_products':
+        header('Location: ?practice_id=' . urlencode($selectedPracticeId) . '&step=2');
+        exit;
+    }
+  }
+}
+
+// NOW load header (which outputs HTML)
+require_once __DIR__ . '/_header.php';
 
 // Get list of all practices/physicians for selection
 $practicesStmt = $pdo->query("
@@ -22,12 +59,6 @@ $practicesStmt = $pdo->query("
   ORDER BY practice_name ASC, last_name ASC
 ");
 $practices = $practicesStmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Handle practice selection
-$selectedPracticeId = $_GET['practice_id'] ?? $_SESSION['admin_order_practice_id'] ?? '';
-if ($selectedPracticeId) {
-  $_SESSION['admin_order_practice_id'] = $selectedPracticeId;
-}
 
 // Clear session if changing practice
 if (isset($_GET['practice_id']) && $_GET['practice_id'] !== ($_SESSION['admin_order_practice_id'] ?? '')) {
@@ -95,32 +126,6 @@ foreach ($products as $product) {
 
 // Determine current step
 $step = $_GET['step'] ?? '1';
-
-// Handle form submissions
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  if (isset($_POST['action'])) {
-    switch ($_POST['action']) {
-      case 'save_patients':
-        $_SESSION['admin_order_patients'] = $_POST['patients'] ?? [];
-        $_SESSION['admin_order_shipping'] = $_POST['shipping'] ?? [];
-        header('Location: ?practice_id=' . urlencode($selectedPracticeId) . '&step=2');
-        exit;
-
-      case 'save_products':
-        $_SESSION['admin_order_products'] = $_POST['products'] ?? [];
-        header('Location: ?practice_id=' . urlencode($selectedPracticeId) . '&step=3');
-        exit;
-
-      case 'back_to_patients':
-        header('Location: ?practice_id=' . urlencode($selectedPracticeId) . '&step=1');
-        exit;
-
-      case 'back_to_products':
-        header('Location: ?practice_id=' . urlencode($selectedPracticeId) . '&step=2');
-        exit;
-    }
-  }
-}
 
 // Retrieve session data
 $patients = $_SESSION['admin_order_patients'] ?? [];

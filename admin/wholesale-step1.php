@@ -7,6 +7,23 @@
 <form method="POST" id="step1-form">
   <input type="hidden" name="action" value="save_patients">
 
+  <!-- Order Type Selection -->
+  <div style="background: var(--brand-light); border: 2px solid var(--brand); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 2rem;">
+    <label style="display: block; font-weight: 600; margin-bottom: 1rem; color: var(--ink);">
+      Order Type *
+    </label>
+    <select name="order_type" id="order-type" onchange="toggleOrderType()"
+            style="width: 100%; max-width: 400px; padding: 0.625rem; font-size: 0.875rem; border: 1px solid var(--border); border-radius: var(--radius);"
+            required>
+      <option value="">Select order type...</option>
+      <option value="patient_orders" <?= ($_SESSION['admin_order_type'] ?? '') === 'patient_orders' ? 'selected' : '' ?>>Patient Orders</option>
+      <option value="office_stock" <?= ($_SESSION['admin_order_type'] ?? '') === 'office_stock' ? 'selected' : '' ?>>Office Stock (No Patients)</option>
+    </select>
+  </div>
+
+  <!-- Patient Orders Section -->
+  <div id="patient-orders-section" style="display: <?= ($_SESSION['admin_order_type'] ?? '') === 'office_stock' ? 'none' : 'block' ?>;">
+
   <!-- Shipping Selection -->
   <?php if (!empty($practiceLocations)): ?>
     <div style="background: var(--brand-light); border: 2px solid var(--brand); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 2rem;">
@@ -129,6 +146,60 @@
     </div>
   </div>
 
+  </div>
+  <!-- End Patient Orders Section -->
+
+  <!-- Office Stock Section -->
+  <div id="office-stock-section" style="display: <?= ($_SESSION['admin_order_type'] ?? '') === 'office_stock' ? 'block' : 'none' ?>;">
+    <!-- Shipping Selection for Office Stock -->
+    <?php if (!empty($practiceLocations)): ?>
+      <div style="background: var(--brand-light); border: 2px solid var(--brand); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 2rem;">
+        <label style="display: block; font-weight: 600; margin-bottom: 1rem; color: var(--ink);">
+          Shipping Destination *
+        </label>
+        <select name="shipping[type]" id="office-shipping-type"
+                style="width: 100%; max-width: 400px; padding: 0.625rem; font-size: 0.875rem; border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 1rem;"
+                required>
+          <option value="practice" selected>Ship to Practice/Office</option>
+        </select>
+
+        <div>
+          <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: var(--ink); font-size: 0.875rem;">
+            Practice Location
+          </label>
+          <select name="shipping[location_id]"
+                  style="width: 100%; max-width: 600px; padding: 0.625rem; font-size: 0.875rem; border: 1px solid var(--border); border-radius: var(--radius);">
+            <option value="">Select location...</option>
+            <?php foreach ($practiceLocations as $loc): ?>
+              <option value="<?= htmlspecialchars($loc['id']) ?>" <?= ($shipping['location_id'] ?? '') == $loc['id'] ? 'selected' : '' ?>>
+                <?= htmlspecialchars($loc['location_name']) ?> -
+                <?= htmlspecialchars($loc['address']) ?>,
+                <?= htmlspecialchars($loc['city']) ?>,
+                <?= htmlspecialchars($loc['state']) ?>
+                <?= htmlspecialchars($loc['zip']) ?>
+                <?= $loc['is_primary'] ? '(Primary)' : '' ?>
+              </option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+      </div>
+    <?php endif; ?>
+
+    <div style="text-align: center; padding: 3rem; background: var(--bg-gray); border-radius: var(--radius);">
+      <svg style="width: 64px; height: 64px; margin: 0 auto 1rem; opacity: 0.4; color: var(--brand);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+      </svg>
+      <p style="font-size: 1rem; font-weight: 600; color: var(--ink); margin-bottom: 0.5rem;">
+        Office Stock Order
+      </p>
+      <p style="font-size: 0.875rem; color: var(--muted);">
+        Products will be assigned in the next step.<br>
+        No patient information needed for office stock orders.
+      </p>
+    </div>
+  </div>
+  <!-- End Office Stock Section -->
+
   <!-- Actions -->
   <div style="display: flex; justify-content: space-between; padding-top: 1.5rem; border-top: 1px solid var(--border);">
     <a href="?practice_id=<?= urlencode($selectedPracticeId) ?>"
@@ -144,6 +215,23 @@
 
 <script>
 let patientCounter = <?= count($patients) ?>;
+
+function toggleOrderType() {
+  const orderType = document.getElementById('order-type').value;
+  const patientSection = document.getElementById('patient-orders-section');
+  const officeSection = document.getElementById('office-stock-section');
+
+  if (orderType === 'patient_orders') {
+    patientSection.style.display = 'block';
+    officeSection.style.display = 'none';
+  } else if (orderType === 'office_stock') {
+    patientSection.style.display = 'none';
+    officeSection.style.display = 'block';
+  } else {
+    patientSection.style.display = 'none';
+    officeSection.style.display = 'none';
+  }
+}
 
 function toggleShippingOptions() {
   const shippingType = document.getElementById('shipping-type').value;
