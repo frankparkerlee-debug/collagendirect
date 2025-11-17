@@ -6,6 +6,7 @@
 
 require_once __DIR__ . '/_header.php';
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/config.php';
 
 // Initialize session for multi-step workflow
 if (session_status() === PHP_SESSION_NONE) {
@@ -232,7 +233,7 @@ $shipping = $_SESSION['admin_order_shipping'] ?? [];
 <script>
 const productData = <?= json_encode($productDataForJS) ?>;
 const practiceId = '<?= htmlspecialchars($selectedPracticeId) ?>';
-const adminId = '<?= htmlspecialchars($admin['id']) ?>';
+const adminId = '<?= htmlspecialchars($admin['id'] ?? '') ?>';
 const practiceLocations = <?= json_encode($practiceLocations) ?>;
 </script>
 

@@ -263,4 +263,92 @@ function removePatient(index) {
 if (patientCounter === 0) {
   addPatient();
 }
+
+// Google Places Autocomplete for address fields
+function initAutocompleteForField(input) {
+  if (!input || typeof google === 'undefined') return;
+
+  const autocomplete = new google.maps.places.Autocomplete(input, {
+    types: ['address'],
+    componentRestrictions: { country: 'us' }
+  });
+
+  autocomplete.addListener('place_changed', function() {
+    const place = autocomplete.getPlace();
+    if (!place.address_components) return;
+
+    // Find the parent patient card
+    let patientCard = input.closest('.patient-card');
+    if (!patientCard) return;
+
+    // Extract address components
+    let streetNumber = '';
+    let route = '';
+    let city = '';
+    let state = '';
+    let zip = '';
+
+    for (const component of place.address_components) {
+      const types = component.types;
+      if (types.includes('street_number')) {
+        streetNumber = component.long_name;
+      } else if (types.includes('route')) {
+        route = component.long_name;
+      } else if (types.includes('locality')) {
+        city = component.long_name;
+      } else if (types.includes('administrative_area_level_1')) {
+        state = component.short_name;
+      } else if (types.includes('postal_code')) {
+        zip = component.long_name;
+      }
+    }
+
+    // Populate the fields
+    input.value = streetNumber + (streetNumber ? ' ' : '') + route;
+
+    const cityInput = patientCard.querySelector('input[name*="[city]"]');
+    const stateInput = patientCard.querySelector('input[name*="[state]"]');
+    const zipInput = patientCard.querySelector('input[name*="[zip]"]');
+
+    if (cityInput) cityInput.value = city;
+    if (stateInput) stateInput.value = state;
+    if (zipInput) zipInput.value = zip;
+  });
+}
+
+// Initialize autocomplete for existing address fields
+document.addEventListener('DOMContentLoaded', function() {
+  const addressInputs = document.querySelectorAll('input[name*="[address]"]');
+  addressInputs.forEach(input => {
+    initAutocompleteForField(input);
+  });
+});
+
+// Modified addPatient to initialize autocomplete for new fields
+const originalAddPatient = addPatient;
+addPatient = function() {
+  originalAddPatient();
+  // Initialize autocomplete for the newly added patient's address field
+  setTimeout(() => {
+    const lastPatientCard = document.querySelector('.patient-card:last-of-type');
+    if (lastPatientCard) {
+      const addressInput = lastPatientCard.querySelector('input[name*="[address]"]');
+      if (addressInput && typeof google !== 'undefined') {
+        initAutocompleteForField(addressInput);
+      }
+    }
+  }, 100);
+};
 </script>
+
+<?php if (defined('GOOGLE_PLACES_API_KEY') && GOOGLE_PLACES_API_KEY): ?>
+<script src="https://maps.googleapis.com/maps/api/js?key=<?= GOOGLE_PLACES_API_KEY ?>&libraries=places&callback=initAutocompleteForExistingFields" async defer></script>
+<script>
+function initAutocompleteForExistingFields() {
+  const addressInputs = document.querySelectorAll('input[name*="[address]"]');
+  addressInputs.forEach(input => {
+    initAutocompleteForField(input);
+  });
+}
+</script>
+<?php endif; ?>
