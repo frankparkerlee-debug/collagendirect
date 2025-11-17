@@ -426,14 +426,17 @@ function isActive($pageName) {
 
       <!-- Wholesale Section with Submenu -->
       <div class="nav-group">
-        <a class="nav-parent <?php echo (isActive('wholesale-orders') || isActive('practice-pricing')) ? 'active expanded' : ''; ?>" href="#" onclick="toggleSubmenu(event, 'wholesale-submenu')">
+        <a class="nav-parent <?php echo (isActive('wholesale-orders') || isActive('practice-pricing') || isActive('create-wholesale-order')) ? 'active expanded' : ''; ?>" href="#" onclick="toggleSubmenu(event, 'wholesale-submenu')">
           <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
           <span>Wholesale</span>
           <svg class="nav-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px; margin-left: auto; transition: transform 0.2s;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
         </a>
-        <div id="wholesale-submenu" class="nav-submenu" style="display: <?php echo (isActive('wholesale-orders') || isActive('practice-pricing')) ? 'flex' : 'none'; ?>;">
+        <div id="wholesale-submenu" class="nav-submenu" style="display: <?php echo (isActive('wholesale-orders') || isActive('practice-pricing') || isActive('create-wholesale-order')) ? 'flex' : 'none'; ?>;">
+          <a class="<?=isActive('create-wholesale-order')?>" href="/admin/create-wholesale-order.php">
+            <span>Create Order</span>
+          </a>
           <a class="<?=isActive('wholesale-orders')?>" href="/admin/wholesale-orders.php">
-            <span>Orders</span>
+            <span>View Orders</span>
           </a>
           <a class="<?=isActive('practice-pricing')?>" href="/admin/practice-pricing.php">
             <span>Practice Pricing</span>
