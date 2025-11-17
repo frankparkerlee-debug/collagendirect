@@ -1200,61 +1200,7 @@ function toggleUserDetails(rowId) {
   }
 }
 
-// Initialize Google Places Autocomplete for address fields
-function initAutocomplete() {
-  const addressInput = document.getElementById('address-input');
-  if (addressInput && typeof google !== 'undefined') {
-    const autocomplete = new google.maps.places.Autocomplete(addressInput, {
-      types: ['address'],
-      componentRestrictions: { country: 'us' }
-    });
-
-    autocomplete.addListener('place_changed', function() {
-      const place = autocomplete.getPlace();
-      if (!place.geometry) return;
-
-      // Extract address components
-      let street = '';
-      let city = '';
-      let state = '';
-      let zip = '';
-
-      for (const component of place.address_components) {
-        const componentType = component.types[0];
-        switch (componentType) {
-          case 'street_number':
-            street = component.long_name + ' ';
-            break;
-          case 'route':
-            street += component.long_name;
-            break;
-          case 'locality':
-            city = component.long_name;
-            break;
-          case 'administrative_area_level_1':
-            state = component.short_name;
-            break;
-          case 'postal_code':
-            zip = component.long_name;
-            break;
-        }
-      }
-
-      // Populate the form fields
-      document.getElementById('address-input').value = street;
-      document.getElementById('city-input').value = city;
-      document.getElementById('state-input').value = state;
-      document.getElementById('zip-input').value = zip;
-    });
-  }
-}
-
-// Initialize autocomplete when DOM is loaded
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initAutocomplete);
-} else {
-  initAutocomplete();
-}
+// Google Places API removed - using standard form inputs instead
 
 // Filter locations by practice name
 function filterLocations() {
@@ -1296,8 +1242,5 @@ function resetLocationForm(userId) {
   document.getElementById('location-cancel-btn-' + userId).style.display = 'none';
 }
 </script>
-
-<!-- Google Maps Places API -->
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDPHBbdFNOQqjUBtKoVRDY9N91GvKxEiJo&libraries=places&callback=initAutocomplete" async defer></script>
 
 <?php include __DIR__ . '/_footer.php'; ?>
