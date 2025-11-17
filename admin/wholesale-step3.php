@@ -147,7 +147,19 @@ function submitOrder() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(orderData)
   })
-  .then(response => response.json())
+  .then(response => {
+    if (!response.ok) {
+      return response.text().then(text => {
+        try {
+          const data = JSON.parse(text);
+          throw new Error(data.message || data.error || 'Server error');
+        } catch (e) {
+          throw new Error('Server returned error: ' + response.status + ' - ' + text.substring(0, 200));
+        }
+      });
+    }
+    return response.json();
+  })
   .then(data => {
     if (data.ok) {
       showMessage('success', `Order created successfully! ${data.orders_created} order${data.orders_created !== 1 ? 's' : ''} created.`);
@@ -161,7 +173,7 @@ function submitOrder() {
     }
   })
   .catch(error => {
-    showMessage('error', 'Network error: ' + error.message);
+    showMessage('error', 'Error: ' + error.message);
   });
 }
 
