@@ -85,6 +85,8 @@ if ($hasRates) {
 $earnedRevenue = 0.0;
 $projectedRevenue = 0.0;
 $totalRevenue = 0.0;
+$referralRevenue = 0.0;  // Revenue from insurance/referral orders (billed_by = 'collagen_direct')
+$wholesaleRevenue = 0.0; // Revenue from wholesale/DME orders (billed_by = 'practice_dme')
 $practiceRevenue = [];
 $productRevenue = [];
 
@@ -107,6 +109,7 @@ try {
       o.duration_days,
       o.refills_allowed,
       o.qty_per_change,
+      o.billed_by,
       " . ($hasShipRem ? "o.shipments_remaining," : "0 AS shipments_remaining,") . "
       u.practice_name,
       " . ($hasProducts ? "pr.name AS product_name, pr.hcpcs_code AS cpt_code" : "'Unknown' AS product_name, '' AS cpt_code") . "
@@ -152,6 +155,14 @@ try {
     $earnedRevenue += $order_earned;
     $projectedRevenue += $order_projected;
     $totalRevenue += $order_total;
+
+    // Split revenue by order type
+    $billedBy = $order['billed_by'] ?? 'collagen_direct';
+    if ($billedBy === 'practice_dme') {
+      $wholesaleRevenue += $order_total;
+    } else {
+      $referralRevenue += $order_total;
+    }
 
     // Group by practice
     $practice = $order['practice_name'] ?: 'Independent Provider';
@@ -327,16 +338,16 @@ include __DIR__.'/_header.php';
       <div class="text-xs text-slate-400 mt-2">Manage patients →</div>
     </a>
 
-    <!-- Revenue Tile (Earned + Projected) -->
+    <!-- Revenue Tile (Earned + Projected + Referral/Wholesale Split) -->
     <a href="/admin/billing.php" class="block bg-white border rounded-2xl p-4 shadow-soft hover:shadow-md transition-shadow cursor-pointer group relative">
       <div class="flex items-center justify-between">
         <div class="flex-1">
           <div class="text-xs text-slate-500 mb-1 flex items-center gap-1">
             Revenue Overview
-            <span class="inline-block w-3 h-3 rounded-full bg-slate-200 text-[10px] leading-3 text-center text-slate-600 cursor-help" title="Earned: Revenue from delivered shipments | Projected: Future revenue from remaining shipments">?</span>
+            <span class="inline-block w-3 h-3 rounded-full bg-slate-200 text-[10px] leading-3 text-center text-slate-600 cursor-help" title="Earned: Revenue from delivered shipments | Projected: Future revenue from remaining shipments | Referral: Insurance orders | Wholesale: DME orders">?</span>
           </div>
           <div class="text-2xl font-bold text-brand group-hover:text-blue-700 transition-colors">$<?=number_format($displayTotalRevenue,2)?></div>
-          <div class="flex gap-4 mt-2 text-xs">
+          <div class="flex gap-3 mt-2 text-xs">
             <div>
               <span class="text-slate-500">Earned:</span>
               <span class="font-semibold text-green-600">$<?=number_format($displayEarnedRevenue,2)?></span>
@@ -344,6 +355,16 @@ include __DIR__.'/_header.php';
             <div>
               <span class="text-slate-500">Projected:</span>
               <span class="font-semibold text-blue-600">$<?=number_format($displayProjectedRevenue,2)?></span>
+            </div>
+          </div>
+          <div class="flex gap-3 mt-2 text-xs border-t pt-2">
+            <div>
+              <span class="text-slate-500">Referral:</span>
+              <span class="font-semibold text-purple-600">$<?=number_format($referralRevenue,2)?></span>
+            </div>
+            <div>
+              <span class="text-slate-500">Wholesale:</span>
+              <span class="font-semibold text-orange-600">$<?=number_format($wholesaleRevenue,2)?></span>
             </div>
           </div>
         </div>

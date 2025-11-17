@@ -2357,15 +2357,18 @@ if ($action) {
       $delivery_to = $_POST['delivery_to'] ?? 'patient';
 
       // Calculate boxes needed
+      // Formula: Boxes = (Frequency × Days Ordered × Product Count Per Change) / Pieces Per Box
+      // Where: Frequency = Changes Per Week / 7
       $pieces_per_box = max(1, (int)($prod['pieces_per_box'] ?? 10));
-      $changes_per_day = $freq_per_week / 7.0;
+      $changes_per_day = $freq_per_week / 7.0;  // Frequency
       $total_changes = $changes_per_day * $duration_days;
       $pieces_needed = $total_changes * $qty_per_change;
       $boxes_needed = (int)ceil($pieces_needed / $pieces_per_box);
 
-      // Use wholesale pricing
-      $unit_price = $prod['price_wholesale'] ?? $prod['price_admin'];
-      $total_order_value = $boxes_needed * ($unit_price * $pieces_per_box);
+      // Use wholesale pricing (price per box, not per piece)
+      $price_wholesale_per_box = (float)($prod['price_wholesale'] ?? $prod['price_admin']);
+      $unit_price = $price_wholesale_per_box;
+      $total_order_value = $boxes_needed * $price_wholesale_per_box;
 
       // Shipping info (simplified - auto-filled from patient)
       $ship_name = ($p['first_name'] ?? '') . ' ' . ($p['last_name'] ?? '');
@@ -2585,8 +2588,9 @@ if ($action) {
               continue;
             }
 
-            // Use wholesale pricing
-            $unit_price = $prod['price_wholesale'] ?? $prod['price_admin'];
+            // Use wholesale pricing (price per box)
+            $price_wholesale_per_box = (float)($prod['price_wholesale'] ?? $prod['price_admin']);
+            $unit_price = $price_wholesale_per_box;
             $pieces_per_box = max(1, (int)($prod['pieces_per_box'] ?? 10));
 
             // For wholesale, we order by boxes, not calculated from frequency
@@ -2625,7 +2629,7 @@ if ($action) {
               'patient' => $patientFullName,
               'product' => $prod['name'],
               'boxes' => $boxes_needed,
-              'total' => $boxes_needed * ($unit_price * $pieces_per_box)
+              'total' => $boxes_needed * $price_wholesale_per_box
             ];
           }
 
@@ -2859,9 +2863,10 @@ if ($action) {
       if($freq_per_week<=0){ $pdo->rollBack(); jerr('Frequency per week is required for each wound.'); }
 
       // Calculate boxes needed based on pieces required
-      // Formula: CEIL(pieces_needed / pieces_per_box)
+      // Formula: Boxes = (Frequency × Days Ordered × Product Count Per Change) / Pieces Per Box
+      // Where: Frequency = Changes Per Week / 7
       $pieces_per_box = max(1, (int)($prod['pieces_per_box'] ?? 10));
-      $changes_per_day = $freq_per_week / 7.0;
+      $changes_per_day = $freq_per_week / 7.0;  // Frequency
       $total_changes = $changes_per_day * $duration_days;
       $pieces_per_fill = $total_changes * $qty_per_change;
       $total_pieces_needed = $pieces_per_fill * (1 + $refills_allowed);
@@ -2870,9 +2875,21 @@ if ($action) {
       $boxes_needed = (int)ceil($total_pieces_needed / $pieces_per_box);
       $shipments_remaining = $boxes_needed;
 
-      // Choose appropriate pricing based on billing route
-      $unit_price = $isWholesale ? ($prod['price_wholesale'] ?? $prod['price_admin']) : $prod['price_admin'];
-      $total_order_value = $boxes_needed * ($unit_price * $pieces_per_box);
+      // DUAL PRICING CALCULATION:
+      // A) Wholesale Price: Price per box × boxes ordered (for wholesale/DME orders)
+      // B) CPT Price: CPT reimbursement rate per box × boxes ordered (for insurance/referral orders)
+
+      $price_wholesale_per_box = (float)($prod['price_wholesale'] ?? 0);
+      $price_cpt_per_box = (float)($prod['price_admin'] ?? 0); // CPT/reimbursement rate
+
+      // For the order record, store the price PER PIECE (not per box)
+      // This matches the existing schema where product_price is per-piece pricing
+      $unit_price = $isWholesale ? $price_wholesale_per_box : $price_cpt_per_box;
+
+      // Calculate both order values for tracking
+      $order_value_wholesale = $boxes_needed * $price_wholesale_per_box;
+      $order_value_cpt = $boxes_needed * $price_cpt_per_box;
+      $total_order_value = $isWholesale ? $order_value_wholesale : $order_value_cpt;
 
       $oid=bin2hex(random_bytes(16));
       // Calculate expiration date: start_date + duration_days (including refills if needed)
