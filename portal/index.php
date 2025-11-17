@@ -9996,6 +9996,19 @@ function addWound() {
     icd10Primary.addEventListener('blur', () => validateWoundLocationICD10(woundEl));
   }
 
+  // Add listeners to clear error styling when fields are filled
+  const requiredFields = woundEl.querySelectorAll('.wound-product, .wound-frequency, .wound-duration, .wound-location, .wound-length, .wound-width, .wound-exudate, .wound-icd10-primary');
+  requiredFields.forEach(field => {
+    const clearError = () => {
+      if (field.value && field.value.trim() !== '') {
+        field.style.borderColor = '';
+        field.style.backgroundColor = '';
+      }
+    };
+    field.addEventListener('change', clearError);
+    field.addEventListener('input', clearError);
+  });
+
   // Remove handler
   const removeBtn = woundEl.querySelector('.wound-remove');
   if (removeBtn) {
@@ -10382,29 +10395,80 @@ async function openOrderDialog(preselectId=null){
         return;
       }
 
-      // Validate wounds
+      // Validate wounds - highlight missing fields in red
+      const woundEls = document.querySelectorAll('[data-wound-index]');
+      let hasErrors = false;
+
       for (let i = 0; i < woundsData.length; i++) {
         const w = woundsData[i];
+        const woundEl = woundEls[i];
+
+        // Clear previous error styles
+        woundEl.querySelectorAll('.wound-product, .wound-frequency, .wound-duration, .wound-location, .wound-length, .wound-width, .wound-exudate, .wound-icd10-primary').forEach(field => {
+          field.style.borderColor = '';
+          field.style.backgroundColor = '';
+        });
+
+        // Validate and highlight missing fields
         if (!w.product_id) {
-          alert(`Wound #${i + 1}: Please select a product`);
-          btn.disabled=false; btn.textContent='Submit Order';
-          return;
+          const field = woundEl.querySelector('.wound-product');
+          field.style.borderColor = '#dc2626';
+          field.style.backgroundColor = '#fee2e2';
+          hasErrors = true;
         }
         if (!w.frequency_per_week) {
-          alert(`Wound #${i + 1}: Please select change frequency`);
-          btn.disabled=false; btn.textContent='Submit Order';
-          return;
+          const field = woundEl.querySelector('.wound-frequency');
+          field.style.borderColor = '#dc2626';
+          field.style.backgroundColor = '#fee2e2';
+          hasErrors = true;
         }
         if (!w.duration_days) {
-          alert(`Wound #${i + 1}: Please select duration`);
-          btn.disabled=false; btn.textContent='Submit Order';
-          return;
+          const field = woundEl.querySelector('.wound-duration');
+          field.style.borderColor = '#dc2626';
+          field.style.backgroundColor = '#fee2e2';
+          hasErrors = true;
         }
-        if (!w.location || !w.length_cm || !w.width_cm || !w.icd10_primary || !w.exudate_level) {
-          alert(`Wound #${i + 1}: Please fill in required fields (Product, Frequency, Duration, Location, Length, Width, Exudate Level, Primary ICD-10)`);
-          btn.disabled=false; btn.textContent='Submit Order';
-          return;
+        if (!w.location) {
+          const field = woundEl.querySelector('.wound-location');
+          field.style.borderColor = '#dc2626';
+          field.style.backgroundColor = '#fee2e2';
+          hasErrors = true;
         }
+        if (!w.length_cm) {
+          const field = woundEl.querySelector('.wound-length');
+          field.style.borderColor = '#dc2626';
+          field.style.backgroundColor = '#fee2e2';
+          hasErrors = true;
+        }
+        if (!w.width_cm) {
+          const field = woundEl.querySelector('.wound-width');
+          field.style.borderColor = '#dc2626';
+          field.style.backgroundColor = '#fee2e2';
+          hasErrors = true;
+        }
+        if (!w.exudate_level) {
+          const field = woundEl.querySelector('.wound-exudate');
+          field.style.borderColor = '#dc2626';
+          field.style.backgroundColor = '#fee2e2';
+          hasErrors = true;
+        }
+        if (!w.icd10_primary) {
+          const field = woundEl.querySelector('.wound-icd10-primary');
+          field.style.borderColor = '#dc2626';
+          field.style.backgroundColor = '#fee2e2';
+          hasErrors = true;
+        }
+      }
+
+      if (hasErrors) {
+        // Scroll to first error field
+        const firstError = document.querySelector('[style*="border-color: rgb(220, 38, 38)"]');
+        if (firstError) {
+          firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          firstError.focus();
+        }
+        btn.disabled=false; btn.textContent='Submit Order';
+        return;
       }
 
       // Validate payment type
