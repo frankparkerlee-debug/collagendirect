@@ -166,12 +166,12 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
           role, user_type, account_type, status, can_manage_physicians,
           is_referral_only, has_dme_license, is_hybrid,
           created_at, updated_at
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'practice_admin',?,?,'active',TRUE,?,?,?,NOW(),NOW())
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'practice_admin','practice_admin',?,'active',TRUE,?,?,?,NOW(),NOW())
       ")->execute([
         $userId, $email, password_hash($password, PASSWORD_DEFAULT), $firstName, $lastName, $practiceName,
         $address, $city, $state, $zip, $phone,
         $npi ?: null, $license ?: null, $licenseState, $licenseExpiry,
-        $securityRole, $accountType,
+        $accountType,
         $isReferralOnly, $hasDmeLicense, $isHybrid
       ]);
       $msg = 'Practice owner created';
@@ -186,11 +186,11 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
           role, user_type, account_type, status,
           is_referral_only, has_dme_license, is_hybrid,
           created_at, updated_at
-        ) VALUES (?,?,?,?,?,?,?,?,?,'physician',?,?,'active',?,?,?,NOW(),NOW())
+        ) VALUES (?,?,?,?,?,?,?,?,?,'physician','physician',?,'active',?,?,?,NOW(),NOW())
       ")->execute([
         $userId, $email, password_hash($password, PASSWORD_DEFAULT), $firstName, $lastName,
         $npi ?: null, $license ?: null, $licenseState, $licenseExpiry,
-        $securityRole, $accountType,
+        $accountType,
         $isReferralOnly, $hasDmeLicense, $isHybrid
       ]);
 
