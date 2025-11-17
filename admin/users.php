@@ -122,13 +122,32 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $firstName = trim($_POST['first_name']);
     $lastName = trim($_POST['last_name']);
     $securityRole = $_POST['security_role'] ?? 'physician'; // Practice Manager or Physician
+    $accountTypeInput = $_POST['account_type'] ?? 'referral'; // referral, wholesale, or both
     $userId = bin2hex(random_bytes(16));
 
-    // Physician credentials (required for all providers)
+    // Physician credentials (optional now)
     $npi = preg_replace('/\D/', '', $_POST['npi'] ?? '');
     $license = trim($_POST['license'] ?? '');
-    $licenseState = $_POST['license_state'] ?? '';
-    $licenseExpiry = $_POST['license_expiry'] ?? '';
+    $licenseState = $_POST['license_state'] ?? null;
+    $licenseExpiry = !empty($_POST['license_expiry']) ? $_POST['license_expiry'] : null;
+
+    // Map account type to database fields
+    $accountType = 'referral'; // Default
+    $isReferralOnly = false;
+    $hasDmeLicense = false;
+    $isHybrid = false;
+
+    if ($accountTypeInput === 'referral') {
+      $accountType = 'referral';
+      $isReferralOnly = true;
+    } elseif ($accountTypeInput === 'wholesale') {
+      $accountType = 'wholesale';
+      $hasDmeLicense = true;
+    } elseif ($accountTypeInput === 'both') {
+      $accountType = 'referral'; // Primary type
+      $isHybrid = true;
+      $hasDmeLicense = true;
+    }
 
     if ($providerType === 'practice') {
       // Creating a practice owner (practice_admin)
@@ -145,13 +164,15 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
           address, city, state, zip, phone,
           npi, license, license_state, license_expiry,
           role, user_type, account_type, status, can_manage_physicians,
+          is_referral_only, has_dme_license, is_hybrid,
           created_at, updated_at
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'practice_admin',?,'referral','active',TRUE,NOW(),NOW())
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'practice_admin',?,?,'active',TRUE,?,?,?,NOW(),NOW())
       ")->execute([
         $userId, $email, password_hash($password, PASSWORD_DEFAULT), $firstName, $lastName, $practiceName,
         $address, $city, $state, $zip, $phone,
-        $npi, $license, $licenseState, $licenseExpiry,
-        $securityRole
+        $npi ?: null, $license ?: null, $licenseState, $licenseExpiry,
+        $securityRole, $accountType,
+        $isReferralOnly, $hasDmeLicense, $isHybrid
       ]);
       $msg = 'Practice owner created';
     } else {
@@ -163,12 +184,14 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
           id, email, password_hash, first_name, last_name,
           npi, license, license_state, license_expiry,
           role, user_type, account_type, status,
+          is_referral_only, has_dme_license, is_hybrid,
           created_at, updated_at
-        ) VALUES (?,?,?,?,?,?,?,?,?,'physician',?,'referral','active',NOW(),NOW())
+        ) VALUES (?,?,?,?,?,?,?,?,?,'physician',?,?,'active',?,?,?,NOW(),NOW())
       ")->execute([
         $userId, $email, password_hash($password, PASSWORD_DEFAULT), $firstName, $lastName,
-        $npi, $license, $licenseState, $licenseExpiry,
-        $securityRole
+        $npi ?: null, $license ?: null, $licenseState, $licenseExpiry,
+        $securityRole, $accountType,
+        $isReferralOnly, $hasDmeLicense, $isHybrid
       ]);
 
       // Link physician to practice via practice_physicians table
@@ -181,7 +204,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
           ) VALUES (?,?,?,?,?,?,?,?,?,NOW())
         ")->execute([
           $practiceId, $userId, $firstName, $lastName, $email,
-          $npi, $license, $licenseState, $licenseExpiry
+          $npi ?: null, $license ?: null, $licenseState, $licenseExpiry
         ]);
       }
       $msg = 'Physician created and linked to practice';
@@ -202,6 +225,72 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
       error_log("[users.php] Failed to send welcome email to $email");
     }
   }
+  if ($act==='update_phys') {
+    $physId = $_POST['phys_id'];
+    $accountTypeInput = $_POST['account_type'] ?? 'referral';
+
+    // Map account type to database fields
+    $accountType = 'referral';
+    $isReferralOnly = false;
+    $hasDmeLicense = false;
+    $isHybrid = false;
+
+    if ($accountTypeInput === 'referral') {
+      $accountType = 'referral';
+      $isReferralOnly = true;
+    } elseif ($accountTypeInput === 'wholesale') {
+      $accountType = 'wholesale';
+      $hasDmeLicense = true;
+    } elseif ($accountTypeInput === 'both') {
+      $accountType = 'referral';
+      $isHybrid = true;
+      $hasDmeLicense = true;
+    }
+
+    $pdo->prepare("
+      UPDATE users SET
+        first_name = ?,
+        last_name = ?,
+        email = ?,
+        phone = ?,
+        practice_name = ?,
+        address = ?,
+        city = ?,
+        state = ?,
+        zip = ?,
+        account_type = ?,
+        is_referral_only = ?,
+        has_dme_license = ?,
+        is_hybrid = ?,
+        npi = ?,
+        license = ?,
+        license_state = ?,
+        license_expiry = ?,
+        updated_at = NOW()
+      WHERE id = ?
+    ")->execute([
+      trim($_POST['first_name'] ?? ''),
+      trim($_POST['last_name'] ?? ''),
+      trim($_POST['email'] ?? ''),
+      trim($_POST['phone'] ?? ''),
+      trim($_POST['practice_name'] ?? ''),
+      trim($_POST['address'] ?? ''),
+      trim($_POST['city'] ?? ''),
+      $_POST['state'] ?? null,
+      trim($_POST['zip'] ?? ''),
+      $accountType,
+      $isReferralOnly,
+      $hasDmeLicense,
+      $isHybrid,
+      preg_replace('/\D/', '', $_POST['npi'] ?? '') ?: null,
+      trim($_POST['license'] ?? '') ?: null,
+      $_POST['license_state'] ?? null,
+      !empty($_POST['license_expiry']) ? $_POST['license_expiry'] : null,
+      $physId
+    ]);
+    $msg = 'User details updated successfully';
+  }
+
   if ($act==='reset_phys_pw') {
     $pdo->prepare("UPDATE users SET password_hash=?, updated_at=NOW() WHERE id=?")->execute([password_hash($_POST['newpw'], PASSWORD_DEFAULT), $_POST['phys_id']]);
     $msg='Physician password updated';
@@ -336,10 +425,23 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
           <tr class="border-b hover:bg-slate-50">
             <td class="py-3"><?=e(trim(($u['first_name']??'').' '.($u['last_name']??'')))?></td>
             <td class="py-3"><?=e($u['email'] ?? '')?></td>
-            <td class="py-3"><?=e($u['account_type'] ?? '')?></td>
+            <td class="py-3">
+              <?php
+              $displayType = $u['account_type'] ?? '';
+              if (!empty($u['is_hybrid'])) {
+                $displayType = 'Referral & Wholesale';
+              } elseif ($displayType === 'wholesale') {
+                $displayType = 'Wholesale';
+              } else {
+                $displayType = 'Referral';
+              }
+              echo e($displayType);
+              ?>
+            </td>
             <td class="py-3"><?=e($u['status'] ?? '')?></td>
             <td class="py-3"><?=e($u['created_at'] ?? '')?></td>
             <td class="py-3 space-x-2">
+              <button onclick="toggleUserDetails('user-<?=e($u['id'])?>')" class="text-blue-600 text-xs">View Details</button>
               <?php if (!$isManufacturer): ?>
               <form method="post" class="inline"><?=csrf_field()?>
                 <input type="hidden" name="action" value="reset_phys_pw">
@@ -362,6 +464,81 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
               <?php else: ?>
               <span class="text-slate-400 text-xs">View only</span>
               <?php endif; ?>
+            </td>
+          </tr>
+          <!-- Expandable Details Row -->
+          <tr id="user-<?=e($u['id'])?>" class="hidden bg-slate-50">
+            <td colspan="6" class="p-4">
+              <form method="post" class="grid grid-cols-2 gap-3 text-sm">
+                <?=csrf_field()?>
+                <input type="hidden" name="action" value="update_phys">
+                <input type="hidden" name="phys_id" value="<?=e($u['id'])?>">
+
+                <div>
+                  <label class="text-xs text-slate-600">First Name</label>
+                  <input class="border rounded px-2 py-1 w-full" name="first_name" value="<?=e($u['first_name']??'')?>">
+                </div>
+                <div>
+                  <label class="text-xs text-slate-600">Last Name</label>
+                  <input class="border rounded px-2 py-1 w-full" name="last_name" value="<?=e($u['last_name']??'')?>">
+                </div>
+                <div>
+                  <label class="text-xs text-slate-600">Email</label>
+                  <input class="border rounded px-2 py-1 w-full" type="email" name="email" value="<?=e($u['email']??'')?>">
+                </div>
+                <div>
+                  <label class="text-xs text-slate-600">Phone</label>
+                  <input class="border rounded px-2 py-1 w-full" name="phone" value="<?=e($u['phone']??'')?>">
+                </div>
+                <div>
+                  <label class="text-xs text-slate-600">Practice Name</label>
+                  <input class="border rounded px-2 py-1 w-full" name="practice_name" value="<?=e($u['practice_name']??'')?>">
+                </div>
+                <div>
+                  <label class="text-xs text-slate-600">Address</label>
+                  <input class="border rounded px-2 py-1 w-full" name="address" value="<?=e($u['address']??'')?>">
+                </div>
+                <div>
+                  <label class="text-xs text-slate-600">City</label>
+                  <input class="border rounded px-2 py-1 w-full" name="city" value="<?=e($u['city']??'')?>">
+                </div>
+                <div>
+                  <label class="text-xs text-slate-600">State</label>
+                  <input class="border rounded px-2 py-1 w-full" name="state" value="<?=e($u['state']??'')?>">
+                </div>
+                <div>
+                  <label class="text-xs text-slate-600">Zip</label>
+                  <input class="border rounded px-2 py-1 w-full" name="zip" value="<?=e($u['zip']??'')?>">
+                </div>
+                <div>
+                  <label class="text-xs text-slate-600">Account Type</label>
+                  <select class="border rounded px-2 py-1 w-full" name="account_type">
+                    <option value="referral" <?=($u['is_referral_only']??false)?'selected':''?>>Referral</option>
+                    <option value="wholesale" <?=($u['account_type']??'')==='wholesale'&&!($u['is_hybrid']??false)?'selected':''?>>Wholesale</option>
+                    <option value="both" <?=($u['is_hybrid']??false)?'selected':''?>>Referral & Wholesale</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-xs text-slate-600">NPI</label>
+                  <input class="border rounded px-2 py-1 w-full" name="npi" value="<?=e($u['npi']??'')?>">
+                </div>
+                <div>
+                  <label class="text-xs text-slate-600">License</label>
+                  <input class="border rounded px-2 py-1 w-full" name="license" value="<?=e($u['license']??'')?>">
+                </div>
+                <div>
+                  <label class="text-xs text-slate-600">License State</label>
+                  <input class="border rounded px-2 py-1 w-full" name="license_state" value="<?=e($u['license_state']??'')?>">
+                </div>
+                <div>
+                  <label class="text-xs text-slate-600">License Expiry</label>
+                  <input class="border rounded px-2 py-1 w-full" type="date" name="license_expiry" value="<?=e($u['license_expiry']??'')?>">
+                </div>
+                <div class="col-span-2 flex gap-2">
+                  <button class="bg-brand text-white rounded px-4 py-2 text-sm">Save Changes</button>
+                  <button type="button" onclick="toggleUserDetails('user-<?=e($u['id'])?>')" class="bg-slate-200 rounded px-4 py-2 text-sm">Cancel</button>
+                </div>
+              </form>
             </td>
           </tr>
           <?php endforeach; ?>
@@ -406,7 +583,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             <input class="border rounded px-2 py-1 w-full" name="practice_name" placeholder="Practice name *" id="practice-name-input">
           </div>
           <div class="mb-2">
-            <input class="border rounded px-2 py-1 w-full" name="address" placeholder="Address *" id="address-input">
+            <input class="border rounded px-2 py-1 w-full" name="address" placeholder="Address *" id="address-input" autocomplete="off">
           </div>
           <div class="grid grid-cols-2 gap-2 mb-2">
             <input class="border rounded px-2 py-1" name="city" placeholder="City *" id="city-input">
@@ -432,6 +609,17 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
           <input class="border rounded px-2 py-1 w-full" type="email" name="email" placeholder="Email *" required>
         </div>
 
+        <!-- Account Type Dropdown -->
+        <div class="mb-2">
+          <label class="text-sm text-slate-600 block mb-1">Account Type *</label>
+          <select class="border rounded px-2 py-1 w-full" name="account_type" required>
+            <option value="">Select Account Type</option>
+            <option value="referral">Referral</option>
+            <option value="wholesale">Wholesale</option>
+            <option value="both">Referral & Wholesale</option>
+          </select>
+        </div>
+
         <!-- Security Role Dropdown -->
         <div class="mb-2">
           <label class="text-sm text-slate-600 block mb-1">Security Role *</label>
@@ -442,19 +630,19 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
           </select>
         </div>
 
-        <!-- Physician Credentials -->
+        <!-- Physician Credentials (Optional) -->
         <div class="mb-2">
-          <input class="border rounded px-2 py-1 w-full" name="npi" placeholder="NPI (10 digits) *" maxlength="10" required>
+          <input class="border rounded px-2 py-1 w-full" name="npi" placeholder="NPI (10 digits)" maxlength="10">
         </div>
         <div class="mb-2">
-          <input class="border rounded px-2 py-1 w-full" name="license" placeholder="Medical License Number *" required>
+          <input class="border rounded px-2 py-1 w-full" name="license" placeholder="Medical License Number">
         </div>
         <div class="grid grid-cols-2 gap-2 mb-2">
-          <select class="border rounded px-2 py-1" name="license_state" required>
-            <option value="">License State *</option>
+          <select class="border rounded px-2 py-1" name="license_state">
+            <option value="">License State</option>
             <option value="AL">AL</option><option value="AK">AK</option><option value="AZ">AZ</option><option value="AR">AR</option><option value="CA">CA</option><option value="CO">CO</option><option value="CT">CT</option><option value="DE">DE</option><option value="FL">FL</option><option value="GA">GA</option><option value="HI">HI</option><option value="ID">ID</option><option value="IL">IL</option><option value="IN">IN</option><option value="IA">IA</option><option value="KS">KS</option><option value="KY">KY</option><option value="LA">LA</option><option value="ME">ME</option><option value="MD">MD</option><option value="MA">MA</option><option value="MI">MI</option><option value="MN">MN</option><option value="MS">MS</option><option value="MO">MO</option><option value="MT">MT</option><option value="NE">NE</option><option value="NV">NV</option><option value="NH">NH</option><option value="NJ">NJ</option><option value="NM">NM</option><option value="NY">NY</option><option value="NC">NC</option><option value="ND">ND</option><option value="OH">OH</option><option value="OK">OK</option><option value="OR">OR</option><option value="PA">PA</option><option value="RI">RI</option><option value="SC">SC</option><option value="SD">SD</option><option value="TN">TN</option><option value="TX">TX</option><option value="UT">UT</option><option value="VT">VT</option><option value="VA">VA</option><option value="WA">WA</option><option value="WV">WV</option><option value="WI">WI</option><option value="WY">WY</option>
           </select>
-          <input class="border rounded px-2 py-1" name="license_expiry" type="date" placeholder="License Expiry *" required>
+          <input class="border rounded px-2 py-1" name="license_expiry" type="date" placeholder="License Expiry">
         </div>
 
         <div class="mb-2">
@@ -637,8 +825,11 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 <?php elseif ($tab==='locations'): ?>
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <div class="lg:col-span-2 overflow-x-auto">
-      <div class="font-semibold mb-2">Practice Locations</div>
-      <table class="w-full text-sm min-w-[800px]">
+      <div class="flex justify-between items-center mb-2">
+        <div class="font-semibold">Practice Locations</div>
+        <input type="text" id="location-filter" placeholder="Filter by practice name..." class="border rounded px-3 py-1 text-sm" onkeyup="filterLocations()">
+      </div>
+      <table class="w-full text-sm min-w-[800px]" id="locations-table">
         <thead class="border-b">
           <tr class="text-left">
             <th class="py-2">Practice</th>
@@ -652,7 +843,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         </thead>
         <tbody>
           <?php foreach ($locations as $loc): ?>
-          <tr class="border-b hover:bg-slate-50">
+          <tr class="border-b hover:bg-slate-50 location-row" data-practice="<?=e(strtolower($loc['practice_name'] ?? ''))?>">
             <td class="py-3"><?=e($loc['practice_name'] ?? '')?></td>
             <td class="py-3"><?=e($loc['location_name'])?></td>
             <td class="py-3 text-xs"><?=e($loc['address'])?>, <?=e($loc['city'])?>, <?=e($loc['state'])?> <?=e($loc['zip'])?></td>
@@ -895,6 +1086,90 @@ document.addEventListener('DOMContentLoaded', () => {
     cb.addEventListener('change', updateSelectAllState);
   });
 });
+
+// Toggle user details accordion
+function toggleUserDetails(rowId) {
+  const row = document.getElementById(rowId);
+  if (row.classList.contains('hidden')) {
+    row.classList.remove('hidden');
+  } else {
+    row.classList.add('hidden');
+  }
+}
+
+// Initialize Google Places Autocomplete for address fields
+function initAutocomplete() {
+  const addressInput = document.getElementById('address-input');
+  if (addressInput && typeof google !== 'undefined') {
+    const autocomplete = new google.maps.places.Autocomplete(addressInput, {
+      types: ['address'],
+      componentRestrictions: { country: 'us' }
+    });
+
+    autocomplete.addListener('place_changed', function() {
+      const place = autocomplete.getPlace();
+      if (!place.geometry) return;
+
+      // Extract address components
+      let street = '';
+      let city = '';
+      let state = '';
+      let zip = '';
+
+      for (const component of place.address_components) {
+        const componentType = component.types[0];
+        switch (componentType) {
+          case 'street_number':
+            street = component.long_name + ' ';
+            break;
+          case 'route':
+            street += component.long_name;
+            break;
+          case 'locality':
+            city = component.long_name;
+            break;
+          case 'administrative_area_level_1':
+            state = component.short_name;
+            break;
+          case 'postal_code':
+            zip = component.long_name;
+            break;
+        }
+      }
+
+      // Populate the form fields
+      document.getElementById('address-input').value = street;
+      document.getElementById('city-input').value = city;
+      document.getElementById('state-input').value = state;
+      document.getElementById('zip-input').value = zip;
+    });
+  }
+}
+
+// Initialize autocomplete when DOM is loaded
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initAutocomplete);
+} else {
+  initAutocomplete();
+}
+
+// Filter locations by practice name
+function filterLocations() {
+  const filterValue = document.getElementById('location-filter').value.toLowerCase();
+  const rows = document.querySelectorAll('.location-row');
+
+  rows.forEach(row => {
+    const practiceName = row.getAttribute('data-practice');
+    if (practiceName.includes(filterValue)) {
+      row.style.display = '';
+    } else {
+      row.style.display = 'none';
+    }
+  });
+}
 </script>
+
+<!-- Google Maps Places API -->
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDPHBbdFNOQqjUBtKoVRDY9N91GvKxEiJo&libraries=places&callback=initAutocomplete" async defer></script>
 
 <?php include __DIR__ . '/_footer.php'; ?>
