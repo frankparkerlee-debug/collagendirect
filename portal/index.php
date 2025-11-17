@@ -6,58 +6,9 @@ declare(strict_types=1);
 require __DIR__ . '/../api/db.php'; // defines $pdo + session helpers
 require __DIR__ . '/../api/lib/sg_curl.php'; // SendGrid email helper
 
-// ADMIN IMPERSONATION: Allow admin to create orders on behalf of practices
-$adminImpersonating = false;
-$adminUser = null;
-
-if (!empty($_GET['admin_as_user'])) {
-  // Check if user is admin (from admin_users table OR superadmin from users table)
-  $isAdmin = false;
-  $adminRole = null;
-
-  if (isset($_SESSION['admin'])) {
-    $isAdmin = true;
-    $adminRole = $_SESSION['admin']['role'] ?? '';
-    $adminUser = $_SESSION['admin'];
-  } elseif (isset($_SESSION['user_id'])) {
-    // Check if logged in user is superadmin
-    $stmt = $pdo->prepare("SELECT role FROM users WHERE id = ? AND role = 'superadmin'");
-    $stmt->execute([$_SESSION['user_id']]);
-    $superadminCheck = $stmt->fetch(PDO::FETCH_ASSOC);
-    if ($superadminCheck) {
-      $isAdmin = true;
-      $adminRole = 'superadmin';
-      $adminUser = ['role' => 'superadmin', 'id' => $_SESSION['user_id']];
-    }
-  }
-
-  if ($isAdmin && in_array($adminRole, ['superadmin', 'manufacturer'])) {
-    $impersonateUserId = $_GET['admin_as_user'];
-
-    // Load the practice user being impersonated
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
-    $stmt->execute([$impersonateUserId]);
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if ($user && in_array($user['user_type'], ['practice_admin', 'physician', 'dme_wholesale'])) {
-      $adminImpersonating = true;
-      $userId = $user['id'];
-
-      // Set session user_id temporarily for this request only (don't persist)
-      $_SESSION['temp_user_id'] = $userId;
-    } else {
-      die('Invalid practice user for impersonation');
-    }
-  } elseif ($isAdmin) {
-    die('Unauthorized: Only superadmin and manufacturer can create orders on behalf of practices');
-  } else {
-    die('Unauthorized: You must be logged in as an admin to impersonate users');
-  }
-}
-
 // BLOCK ADMIN USERS (employees, manufacturer) from accessing physician portal
-// Exception: super admin can access both portals, or if admin is impersonating
-if (isset($_SESSION['admin']) && empty($_SESSION['user_id']) && !$adminImpersonating) {
+// Exception: super admin can access both portals
+if (isset($_SESSION['admin']) && empty($_SESSION['user_id'])) {
   $adminRole = $_SESSION['admin']['role'] ?? '';
   // Employees and manufacturer should NOT access portal - redirect to admin
   if ($adminRole !== 'superadmin') {
@@ -66,7 +17,7 @@ if (isset($_SESSION['admin']) && empty($_SESSION['user_id']) && !$adminImpersona
   }
 }
 
-if (empty($_SESSION['user_id']) && !$adminImpersonating) {
+if (empty($_SESSION['user_id'])) {
   // If this is an AJAX/API request, return JSON error instead of redirect
   $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) ||
             !empty($_GET['action']) ||
@@ -83,19 +34,17 @@ if (empty($_SESSION['user_id']) && !$adminImpersonating) {
   exit;
 }
 
-if (!$adminImpersonating) {
-  $userId = (string)$_SESSION['user_id'];
+$userId = (string)$_SESSION['user_id'];
 
-  // Load user data
-  $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
-  $stmt->execute([$userId]);
-  $user = $stmt->fetch(PDO::FETCH_ASSOC);
-  if (!$user) {
-    // User not found, destroy session and redirect to login
-    session_destroy();
-    header('Location: /login');
-    exit;
-  }
+// Load user data
+$stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
+$stmt->execute([$userId]);
+$user = $stmt->fetch(PDO::FETCH_ASSOC);
+if (!$user) {
+  // User not found, destroy session and redirect to login
+  session_destroy();
+  header('Location: /login');
+  exit;
 }
 
 // Check if this is a referral-only practice (no billing features)
