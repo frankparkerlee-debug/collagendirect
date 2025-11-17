@@ -132,8 +132,8 @@ try {
       $stmt = $pdo->prepare("
         INSERT INTO products (
           name, hcpcs_code, price_admin, price_wholesale, pieces_per_box, price_per_piece, medicare_allowable,
-          can_be_primary, can_be_secondary, can_be_additional, ref_number, active
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE)
+          can_be_primary, can_be_secondary, can_be_additional, ref_number, active, sku
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?)
       ");
       $stmt->execute([
         $productName,
@@ -146,7 +146,8 @@ try {
         $p['primary'] ? 1 : 0,
         $p['secondary'] ? 1 : 0,
         $p['additional'] ? 1 : 0,
-        $p['ref']
+        $p['ref'],
+        $p['ref'] // Use ref_number as SKU
       ]);
       $added++;
       echo "  ✓ Added: {$productName}\n";
