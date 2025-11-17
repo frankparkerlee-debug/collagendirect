@@ -305,9 +305,14 @@ document.addEventListener('DOMContentLoaded', function() {
       .then(data => {
         if (data.ok && data.product) {
           const p = data.product;
-          document.getElementById('wholesalePrice').textContent = (p.price_wholesale || 0).toFixed(2);
-          document.getElementById('piecesPerBox').textContent = p.pieces_per_box || 10;
-          document.getElementById('boxPrice').textContent = ((p.price_wholesale || 0) * (p.pieces_per_box || 10)).toFixed(2);
+          // price_wholesale is already per BOX
+          const pricePerBox = p.price_wholesale || 0;
+          const piecesPerBox = p.pieces_per_box || 10;
+          const pricePerPiece = pricePerBox / piecesPerBox;
+
+          document.getElementById('wholesalePrice').textContent = pricePerPiece.toFixed(2);
+          document.getElementById('piecesPerBox').textContent = piecesPerBox;
+          document.getElementById('boxPrice').textContent = pricePerBox.toFixed(2);
           selectedProduct = p;
           calculateOrder();
         }

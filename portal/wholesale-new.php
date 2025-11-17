@@ -1148,7 +1148,8 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
           $product = $stmt->fetch(PDO::FETCH_ASSOC);
 
           if ($product && $boxes > 0) {
-            $pricePerBox = (float)($product['price_wholesale'] ?? 0) * (int)($product['pieces_per_box'] ?? 1);
+            // price_wholesale is already per BOX, not per piece
+            $pricePerBox = (float)($product['price_wholesale'] ?? 0);
             $lineTotal = $pricePerBox * $boxes;
 
             $orderItems[] = [

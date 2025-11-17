@@ -214,12 +214,30 @@ try {
       $shippingPhone = safe($patientData['phone'] ?? null);
     }
 
-    // Calculate pricing
-    $priceWholesale = (float)($productData['price_wholesale'] ?? 0);
+    // Calculate pricing - check for custom pricing first
     $piecesPerBox = (int)($productData['pieces_per_box'] ?? 1);
-    $pricePerPiece = $priceWholesale; // Wholesale price is per-piece
+
+    // Check if this practice has custom pricing for this product
+    $customPriceStmt = $pdo->prepare("
+      SELECT custom_price
+      FROM practice_pricing
+      WHERE user_id = ? AND product_id = ?
+    ");
+    $customPriceStmt->execute([$uid, $productData['id']]);
+    $customPricing = $customPriceStmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($customPricing && $customPricing['custom_price'] > 0) {
+      // Use custom pricing (already stored as price per piece)
+      $pricePerPiece = (float)$customPricing['custom_price'];
+      $pricePerBox = $pricePerPiece * $piecesPerBox;
+    } else {
+      // Use default pricing from products table
+      $pricePerBox = (float)($productData['price_wholesale'] ?? 0); // price_wholesale is per BOX
+      $pricePerPiece = $piecesPerBox > 0 ? $pricePerBox / $piecesPerBox : 0;
+    }
+
     $totalPieces = $boxes * $piecesPerBox;
-    $orderTotal = $boxes * ($pricePerPiece * $piecesPerBox); // Total amount for this order
+    $orderTotal = $boxes * $pricePerBox; // Total amount for this order
 
     // Generate invoice number (format: INV-YYYYMMDD-XXXXX)
     $invoiceNumber = 'INV-' . date('Ymd') . '-' . strtoupper(substr($orderId, 0, 5));

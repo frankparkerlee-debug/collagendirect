@@ -80,8 +80,17 @@ $pendingOrders = 0;
 foreach ($orders as $order) {
   $boxes = (int)($order['shipments_remaining'] ?? 0);
   $pieces_per_box = (int)($order['pieces_per_box'] ?? 10);
-  $unit_price = (float)($order['unit_price'] ?? $order['price_wholesale'] ?? 0);
-  $orderValue = $boxes * ($unit_price * $pieces_per_box);
+
+  // Calculate price per box correctly
+  if (!empty($order['unit_price'])) {
+    // unit_price is per PIECE, so multiply by pieces_per_box to get price per box
+    $pricePerBox = (float)$order['unit_price'] * $pieces_per_box;
+  } else {
+    // price_wholesale is already per BOX
+    $pricePerBox = (float)($order['price_wholesale'] ?? 0);
+  }
+
+  $orderValue = $boxes * $pricePerBox;
   $totalSpent += $orderValue;
 
   if (in_array($order['status'], ['submitted', 'pending', 'awaiting_approval', 'approved'])) {
@@ -161,8 +170,17 @@ foreach ($orders as $order) {
           <?php foreach ($orders as $order):
             $boxes = (int)($order['shipments_remaining'] ?? 0);
             $pieces_per_box = (int)($order['pieces_per_box'] ?? 10);
-            $unit_price = (float)($order['unit_price'] ?? $order['price_wholesale'] ?? 0);
-            $orderValue = $boxes * ($unit_price * $pieces_per_box);
+
+            // Calculate price per box correctly
+            if (!empty($order['unit_price'])) {
+              // unit_price is per PIECE, so multiply by pieces_per_box to get price per box
+              $pricePerBox = (float)$order['unit_price'] * $pieces_per_box;
+            } else {
+              // price_wholesale is already per BOX
+              $pricePerBox = (float)($order['price_wholesale'] ?? 0);
+            }
+
+            $orderValue = $boxes * $pricePerBox;
 
             $statusConfig = match($order['status']) {
               'submitted', 'pending' => ['color' => '#f59e0b', 'bg' => '#fef3c7', 'label' => 'Pending'],

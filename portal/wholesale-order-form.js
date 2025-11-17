@@ -185,7 +185,8 @@ function renderProductsGrid() {
     div.dataset.productId = product.id;
     div.onclick = () => toggleProductSelection(product.id);
 
-    const pricePerBox = parseFloat(product.price_wholesale || 0) * parseInt(product.pieces_per_box || 10);
+    // price_wholesale is already per BOX, not per piece
+    const pricePerBox = parseFloat(product.price_wholesale || 0);
     const piecesPerBox = parseInt(product.pieces_per_box || 10);
 
     div.innerHTML = `
@@ -313,7 +314,8 @@ function renderCart() {
     let itemCost = 0;
 
     item.products.forEach(product => {
-      const pricePerBox = parseFloat(product.price_wholesale || 0) * parseInt(product.pieces_per_box || 10);
+      // price_wholesale is already per BOX, not per piece
+      const pricePerBox = parseFloat(product.price_wholesale || 0);
       const productCost = pricePerBox * parseInt(product.boxes);
       itemCost += productCost;
       totalProducts++;
