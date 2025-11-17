@@ -10278,14 +10278,16 @@ async function openOrderDialog(preselectId=null){
       const idResult = await idResp.json();
       if(!idResult.ok){ throw new Error('ID upload failed: ' + (idResult.error||'Unknown error')); }
 
-      // Upload insurance card
-      const insForm = new FormData();
-      insForm.append('patient_id', patientId);
-      insForm.append('type', 'ins');
-      insForm.append('file', insFile);
-      const insResp = await fetch('?action=patient.upload', {method:'POST', body:insForm});
-      const insResult = await insResp.json();
-      if(!insResult.ok){ throw new Error('Insurance upload failed: ' + (insResult.error||'Unknown error')); }
+      // Upload insurance card (only if provided)
+      if (insFile) {
+        const insForm = new FormData();
+        insForm.append('patient_id', patientId);
+        insForm.append('type', 'ins');
+        insForm.append('file', insFile);
+        const insResp = await fetch('?action=patient.upload', {method:'POST', body:insForm});
+        const insResult = await insResp.json();
+        if(!insResult.ok){ throw new Error('Insurance upload failed: ' + (insResult.error||'Unknown error')); }
+      }
 
       hidden.value=patientId; _currentPatientId=patientId;
       box.value=`${first} ${last} (MRN ${j.mrn})`;
