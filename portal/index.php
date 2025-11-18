@@ -3024,7 +3024,7 @@ if ($action) {
           UPDATE orders
           SET baseline_wound_photo_path=?, baseline_wound_photo_mime=?, updated_at=NOW()
           WHERE id=? AND user_id=?
-        ")->execute([$photoRel, $photoMime, $oid, $userId])
+        ")->execute([$photoRel, $photoMime, $oid, $userId]);
       }
 
       // snapshot provider signature
