@@ -10899,7 +10899,7 @@ async function openOrderDialog(preselectId=null){
       const fileWoundPhoto = $('#file-wound-photo');
       if(fileWoundPhoto?.files[0])  body.append('baseline_wound_photo', fileWoundPhoto.files[0]);
 
-      const r=await fetch('?action=order.create',{method:'POST',body});
+      const r=await fetch('/api/portal/orders.create.php',{method:'POST',body});
       const t=await r.text(); let j;
       try{ j=JSON.parse(t); }catch{ alert('Server returned non-JSON:\n'+t); return; }
       if(!j.ok){ alert(j.error||'Order creation failed'); return; }
@@ -10965,7 +10965,7 @@ async function openOrderDialog(preselectId=null){
 
       if($('#file-rx').files[0]) body.append('file_rx_note', $('#file-rx').files[0]);
 
-      const r=await fetch('?action=order.create',{method:'POST',body});
+      const r=await fetch('/api/portal/orders.create.php',{method:'POST',body});
       const t=await r.text(); let j;
       try{ j=JSON.parse(t); }catch{ alert('Server returned non-JSON:\n'+t); return; }
       if(!j.ok){ alert(j.error||'Draft save failed'); return; }
