@@ -5501,10 +5501,10 @@ if ($page==='logout'){
       <button class="profile-tab px-4 py-2 border-b-2 border-transparent text-slate-600 hover:text-slate-900 font-medium" data-tab="physicians">
         Physician Roster
       </button>
+      <?php endif; ?>
       <button class="profile-tab px-4 py-2 border-b-2 border-transparent text-slate-600 hover:text-slate-900 font-medium" data-tab="locations">
         Practice Locations
       </button>
-      <?php endif; ?>
       <button class="profile-tab px-4 py-2 border-b-2 border-transparent text-slate-600 hover:text-slate-900 font-medium" data-tab="security">
         Security
       </button>
@@ -5846,21 +5846,19 @@ if ($page==='logout'){
         </div>
       </div>
     </div>
+    <?php endif; ?>
 
     <!-- Practice Locations Tab -->
     <div class="profile-tab-content hidden" data-tab-content="locations">
       <?php
       // Fetch practice locations for this user
-      $practiceLocations = [];
-      if ($isPracticeAdmin) {
-        $locationsStmt = $pdo->prepare("
-          SELECT * FROM practice_locations
-          WHERE user_id = ? AND is_active = TRUE
-          ORDER BY is_primary DESC, location_name ASC
-        ");
-        $locationsStmt->execute([$userId]);
-        $practiceLocations = $locationsStmt->fetchAll(PDO::FETCH_ASSOC);
-      }
+      $locationsStmt = $pdo->prepare("
+        SELECT * FROM practice_locations
+        WHERE user_id = ? AND is_active = TRUE
+        ORDER BY is_primary DESC, location_name ASC
+      ");
+      $locationsStmt->execute([$userId]);
+      $practiceLocations = $locationsStmt->fetchAll(PDO::FETCH_ASSOC);
       ?>
       <div class="max-w-6xl">
         <div class="flex items-center justify-between mb-6">
@@ -5916,7 +5914,6 @@ if ($page==='logout'){
         <?php endif; ?>
       </div>
     </div>
-    <?php endif; ?>
 
     <!-- Security Tab -->
     <div class="profile-tab-content hidden" data-tab-content="security">
