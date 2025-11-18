@@ -1473,6 +1473,8 @@ if ($action) {
         JOIN patients p ON p.id = wp.patient_id
         LEFT JOIN photo_requests pr ON pr.id = wp.photo_request_id
         LEFT JOIN billable_encounters be ON be.wound_photo_id = wp.id
+        WHERE (wp.photo_type IS NULL OR wp.photo_type != 'baseline')
+          AND (wp.uploaded_via IS NULL OR wp.uploaded_via != 'portal_order')
         ORDER BY wp.uploaded_at DESC
         LIMIT 200
       ";
@@ -1491,6 +1493,8 @@ if ($action) {
         LEFT JOIN photo_requests pr ON pr.id = wp.photo_request_id
         LEFT JOIN billable_encounters be ON be.wound_photo_id = wp.id
         WHERE p.user_id = ?
+          AND (wp.photo_type IS NULL OR wp.photo_type != 'baseline')
+          AND (wp.uploaded_via IS NULL OR wp.uploaded_via != 'portal_order')
         ORDER BY wp.uploaded_at DESC
         LIMIT 200
       ";
@@ -3013,16 +3017,14 @@ if ($action) {
         if(!@move_uploaded_file($photoFile['tmp_name'],$photoAbs)) jerr('Failed to save wound photo',500);
         $photoRel='/uploads/wound-photos/'.$photoFinal;
 
-        // Save to wound_photos table with order_id linkage
-        // These are baseline/documentation photos, not billable review photos
-        $photoId = bin2hex(random_bytes(16));
+        // Store baseline photo ONLY on the order - NOT in wound_photos table
+        // Baseline photos are documentation for the order, not billable photo reviews
+        // They should NEVER appear in the Photo Review workflow
         $pdo->prepare("
-          INSERT INTO wound_photos
-          (id, patient_id, order_id, photo_path, photo_mime, photo_size_bytes, uploaded_via, uploaded_at, reviewed_at, photo_type)
-          VALUES (?, ?, ?, ?, ?, ?, 'portal_order', NOW(), NOW(), 'baseline')
-        ")->execute([$photoId, $pid, $oid, $photoRel, $photoMime, $photoFile['size']]);
-
-        // Note: photo_type='baseline' and reviewed_at=NOW() mark as non-billable (already processed as part of order)
+          UPDATE orders
+          SET baseline_wound_photo_path=?, baseline_wound_photo_mime=?, updated_at=NOW()
+          WHERE id=? AND user_id=?
+        ")->execute([$photoRel, $photoMime, $oid, $userId])
       }
 
       // snapshot provider signature
