@@ -1530,7 +1530,7 @@ if ($action) {
       jerr('Access denied to this patient');
     }
 
-    // Get photos for this patient
+    // Get photos for this patient from wound_photos table
     $sql = "
       SELECT
         wp.*,
@@ -1551,7 +1551,41 @@ if ($action) {
     // Add proper photo URLs using portal proxy script for secure serving
     foreach ($photos as &$photo) {
       $photo['photo_url'] = '/portal/serve-wound-photo.php?id=' . urlencode($photo['id']);
+      $photo['source'] = 'wound_photos'; // Mark source
     }
+
+    // Also get baseline wound photos from orders for this patient
+    $baselineStmt = $pdo->prepare("
+      SELECT
+        id, baseline_wound_photo_path, baseline_wound_photo_mime, created_at,
+        wound_location, wound_laterality, product
+      FROM orders
+      WHERE patient_id = ? AND baseline_wound_photo_path IS NOT NULL
+      ORDER BY created_at DESC
+    ");
+    $baselineStmt->execute([$patientId]);
+    $baselinePhotos = $baselineStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Format baseline photos to match wound_photos structure
+    foreach ($baselinePhotos as $bp) {
+      $photos[] = [
+        'id' => 'order-' . $bp['id'], // Prefix with 'order-' to distinguish
+        'photo_url' => '?action=file.download&path=' . urlencode($bp['baseline_wound_photo_path']),
+        'photo_path' => $bp['baseline_wound_photo_path'],
+        'uploaded_at' => $bp['created_at'],
+        'uploaded_via' => 'order',
+        'source' => 'baseline', // Mark as baseline
+        'wound_location' => ($bp['wound_location'] ?? '') . ($bp['wound_laterality'] ? ' (' . $bp['wound_laterality'] . ')' : ''),
+        'reviewed' => false, // Baseline photos are not reviewed
+        'patient_notes' => 'Baseline photo from order: ' . ($bp['product'] ?? 'N/A'),
+        'order_id' => $bp['id']
+      ];
+    }
+
+    // Sort all photos by date
+    usort($photos, function($a, $b) {
+      return strtotime($b['uploaded_at']) - strtotime($a['uploaded_at']);
+    });
 
     jok(['photos' => $photos, 'count' => count($photos)]);
   }
