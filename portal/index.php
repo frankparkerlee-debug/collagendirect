@@ -5109,39 +5109,7 @@ if ($page==='logout'){
   </section>
 
 <?php elseif ($page==='orders'): ?>
-  <!-- Top-level actions -->
-  <div class="flex items-center gap-3 mb-4">
-    <h2 class="text-lg font-semibold">Manage Orders</h2>
-    <input id="oq" class="ml-auto w-full sm:w-80" placeholder="Search product or recipient…">
-    <select id="ot">
-        <option value="">All Orders</option>
-        <option value="referral">Referral Orders</option>
-        <option value="wholesale">Wholesale Orders</option>
-      </select>
-    <select id="of">
-        <option value="">All Status</option>
-        <option value="draft">Draft</option>
-        <option value="submitted">Submitted</option>
-        <option value="pending">Pending</option>
-        <option value="approved">Approved</option>
-        <option value="active">Active</option>
-        <option value="shipped">Shipped</option>
-        <option value="stopped">Stopped</option>
-      </select>
-  </div>
-
-  <section class="card p-5">
-    <div class="overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead class="border-b">
-          <tr class="text-left">
-            <th class="py-2">Created</th><th class="py-2">Patient</th><th class="py-2">Product</th><th class="py-2">Status</th><th class="py-2">Product Count</th><th class="py-2">Deliver To</th><th class="py-2">Expires</th><th class="py-2">Action</th>
-          </tr>
-        </thead>
-        <tbody id="orders-tb"></tbody>
-      </table>
-    </div>
-  </section>
+  <?php require_once __DIR__ . '/orders-list.php'; ?>
 
 <?php elseif ($page==='messages'): ?>
   <!-- Top-level actions -->
@@ -6078,6 +6046,9 @@ if ($page==='logout'){
     <h2 class="text-xl font-bold mb-4">Add Physician to Practice</h2>
     <div id="physician-form-container"></div>
   </dialog>
+
+<?php elseif ($page==='order-detail'): ?>
+  <?php require_once __DIR__ . '/order-detail.php'; ?>
 
 <?php elseif ($page==='patient-detail' || $page==='patient-edit'): ?>
   <?php
