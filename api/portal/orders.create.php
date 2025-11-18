@@ -96,13 +96,21 @@ try {
     echo json_encode(['ok'=>false,'error'=>'esign_required']); exit;
   }
 
-  // 2) Resolve product
+  // 2) Resolve product (only if using old single-product format, not wounds_data)
   $product_id = (int)($_POST['product_id'] ?? 0);
-  if ($product_id <= 0) { http_response_code(400); echo json_encode(['ok'=>false,'error'=>'missing_product']); exit; }
-  $ps = $pdo->prepare("SELECT id, name, price_admin, cpt_code FROM products WHERE id=? AND active=TRUE");
-  $ps->execute([$product_id]);
-  $prod = $ps->fetch(PDO::FETCH_ASSOC);
-  if (!$prod) { http_response_code(404); echo json_encode(['ok'=>false,'error'=>'invalid_product']); exit; }
+  $prod = null;
+
+  // Skip product validation if using wounds_data (multi-wound format)
+  $has_wounds_data = !empty($_POST['wounds_data']);
+
+  if (!$has_wounds_data) {
+    // Old format: requires product_id
+    if ($product_id <= 0) { http_response_code(400); echo json_encode(['ok'=>false,'error'=>'missing_product']); exit; }
+    $ps = $pdo->prepare("SELECT id, name, price_admin, cpt_code FROM products WHERE id=? AND active=TRUE");
+    $ps->execute([$product_id]);
+    $prod = $ps->fetch(PDO::FETCH_ASSOC);
+    if (!$prod) { http_response_code(404); echo json_encode(['ok'=>false,'error'=>'invalid_product']); exit; }
+  }
 
   // 3) Patient: existing or create
   $patient_id = safe($_POST['patient_id'] ?? null);
@@ -186,6 +194,22 @@ try {
       $wound_laterality = safe($first_wound['laterality'] ?? null);
       $wound_notes = safe($first_wound['notes'] ?? null);
       $exudate_level = safe($first_wound['exudate_level'] ?? null);
+
+      // Extract product info from first wound's primary product
+      if (!$prod && !empty($first_wound['product_id'])) {
+        $prod = [
+          'id' => $first_wound['product_id'],
+          'name' => $first_wound['product_name'] ?? '',
+          'cpt_code' => $first_wound['product_cpt'] ?? null,
+          'price_admin' => $first_wound['product_price'] ?? 0
+        ];
+        $product_id = (int)$first_wound['product_id'];
+
+        // Also extract order-specific fields from first wound
+        if (!$frequency) $frequency = (int)($first_wound['frequency_per_week'] ?? 0);
+        if (!$qty_per_change) $qty_per_change = (int)($first_wound['qty_per_change'] ?? 1);
+        if (!$duration_days) $duration_days = (int)($first_wound['duration_days'] ?? 30);
+      }
     }
   } else {
     // Fallback to individual wound fields (old format)
@@ -193,6 +217,13 @@ try {
     $wound_laterality = safe($_POST['wound_laterality'] ?? null);
     $wound_notes    = safe($_POST['wound_notes'] ?? null);
     $exudate_level  = safe($_POST['exudate_level'] ?? null);
+  }
+
+  // Validate that we have product information from either old format or wounds_data
+  if (!$prod || empty($prod['id'])) {
+    http_response_code(400);
+    echo json_encode(['ok'=>false,'error'=>'missing_product_data']);
+    exit;
   }
 
   // Signer
