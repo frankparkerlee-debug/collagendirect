@@ -205,10 +205,16 @@ try {
         ];
         $product_id = (int)$first_wound['product_id'];
 
-        // Also extract order-specific fields from first wound
-        if (!$frequency) $frequency = (int)($first_wound['frequency_per_week'] ?? 0);
-        if (!$qty_per_change) $qty_per_change = (int)($first_wound['qty_per_change'] ?? 1);
-        if (!$duration_days) $duration_days = (int)($first_wound['duration_days'] ?? 30);
+        // Also extract order-specific fields from first wound (if not already set)
+        if ($frequency === null && isset($first_wound['frequency_per_week'])) {
+          $frequency = (int)$first_wound['frequency_per_week'];
+        }
+        if ($qty_per_change === null && isset($first_wound['qty_per_change'])) {
+          $qty_per_change = (int)$first_wound['qty_per_change'];
+        }
+        if ($duration_days === null && isset($first_wound['duration_days'])) {
+          $duration_days = (int)$first_wound['duration_days'];
+        }
       }
     }
   } else {
