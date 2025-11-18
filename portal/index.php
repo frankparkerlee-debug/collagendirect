@@ -4881,7 +4881,7 @@ if ($page==='logout'){
       </a>
       <a class="<?php echo $page==='profile'?'active':''; ?>" href="?page=profile">
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-        <span>Profile</span>
+        <span>Admin</span>
       </a>
     </nav>
   </aside>
@@ -5484,7 +5484,7 @@ if ($page==='logout'){
 
 <?php elseif ($page==='profile'): ?>
   <div class="mb-4">
-    <h1 class="text-2xl font-bold">Profile & Settings</h1>
+    <h1 class="text-2xl font-bold">Admin</h1>
     <p class="text-slate-600 mt-1">Manage your profile, practice information, and account settings</p>
   </div>
 
