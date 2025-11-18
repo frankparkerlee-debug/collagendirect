@@ -10891,7 +10891,7 @@ async function openOrderDialog(preselectId=null){
 
       body.append('sign_name', $('#sign-name')?.value || '');
       body.append('sign_title', $('#sign-title')?.value || '');
-      body.append('ack_sig', '1');  // Backend expects 'ack_sig'
+      body.append('esign_confirm', '1');  // Backend expects 'esign_confirm'
 
       const fileRxInput = $('#file-rx');
       if(fileRxInput?.files[0])  body.append('file_rx_note', fileRxInput.files[0]);
