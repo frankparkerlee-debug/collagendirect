@@ -13,8 +13,25 @@ echo "=== Fixing Order Groups Migration ===\n\n";
 try {
   $pdo->beginTransaction();
 
-  // Step 1: Check if order_group_id column exists
-  echo "Step 1: Checking for orphaned order_group_id values...\n";
+  // Step 1: Check if order_groups table exists
+  echo "Step 1: Checking if order_groups table exists...\n";
+
+  $tableExists = $pdo->query("
+    SELECT COUNT(*) as count
+    FROM information_schema.tables
+    WHERE table_name = 'order_groups'
+  ")->fetch();
+
+  if ($tableExists['count'] == 0) {
+    echo "  ✗ order_groups table doesn't exist yet\n";
+    echo "  Please run run-migration-add-order-groups.php first\n\n";
+    $pdo->rollBack();
+    exit(1);
+  }
+  echo "  ✓ order_groups table exists\n\n";
+
+  // Step 2: Check if order_group_id column exists
+  echo "Step 2: Checking for orphaned order_group_id values...\n";
 
   $check = $pdo->query("
     SELECT COUNT(*) as count
@@ -51,11 +68,11 @@ try {
       echo "  ✓ No orphaned values found\n\n";
     }
   } else {
-    echo "  ✓ order_group_id column doesn't exist yet (will be created)\n\n";
+    echo "  ✓ order_group_id column doesn't exist yet (will be created by main migration)\n\n";
   }
 
-  // Step 2: Drop existing foreign key if it exists
-  echo "Step 2: Dropping existing foreign key constraint if exists...\n";
+  // Step 3: Drop existing foreign key if it exists
+  echo "Step 3: Dropping existing foreign key constraint if exists...\n";
   $pdo->exec("
     DO $$
     BEGIN
@@ -68,8 +85,8 @@ try {
   ");
   echo "  ✓ Existing constraint dropped (if existed)\n\n";
 
-  // Step 3: Now add the foreign key constraint
-  echo "Step 3: Adding foreign key constraint...\n";
+  // Step 4: Now add the foreign key constraint
+  echo "Step 4: Adding foreign key constraint...\n";
   $pdo->exec("
     ALTER TABLE orders
     ADD CONSTRAINT fk_orders_group
@@ -79,8 +96,8 @@ try {
   ");
   echo "  ✓ Foreign key constraint added successfully\n\n";
 
-  // Step 4: Add index
-  echo "Step 4: Adding index on order_group_id...\n";
+  // Step 5: Add index
+  echo "Step 5: Adding index on order_group_id...\n";
   $pdo->exec("CREATE INDEX IF NOT EXISTS idx_orders_group ON orders(order_group_id)");
   echo "  ✓ Index created\n\n";
 
