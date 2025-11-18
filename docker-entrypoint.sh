@@ -10,7 +10,7 @@ if [ -d "/var/www/html/uploads" ]; then
            /var/www/html/uploads/notes \
            /var/www/html/uploads/aob \
            /var/www/html/uploads/rx \
-           /var/www/html/uploads/wound_photos
+           /var/www/html/uploads/wound-photos
 
   # Set proper ownership and permissions
   chown -R www-data:www-data /var/www/html/uploads
@@ -25,7 +25,7 @@ else
            /var/www/html/uploads/notes \
            /var/www/html/uploads/aob \
            /var/www/html/uploads/rx \
-           /var/www/html/uploads/wound_photos
+           /var/www/html/uploads/wound-photos
   chown -R www-data:www-data /var/www/html/uploads
   chmod -R 755 /var/www/html/uploads
 fi
