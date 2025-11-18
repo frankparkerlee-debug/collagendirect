@@ -47,9 +47,9 @@ if (count($patients) === 0) {
 // Check orders table
 echo "2. Order Documents:\n";
 $orders = $pdo->query("
-    SELECT id, patient_id, rx_note_path, ins_card_path, id_card_path, baseline_wound_photo_path
+    SELECT id, patient_id, rx_note_path, baseline_wound_photo_path
     FROM orders
-    WHERE rx_note_path IS NOT NULL OR ins_card_path IS NOT NULL OR id_card_path IS NOT NULL OR baseline_wound_photo_path IS NOT NULL
+    WHERE rx_note_path IS NOT NULL OR baseline_wound_photo_path IS NOT NULL
     ORDER BY created_at DESC
     LIMIT 10
 ")->fetchAll(PDO::FETCH_ASSOC);
@@ -66,14 +66,6 @@ if (count($orders) === 0) {
         if ($o['baseline_wound_photo_path']) {
             $exists = file_exists('/var/www/html' . $o['baseline_wound_photo_path']) ? '✓' : '✗';
             echo "    Wound Photo: $exists {$o['baseline_wound_photo_path']}\n";
-        }
-        if ($o['ins_card_path']) {
-            $exists = file_exists('/var/www/html' . $o['ins_card_path']) ? '✓' : '✗';
-            echo "    Insurance: $exists {$o['ins_card_path']}\n";
-        }
-        if ($o['id_card_path']) {
-            $exists = file_exists('/var/www/html' . $o['id_card_path']) ? '✓' : '✗';
-            echo "    ID Card: $exists {$o['id_card_path']}\n";
         }
         echo "\n";
     }
