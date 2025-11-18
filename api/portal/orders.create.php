@@ -250,6 +250,7 @@ try {
 
   // Insert order FIRST (no file I/O yet)
   // Note: Draft orders have status='draft', submitted orders have status='submitted'
+  // Force cache refresh - 2024-11-18
   $sql = "INSERT INTO orders
     (id, patient_id, user_id, product, product_id, product_price, cpt, status, frequency, delivery_mode,
      shipments_remaining, created_at, updated_at,
