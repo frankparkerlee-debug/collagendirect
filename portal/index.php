@@ -10902,7 +10902,12 @@ async function openOrderDialog(preselectId=null){
       const r=await fetch('/api/portal/orders.create.php',{method:'POST',body});
       const t=await r.text(); let j;
       try{ j=JSON.parse(t); }catch{ alert('Server returned non-JSON:\n'+t); return; }
-      if(!j.ok){ alert(j.error||'Order creation failed'); return; }
+      if(!j.ok){
+        let errorMsg = j.error || 'Order creation failed';
+        if (j.debug_message) errorMsg += '\n\nDebug: ' + j.debug_message + ' (' + j.debug_file + ':' + j.debug_line + ')';
+        alert(errorMsg);
+        return;
+      }
 
       alert('Order submitted successfully! Admin staff will review and approve your order.');
       document.getElementById('dlg-order').close();

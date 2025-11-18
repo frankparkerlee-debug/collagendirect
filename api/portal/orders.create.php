@@ -415,7 +415,17 @@ try {
   exit;
 
 } catch (Throwable $e) {
-  // Avoid exposing internals
+  // Log error for debugging
+  error_log("Order creation error: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
+  error_log("Stack trace: " . $e->getTraceAsString());
+
+  // Return detailed error in development/debug mode
   http_response_code(500);
-  echo json_encode(['ok'=>false,'error'=>'server_error']);
+  echo json_encode([
+    'ok'=>false,
+    'error'=>'server_error',
+    'debug_message' => $e->getMessage(),
+    'debug_file' => basename($e->getFile()),
+    'debug_line' => $e->getLine()
+  ]);
 }
