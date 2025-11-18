@@ -68,8 +68,8 @@ try {
       // Check if it's a relative path starting with /uploads
       if (strpos($relativePath, '/uploads/') === 0) {
         // Try persistent disk first (Render production)
-        if (is_dir('/var/data/uploads')) {
-          $absPath = '/var/data' . $relativePath;
+        if (is_dir('/var/www/html/uploads')) {
+          $absPath = '/var/www/html' . $relativePath;
           if (file_exists($absPath)) return $absPath;
         }
         // Try document root (local development)
