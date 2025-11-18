@@ -40,19 +40,22 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            brand: {
-              teal: '#47c6be',
-              blue: '#2a78ff',
-              navy: '#0a2540',
-              slate: '#64748b'
+    // Wait for Tailwind to load before configuring
+    if (typeof tailwind !== 'undefined') {
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                teal: '#47c6be',
+                blue: '#2a78ff',
+                navy: '#0a2540',
+                slate: '#64748b'
+              }
+            },
+            fontFamily: {
+              sans: ['Inter', 'system-ui', 'sans-serif']
             }
-          },
-          fontFamily: {
-            sans: ['Inter', 'system-ui', 'sans-serif']
           }
         }
       }
