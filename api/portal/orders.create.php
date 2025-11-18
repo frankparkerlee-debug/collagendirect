@@ -308,7 +308,7 @@ try {
     if (!$rx_path) [$rx_path,  $rx_mime]  = save_upload('rx_note',  '/uploads/notes'); // fallback
     [$ins_path, $ins_mime] = save_upload('ins_card','/uploads/insurance');
     [$id_path,  $id_mime]  = save_upload('id_card',  '/uploads/ids');
-    [$wound_photo_path, $wound_photo_mime] = save_upload('baseline_wound_photo', '/uploads/wounds');
+    [$wound_photo_path, $wound_photo_mime] = save_upload('baseline_wound_photo', '/uploads/wound-photos');
 
     // Validate insurance docs if insurance payment and files were not uploaded
     if ($payment_type === 'insurance') {
