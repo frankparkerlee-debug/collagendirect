@@ -6272,11 +6272,6 @@ if ($page==='logout'){
 <?php elseif ($page==='photo-reviews'): ?>
   <?php include __DIR__ . '/photo-reviews.php'; ?>
 
-<?php elseif ($page==='policies'): ?>
-  <?php include __DIR__ . '/policies.php'; ?>
-
-<?php elseif ($page==='practice-locations'): ?>
-  <?php include __DIR__ . '/practice-locations.php'; ?>
 
 <?php elseif ($page==='billing-settings'): ?>
   <div class="container mx-auto py-6 px-4">
