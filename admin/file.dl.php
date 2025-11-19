@@ -27,10 +27,10 @@ if (strpos($rel, '/public/uploads/') === 0) {
 
 /* ---- Resolve safely under uploads directory ---- */
 // Check persistent disk first, then fall back to local uploads
-if (is_dir('/var/data/uploads')) {
-  // Persistent disk on Render
-  $abs = '/var/data' . $relLocal;  // /var/data/uploads/ids/file.jpg
-  $uploadsRoot = '/var/data/uploads';
+if (is_dir('/var/www/html/uploads')) {
+  // Persistent disk on Render (mounted at /var/www/html/uploads)
+  $abs = '/var/www/html' . $relLocal;  // /var/www/html/uploads/ids/file.jpg
+  $uploadsRoot = '/var/www/html/uploads';
   error_log("[file.dl] Using persistent disk: abs={$abs}");
 } else {
   // Local development
@@ -40,8 +40,9 @@ if (is_dir('/var/data/uploads')) {
   error_log("[file.dl] Using local uploads: docRoot={$docRoot}, abs={$abs}, relLocal={$relLocal}");
 }
 
-if (!$abs || !is_file($abs)) {
-  error_log("[file.dl] file not found: abs={$abs}, is_file=" . (is_file($abs) ? 'true' : 'false'));
+// Validate $abs is a string before checking if file exists
+if (!$abs || !is_string($abs) || !is_file($abs)) {
+  error_log("[file.dl] file not found: abs=" . var_export($abs, true) . ", relLocal={$relLocal}");
   http_response_code(404); echo "not_found"; exit;
 }
 
