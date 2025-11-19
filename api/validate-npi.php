@@ -170,6 +170,36 @@ try {
     }
   }
 
+  // Extract address information
+  $addresses = $provider['addresses'] ?? [];
+  $locationAddress = null;
+  $phone = '';
+
+  // Find location address (practice address)
+  foreach ($addresses as $addr) {
+    if (($addr['address_purpose'] ?? '') === 'LOCATION') {
+      $locationAddress = $addr;
+      break;
+    }
+  }
+
+  // Fallback to mailing address if no location found
+  if (!$locationAddress && !empty($addresses)) {
+    $locationAddress = $addresses[0];
+  }
+
+  // Extract address fields
+  $addressLine1 = $locationAddress['address_1'] ?? '';
+  $city = $locationAddress['city'] ?? '';
+  $state = $locationAddress['state'] ?? '';
+  $zip = $locationAddress['postal_code'] ?? '';
+  $phone = $locationAddress['telephone_number'] ?? '';
+
+  // Format zip code (NPPES returns 9 digits, we want 5)
+  if (strlen($zip) > 5) {
+    $zip = substr($zip, 0, 5);
+  }
+
   // Success - NPI is valid and name matches
   json_out(200, [
     'valid' => true,
@@ -180,7 +210,12 @@ try {
       'credentials' => $credentials,
       'providerType' => $providerType,
       'taxonomy' => $taxonomy,
-      'status' => $status
+      'status' => $status,
+      'address' => $addressLine1,
+      'city' => $city,
+      'state' => $state,
+      'zip' => $zip,
+      'phone' => $phone
     ],
     'message' => 'NPI verified successfully'
   ]);

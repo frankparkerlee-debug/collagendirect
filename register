@@ -584,6 +584,7 @@
             <div id="field-npi">
               <label for="npi">NPI Number</label>
               <input id="npi" inputmode="numeric" pattern="\d{10}" placeholder="10 digits" />
+              <div style="font-size:0.875rem;color:#059669;margin-top:0.25rem;font-weight:500">💡 Click "Validate NPI" below to auto-fill your name, address, and phone</div>
               <div class="error-message">NPI number is required</div>
             </div>
             <div id="field-ptan">
@@ -1351,8 +1352,36 @@
             document.getElementById('lastName').value = provider.lastName;
           }
 
-          // Show success message
-          npiStatus.textContent = `✓ NPI verified and info loaded: ${provider.firstName} ${provider.lastName}${provider.credentials ? ', ' + provider.credentials : ''}`;
+          // Auto-fill practice/address information (for practice admins)
+          if (provider.address) {
+            const addressField = document.getElementById('address');
+            if (addressField) {
+              addressField.value = provider.address;
+            }
+          }
+          if (provider.city) {
+            const cityField = document.getElementById('city');
+            if (cityField) cityField.value = provider.city;
+          }
+          if (provider.state) {
+            const stateField = document.getElementById('state');
+            if (stateField) stateField.value = provider.state;
+          }
+          if (provider.zip) {
+            const zipField = document.getElementById('zip');
+            if (zipField) zipField.value = provider.zip;
+          }
+          if (provider.phone) {
+            const phoneField = document.getElementById('phone');
+            if (phoneField) phoneField.value = provider.phone;
+          }
+
+          // Show success message with all loaded info
+          let loadedFields = ['Name'];
+          if (provider.address) loadedFields.push('Address');
+          if (provider.phone) loadedFields.push('Phone');
+
+          npiStatus.textContent = `✓ NPI verified: ${provider.firstName} ${provider.lastName}${provider.credentials ? ', ' + provider.credentials : ''}`;
           if (provider.taxonomy) {
             npiStatus.textContent += ` (${provider.taxonomy})`;
           }
@@ -1362,7 +1391,7 @@
           // Show a helpful message
           const msg = document.createElement('div');
           msg.style.cssText = 'margin-top:8px;padding:12px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;font-size:14px;color:#15803d';
-          msg.innerHTML = `<strong>✓ Information loaded from NPPES</strong><br>Please verify the auto-filled information and add your medical license details below.`;
+          msg.innerHTML = `<strong>✓ Auto-filled from NPPES:</strong> ${loadedFields.join(', ')}<br>Please verify the information and complete remaining fields.`;
           const statusParent = npiStatus.parentElement;
           const existingMsg = statusParent.querySelector('.auto-fill-message');
           if (existingMsg) existingMsg.remove();
