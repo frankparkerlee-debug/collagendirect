@@ -23,6 +23,38 @@ try {
           WHERE o.id = ?";
   $st = $pdo->prepare($sql); $st->execute([$id]); $o = $st->fetch();
   if (!$o) { http_response_code(404); echo "order not found"; exit; }
+
+  // Fetch all products in this order group (primary, secondary, additional)
+  $order_group_id = $o['order_group_id'];
+  $all_products = [];
+
+  if (!empty($order_group_id)) {
+    // Multi-product order: fetch all orders in the group
+    $sql_group = "SELECT product, product_type, wound_index, cpt, frequency_per_week, qty_per_change, duration_days
+                  FROM orders
+                  WHERE order_group_id = ?
+                  ORDER BY wound_index,
+                    CASE product_type
+                      WHEN 'primary' THEN 1
+                      WHEN 'secondary' THEN 2
+                      WHEN 'additional' THEN 3
+                      ELSE 4
+                    END";
+    $st_group = $pdo->prepare($sql_group);
+    $st_group->execute([$order_group_id]);
+    $all_products = $st_group->fetchAll();
+  } else {
+    // Single-product order: just use the current order's product
+    $all_products = [[
+      'product' => $o['product'] ?? '',
+      'product_type' => $o['product_type'] ?? 'primary',
+      'wound_index' => $o['wound_index'] ?? 0,
+      'cpt' => $o['cpt'] ?? '',
+      'frequency_per_week' => $o['frequency_per_week'] ?? 0,
+      'qty_per_change' => $o['qty_per_change'] ?? 1,
+      'duration_days' => $o['duration_days'] ?? 0
+    ]];
+  }
 } catch (Throwable $e) { http_response_code(500); echo "query_failed"; exit; }
 
 function h($v){ return htmlspecialchars((string)$v, ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8'); }
@@ -122,18 +154,44 @@ if (empty($wounds)) {
   ]];
 }
 
-// Build wounds section with each wound
+// Build wounds section with each wound and all its products
 $sec_wound = '';
 $wound_num = 1;
-foreach ($wounds as $wound) {
-  $w_product = h($wound['product_name'] ?? '—');
+foreach ($wounds as $wound_idx => $wound) {
   $w_freq = (int)($wound['frequency_per_week'] ?? 0);
   $w_qty = (int)($wound['qty_per_change'] ?? 1);
+
+  // Get all products for this wound from the order group
+  $wound_products = array_filter($all_products, function($p) use ($wound_idx) {
+    return (int)($p['wound_index'] ?? 0) === $wound_idx;
+  });
+
+  // Build product list display
+  $products_html = '';
+  foreach ($wound_products as $prod) {
+    $type_label = '';
+    switch ($prod['product_type'] ?? 'primary') {
+      case 'primary':
+        $type_label = '<span style="color:#059669;font-weight:bold">Primary:</span>';
+        break;
+      case 'secondary':
+        $type_label = '<span style="color:#2563eb;font-weight:bold">Secondary:</span>';
+        break;
+      case 'additional':
+        $type_label = '<span style="color:#7c3aed;font-weight:bold">Additional:</span>';
+        break;
+    }
+    $products_html .= $type_label . ' ' . h($prod['product']) . '<br>';
+  }
+
+  if (empty($products_html)) {
+    $products_html = h($wound['product_name'] ?? '—'); // Fallback for legacy orders
+  }
 
   $sec_wound .= '
   <h2>Wound #'.$wound_num.'</h2>
   <div class="box"><table class="kv">
-    <tr><td class="key">Product</td><td><strong>'.$w_product.'</strong></td></tr>
+    <tr><td class="key">Products Ordered</td><td><strong>'.$products_html.'</strong></td></tr>
     <tr><td class="key">Change Frequency</td><td>'.h((string)$w_freq).' × /week</td></tr>
     <tr><td class="key">Qty per Change</td><td>'.h((string)$w_qty).'</td></tr>
     <tr><td class="key">Location</td><td>'.h($wound['location'] ?? "—").'</td></tr>

@@ -49,20 +49,35 @@ try {
   }
 
   // Fetch all products in this order group (primary, secondary, additional)
-  $order_group_id = $o['order_group_id'] ?? $o['id'];
-  $sql_group = "SELECT product, product_type, wound_index, cpt, frequency_per_week, qty_per_change, duration_days
-                FROM orders
-                WHERE order_group_id = ? AND user_id = ?
-                ORDER BY wound_index,
-                  CASE product_type
-                    WHEN 'primary' THEN 1
-                    WHEN 'secondary' THEN 2
-                    WHEN 'additional' THEN 3
-                    ELSE 4
-                  END";
-  $st_group = $pdo->prepare($sql_group);
-  $st_group->execute([$order_group_id, $userId]);
-  $all_products = $st_group->fetchAll();
+  $order_group_id = $o['order_group_id'];
+
+  if (!empty($order_group_id)) {
+    // Multi-product order: fetch all orders in the group
+    $sql_group = "SELECT product, product_type, wound_index, cpt, frequency_per_week, qty_per_change, duration_days
+                  FROM orders
+                  WHERE order_group_id = ? AND user_id = ?
+                  ORDER BY wound_index,
+                    CASE product_type
+                      WHEN 'primary' THEN 1
+                      WHEN 'secondary' THEN 2
+                      WHEN 'additional' THEN 3
+                      ELSE 4
+                    END";
+    $st_group = $pdo->prepare($sql_group);
+    $st_group->execute([$order_group_id, $userId]);
+    $all_products = $st_group->fetchAll();
+  } else {
+    // Single-product order: just use the current order's product
+    $all_products = [[
+      'product' => $o['product'] ?? '',
+      'product_type' => $o['product_type'] ?? 'primary',
+      'wound_index' => $o['wound_index'] ?? 0,
+      'cpt' => $o['cpt'] ?? '',
+      'frequency_per_week' => $o['frequency_per_week'] ?? 0,
+      'qty_per_change' => $o['qty_per_change'] ?? 1,
+      'duration_days' => $o['duration_days'] ?? 0
+    ]];
+  }
 
 } catch (Throwable $e) {
   http_response_code(500);
