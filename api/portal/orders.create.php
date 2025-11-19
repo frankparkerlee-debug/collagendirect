@@ -298,8 +298,107 @@ try {
     $review_status
   ]);
 
+  // Create additional orders for secondary and additional products (multi-product support)
+  $order_group_id = null;
+  $all_order_ids = [$order_id];
+
+  if (!empty($wounds_array)) {
+    foreach ($wounds_array as $wound_index => $wound) {
+      $products_to_create = [];
+
+      // Check for secondary product
+      if (!empty($wound['secondary_product_id']) && $wound['secondary_product_id'] !== '') {
+        $products_to_create[] = [
+          'product_type' => 'secondary',
+          'product_id' => (int)$wound['secondary_product_id'],
+          'product_name' => $wound['secondary_product_name'] ?? '',
+          'product_cpt' => $wound['secondary_product_cpt'] ?? null,
+          'product_price' => floatval($wound['secondary_product_price'] ?? 0)
+        ];
+      }
+
+      // Check for additional product
+      if (!empty($wound['additional_product_id']) && $wound['additional_product_id'] !== '') {
+        $products_to_create[] = [
+          'product_type' => 'additional',
+          'product_id' => (int)$wound['additional_product_id'],
+          'product_name' => $wound['additional_product_name'] ?? '',
+          'product_cpt' => $wound['additional_product_cpt'] ?? null,
+          'product_price' => floatval($wound['additional_product_price'] ?? 0)
+        ];
+      }
+
+      // If we have secondary or additional products, create order group
+      if (!empty($products_to_create)) {
+        // Create order group ID if not already created
+        if (!$order_group_id) {
+          $order_group_id = guid();
+
+          // Update primary order with order_group_id
+          $pdo->prepare("UPDATE orders SET order_group_id = ?, product_type = 'primary', wound_index = ? WHERE id = ?")
+             ->execute([$order_group_id, $wound_index, $order_id]);
+
+          // Create order_groups record
+          $pdo->prepare("INSERT INTO order_groups (id, patient_id, user_id, status, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())")
+             ->execute([$order_group_id, $patient_id, $uid, $status]);
+        }
+
+        // Create orders for secondary and additional products
+        foreach ($products_to_create as $product_info) {
+          $new_order_id = guid();
+          $all_order_ids[] = $new_order_id;
+
+          $pdo->prepare("INSERT INTO orders
+            (id, patient_id, user_id, product, product_id, product_price, cpt, status, frequency, delivery_mode,
+             order_group_id, product_type, wound_index,
+             shipments_remaining, created_at, updated_at,
+             insurer_name, member_id, group_id, payer_phone, prior_auth, payment_type,
+             wound_location, wound_laterality, wound_notes, exudate_level, wounds_data,
+             last_eval_date, start_date, qty_per_change, duration_days,
+             additional_instructions, secondary_dressing, notes_text,
+             shipping_name, shipping_phone, shipping_address, shipping_city, shipping_state, shipping_zip,
+             e_sign_user_id, e_sign_name, e_sign_title, e_sign_at, e_sign_ip,
+             review_status)
+            VALUES
+            (?,?,?,?,?,?,?,?,?,?,
+             ?,?,?,
+             0,NOW(),NOW(),
+             ?,?,?,?,?,?,
+             ?,?,?,?,?,
+             ?,?,?,?,
+             ?,?,?,
+             ?,?,?,?,?,?,
+             ?,?,?,?,?,
+             ?)")->execute([
+            $new_order_id, $patient_id, $uid,
+            $product_info['product_name'], $product_info['product_id'], $product_info['product_price'], $product_info['product_cpt'],
+            $status, $frequency, $delivery_mode,
+            $order_group_id, $product_info['product_type'], $wound_index,
+            // insurance & payment
+            safe($_POST['insurance_provider'] ?? null),
+            safe($_POST['insurance_member_id'] ?? null),
+            safe($_POST['insurance_group_id'] ?? null),
+            safe($_POST['insurance_payer_phone'] ?? null),
+            $prior_auth, $payment_type,
+            // wound (legacy columns + new wounds_data JSONB)
+            $wound_location, $wound_laterality, $wound_notes, $exudate_level, $wounds_data,
+            // new order form fields
+            $last_eval_date, $start_date, $qty_per_change, $duration_days,
+            $additional_instructions, $secondary_dressing, $notes_text,
+            // shipping
+            $shipping_name, $shipping_phone, $shipping_address, $shipping_city, $shipping_state, $shipping_zip,
+            // e-sign
+            $uid, $sign_name, $sign_title, date('Y-m-d H:i:s'), $_SERVER['REMOTE_ADDR'] ?? null,
+            // review status
+            $review_status
+          ]);
+        }
+      }
+    }
+  }
+
   // 7) Respond to client ASAP; then continue with uploads/updates
-  respond_now(['ok'=>true,'data'=>['order_id'=>$order_id,'patient_id'=>$patient_id]]);
+  respond_now(['ok'=>true,'data'=>['order_id'=>$order_id,'order_group_id'=>$order_group_id,'patient_id'=>$patient_id]]);
 
   /* -------------------- POST-RESPONSE: uploads & attachments -------------------- */
   // Files (optional). Keep your existing subdirectories.
