@@ -9879,10 +9879,9 @@ function viewOrderDetails(order) {
           ${order.wound_laterality || (woundDetails && woundDetails.laterality) ? `
             <div><span class="text-slate-600">Laterality:</span> ${esc(order.wound_laterality || woundDetails.laterality)}</div>
           ` : ''}
-            ${order.wound_notes ? `<div><span class="text-slate-600">Notes:</span> ${esc(order.wound_notes)}</div>` : ''}
-          </div>
+          ${order.wound_notes ? `<div><span class="text-slate-600">Notes:</span> ${esc(order.wound_notes)}</div>` : ''}
         </div>
-      ` : ''}
+      </div>
 
       <!-- Provider Signature -->
       ${order.sign_name ? `
