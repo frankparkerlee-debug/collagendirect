@@ -11342,8 +11342,16 @@ function renderOrderCard(o, index) {
   // Build product display
   let productDisplay = '';
   if (o.is_multi_product && o.all_products && o.all_products.length > 0) {
+    // Sort products: primary first, then secondary, then additional
+    const sortedProducts = [...o.all_products].sort((a, b) => {
+      const order = { 'primary': 1, 'secondary': 2, 'additional': 3 };
+      const aType = a.product_type || 'primary';
+      const bType = b.product_type || 'primary';
+      return (order[aType] || 999) - (order[bType] || 999);
+    });
+
     // Multi-product order: show all products with labels
-    productDisplay = o.all_products.map(prod => {
+    productDisplay = sortedProducts.map(prod => {
       const type = prod.product_type || 'primary';
       let typeLabel = '';
       let typeColor = '';
