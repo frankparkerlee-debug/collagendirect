@@ -420,6 +420,27 @@ try {
       // if (!$ins_path || !$id_path) throw new RuntimeException('missing_insurance_docs');
     }
 
+    // Process insurance card OCR if uploaded
+    if ($ins_path) {
+      require_once __DIR__ . '/../insurance-ocr.php';
+      $insuranceOCR = new InsuranceOCR();
+
+      // Only process if OCR is enabled and patient hasn't been processed yet
+      if ($insuranceOCR->isEnabled() && !$insuranceOCR->hasBeenProcessed($pdo, $patient_id)) {
+        $fullPath = $_SERVER['DOCUMENT_ROOT'] . $ins_path;
+        // Fallback to Render persistent disk path
+        if (!file_exists($fullPath)) {
+          $fullPath = '/opt/render/project/src' . $ins_path;
+        }
+
+        $insuranceData = $insuranceOCR->processInsuranceCard($fullPath);
+        if ($insuranceData && $insuranceData['confidence'] >= 0.5) {
+          $insuranceOCR->saveToPatient($pdo, $patient_id, $insuranceData);
+          error_log("[orders.create] OCR processed insurance card for patient $patient_id");
+        }
+      }
+    }
+
     // Update order with file columns if present
     if ($rx_path || $ins_path || $id_path || $wound_photo_path) {
       $sets=[]; $params=[];
