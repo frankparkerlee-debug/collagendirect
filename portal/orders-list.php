@@ -308,22 +308,23 @@ foreach ($orders as $order) {
                   <a
                     href="/portal/wholesale-order.pdf.php?order_group=<?= urlencode($wholesale_order_num) ?>&csrf=<?= htmlspecialchars($_SESSION['csrf'] ?? '') ?>"
                     target="_blank"
-                    class="btn btn-primary"
+                    class="btn btn-ghost"
                     style="padding: 0.375rem 0.75rem; font-size: 0.75rem;"
                     onclick="event.stopPropagation()"
                   >
                     Order Form
                   </a>
                 <?php endif; ?>
+              <?php else: ?>
+                <a
+                  href="?page=order-detail&id=<?= htmlspecialchars($order['display_id']) ?>"
+                  class="btn btn-ghost"
+                  style="padding: 0.375rem 0.75rem; font-size: 0.75rem;"
+                  onclick="event.stopPropagation()"
+                >
+                  View
+                </a>
               <?php endif; ?>
-              <a
-                href="?page=order-detail&id=<?= htmlspecialchars($order['display_id']) ?>"
-                class="btn btn-ghost"
-                style="padding: 0.375rem 0.75rem; font-size: 0.75rem;"
-                onclick="event.stopPropagation()"
-              >
-                View
-              </a>
               <svg class="expand-icon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
               </svg>

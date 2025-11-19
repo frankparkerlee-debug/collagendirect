@@ -223,7 +223,6 @@ foreach ($order['products'] as $prod) {
               <th>Product</th>
               <th>Size</th>
               <th>Quantity</th>
-              <th style="text-align: right;">Price</th>
             </tr>
           </thead>
           <tbody>
@@ -234,17 +233,8 @@ foreach ($order['products'] as $prod) {
                 </td>
                 <td><?= htmlspecialchars($prod['size'] ?? 'N/A') ?></td>
                 <td><?= htmlspecialchars($prod['qty_per_change'] ?? 'N/A') ?></td>
-                <td style="text-align: right; font-weight: 600;">
-                  $<?= number_format($prod['product_price'] ?? 0, 2) ?>
-                </td>
               </tr>
             <?php endforeach; ?>
-            <tr style="background: #f8fafc; font-weight: 700;">
-              <td colspan="3" style="text-align: right; padding: 1rem;">Total:</td>
-              <td style="text-align: right; color: #10b981; font-size: 1.125rem; padding: 1rem;">
-                $<?= number_format($total_price, 2) ?>
-              </td>
-            </tr>
           </tbody>
         </table>
       </div>

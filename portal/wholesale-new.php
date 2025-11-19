@@ -982,9 +982,9 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
       }
 
       const product = productData[selectedProductId];
-      const pricePerPiece = parseFloat(product.price_wholesale || 0);
+      // price_wholesale is already per BOX (not per piece)
+      const pricePerBox = parseFloat(product.price_wholesale || 0);
       const piecesPerBox = parseInt(product.pieces_per_box || 10);
-      const pricePerBox = pricePerPiece * piecesPerBox;
 
       priceInfo.textContent = `$${pricePerBox.toFixed(2)}/box (${piecesPerBox} pieces)`;
       productIdInput.value = selectedProductId;
@@ -1014,9 +1014,8 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
 
         if (productId && boxes > 0) {
           const product = productData[productId];
-          const pricePerPiece = parseFloat(product.price_wholesale || 0);
-          const piecesPerBox = parseInt(product.pieces_per_box || 10);
-          const pricePerBox = pricePerPiece * piecesPerBox;
+          // price_wholesale is already per BOX (not per piece)
+          const pricePerBox = parseFloat(product.price_wholesale || 0);
           patientTotal += boxes * pricePerBox;
           boxesInput.value = boxes;
         }
