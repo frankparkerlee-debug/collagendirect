@@ -118,7 +118,7 @@ foreach ($orders as $order) {
 
 .order-header {
   display: grid;
-  grid-template-columns: 150px 1fr 150px 120px 100px 100px auto;
+  grid-template-columns: 150px 1fr 150px 120px 120px auto;
   gap: 1rem;
   align-items: center;
 }
@@ -180,16 +180,24 @@ foreach ($orders as $order) {
   </div>
 
   <!-- Filters -->
-  <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+  <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
     <input
       type="text"
       id="search-orders"
       placeholder="Search patient or product..."
-      style="flex: 1; padding: 0.5rem 1rem; border: 1px solid #e2e8f0; border-radius: 6px;"
+      style="flex: 1; min-width: 250px; padding: 0.5rem 1rem; border: 1px solid #e2e8f0; border-radius: 6px;"
     >
     <select
+      id="filter-order-type"
+      style="padding: 0.5rem 1rem; border: 1px solid #e2e8f0; border-radius: 6px; min-width: 150px;"
+    >
+      <option value="">All Order Types</option>
+      <option value="referral">Referral</option>
+      <option value="wholesale">Wholesale</option>
+    </select>
+    <select
       id="filter-status"
-      style="padding: 0.5rem 1rem; border: 1px solid #e2e8f0; border-radius: 6px;"
+      style="padding: 0.5rem 1rem; border: 1px solid #e2e8f0; border-radius: 6px; min-width: 120px;"
     >
       <option value="">All Status</option>
       <option value="draft">Draft</option>
@@ -197,14 +205,12 @@ foreach ($orders as $order) {
       <option value="approved">Approved</option>
       <option value="shipped">Shipped</option>
     </select>
-    <select
-      id="filter-type"
-      style="padding: 0.5rem 1rem; border: 1px solid #e2e8f0; border-radius: 6px;"
+    <input
+      type="date"
+      id="filter-date"
+      style="padding: 0.5rem 1rem; border: 1px solid #e2e8f0; border-radius: 6px; min-width: 150px;"
+      placeholder="Filter by date"
     >
-      <option value="">All Orders</option>
-      <option value="single">Single Product</option>
-      <option value="multi">Multi-Product</option>
-    </select>
   </div>
 
   <!-- Orders List -->
@@ -229,6 +235,9 @@ foreach ($orders as $order) {
           data-order-id="<?= htmlspecialchars($order['display_id']) ?>"
           data-status="<?= htmlspecialchars($order['status']) ?>"
           data-type="<?= $is_group ? 'multi' : 'single' ?>"
+          data-payment-type="<?= htmlspecialchars($order['payment_type'] ?? 'insurance') ?>"
+          data-created-date="<?= date('Y-m-d', strtotime($order['created_at'])) ?>"
+          data-products="<?= htmlspecialchars(strtolower(implode(' ', array_column($order['products'], 'product')))) ?>"
           onclick="toggleOrderDetails(this)"
         >
           <div class="order-header">
@@ -270,11 +279,11 @@ foreach ($orders as $order) {
               <?php endif; ?>
             </div>
 
-            <!-- Total -->
+            <!-- Order Type -->
             <div>
-              <div style="font-size: 0.75rem; color: #64748b;">Total</div>
-              <div style="font-weight: 700; color: #10b981; font-size: 1.125rem;">
-                $<?= number_format($order['total_price'], 2) ?>
+              <div style="font-size: 0.75rem; color: #64748b;">Type</div>
+              <div style="font-weight: 500; font-size: 0.875rem;">
+                <?= $order['payment_type'] === 'wholesale' ? '📦 Wholesale' : '🏥 Referral' ?>
               </div>
             </div>
 
@@ -283,11 +292,6 @@ foreach ($orders as $order) {
               <span class="status-badge <?= $status_class ?>">
                 <?= ucfirst($order['status']) ?>
               </span>
-            </div>
-
-            <!-- Payment -->
-            <div style="font-size: 0.75rem; color: #64748b;">
-              <?= $order['payment_type'] === 'insurance' ? '💳 Insurance' : '💵 Cash' ?>
             </div>
 
             <!-- Actions -->
@@ -316,7 +320,6 @@ foreach ($orders as $order) {
                 <tr style="border-bottom: 1px solid #e2e8f0;">
                   <th style="text-align: left; padding: 0.5rem; font-weight: 500; color: #64748b;">Product</th>
                   <th style="text-align: left; padding: 0.5rem; font-weight: 500; color: #64748b;">Quantity</th>
-                  <th style="text-align: right; padding: 0.5rem; font-weight: 500; color: #64748b;">Price</th>
                 </tr>
               </thead>
               <tbody>
@@ -327,9 +330,6 @@ foreach ($orders as $order) {
                     </td>
                     <td style="padding: 0.5rem;">
                       <?= $prod['qty_per_change'] ?? 'N/A' ?>
-                    </td>
-                    <td style="padding: 0.5rem; text-align: right; font-weight: 600;">
-                      $<?= number_format($prod['product_price'], 2) ?>
                     </td>
                   </tr>
                 <?php endforeach; ?>
@@ -376,28 +376,41 @@ function toggleOrderDetails(row) {
 document.addEventListener('DOMContentLoaded', function() {
   const searchInput = document.getElementById('search-orders');
   const statusFilter = document.getElementById('filter-status');
-  const typeFilter = document.getElementById('filter-type');
+  const orderTypeFilter = document.getElementById('filter-order-type');
+  const dateFilter = document.getElementById('filter-date');
 
   function filterOrders() {
-    const searchTerm = searchInput.value.toLowerCase();
-    const selectedStatus = statusFilter.value.toLowerCase();
-    const selectedType = typeFilter.value.toLowerCase();
+    const searchTerm = (searchInput?.value || '').toLowerCase();
+    const selectedStatus = (statusFilter?.value || '').toLowerCase();
+    const selectedOrderType = (orderTypeFilter?.value || '').toLowerCase();
+    const selectedDate = dateFilter?.value || '';
 
     document.querySelectorAll('.order-row').forEach(row => {
       const text = row.textContent.toLowerCase();
-      const status = row.getAttribute('data-status').toLowerCase();
-      const type = row.getAttribute('data-type').toLowerCase();
+      const products = row.getAttribute('data-products') || '';
+      const status = (row.getAttribute('data-status') || '').toLowerCase();
+      const paymentType = (row.getAttribute('data-payment-type') || '').toLowerCase();
+      const createdDate = row.getAttribute('data-created-date') || '';
 
-      const matchesSearch = !searchTerm || text.includes(searchTerm);
+      // Match search (patient name or products)
+      const matchesSearch = !searchTerm || text.includes(searchTerm) || products.includes(searchTerm);
+
+      // Match status
       const matchesStatus = !selectedStatus || status === selectedStatus;
-      const matchesType = !selectedType || type === selectedType;
 
-      row.style.display = (matchesSearch && matchesStatus && matchesType) ? 'block' : 'none';
+      // Match order type (wholesale vs referral)
+      const matchesOrderType = !selectedOrderType || paymentType === selectedOrderType;
+
+      // Match date
+      const matchesDate = !selectedDate || createdDate === selectedDate;
+
+      row.style.display = (matchesSearch && matchesStatus && matchesOrderType && matchesDate) ? 'block' : 'none';
     });
   }
 
-  searchInput?.addEventListener('input', filterOrders);
-  statusFilter?.addEventListener('change', filterOrders);
-  typeFilter?.addEventListener('change', filterOrders);
+  if (searchInput) searchInput.addEventListener('input', filterOrders);
+  if (statusFilter) statusFilter.addEventListener('change', filterOrders);
+  if (orderTypeFilter) orderTypeFilter.addEventListener('change', filterOrders);
+  if (dateFilter) dateFilter.addEventListener('change', filterOrders);
 });
 </script>
