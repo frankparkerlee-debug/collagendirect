@@ -88,7 +88,7 @@ function slug(string $n){ $s=preg_replace('~[^\pL\d]+~u','-',$n); $s=trim($s,'-'
 // Get full filesystem path for a relative upload path (e.g., /uploads/ids/file.jpg)
 function getFullPath(string $relativePath): string {
   if (is_dir('/opt/render/project/src/uploads')) {
-    return '/var/www/html' . $relativePath;  // Persistent disk on Render
+    return '/opt/render/project/src' . $relativePath;  // Persistent disk on Render
   } else {
     global $__DIR__;
     $baseDir = $__DIR__ ?? __DIR__;
