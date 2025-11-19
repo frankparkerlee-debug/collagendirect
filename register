@@ -1270,10 +1270,88 @@
     const btnValidate = document.getElementById('btnValidateNPI');
     const npiInput = document.getElementById('npi');
     const npiStatus = document.getElementById('npiStatus');
-    btnValidate?.addEventListener('click',()=>{
-      const ok = isValidNPI(npiInput.value.trim());
-      npiStatus.textContent = ok ? 'NPI format valid (checksum passed)' : 'Invalid NPI number';
-      npiStatus.className = 'status ' + (ok ? 'ok' : 'bad');
+
+    let npiValidated = false; // Track if NPI has been validated
+
+    // Reset validation if NPI or name changes
+    [npiInput, document.getElementById('firstName'), document.getElementById('lastName')].forEach(field => {
+      field?.addEventListener('input', () => {
+        if (npiValidated) {
+          npiValidated = false;
+          npiStatus.textContent = 'NPI not validated';
+          npiStatus.className = 'status';
+        }
+      });
+    });
+
+    btnValidate?.addEventListener('click', async () => {
+      const npi = npiInput.value.trim();
+
+      // First check checksum
+      if (!isValidNPI(npi)) {
+        npiStatus.textContent = 'Invalid NPI format';
+        npiStatus.className = 'status bad';
+        npiValidated = false;
+        return;
+      }
+
+      // Show loading state
+      btnValidate.disabled = true;
+      npiStatus.textContent = 'Looking up NPI in NPPES registry...';
+      npiStatus.className = 'status';
+
+      try {
+        const response = await fetch('/api/validate-npi.php', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          credentials: 'include',
+          body: JSON.stringify({ npi, skipNameValidation: true })
+        });
+
+        const data = await response.json();
+
+        if (data.valid) {
+          const provider = data.providerInfo;
+
+          // Auto-fill name fields
+          if (provider.firstName) {
+            document.getElementById('firstName').value = provider.firstName;
+          }
+          if (provider.lastName) {
+            document.getElementById('lastName').value = provider.lastName;
+          }
+
+          // Show success message
+          npiStatus.textContent = `✓ NPI verified and info loaded: ${provider.firstName} ${provider.lastName}${provider.credentials ? ', ' + provider.credentials : ''}`;
+          if (provider.taxonomy) {
+            npiStatus.textContent += ` (${provider.taxonomy})`;
+          }
+          npiStatus.className = 'status ok';
+          npiValidated = true;
+
+          // Show a helpful message
+          const msg = document.createElement('div');
+          msg.style.cssText = 'margin-top:8px;padding:12px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;font-size:14px;color:#15803d';
+          msg.innerHTML = `<strong>✓ Information loaded from NPPES</strong><br>Please verify the auto-filled information and add your medical license details below.`;
+          const statusParent = npiStatus.parentElement;
+          const existingMsg = statusParent.querySelector('.auto-fill-message');
+          if (existingMsg) existingMsg.remove();
+          msg.className = 'auto-fill-message';
+          statusParent.appendChild(msg);
+
+        } else {
+          npiStatus.textContent = `✗ ${data.reason || 'NPI validation failed'}`;
+          npiStatus.className = 'status bad';
+          npiValidated = false;
+        }
+      } catch (err) {
+        console.error('NPI validation error:', err);
+        npiStatus.textContent = '⚠ Could not verify NPI (registry unavailable)';
+        npiStatus.className = 'status bad';
+        npiValidated = false;
+      } finally {
+        btnValidate.disabled = false;
+      }
     });
 
     // CSRF helper
@@ -1416,6 +1494,9 @@
         errors.push({ field: 'field-npi', message: 'NPI number is required' });
       } else if (!isValidNPI(document.getElementById('npi').value.trim())) {
         errors.push({ field: 'field-npi', message: 'Please enter a valid NPI number (click Validate NPI)' });
+      } else if (!npiValidated) {
+        // Warning (non-blocking) - they can still register but should validate
+        console.warn('NPI not verified with NPPES registry');
       }
       if (!document.getElementById('license').value.trim()) {
         errors.push({ field: 'field-license', message: 'Medical license number is required' });
