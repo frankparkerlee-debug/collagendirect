@@ -60,6 +60,9 @@ try {
       'last_name' => $p['last_name'],
       'phone' => $p['phone'],
       'address' => $fullAddress,
+      'city' => $p['city'] ?? '',
+      'state' => $p['state'] ?? '',
+      'zip' => $p['zip'] ?? '',
       'last_order' => $p['last_order_date'] ? date('n/j/y', strtotime($p['last_order_date'])) : null,
       'display' => $p['first_name'] . ' ' . $p['last_name'] .
                   ($p['last_order_date'] ? ' - Previous order: ' . date('n/j/y', strtotime($p['last_order_date'])) : '')

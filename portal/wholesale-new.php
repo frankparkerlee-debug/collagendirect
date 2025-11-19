@@ -458,6 +458,7 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
                  autocomplete="off"
                  value="${existingData?.first_name || ''}"
                  style="min-width: 120px;">
+          <input type="hidden" name="patients[${index}][id]" class="patient-id-input" value="${existingData?.id || ''}">
           <div id="patient-search-${index}" class="patient-search-results" style="display: none; position: absolute; z-index: 1000; background: white; border: 1px solid var(--border); border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-height: 200px; overflow-y: auto; width: calc(200% + 20px); margin-top: 2px;"></div>
         </td>
         <td style="padding: 0.75rem;">
@@ -492,6 +493,9 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
                  required
                  value="${existingData?.address || ''}"
                  style="min-width: 250px;">
+          <input type="hidden" name="patients[${index}][city]" class="patient-city-input" value="${existingData?.city || ''}">
+          <input type="hidden" name="patients[${index}][state]" class="patient-state-input" value="${existingData?.state || ''}">
+          <input type="hidden" name="patients[${index}][zip]" class="patient-zip-input" value="${existingData?.zip || ''}">
           <div class="validation-msg" style="color: #dc3545; font-size: 0.75rem; margin-top: 0.25rem; display: none;"></div>
         </td>
         <td style="padding: 0.75rem;">
@@ -595,11 +599,19 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
                     const patient = JSON.parse(this.dataset.patient);
                     const parentRow = document.querySelector(`tr[data-index="${rowIndex}"]`);
 
-                    // Populate form fields
+                    // Populate form fields including patient ID
+                    parentRow.querySelector('.patient-id-input').value = patient.id || '';
                     parentRow.querySelector('[name*="[first_name]"]').value = patient.first_name;
                     parentRow.querySelector('[name*="[last_name]"]').value = patient.last_name;
                     parentRow.querySelector('[name*="[phone]"]').value = patient.phone;
+
+                    // Populate address fields - use full formatted address for display
                     parentRow.querySelector('[name*="[address]"]').value = patient.address;
+
+                    // Populate hidden city, state, zip fields for form submission
+                    parentRow.querySelector('.patient-city-input').value = patient.city || '';
+                    parentRow.querySelector('.patient-state-input').value = patient.state || '';
+                    parentRow.querySelector('.patient-zip-input').value = patient.zip || '';
 
                     // Hide search results
                     searchContainer.style.display = 'none';
