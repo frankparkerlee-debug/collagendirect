@@ -169,8 +169,8 @@ if (!in_array($payment_type, $valid_payment_types)) {
 
 **Exposed:**
 ```
-SENDGRID_API_KEY=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
-DB_PASS=YEW!ad10jeo
+SENDGRID_API_KEY=<REDACTED - rotated>
+DB_PASS=<REDACTED>
 ```
 
 **Action Required:**

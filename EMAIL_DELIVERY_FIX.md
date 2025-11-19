@@ -40,7 +40,7 @@ Add the following environment variables with values from your `api/.env` file:
 
 | Variable Name | Value | Required |
 |---------------|-------|----------|
-| `SENDGRID_API_KEY` | `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` | ✅ Yes |
+| `SENDGRID_API_KEY` | `<your-sendgrid-api-key>` | ✅ Yes |
 | `SMTP_FROM` | `no-reply@collagendirect.health` | ✅ Yes |
 | `SMTP_FROM_NAME` | `CollagenDirect` | ✅ Yes |
 | `SG_TMPL_PASSWORD_RESET` | `d-41ea629107c54e0abc1dcbd654c9e498` | Optional |

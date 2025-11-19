@@ -11,7 +11,7 @@ define('DB_PASS', getenv('DB_PASS') ?: '');
 define('DB_PORT', getenv('DB_PORT') ?: '5432');
 
 // SendGrid Configuration
-define('SENDGRID_API_KEY', getenv('SENDGRID_API_KEY') ?: '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');
+define('SENDGRID_API_KEY', getenv('SENDGRID_API_KEY') ?: '');
 define('SENDGRID_FROM_EMAIL', 'sales@collagendirect.health');
 define('SENDGRID_FROM_NAME', 'CollagenDirect Sales Team');
 
