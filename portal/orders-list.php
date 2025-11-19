@@ -33,6 +33,7 @@ $sql = "
     o.product,
     o.product_price,
     o.delivery_mode,
+    o.additional_instructions,
     CASE
       WHEN og.id IS NOT NULL THEN (
         SELECT COUNT(*) FROM orders WHERE order_group_id = og.id
@@ -296,6 +297,25 @@ foreach ($orders as $order) {
 
             <!-- Actions -->
             <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <?php if ($order['payment_type'] === 'wholesale'): ?>
+                <?php
+                  // Extract wholesale order number from notes
+                  $notes = $order['additional_instructions'] ?? '';
+                  preg_match('/Wholesale Order #(WS-\d+-\d+)/', $notes, $matches);
+                  $wholesale_order_num = $matches[1] ?? '';
+                ?>
+                <?php if ($wholesale_order_num): ?>
+                  <a
+                    href="/portal/wholesale-order.pdf.php?order_group=<?= urlencode($wholesale_order_num) ?>&csrf=<?= htmlspecialchars($_SESSION['csrf'] ?? '') ?>"
+                    target="_blank"
+                    class="btn btn-primary"
+                    style="padding: 0.375rem 0.75rem; font-size: 0.75rem;"
+                    onclick="event.stopPropagation()"
+                  >
+                    Order Form
+                  </a>
+                <?php endif; ?>
+              <?php endif; ?>
               <a
                 href="?page=order-detail&id=<?= htmlspecialchars($order['display_id']) ?>"
                 class="btn btn-ghost"
