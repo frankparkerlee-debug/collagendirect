@@ -16,6 +16,15 @@ $patient_id = $_GET['patient_id'] ?? null;
 try {
     $insuranceOCR = new InsuranceOCR();
 
+    // Show configuration status
+    echo "<div style='background: #f0f0f0; padding: 10px; margin-bottom: 20px; border: 1px solid #ccc;'>\n";
+    echo "<strong>OCR Configuration:</strong><br>\n";
+    echo "• OCR Enabled: " . ($insuranceOCR->isEnabled() ? '<span style="color: green;">YES</span>' : '<span style="color: red;">NO</span>') . "<br>\n";
+    echo "• INSURANCE_OCR_ENABLED: " . (getenv('INSURANCE_OCR_ENABLED') ?: '<span style="color: red;">NOT SET</span>') . "<br>\n";
+    echo "• INSURANCE_OCR_PROVIDER: " . (getenv('INSURANCE_OCR_PROVIDER') ?: '<span style="color: orange;">NOT SET (using default)</span>') . "<br>\n";
+    echo "• ANTHROPIC_API_KEY: " . (getenv('ANTHROPIC_API_KEY') ? '<span style="color: green;">SET (length: ' . strlen(getenv('ANTHROPIC_API_KEY')) . ')</span>' : '<span style="color: red;">NOT SET</span>') . "<br>\n";
+    echo "</div>\n";
+
     if (!$insuranceOCR->isEnabled()) {
         echo "<p style='color: red;'>⚠️ OCR is not enabled!</p>\n";
         echo "<p>Please set the following environment variables:</p>\n";
@@ -110,13 +119,16 @@ try {
 
         // Process with OCR
         try {
+            error_log("[process-existing] Processing: $imagePath");
             $insuranceData = $insuranceOCR->processInsuranceCard($imagePath);
 
             if (!$insuranceData) {
-                echo "<td style='color: red;'>OCR failed</td>";
+                error_log("[process-existing] OCR returned null for: $imagePath");
+                echo "<td style='color: red;'>OCR failed - check error logs</td>";
                 echo "<td style='color: red;'>✗ Failed</td>";
                 $failed_count++;
                 echo "</tr>\n";
+                flush();
                 continue;
             }
 
