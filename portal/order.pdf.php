@@ -194,7 +194,7 @@ foreach ($wounds as $wound_idx => $wound) {
     return (int)($p['wound_index'] ?? 0) === $wound_idx;
   });
 
-  // Build product list display
+  // Build product list display with boxes calculation
   $products_html = '';
   foreach ($wound_products as $prod) {
     $type_label = '';
@@ -209,11 +209,33 @@ foreach ($wounds as $wound_idx => $wound) {
         $type_label = '<span style="color:#7c3aed;font-weight:bold">Additional:</span>';
         break;
     }
-    $products_html .= $type_label . ' ' . h($prod['product']) . '<br>';
+
+    // Calculate boxes for this product
+    $prod_freq = (int)($prod['frequency_per_week'] ?? $w_freq);
+    $prod_qty = (int)($prod['qty_per_change'] ?? $w_qty);
+    $prod_days = (int)($prod['duration_days'] ?? ($o['duration_days'] ?? 0));
+    $prod_weeks = $prod_days > 0 ? (int)ceil($prod_days / 7) : 0;
+    $total_pieces = $prod_freq * $prod_qty * $prod_weeks;
+    $boxes = $total_pieces > 0 ? (int)ceil($total_pieces / 10) : 0; // 10 items per box
+
+    $products_html .= $type_label . ' ' . h($prod['product']);
+    if ($boxes > 0) {
+      $products_html .= ' <span style="color:#64748b">(' . $boxes . ' boxes)</span>';
+    }
+    $products_html .= '<br>';
   }
 
   if (empty($products_html)) {
-    $products_html = h($wound['product_name'] ?? '—'); // Fallback for legacy orders
+    // Fallback for legacy orders
+    $legacy_days = (int)($o['duration_days'] ?? 0);
+    $legacy_weeks = $legacy_days > 0 ? (int)ceil($legacy_days / 7) : 0;
+    $legacy_total = $w_freq * $w_qty * $legacy_weeks;
+    $legacy_boxes = $legacy_total > 0 ? (int)ceil($legacy_total / 10) : 0;
+
+    $products_html = h($wound['product_name'] ?? '—');
+    if ($legacy_boxes > 0) {
+      $products_html .= ' <span style="color:#64748b">(' . $legacy_boxes . ' boxes)</span>';
+    }
   }
 
   $sec_wound .= '
