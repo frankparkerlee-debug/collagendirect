@@ -239,14 +239,7 @@ try {
     $totalPieces = $boxes * $piecesPerBox;
     $orderTotal = $boxes * $pricePerBox; // Total amount for this order
 
-    // Generate invoice number (format: INV-YYYYMMDD-XXXXX)
-    $invoiceNumber = 'INV-' . date('Ymd') . '-' . strtoupper(substr($orderId, 0, 5));
-
-    // Set invoice dates (Net 30 payment terms)
-    $invoiceDate = new DateTime();
-    $dueDate = (clone $invoiceDate)->add(new DateInterval('P30D')); // 30 days from now
-
-    // Insert order with invoice fields
+    // Insert order using standard columns (no invoice fields in orders table)
     $sql = "
       INSERT INTO orders (
         id,
@@ -255,29 +248,23 @@ try {
         product_id,
         product,
         product_price,
-        shipments_remaining,
+        qty_per_change,
         frequency,
         status,
         review_status,
-        billed_by,
+        payment_type,
         shipping_name,
         shipping_phone,
         shipping_address,
         shipping_city,
         shipping_state,
         shipping_zip,
-        notes,
-        invoice_number,
-        invoice_date,
-        due_date,
-        payment_terms,
-        amount_due,
-        amount_paid,
-        balance_due,
+        additional_instructions,
+        delivery_mode,
         created_at,
         updated_at
       ) VALUES (
-        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW()
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW()
       )
     ";
 
@@ -288,11 +275,11 @@ try {
       $productData['id'],
       $productData['name'],
       $pricePerPiece, // Store per-piece wholesale price
-      $boxes, // Number of boxes ordered
+      $boxes, // Number of boxes ordered (stored in qty_per_change)
       'one-time', // Wholesale orders are typically one-time
       'submitted', // Wholesale orders go straight to submitted
       'approved', // Auto-approve wholesale orders (no insurance review needed)
-      'practice_dme', // This marks it as a wholesale order
+      'wholesale', // Mark as wholesale payment type
       $shippingName,
       $shippingPhone,
       $shippingAddress,
@@ -300,13 +287,7 @@ try {
       $shippingState,
       $shippingZip,
       $notes,
-      $invoiceNumber,
-      $invoiceDate->format('Y-m-d H:i:s'),
-      $dueDate->format('Y-m-d H:i:s'),
-      'net30',
-      $orderTotal,
-      0.00, // No payment yet
-      $orderTotal // Full balance due initially
+      $shipToOffice ? 'office' : 'patient' // delivery_mode
     ]);
 
     $ordersCreated++;
