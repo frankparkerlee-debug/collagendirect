@@ -163,13 +163,13 @@ try {
         }
       }
 
-      // Still not found? Create new patient
+      // Still not found? Create new patient (auto-approved for wholesale orders)
       if (!$patientId) {
         $patientId = guid();
         $pdo->prepare("
           INSERT INTO patients
-            (id, user_id, first_name, last_name, phone, address, city, state, zip, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+            (id, user_id, first_name, last_name, phone, address, city, zip, state, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'approved', NOW(), NOW())
         ")->execute([
           $patientId,
           $uid,
@@ -178,23 +178,21 @@ try {
           safe($patientData['phone'] ?? null),
           safe($patientData['address'] ?? null),
           safe($patientData['city'] ?? null),
-          safe($patientData['state'] ?? null),
           safe($patientData['zip'] ?? null)
         ]);
       }
     } else {
-      // For office stock, create a placeholder patient
+      // For office stock, create a placeholder patient (auto-approved)
       $patientId = guid();
       $pdo->prepare("
         INSERT INTO patients
-          (id, user_id, first_name, last_name, phone, address, city, state, zip, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+          (id, user_id, first_name, last_name, phone, address, city, zip, state, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'approved', NOW(), NOW())
       ")->execute([
         $patientId,
         $uid,
         'Office',
         'Stock',
-        null,
         null,
         null,
         null,
