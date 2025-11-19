@@ -305,6 +305,7 @@ try {
         status,
         review_status,
         payment_type,
+        billed_by,
         shipping_name,
         shipping_phone,
         shipping_address,
@@ -316,7 +317,7 @@ try {
         created_at,
         updated_at
       ) VALUES (
-        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW()
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW()
       )
     ";
 
@@ -332,6 +333,7 @@ try {
       'submitted', // Wholesale orders go straight to submitted
       'approved', // Auto-approve wholesale orders (no insurance review needed)
       'wholesale', // Mark as wholesale payment type
+      'practice_dme', // Practice bills their own DME license
       $shippingName,
       $shippingPhone,
       $shippingAddress,
