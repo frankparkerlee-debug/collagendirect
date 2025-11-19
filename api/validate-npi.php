@@ -31,6 +31,30 @@ if (!$skipNameValidation && (empty($firstName) || empty($lastName))) {
   json_out(400, ['error' => 'First name and last name are required for validation']);
 }
 
+// Check for duplicate NPI in database
+try {
+  $dupeCheck = $pdo->prepare("SELECT email, first_name, last_name, status FROM users WHERE npi = ? LIMIT 1");
+  $dupeCheck->execute([$npi]);
+  $existingUser = $dupeCheck->fetch(PDO::FETCH_ASSOC);
+
+  if ($existingUser) {
+    json_out(200, [
+      'valid' => false,
+      'duplicate' => true,
+      'reason' => 'NPI already registered',
+      'npi' => $npi,
+      'existingUser' => [
+        'email' => $existingUser['email'],
+        'name' => trim($existingUser['first_name'] . ' ' . $existingUser['last_name']),
+        'status' => $existingUser['status']
+      ]
+    ]);
+  }
+} catch (Throwable $e) {
+  error_log("Duplicate check error: " . $e->getMessage());
+  // Continue even if duplicate check fails
+}
+
 // Query NPPES registry
 $nppesUrl = "https://npiregistry.cms.hhs.gov/api/?number={$npi}&version=2.1";
 

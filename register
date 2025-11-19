@@ -1284,6 +1284,36 @@
       });
     });
 
+    // License expiry validation
+    const licenseExpiryInput = document.getElementById('licenseExpiry');
+    licenseExpiryInput?.addEventListener('change', function() {
+      const expiryDate = new Date(this.value);
+      const today = new Date();
+      const daysUntilExpiry = Math.floor((expiryDate - today) / (1000 * 60 * 60 * 24));
+
+      const fieldParent = this.closest('div');
+      let warningMsg = fieldParent.querySelector('.license-warning');
+
+      // Remove existing warning
+      if (warningMsg) warningMsg.remove();
+
+      if (daysUntilExpiry < 0) {
+        // License is expired
+        warningMsg = document.createElement('div');
+        warningMsg.className = 'license-warning';
+        warningMsg.style.cssText = 'margin-top:8px;padding:10px;background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;font-size:13px;color:#991b1b';
+        warningMsg.innerHTML = `<strong>⚠ License Expired</strong><br>This license expired ${Math.abs(daysUntilExpiry)} days ago. You will not be able to place orders until you renew your license.`;
+        fieldParent.appendChild(warningMsg);
+      } else if (daysUntilExpiry <= 90) {
+        // License expires within 90 days
+        warningMsg = document.createElement('div');
+        warningMsg.className = 'license-warning';
+        warningMsg.style.cssText = 'margin-top:8px;padding:10px;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;font-size:13px;color:#92400e';
+        warningMsg.innerHTML = `<strong>⚠ License Expiring Soon</strong><br>Your license expires in ${daysUntilExpiry} days. Please renew soon to avoid service interruption.`;
+        fieldParent.appendChild(warningMsg);
+      }
+    });
+
     btnValidate?.addEventListener('click', async () => {
       const npi = npiInput.value.trim();
 
@@ -1333,6 +1363,29 @@
           const msg = document.createElement('div');
           msg.style.cssText = 'margin-top:8px;padding:12px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;font-size:14px;color:#15803d';
           msg.innerHTML = `<strong>✓ Information loaded from NPPES</strong><br>Please verify the auto-filled information and add your medical license details below.`;
+          const statusParent = npiStatus.parentElement;
+          const existingMsg = statusParent.querySelector('.auto-fill-message');
+          if (existingMsg) existingMsg.remove();
+          msg.className = 'auto-fill-message';
+          statusParent.appendChild(msg);
+
+        } else if (data.duplicate) {
+          // Duplicate NPI found
+          npiStatus.textContent = `✗ ${data.reason}`;
+          npiStatus.className = 'status bad';
+          npiValidated = false;
+
+          // Show duplicate warning with existing account info
+          const msg = document.createElement('div');
+          msg.style.cssText = 'margin-top:8px;padding:12px;background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;font-size:14px;color:#991b1b';
+          msg.innerHTML = `
+            <strong>⚠ This NPI is already registered</strong><br>
+            Account: ${data.existingUser.name} (${data.existingUser.email})<br><br>
+            <strong>Is this you?</strong><br>
+            • <a href="/login" style="color:#991b1b;text-decoration:underline">Sign in to your account</a><br>
+            • <a href="/login?forgot=true" style="color:#991b1b;text-decoration:underline">Forgot your password?</a><br><br>
+            <strong>Different person?</strong> Please contact support at support@collagendirect.health
+          `;
           const statusParent = npiStatus.parentElement;
           const existingMsg = statusParent.querySelector('.auto-fill-message');
           if (existingMsg) existingMsg.remove();
