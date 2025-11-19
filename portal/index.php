@@ -1146,10 +1146,12 @@ if ($action) {
                                wound_location,wound_laterality,wound_notes,
                                created_at,updated_at,expires_at,
                                sign_name,sign_title,signed_at,
-                               rx_note_name,rx_note_mime,rx_note_path
+                               rx_note_name,rx_note_mime,rx_note_path,
+                               order_group_id,product_type,wound_index,review_status
                         FROM orders
                         WHERE patient_id=?
-                        ORDER BY created_at DESC");
+                        ORDER BY created_at DESC, order_group_id, wound_index,
+                          CASE product_type WHEN 'primary' THEN 1 WHEN 'secondary' THEN 2 WHEN 'additional' THEN 3 ELSE 4 END");
       $o->execute([$pid]);
     } else {
       $o=$pdo->prepare("SELECT id,status,product,product_id,product_price,shipments_remaining,delivery_mode,payment_type,
@@ -1157,13 +1159,55 @@ if ($action) {
                                wound_location,wound_laterality,wound_notes,
                                created_at,updated_at,expires_at,
                                sign_name,sign_title,signed_at,
-                               rx_note_name,rx_note_mime,rx_note_path
+                               rx_note_name,rx_note_mime,rx_note_path,
+                               order_group_id,product_type,wound_index,review_status
                         FROM orders
                         WHERE patient_id=? AND user_id=?
-                        ORDER BY created_at DESC");
+                        ORDER BY created_at DESC, order_group_id, wound_index,
+                          CASE product_type WHEN 'primary' THEN 1 WHEN 'secondary' THEN 2 WHEN 'additional' THEN 3 ELSE 4 END");
       $o->execute([$pid,$userId]);
     }
-    $orders=$o->fetchAll(PDO::FETCH_ASSOC);
+    $raw_orders=$o->fetchAll(PDO::FETCH_ASSOC);
+
+    // Group multi-product orders together
+    $orders_by_group = [];
+    foreach ($raw_orders as $order) {
+      $group_id = $order['order_group_id'] ?? $order['id'];
+      if (!isset($orders_by_group[$group_id])) {
+        $orders_by_group[$group_id] = [
+          'id' => $group_id,
+          'orders' => [],
+          'created_at' => $order['created_at'],
+          'is_group' => !empty($order['order_group_id'])
+        ];
+      }
+      $orders_by_group[$group_id]['orders'][] = $order;
+    }
+
+    // Convert to simple list format for backward compatibility with existing frontend code
+    $orders = [];
+    foreach ($orders_by_group as $group) {
+      if ($group['is_group']) {
+        // Multi-product order: create a combined order object
+        $first_order = $group['orders'][0];
+        $all_products = array_map(function($o) {
+          $type = $o['product_type'] ?? 'primary';
+          $label = $type === 'primary' ? '' : ucfirst($type) . ': ';
+          return $label . ($o['product'] ?? 'Unknown');
+        }, $group['orders']);
+
+        $combined = $first_order; // Use first order as base
+        $combined['product'] = implode(' + ', array_map(function($o) { return $o['product'] ?? ''; }, $group['orders']));
+        $combined['all_products'] = $group['orders']; // Include all products for detail view
+        $combined['is_multi_product'] = true;
+        $orders[] = $combined;
+      } else {
+        // Single order: add as-is
+        $single = $group['orders'][0];
+        $single['is_multi_product'] = false;
+        $orders[] = $single;
+      }
+    }
 
     // Get wound photos for this patient
     $photosStmt = $pdo->prepare("
@@ -9710,26 +9754,70 @@ function viewOrderDetails(order) {
     'completed': '<span class="px-2 py-1 bg-slate-100 text-slate-800 rounded text-xs font-medium">Completed</span>'
   };
 
+  // Build product list display for multi-product orders
+  let productListHtml = '';
+  if (order.is_multi_product && order.all_products && order.all_products.length > 0) {
+    productListHtml = `
+      <div class="mb-4">
+        <h5 class="font-semibold text-sm mb-2">Products in This Order</h5>
+        <div class="space-y-2">
+          ${order.all_products.map(prod => {
+            const type = prod.product_type || 'primary';
+            let typeLabel = '';
+            let typeColor = '';
+            let bgColor = '';
+
+            if (type === 'primary') {
+              typeLabel = 'Primary';
+              typeColor = 'text-green-700';
+              bgColor = 'bg-green-50 border-green-200';
+            } else if (type === 'secondary') {
+              typeLabel = 'Secondary';
+              typeColor = 'text-blue-700';
+              bgColor = 'bg-blue-50 border-blue-200';
+            } else if (type === 'additional') {
+              typeLabel = 'Additional';
+              typeColor = 'text-purple-700';
+              bgColor = 'bg-purple-50 border-purple-200';
+            }
+
+            return `
+              <div class="p-2 border rounded ${bgColor}">
+                <div class="text-sm"><span class="${typeColor} font-semibold">${typeLabel}:</span> ${esc(prod.product || 'Unknown')}</div>
+                ${prod.product_price ? `<div class="text-xs text-slate-600 mt-1">Price: $${prod.product_price}</div>` : ''}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+
   content.innerHTML = `
     <div class="grid gap-6">
       <!-- Order Header -->
       <div class="pb-4 border-b">
         <div class="flex items-center justify-between mb-2">
           <h4 class="text-lg font-semibold">${esc(order.product || 'Wound Care Product')}</h4>
-          ${statusBadge[order.status] || statusBadge['submitted']}
+          <div class="flex items-center gap-2">
+            ${order.is_multi_product ? '<span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-medium">Multi-Product</span>' : ''}
+            ${statusBadge[order.status] || statusBadge['submitted']}
+          </div>
         </div>
         <div class="text-sm text-slate-600">
           Order ID: ${esc(order.id || 'N/A')}
         </div>
       </div>
 
+      ${productListHtml}
+
       <!-- Product & Pricing -->
       <div class="grid md:grid-cols-2 gap-4">
         <div>
-          <h5 class="font-semibold text-sm mb-2">Product Information</h5>
+          <h5 class="font-semibold text-sm mb-2">Order Information</h5>
           <div class="space-y-1 text-sm">
-            <div><span class="text-slate-600">Product:</span> ${esc(order.product || 'N/A')}</div>
-            <div><span class="text-slate-600">Price:</span> $${order.product_price || '0.00'}</div>
+            ${!order.is_multi_product ? `<div><span class="text-slate-600">Product:</span> ${esc(order.product || 'N/A')}</div>` : ''}
+            ${!order.is_multi_product && order.product_price ? `<div><span class="text-slate-600">Price:</span> $${order.product_price}</div>` : ''}
             <div><span class="text-slate-600">Payment:</span> ${esc(order.payment_type || 'Insurance')}</div>
             <div><span class="text-slate-600">Delivery:</span> ${esc(order.delivery_mode || 'Ship to patient')}</div>
           </div>
@@ -11217,6 +11305,66 @@ document.addEventListener('click', (e)=>{
 });
 
 /* ========== FULL-PAGE PATIENT DETAIL/EDIT RENDERING ========== */
+
+// Render a single order card for patient detail page
+function renderOrderCard(o, index) {
+  const statusColors = {
+    'draft': 'bg-slate-100 text-slate-700',
+    'submitted': 'bg-blue-100 text-blue-700',
+    'approved': 'bg-green-100 text-green-700',
+    'active': 'bg-green-100 text-green-700',
+    'stopped': 'bg-red-100 text-red-700',
+    'completed': 'bg-slate-100 text-slate-600'
+  };
+
+  const statusColor = statusColors[o.status] || 'bg-slate-100 text-slate-600';
+  const isDraft = o.review_status === 'draft' || o.status === 'draft';
+
+  // Build product display
+  let productDisplay = '';
+  if (o.is_multi_product && o.all_products && o.all_products.length > 0) {
+    // Multi-product order: show all products with labels
+    productDisplay = o.all_products.map(prod => {
+      const type = prod.product_type || 'primary';
+      let typeLabel = '';
+      let typeColor = '';
+
+      if (type === 'primary') {
+        typeLabel = 'Primary';
+        typeColor = 'text-green-700';
+      } else if (type === 'secondary') {
+        typeLabel = 'Secondary';
+        typeColor = 'text-blue-700';
+      } else if (type === 'additional') {
+        typeLabel = 'Additional';
+        typeColor = 'text-purple-700';
+      }
+
+      return `<div class="text-sm"><span class="${typeColor} font-semibold">${typeLabel}:</span> ${esc(prod.product || 'Unknown')}</div>`;
+    }).join('');
+  } else {
+    // Single product order
+    productDisplay = `<div class="font-medium">${esc(o.product || 'Unknown Product')}</div>`;
+  }
+
+  return `
+    <div class="border rounded-lg p-3 hover:bg-slate-50 transition-colors cursor-pointer" onclick="viewOrderDetails(${JSON.stringify(o).replace(/"/g, '&quot;')})">
+      <div class="flex items-start justify-between mb-2">
+        <div class="flex-1">
+          ${productDisplay}
+          ${o.is_multi_product ? '<span class="inline-block mt-1 px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium">Multi-Product</span>' : ''}
+        </div>
+        <span class="px-2 py-1 ${statusColor} rounded text-xs font-medium ml-2">${esc(o.status || 'Unknown')}</span>
+      </div>
+      <div class="flex items-center gap-4 text-xs text-slate-600">
+        <span>Created: ${fmt(o.created_at)}</span>
+        ${o.wound_location ? `<span>Location: ${esc(o.wound_location)}</span>` : ''}
+        ${o.delivery_mode ? `<span>${o.delivery_mode === 'office' ? 'Office Pickup' : 'Ship to Patient'}</span>` : ''}
+      </div>
+      ${isDraft ? '<div class="mt-2 text-xs text-orange-600 font-medium">⚠ Draft - Not submitted</div>' : ''}
+    </div>
+  `;
+}
 
 function renderPatientDetailPage(p, orders, isEditing) {
   const container = document.getElementById('patient-detail-container');
