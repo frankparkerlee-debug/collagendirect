@@ -270,7 +270,7 @@ foreach ($orders as $order) {
             <div>
               <?php if ($is_group): ?>
                 <span class="product-badge">
-                  🔗 <?= $order['product_count'] ?> Products
+                  <?= $order['product_count'] ?> Products
                 </span>
               <?php else: ?>
                 <div style="font-size: 0.875rem; font-weight: 500;">
@@ -283,7 +283,7 @@ foreach ($orders as $order) {
             <div>
               <div style="font-size: 0.75rem; color: #64748b;">Type</div>
               <div style="font-weight: 500; font-size: 0.875rem;">
-                <?= $order['payment_type'] === 'wholesale' ? '📦 Wholesale' : '🏥 Referral' ?>
+                <?= $order['payment_type'] === 'wholesale' ? 'Wholesale' : 'Referral' ?>
               </div>
             </div>
 
@@ -345,7 +345,7 @@ foreach ($orders as $order) {
                     class="btn btn-ghost"
                     style="padding: 0.375rem 0.75rem; font-size: 0.75rem;"
                   >
-                    📄 Visit Note
+                    Visit Note
                   </a>
                 <?php endif; ?>
                 <?php if ($order['baseline_wound_photo_path']): ?>
@@ -355,7 +355,7 @@ foreach ($orders as $order) {
                     class="btn btn-ghost"
                     style="padding: 0.375rem 0.75rem; font-size: 0.75rem;"
                   >
-                    📸 Baseline Photo
+                    Baseline Photo
                   </a>
                 <?php endif; ?>
               </div>
