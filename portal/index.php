@@ -9757,11 +9757,19 @@ function viewOrderDetails(order) {
   // Build product list display for multi-product orders
   let productListHtml = '';
   if (order.is_multi_product && order.all_products && order.all_products.length > 0) {
+    // Sort products: primary first, then secondary, then additional
+    const sortedProducts = [...order.all_products].sort((a, b) => {
+      const order = { 'primary': 1, 'secondary': 2, 'additional': 3 };
+      const aType = a.product_type || 'primary';
+      const bType = b.product_type || 'primary';
+      return (order[aType] || 999) - (order[bType] || 999);
+    });
+
     productListHtml = `
       <div class="mb-4">
         <h5 class="font-semibold text-sm mb-3">Products Ordered</h5>
         <div class="space-y-2">
-          ${order.all_products.map(prod => {
+          ${sortedProducts.map(prod => {
             const type = prod.product_type || 'primary';
             let typeLabel = '';
             let typeColor = '';
