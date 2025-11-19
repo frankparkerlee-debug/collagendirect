@@ -30,10 +30,11 @@ if ($id === '') {
 try {
   $sql = "SELECT
             o.*,
-            p.first_name, p.last_name, p.dob, p.address, p.city, p.state, p.zip,
+            p.first_name, p.last_name, p.dob, p.address, p.city, p.state, p.zip, p.phone AS patient_phone,
             p.insurance_provider, p.insurance_member_id, p.insurance_group_id, p.insurance_payer_phone,
             u.first_name AS doc_first, u.last_name AS doc_last, u.license, u.license_state, u.npi,
-            u.sign_name, u.sign_title, u.sign_date, u.practice_name
+            u.sign_name, u.sign_title, u.sign_date, u.practice_name,
+            u.practice_address, u.practice_city, u.practice_state, u.practice_zip, u.practice_phone
           FROM orders o
           LEFT JOIN patients p ON p.id=o.patient_id
           LEFT JOIN users u ON u.id=o.user_id
@@ -303,12 +304,30 @@ if (!empty($secondaryDressing)) {
 ';
 }
 
+// Determine shipping details based on delivery_mode
+$delivery_mode = strtolower($o['delivery_mode'] ?? 'patient');
+$shipping_recipient = '';
+$shipping_phone = '';
+$shipping_address = '';
+
+if ($delivery_mode === 'office') {
+  // Ship to doctor's office
+  $shipping_recipient = h($o['practice_name'] ?? 'Unknown Practice');
+  $shipping_phone = h($o['practice_phone'] ?? '—');
+  $shipping_address = h($o['practice_address'] ?? '').', '.h($o['practice_city'] ?? '').', '.h($o['practice_state'] ?? '').' '.h($o['practice_zip'] ?? '');
+} else {
+  // Ship to patient (default)
+  $shipping_recipient = h(($o['first_name'] ?? '').' '.($o['last_name'] ?? ''));
+  $shipping_phone = h($o['patient_phone'] ?? '—');
+  $shipping_address = h($o['address'] ?? '').', '.h($o['city'] ?? '').', '.h($o['state'] ?? '').' '.h($o['zip'] ?? '');
+}
+
 $sec_shipping = '
   <h2>Shipping</h2>
   <div class="box"><table class="kv">
-    <tr><td class="key">Recipient</td><td>'.h($o['shipping_name'] ?? "—").' • '.h($o['shipping_phone'] ?? "").'</td></tr>
-    <tr><td class="key">Address</td><td>'.h($o['shipping_address'] ?? "").', '.h($o['shipping_city'] ?? "").', '.h($o['shipping_state'] ?? "").' '.h($o['shipping_zip'] ?? "").'</td></tr>
-    <tr><td class="key">Tracking</td><td>'.h(($o['rx_note_mime'] ?? "—")).' '.h(($o['rx_note_name'] ?? "")).'</td></tr>
+    <tr><td class="key">Delivery To</td><td><strong>'.ucfirst($delivery_mode).'</strong></td></tr>
+    <tr><td class="key">Recipient</td><td>'.$shipping_recipient.' • '.$shipping_phone.'</td></tr>
+    <tr><td class="key">Address</td><td>'.$shipping_address.'</td></tr>
   </table></div>
 ';
 

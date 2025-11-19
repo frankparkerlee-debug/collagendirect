@@ -9759,7 +9759,7 @@ function viewOrderDetails(order) {
   if (order.is_multi_product && order.all_products && order.all_products.length > 0) {
     productListHtml = `
       <div class="mb-4">
-        <h5 class="font-semibold text-sm mb-2">Products in This Order</h5>
+        <h5 class="font-semibold text-sm mb-3">Products Ordered</h5>
         <div class="space-y-2">
           ${order.all_products.map(prod => {
             const type = prod.product_type || 'primary';
@@ -9768,29 +9768,55 @@ function viewOrderDetails(order) {
             let bgColor = '';
 
             if (type === 'primary') {
-              typeLabel = 'Primary';
+              typeLabel = 'Primary Dressing';
               typeColor = 'text-green-700';
               bgColor = 'bg-green-50 border-green-200';
             } else if (type === 'secondary') {
-              typeLabel = 'Secondary';
+              typeLabel = 'Secondary Dressing';
               typeColor = 'text-blue-700';
               bgColor = 'bg-blue-50 border-blue-200';
             } else if (type === 'additional') {
-              typeLabel = 'Additional';
+              typeLabel = 'Additional Supplies';
               typeColor = 'text-purple-700';
               bgColor = 'bg-purple-50 border-purple-200';
             }
 
             return `
-              <div class="p-2 border rounded ${bgColor}">
-                <div class="text-sm"><span class="${typeColor} font-semibold">${typeLabel}:</span> ${esc(prod.product || 'Unknown')}</div>
-                ${prod.product_price ? `<div class="text-xs text-slate-600 mt-1">Price: $${prod.product_price}</div>` : ''}
+              <div class="p-3 border rounded ${bgColor}">
+                <div class="font-medium ${typeColor} mb-1">${typeLabel}</div>
+                <div class="text-sm">${esc(prod.product || 'Unknown')}</div>
+                ${prod.cpt ? `<div class="text-xs text-slate-600 mt-1">HCPCS: ${esc(prod.cpt)}</div>` : ''}
               </div>
             `;
           }).join('')}
         </div>
       </div>
     `;
+  } else {
+    // Single product - show with HCPCS
+    productListHtml = `
+      <div class="mb-4">
+        <h5 class="font-semibold text-sm mb-2">Product Ordered</h5>
+        <div class="p-3 border rounded bg-green-50 border-green-200">
+          <div class="font-medium text-green-700 mb-1">Primary Dressing</div>
+          <div class="text-sm">${esc(order.product || 'N/A')}</div>
+          ${order.cpt ? `<div class="text-xs text-slate-600 mt-1">HCPCS: ${esc(order.cpt)}</div>` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  // Parse wounds_data if available for detailed wound info
+  let woundDetails = null;
+  if (order.wounds_data) {
+    try {
+      const wounds = JSON.parse(order.wounds_data);
+      if (wounds && wounds.length > 0) {
+        woundDetails = wounds[0]; // Use first wound for now
+      }
+    } catch (e) {
+      console.error('Failed to parse wounds_data:', e);
+    }
   }
 
   content.innerHTML = `
@@ -9798,62 +9824,61 @@ function viewOrderDetails(order) {
       <!-- Order Header -->
       <div class="pb-4 border-b">
         <div class="flex items-center justify-between mb-2">
-          <h4 class="text-lg font-semibold">${esc(order.product || 'Wound Care Product')}</h4>
+          <h4 class="text-lg font-semibold">Order Details</h4>
           <div class="flex items-center gap-2">
-            ${order.is_multi_product ? '<span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-medium">Multi-Product</span>' : ''}
+            ${order.is_multi_product ? '<span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-medium">Multi-Product Order</span>' : ''}
             ${statusBadge[order.status] || statusBadge['submitted']}
           </div>
         </div>
         <div class="text-sm text-slate-600">
-          Order ID: ${esc(order.id || 'N/A')}
+          Order Date: ${fmt(order.created_at)}
         </div>
       </div>
 
       ${productListHtml}
 
-      <!-- Product & Pricing -->
+      <!-- Order Details -->
       <div class="grid md:grid-cols-2 gap-4">
         <div>
-          <h5 class="font-semibold text-sm mb-2">Order Information</h5>
+          <h5 class="font-semibold text-sm mb-2">Treatment Schedule</h5>
           <div class="space-y-1 text-sm">
-            ${!order.is_multi_product ? `<div><span class="text-slate-600">Product:</span> ${esc(order.product || 'N/A')}</div>` : ''}
-            ${!order.is_multi_product && order.product_price ? `<div><span class="text-slate-600">Price:</span> $${order.product_price}</div>` : ''}
-            <div><span class="text-slate-600">Payment:</span> ${esc(order.payment_type || 'Insurance')}</div>
-            <div><span class="text-slate-600">Delivery:</span> ${esc(order.delivery_mode || 'Ship to patient')}</div>
+            ${order.frequency_per_week || (woundDetails && woundDetails.frequency_per_week) ? `
+              <div><span class="text-slate-600">Frequency of Change:</span> ${order.frequency_per_week || woundDetails.frequency_per_week}× per week</div>
+            ` : ''}
+            ${order.qty_per_change || (woundDetails && woundDetails.qty_per_change) ? `
+              <div><span class="text-slate-600">Quantity per Change:</span> ${order.qty_per_change || woundDetails.qty_per_change}</div>
+            ` : ''}
+            ${order.duration_days || (woundDetails && woundDetails.duration_days) ? `
+              <div><span class="text-slate-600">Length of Order:</span> ${order.duration_days || woundDetails.duration_days} days</div>
+            ` : ''}
           </div>
         </div>
 
         <div>
-          <h5 class="font-semibold text-sm mb-2">Order Status</h5>
+          <h5 class="font-semibold text-sm mb-2">Fulfillment</h5>
           <div class="space-y-1 text-sm">
-            <div><span class="text-slate-600">Shipments Remaining:</span> ${order.shipments_remaining || 0}</div>
-            <div><span class="text-slate-600">Created:</span> ${fmt(order.created_at)}</div>
-            ${order.expires_at ? `<div><span class="text-slate-600">Expires:</span> ${fmt(order.expires_at)}</div>` : ''}
-            ${order.signed_at ? `<div><span class="text-slate-600">Signed:</span> ${fmt(order.signed_at)}</div>` : ''}
+            <div><span class="text-slate-600">Delivery:</span> ${esc(order.delivery_mode === 'office' ? 'Office Pickup' : 'Ship to Patient')}</div>
+            <div><span class="text-slate-600">Boxes Sent:</span> ${order.shipments_remaining || 0}</div>
           </div>
         </div>
       </div>
 
-      <!-- Shipping Information -->
-      ${order.shipping_name ? `
-        <div>
-          <h5 class="font-semibold text-sm mb-2">Shipping Address</h5>
-          <div class="text-sm text-slate-700">
-            ${esc(order.shipping_name)}<br>
-            ${esc(order.shipping_address || '')}<br>
-            ${esc(order.shipping_city || '')}, ${esc(order.shipping_state || '')} ${esc(order.shipping_zip || '')}<br>
-            ${order.shipping_phone ? `Phone: ${esc(order.shipping_phone)}` : ''}
-          </div>
-        </div>
-      ` : ''}
-
       <!-- Wound Information -->
-      ${order.wound_location || order.wound_laterality || order.wound_notes ? `
-        <div>
-          <h5 class="font-semibold text-sm mb-2">Wound Details</h5>
-          <div class="space-y-1 text-sm">
-            ${order.wound_location ? `<div><span class="text-slate-600">Location:</span> ${esc(order.wound_location)}</div>` : ''}
-            ${order.wound_laterality ? `<div><span class="text-slate-600">Laterality:</span> ${esc(order.wound_laterality)}</div>` : ''}
+      <div>
+        <h5 class="font-semibold text-sm mb-2">Wound Details</h5>
+        <div class="space-y-1 text-sm">
+          ${order.wound_location || (woundDetails && woundDetails.location) ? `
+            <div><span class="text-slate-600">Location:</span> ${esc(order.wound_location || woundDetails.location)}</div>
+          ` : ''}
+          ${woundDetails && (woundDetails.length_cm || woundDetails.width_cm || woundDetails.depth_cm) ? `
+            <div><span class="text-slate-600">Size:</span> ${woundDetails.length_cm || '?'} cm × ${woundDetails.width_cm || '?'} cm × ${woundDetails.depth_cm || '?'} cm (L × W × D)</div>
+          ` : ''}
+          ${woundDetails && woundDetails.icd10_primary ? `
+            <div><span class="text-slate-600">Primary Diagnosis:</span> ${esc(woundDetails.icd10_primary)}</div>
+          ` : ''}
+          ${order.wound_laterality || (woundDetails && woundDetails.laterality) ? `
+            <div><span class="text-slate-600">Laterality:</span> ${esc(order.wound_laterality || woundDetails.laterality)}</div>
+          ` : ''}
             ${order.wound_notes ? `<div><span class="text-slate-600">Notes:</span> ${esc(order.wound_notes)}</div>` : ''}
           </div>
         </div>
@@ -9870,38 +9895,23 @@ function viewOrderDetails(order) {
         </div>
       ` : ''}
 
-      <!-- Clinical Notes / Visit Note -->
-      ${order.rx_note_name || order.rx_note_path ? `
-        <div>
-          <h5 class="font-semibold text-sm mb-2">Visit Note</h5>
-          <div class="text-sm flex flex-col gap-2">
-            ${order.rx_note_path ? `
-              <a href="${esc(order.rx_note_path)}" target="_blank" class="inline-flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors border border-blue-200">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
-                View Visit Note: ${esc(order.rx_note_name || 'Clinical Note')}
-              </a>
-            ` : ''}
-            <a href="/portal/order.pdf.php?id=${esc(order.id)}&csrf=${esc(window.CSRF_TOKEN || '')}" target="_blank" class="inline-flex items-center gap-2 px-3 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200 transition-colors border border-slate-300">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-              </svg>
-              View Complete Order PDF
-            </a>
-          </div>
-        </div>
-      ` : ''}
-
-      <!-- Order PDF -->
+      <!-- Documents -->
       <div>
-        <h5 class="font-semibold text-sm mb-2">Order Document</h5>
-        <div class="text-sm">
-          <a href="/admin/order.pdf.php?id=${esc(order.id)}&csrf=${esc(window.CSRF_TOKEN || '')}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+        <h5 class="font-semibold text-sm mb-2">Order Documents</h5>
+        <div class="text-sm flex flex-col gap-2">
+          ${order.rx_note_path ? `
+            <a href="${esc(order.rx_note_path)}" target="_blank" class="inline-flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors border border-blue-200">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              View Visit Note
+            </a>
+          ` : ''}
+          <a href="/portal/order.pdf.php?id=${esc(order.id)}&csrf=${esc(window.CSRF_TOKEN || '')}" target="_blank" class="inline-flex items-center gap-2 px-3 py-2 bg-green-50 text-green-700 rounded-md hover:bg-green-100 transition-colors border border-green-200">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
             </svg>
-            Download Order PDF
+            View Order PDF
           </a>
         </div>
       </div>
