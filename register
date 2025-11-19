@@ -586,6 +586,10 @@
               <input id="npi" inputmode="numeric" pattern="\d{10}" placeholder="10 digits" />
               <div class="error-message">NPI number is required</div>
             </div>
+            <div id="field-ptan">
+              <label for="ptan">PTAN (Optional)</label>
+              <input id="ptan" placeholder="Provider Transaction Access Number" />
+            </div>
           </div>
           <div class="form-grid" style="margin-top:12px">
             <div id="field-license">
@@ -1190,6 +1194,10 @@
             <input type="text" data-field="npi" data-physician-id="${physicianId}" pattern="\\d{10}" placeholder="10 digits" required />
           </div>
           <div>
+            <label>PTAN (Optional)</label>
+            <input type="text" data-field="ptan" data-physician-id="${physicianId}" placeholder="Provider Transaction Access Number" />
+          </div>
+          <div>
             <label>Medical License #</label>
             <input type="text" data-field="license" data-physician-id="${physicianId}" required />
           </div>
@@ -1474,6 +1482,7 @@
         firstName: document.getElementById('firstName')?.value.trim() || null,
         lastName: document.getElementById('lastName')?.value.trim() || null,
         npi: document.getElementById('npi')?.value.trim() || null,
+        ptan: document.getElementById('ptan')?.value.trim() || null,
         license: document.getElementById('license')?.value.trim() || null,
         licenseState: document.getElementById('licenseState')?.value || null,
         licenseExpiry: document.getElementById('licenseExpiry')?.value || null,

@@ -120,12 +120,12 @@ try {
     INSERT INTO users(
       id, email, password_hash, first_name, last_name, account_type, user_type, role,
       practice_name, address, city, state, zip, tax_id, phone,
-      npi, license, license_state, license_expiry,
+      npi, ptan, license, license_state, license_expiry,
       dme_number, dme_state, dme_expiry,
       agree_msa, agree_baa, sign_name, sign_title, sign_date, signed_ip,
       is_referral_only, has_dme_license, is_hybrid, can_manage_physicians, parent_user_id,
       status
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
   ");
 
   $stmt->execute([
@@ -145,6 +145,7 @@ try {
     trim((string)($data['taxId'] ?? '')),
     trim((string)($data['phone'] ?? '')),
     $npi,
+    trim((string)($data['ptan'] ?? '')),
     trim((string)($data['license'] ?? '')),
     !empty($data['licenseState']) ? $data['licenseState'] : null,
     !empty($data['licenseExpiry']) ? $data['licenseExpiry'] : null,
@@ -170,9 +171,9 @@ try {
     $physicianStmt = $pdo->prepare("
       INSERT INTO practice_physicians(
         practice_manager_id, physician_first_name, physician_last_name,
-        physician_npi, physician_license, physician_license_state, physician_license_expiry,
+        physician_npi, physician_ptan, physician_license, physician_license_state, physician_license_expiry,
         physician_email, physician_phone
-      ) VALUES (?,?,?,?,?,?,?,?,?)
+      ) VALUES (?,?,?,?,?,?,?,?,?,?)
     ");
 
     foreach ($data['additionalPhysicians'] as $physician) {
@@ -185,6 +186,7 @@ try {
         trim((string)$physician['firstName']),
         trim((string)$physician['lastName']),
         preg_replace('/\D/', '', (string)$physician['npi']),
+        trim((string)($physician['ptan'] ?? '')),
         trim((string)($physician['license'] ?? '')),
         !empty($physician['licenseState']) ? $physician['licenseState'] : null,
         !empty($physician['licenseExpiry']) ? $physician['licenseExpiry'] : null,
