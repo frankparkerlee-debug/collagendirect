@@ -482,8 +482,31 @@
           <ul id="validationList"></ul>
         </div>
 
+        <!-- Step 0: NPI Validation (First!) -->
+        <section class="card" style="border:none;box-shadow:none;padding:0;margin-bottom:24px">
+          <h2 class="section-title" style="margin:0 0 8px">Get Started - Verify Your NPI</h2>
+          <p class="muted" style="margin-bottom:1rem">We'll auto-fill your information from the national registry</p>
+
+          <div style="max-width:600px">
+            <div id="field-npi-initial">
+              <label for="npiInitial" style="font-weight:600;font-size:15px">NPI Number</label>
+              <div style="display:flex;gap:12px;margin-top:8px">
+                <input id="npiInitial" inputmode="numeric" pattern="\d{10}" placeholder="Enter your 10-digit NPI"
+                       style="flex:1;padding:12px 16px;border:2px solid #e5e7eb;border-radius:8px;font-size:16px" />
+                <button type="button" class="btn" id="btnValidateInitial"
+                        style="padding:12px 24px;white-space:nowrap">Validate & Continue</button>
+              </div>
+              <div style="font-size:0.875rem;color:#059669;margin-top:8px;font-weight:500">
+                💡 This will auto-fill your name, address, phone, and check for duplicates
+              </div>
+              <span id="npiInitialStatus" class="status" aria-live="polite" style="display:block;margin-top:12px"></span>
+              <div id="npiInitialMessage"></div>
+            </div>
+          </div>
+        </section>
+
         <!-- Step 1: User Type Selection -->
-        <section class="card" style="border:none;box-shadow:none;padding:0">
+        <section class="card" id="userTypeSection" style="border:none;box-shadow:none;padding:0" hidden>
           <h2 class="section-title" style="margin:0 0 8px">Select Your Account Type</h2>
           <p class="muted" style="margin-bottom:1rem">Choose the option that best describes your practice</p>
 
@@ -518,7 +541,7 @@
         </section>
 
         <!-- Step 2: Account Credentials -->
-        <section class="card" aria-labelledby="acct-title" style="border:none;box-shadow:none;padding:0">
+        <section class="card" id="accountCredsSection" aria-labelledby="acct-title" style="border:none;box-shadow:none;padding:0" hidden>
           <h2 id="acct-title" class="section-title">Account Credentials</h2>
           <div class="form-grid">
             <div id="field-email">
@@ -1314,6 +1337,113 @@
         fieldParent.appendChild(warningMsg);
       }
     });
+
+    // Initial NPI validation (Step 0)
+    const btnValidateInitial = document.getElementById('btnValidateInitial');
+    const npiInitialInput = document.getElementById('npiInitial');
+    const npiInitialStatus = document.getElementById('npiInitialStatus');
+    const npiInitialMessage = document.getElementById('npiInitialMessage');
+    let initialNpiData = null;
+
+    btnValidateInitial?.addEventListener('click', async () => {
+      const npi = npiInitialInput.value.trim();
+
+      // Check checksum
+      if (!isValidNPI(npi)) {
+        npiInitialStatus.textContent = '✗ Invalid NPI format';
+        npiInitialStatus.className = 'status bad';
+        return;
+      }
+
+      // Show loading
+      btnValidateInitial.disabled = true;
+      npiInitialStatus.textContent = 'Verifying with NPPES registry...';
+      npiInitialStatus.className = 'status';
+      npiInitialMessage.innerHTML = '';
+
+      try {
+        const response = await fetch('/api/validate-npi.php', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          credentials: 'include',
+          body: JSON.stringify({ npi, skipNameValidation: true })
+        });
+
+        const data = await response.json();
+
+        if (data.valid) {
+          initialNpiData = data.providerInfo;
+
+          // Show success
+          npiInitialStatus.textContent = `✓ Verified: ${initialNpiData.firstName} ${initialNpiData.lastName}${initialNpiData.credentials ? ', ' + initialNpiData.credentials : ''}`;
+          npiInitialStatus.className = 'status ok';
+
+          // Pre-fill the actual NPI field
+          if (document.getElementById('npi')) {
+            document.getElementById('npi').value = npi;
+          }
+
+          // Show success message and reveal form
+          setTimeout(() => {
+            npiInitialMessage.innerHTML = `
+              <div style="margin-top:12px;padding:16px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;font-size:14px;color:#15803d">
+                <strong>✓ NPI Verified!</strong><br>
+                We've loaded your information. Please complete the remaining fields below.
+              </div>
+            `;
+
+            // Show the rest of the form
+            document.getElementById('userTypeSection').hidden = false;
+            document.getElementById('accountCredsSection').hidden = false;
+
+            // Scroll to user type selection
+            document.getElementById('userTypeSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 500);
+
+        } else if (data.duplicate) {
+          npiInitialStatus.textContent = `✗ ${data.reason}`;
+          npiInitialStatus.className = 'status bad';
+
+          npiInitialMessage.innerHTML = `
+            <div style="margin-top:12px;padding:16px;background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;font-size:14px;color:#991b1b">
+              <strong>⚠ This NPI is already registered</strong><br>
+              Account: ${data.existingUser.name} (${data.existingUser.email})<br><br>
+              <strong>Is this you?</strong><br>
+              • <a href="/login" style="color:#991b1b;text-decoration:underline">Sign in to your account</a><br>
+              • <a href="/login?forgot=true" style="color:#991b1b;text-decoration:underline">Forgot your password?</a><br><br>
+              <strong>Different person?</strong> Please contact support at support@collagendirect.health
+            </div>
+          `;
+        } else {
+          npiInitialStatus.textContent = `✗ ${data.reason || 'NPI validation failed'}`;
+          npiInitialStatus.className = 'status bad';
+        }
+      } catch (err) {
+        console.error('NPI validation error:', err);
+        npiInitialStatus.textContent = '⚠ Could not verify NPI (registry unavailable)';
+        npiInitialStatus.className = 'status bad';
+      } finally {
+        btnValidateInitial.disabled = false;
+      }
+    });
+
+    // When form sections become visible, auto-fill the saved NPI data
+    const userTypeSection = document.getElementById('userTypeSection');
+    const observer = new MutationObserver(() => {
+      if (!userTypeSection.hidden && initialNpiData) {
+        // Auto-fill fields with saved data
+        if (initialNpiData.firstName) document.getElementById('firstName').value = initialNpiData.firstName;
+        if (initialNpiData.lastName) document.getElementById('lastName').value = initialNpiData.lastName;
+        if (initialNpiData.address) document.getElementById('address').value = initialNpiData.address;
+        if (initialNpiData.city) document.getElementById('city').value = initialNpiData.city;
+        if (initialNpiData.state) document.getElementById('state').value = initialNpiData.state;
+        if (initialNpiData.zip) document.getElementById('zip').value = initialNpiData.zip;
+        if (initialNpiData.phone) document.getElementById('phone').value = initialNpiData.phone;
+
+        npiValidated = true;
+      }
+    });
+    observer.observe(userTypeSection, { attributes: true, attributeFilter: ['hidden'] });
 
     btnValidate?.addEventListener('click', async () => {
       const npi = npiInput.value.trim();
