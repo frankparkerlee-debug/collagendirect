@@ -9,11 +9,22 @@ header('Content-Type: text/plain; charset=utf-8');
 echo "=== Persistent Disk Setup Diagnostic ===\n\n";
 
 $upload_path = '/var/www/html/uploads';
-$subdirs = ['notes', 'wound_photos', 'insurance', 'ids'];
+$subdirs = ['notes', 'wound-photos', 'wound_photos', 'insurance', 'ids', 'aob', 'rx'];
 
 echo "1. Checking if persistent disk exists...\n";
 if (is_dir($upload_path)) {
-    echo "   ✓ Persistent disk directory exists: $upload_path\n\n";
+    echo "   ✓ Persistent disk directory exists: $upload_path\n";
+
+    // Check if this is actually a mounted volume
+    $mount_output = shell_exec('mount | grep ' . escapeshellarg($upload_path));
+    if ($mount_output) {
+        echo "   ✓ Confirmed as mounted volume\n";
+        echo "   Mount info: " . trim($mount_output) . "\n\n";
+    } else {
+        echo "   ⚠️  WARNING: Directory exists but is NOT a mounted volume\n";
+        echo "   This means files will be stored in ephemeral container storage\n";
+        echo "   Files will be LOST on container restart!\n\n";
+    }
 
     echo "2. Checking disk permissions...\n";
     if (is_writable($upload_path)) {
