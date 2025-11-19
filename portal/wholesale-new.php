@@ -733,26 +733,27 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
         <a href="?page=wholesale&step=1" class="btn btn-primary">← Back to Patient Entry</a>
       </div>
     <?php else:
-      // Extract core product names for simplified grouping
-      // e.g., "AlgiHeal AG Silver Alginate Dressing 2x2" -> "AlgiHeal AG Silver Alginate Dressing"
+      // Group products by class (brand + product name, without size or HCPCS)
+      // e.g., "AlgiHeal AG Silver Alginate Dressing 2x2 (A6196)" -> "AlgiHeal AG Silver Alginate Dressing"
       $productGroups = [];
-      $coreProductNames = [];
 
       foreach ($products as $product) {
         $fullName = $product['name'];
 
-        // First, remove size dimensions (e.g., "2x2", "4.33x4.33", "6x6")
-        $coreName = preg_replace('/\s*\d+(?:\.\d+)?\s*x\s*\d+(?:\.\d+)?\s*$/i', '', $fullName);
+        // Remove HCPCS code in parentheses (e.g., "(A6196)")
+        $nameWithoutHCPCS = preg_replace('/\s*\([A-Z0-9\/]+\)\s*$/i', '', $fullName);
 
-        // Then remove generic suffixes if they're at the end (but keep "Dressing" if it's part of the core name)
-        // Only remove if it's truly a suffix (not part of the product identity)
-        // $coreName = preg_replace('/(Dressing|Powder|Foam|Hydrogel|Kit)$/i', '', $coreName);
+        // Remove size dimensions (e.g., "2x2", "4.33x4.33", "6x6", "9"x9"", "8oz Bottle", "1.0g", "Medium", "100ML", "250ML")
+        $coreName = preg_replace('/\s+\d+(?:\.\d+)?\s*x\s*\d+(?:\.\d+)?$/i', '', $nameWithoutHCPCS); // "2x2", "4.33x4.33"
+        $coreName = preg_replace('/\s+\d+"x\d+"$/i', '', $coreName); // 9"x9"
+        $coreName = preg_replace('/\s+\d+(?:\.\d+)?[a-z]+\s+Bottle$/i', '', $coreName); // "8oz Bottle"
+        $coreName = preg_replace('/\s+\d+(?:\.\d+)?g\s+Rope$/i', ' Rope', $coreName); // "2g Rope" -> "Rope"
+        $coreName = preg_replace('/\s+\d+(?:\.\d+)?g$/i', '', $coreName); // "1.0g"
+        $coreName = preg_replace('/\s+\d+ML$/i', '', $coreName); // "100ML", "250ML"
+        $coreName = preg_replace('/\s+Medium$/i', '', $coreName); // "Medium"
+        $coreName = preg_replace('/\s+\d+"x\d+"\(\d+(?:\.\d+)?"x\d+(?:\.\d+)?"\)$/i', '', $coreName); // 4"x4"(2"x2")
+
         $coreName = trim($coreName);
-
-        // Store mapping
-        if (!isset($coreProductNames[$coreName])) {
-          $coreProductNames[$coreName] = $fullName;
-        }
 
         if (!isset($productGroups[$coreName])) {
           $productGroups[$coreName] = [];
@@ -911,23 +912,51 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
         option.value = product.id;
 
         // Extract size from product name
-        // Product names typically end with size (e.g., "AlgiHeal AG Silver Alginate Dressing 2x2")
-        const nameParts = product.name.split(' ');
-        const lastPart = nameParts[nameParts.length - 1];
+        let sizeText = '';
+        let fullName = product.name;
 
-        // Check if last part looks like a size (contains 'x' or is a dimension)
-        let sizeText = product.size || lastPart;
+        // Remove HCPCS code first (e.g., "(A6196)")
+        fullName = fullName.replace(/\s*\([A-Z0-9\/]+\)\s*$/i, '');
 
-        // If it's just the category name repeated, extract size differently
-        if (!sizeText || sizeText === selectedCategory) {
-          // Look for patterns like "2x2", "4.33x4.33", "6x6" in the full name
-          const sizeMatch = product.name.match(/(\d+(?:\.\d+)?)\s*x\s*(\d+(?:\.\d+)?)/i);
-          if (sizeMatch) {
-            sizeText = sizeMatch[0]; // e.g., "2x2" or "4.33x4.33"
-          } else {
-            // Fallback to showing the full product name
-            sizeText = product.name.replace(selectedCategory, '').trim() || 'Standard';
-          }
+        // Extract different size patterns
+        let sizeMatch;
+
+        // Pattern 1: Dimensions like "2x2", "4.33x4.33", "6x6"
+        sizeMatch = fullName.match(/(\d+(?:\.\d+)?)\s*x\s*(\d+(?:\.\d+)?)$/i);
+        if (sizeMatch) {
+          sizeText = sizeMatch[0];
+        }
+        // Pattern 2: Quoted dimensions like 9"x9"
+        else if ((sizeMatch = fullName.match(/(\d+"x\d+")$/i))) {
+          sizeText = sizeMatch[0];
+        }
+        // Pattern 3: Gauze sizes like 4"x4"(2"x2")
+        else if ((sizeMatch = fullName.match(/(\d+"x\d+"\(\d+(?:\.\d+)?"x\d+(?:\.\d+)?"\))$/i))) {
+          sizeText = sizeMatch[0];
+        }
+        // Pattern 4: Volume like "8oz Bottle"
+        else if ((sizeMatch = fullName.match(/(\d+(?:\.\d+)?[a-z]+\s+Bottle)$/i))) {
+          sizeText = sizeMatch[0];
+        }
+        // Pattern 5: Weight with rope like "2g Rope"
+        else if ((sizeMatch = fullName.match(/(\d+(?:\.\d+)?g\s+Rope)$/i))) {
+          sizeText = sizeMatch[0];
+        }
+        // Pattern 6: Weight like "1.0g"
+        else if ((sizeMatch = fullName.match(/(\d+(?:\.\d+)?g)$/i))) {
+          sizeText = sizeMatch[0];
+        }
+        // Pattern 7: Volume like "100ML", "250ML"
+        else if ((sizeMatch = fullName.match(/(\d+ML)$/i))) {
+          sizeText = sizeMatch[0];
+        }
+        // Pattern 8: Size like "Medium"
+        else if ((sizeMatch = fullName.match(/(Medium|Large|Small)$/i))) {
+          sizeText = sizeMatch[0];
+        }
+        // Fallback: Show what's after the category name
+        else {
+          sizeText = fullName.replace(selectedCategory, '').trim() || 'Standard';
         }
 
         option.textContent = sizeText;
