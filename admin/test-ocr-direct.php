@@ -95,7 +95,7 @@ try {
                 finfo_close($finfo);
 
                 $payload = [
-                    'model' => 'claude-3-5-sonnet-20250219',
+                    'model' => 'claude-3-5-sonnet-latest',
                     'max_tokens' => 1024,
                     'messages' => [
                         [
