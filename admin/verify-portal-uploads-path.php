@@ -8,7 +8,7 @@ header('Content-Type: text/plain; charset=utf-8');
 
 echo "=== Portal Uploads Path Verification ===\n\n";
 
-$persistent_disk = '/var/www/html/uploads';
+$persistent_disk = '/opt/render/project/src/uploads';
 $fallback_path = realpath(__DIR__ . '/../uploads') ?: (__DIR__ . '/../uploads');
 
 echo "1. Checking persistent disk availability...\n";
@@ -31,8 +31,8 @@ if (is_dir($persistent_disk)) {
 echo "\n2. Simulating portal upload directory logic...\n";
 
 // This mirrors the logic in portal/index.php lines 58-74
-if (is_dir('/var/www/html/uploads')) {
-    $UPLOAD_ROOT = '/var/www/html/uploads';
+if (is_dir('/opt/render/project/src/uploads')) {
+    $UPLOAD_ROOT = '/opt/render/project/src/uploads';
     echo "   ✓ Using persistent disk: $UPLOAD_ROOT\n";
 } else {
     $UPLOAD_ROOT = realpath(__DIR__ . '/../uploads') ?: (__DIR__ . '/../uploads');
@@ -77,7 +77,7 @@ foreach ($DIRS as $type => $dir_path) {
         echo "   ✓ Created test file: $type/$test_filename\n";
 
         // Verify it's actually in persistent disk
-        $is_persistent = (strpos($test_filepath, '/var/www/html/uploads') === 0);
+        $is_persistent = (strpos($test_filepath, '/opt/render/project/src/uploads') === 0);
         $test_results[$type] = [
             'path' => $test_filepath,
             'filename' => $test_filename,
@@ -106,7 +106,7 @@ echo "\n6. Checking API upload logic...\n";
 
 // Simulate the dir_from_docroot function from api/portal/orders.create.php
 function dir_from_docroot(string $subdir): string {
-    if (is_dir('/var/www/html/uploads')) {
+    if (is_dir('/opt/render/project/src/uploads')) {
         return '/var/www/html' . $subdir;
     }
     $root = rtrim($_SERVER['DOCUMENT_ROOT'] ?? '', '/');
@@ -125,7 +125,7 @@ $api_dirs = [
 
 echo "   API would use these paths:\n";
 foreach ($api_dirs as $type => $path) {
-    $is_persistent = (strpos($path, '/var/www/html/uploads') === 0);
+    $is_persistent = (strpos($path, '/opt/render/project/src/uploads') === 0);
     $status = $is_persistent ? '✓ PERSISTENT' : '✗ EPHEMERAL';
     echo "   $status $type: $path\n";
 }
@@ -134,7 +134,7 @@ echo "\n=== SUMMARY ===\n\n";
 
 if ($all_persistent) {
     echo "✅ SUCCESS: Portal uploads ARE going to persistent disk\n";
-    echo "   All upload directories are under: /var/www/html/uploads\n";
+    echo "   All upload directories are under: /opt/render/project/src/uploads\n";
     echo "   Files will persist across container restarts\n\n";
 
     echo "Test files created (will be verified by verify-file-persistence.php):\n";

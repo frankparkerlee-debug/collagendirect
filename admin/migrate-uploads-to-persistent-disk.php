@@ -10,7 +10,7 @@ header('Content-Type: text/plain; charset=utf-8');
 
 echo "=== Migrate Uploads to Persistent Disk ===\n\n";
 
-$persistent_path = '/var/www/html/uploads';
+$persistent_path = '/opt/render/project/src/uploads';
 $ephemeral_path = ($_SERVER['DOCUMENT_ROOT'] ?? '/var/www/html') . '/uploads';
 $subdirs = ['notes', 'wound_photos', 'insurance', 'ids'];
 

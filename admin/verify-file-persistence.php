@@ -8,7 +8,7 @@ header('Content-Type: text/plain; charset=utf-8');
 
 echo "=== File Persistence Verification ===\n\n";
 
-$upload_path = '/var/www/html/uploads';
+$upload_path = '/opt/render/project/src/uploads';
 $manifest_path = "$upload_path/test-manifest.json";
 
 // Check if manifest exists
@@ -93,7 +93,7 @@ if ($missing === 0) {
     echo "❌ FAILURE: $missing files disappeared\n";
     echo "This indicates files are NOT being saved to persistent disk\n";
     echo "\nPossible causes:\n";
-    echo "1. Persistent disk not properly mounted at /var/www/html/uploads\n";
+    echo "1. Persistent disk not properly mounted at /opt/render/project/src/uploads\n";
     echo "2. Files being saved to ephemeral container storage\n";
     echo "3. Container restarted and files were lost\n";
     echo "\nCheck: https://collagendirect.health/admin/check-disk-setup.php\n";
@@ -105,10 +105,10 @@ echo "\n";
 echo "=== Persistent Disk Mount Check ===\n";
 $mount_output = shell_exec('mount | grep ' . escapeshellarg($upload_path));
 if ($mount_output) {
-    echo "✓ /var/www/html/uploads is a mounted volume\n";
+    echo "✓ /opt/render/project/src/uploads is a mounted volume\n";
     echo "  " . trim($mount_output) . "\n";
 } else {
-    echo "✗ /var/www/html/uploads is NOT mounted\n";
+    echo "✗ /opt/render/project/src/uploads is NOT mounted\n";
     echo "  Files are in ephemeral container storage\n";
     echo "  THIS IS THE PROBLEM - Configure persistent disk on Render\n";
 }

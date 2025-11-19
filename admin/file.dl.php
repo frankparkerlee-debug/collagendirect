@@ -27,10 +27,10 @@ if (strpos($rel, '/public/uploads/') === 0) {
 
 /* ---- Resolve safely under uploads directory ---- */
 // Check persistent disk first, then fall back to local uploads
-if (is_dir('/var/www/html/uploads')) {
-  // Persistent disk on Render (mounted at /var/www/html/uploads)
-  $abs = '/var/www/html' . $relLocal;  // /var/www/html/uploads/ids/file.jpg
-  $uploadsRoot = '/var/www/html/uploads';
+if (is_dir('/opt/render/project/src/uploads')) {
+  // Persistent disk on Render (mounted at /opt/render/project/src/uploads)
+  $abs = '/opt/render/project/src' . $relLocal;  // /opt/render/project/src/uploads/ids/file.jpg
+  $uploadsRoot = '/opt/render/project/src/uploads';
   error_log("[file.dl] Using persistent disk: abs={$abs}");
 } else {
   // Local development

@@ -8,7 +8,7 @@ header('Content-Type: text/plain; charset=utf-8');
 
 echo "=== File Persistence Test ===\n\n";
 
-$upload_path = '/var/www/html/uploads';
+$upload_path = '/opt/render/project/src/uploads';
 $test_dirs = ['ids', 'insurance', 'notes', 'wound-photos'];
 
 // Check if upload path exists

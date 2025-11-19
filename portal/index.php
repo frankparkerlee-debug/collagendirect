@@ -57,9 +57,9 @@ $isPracticeAdmin = in_array($userRole, ['practice_admin', 'superadmin']);
 
 /* ------------ Upload roots (keep structure) ------------ */
 // Use persistent disk on Render, fallback to local uploads for development
-if (is_dir('/var/www/html/uploads')) {
-  // Render persistent disk (mounted by docker-entrypoint.sh)
-  $UPLOAD_ROOT = '/var/www/html/uploads';
+if (is_dir('/opt/render/project/src/uploads')) {
+  // Render persistent disk (mounted at /opt/render/project/src/uploads)
+  $UPLOAD_ROOT = '/opt/render/project/src/uploads';
 } else {
   // Local development
   $UPLOAD_ROOT = realpath(__DIR__ . '/../uploads') ?: (__DIR__ . '/../uploads');
@@ -87,7 +87,7 @@ function jok($d=[]){ header('Content-Type: application/json'); echo json_encode(
 function slug(string $n){ $s=preg_replace('~[^\pL\d]+~u','-',$n); $s=trim($s,'-'); $s=@iconv('UTF-8','ASCII//TRANSLIT',$s)?:$s; $s=strtolower($s); $s=preg_replace('~[^-\w]+~','',$s); return $s?:'file'; }
 // Get full filesystem path for a relative upload path (e.g., /uploads/ids/file.jpg)
 function getFullPath(string $relativePath): string {
-  if (is_dir('/var/www/html/uploads')) {
+  if (is_dir('/opt/render/project/src/uploads')) {
     return '/var/www/html' . $relativePath;  // Persistent disk on Render
   } else {
     global $__DIR__;

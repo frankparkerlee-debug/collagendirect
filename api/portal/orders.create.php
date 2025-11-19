@@ -20,10 +20,12 @@ function safe(?string $s): ?string {
 /** Normalize a filesystem directory from a web-root relative path */
 function dir_from_docroot(string $subdir): string {
   // Check for persistent disk first (Render)
-  if (is_dir('/var/www/html/uploads')) {
-    // Use persistent disk - subdir format: /uploads/notes -> /var/www/html/uploads/notes
+  if (is_dir('/opt/render/project/src/uploads')) {
+    // Use persistent disk - subdir format: /uploads/notes -> /opt/render/project/src/uploads/notes
     $subdir = '/' . ltrim($subdir, '/'); // ensure single leading slash
-    return '/var/www/html' . $subdir;
+    // Remove /uploads prefix if present, then append to persistent disk path
+    $subdir = preg_replace('#^/uploads/#', '/', $subdir);
+    return '/opt/render/project/src/uploads' . $subdir;
   }
 
   // Fallback to local document root (development)

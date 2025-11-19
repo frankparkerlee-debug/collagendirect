@@ -8,7 +8,7 @@ header('Content-Type: text/plain; charset=utf-8');
 
 echo "=== Persistent Disk Setup Diagnostic ===\n\n";
 
-$upload_path = '/var/www/html/uploads';
+$upload_path = '/opt/render/project/src/uploads';
 $subdirs = ['notes', 'wound-photos', 'wound_photos', 'insurance', 'ids', 'aob', 'rx'];
 
 echo "1. Checking if persistent disk exists...\n";
@@ -96,7 +96,7 @@ if (is_dir($upload_path)) {
     echo "4. Click 'Add Disk'\n";
     echo "5. Configure:\n";
     echo "   - Name: uploads\n";
-    echo "   - Mount Path: /var/www/html/uploads\n";
+    echo "   - Mount Path: /opt/render/project/src/uploads\n";
     echo "   - Size: 1 GB (or more based on needs)\n";
     echo "6. Click 'Save'\n";
     echo "7. Render will restart your service with the persistent disk mounted\n\n";

@@ -29,7 +29,7 @@ foreach ($photos as $photo) {
     $alt1 = __DIR__ . '/../../uploads/wound_photos/' . basename($photo['photo_path']);
     echo "  Alternative 1: $alt1 - " . (file_exists($alt1) ? "✓ EXISTS" : "✗ NOT FOUND") . "\n";
 
-    $alt2 = '/var/www/html/uploads/wound_photos/' . basename($photo['photo_path']);
+    $alt2 = '/opt/render/project/src/uploads/wound_photos/' . basename($photo['photo_path']);
     echo "  Alternative 2: $alt2 - " . (file_exists($alt2) ? "✓ EXISTS" : "✗ NOT FOUND") . "\n";
 
     echo "\n";
@@ -39,7 +39,7 @@ echo "\n📁 Checking upload directories...\n";
 $uploadDirs = [
     __DIR__ . '/../uploads/wound_photos',
     __DIR__ . '/../../uploads/wound_photos',
-    '/var/www/html/uploads/wound_photos'
+    '/opt/render/project/src/uploads/wound_photos'
 ];
 
 foreach ($uploadDirs as $dir) {

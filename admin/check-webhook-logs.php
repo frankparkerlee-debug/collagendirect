@@ -83,7 +83,7 @@ echo "-----------------------\n";
 
 $uploadDirs = [
     __DIR__ . '/../uploads/wound_photos',
-    '/var/www/html/uploads/wound_photos',
+    '/opt/render/project/src/uploads/wound_photos',
 ];
 
 foreach ($uploadDirs as $dir) {
@@ -111,7 +111,7 @@ foreach ($uploadDirs as $dir) {
 
 // Test write
 echo "\nWRITE TEST:\n";
-$testFile = '/var/www/html/uploads/wound_photos/test-' . time() . '.txt';
+$testFile = '/opt/render/project/src/uploads/wound_photos/test-' . time() . '.txt';
 try {
     $bytes = @file_put_contents($testFile, 'Test ' . date('Y-m-d H:i:s'));
     if ($bytes) {

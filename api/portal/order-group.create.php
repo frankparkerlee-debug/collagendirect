@@ -24,7 +24,7 @@ function safe(?string $s): ?string {
 }
 
 function dir_from_docroot(string $subdir): string {
-  if (is_dir('/var/www/html/uploads')) {
+  if (is_dir('/opt/render/project/src/uploads')) {
     $subdir = '/' . ltrim($subdir, '/');
     return '/var/www/html' . $subdir;
   }

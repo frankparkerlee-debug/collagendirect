@@ -8,7 +8,7 @@ header('Content-Type: text/plain; charset=utf-8');
 
 echo "=== Uploaded Files Diagnostic ===\n\n";
 
-$persistent_path = '/var/www/html/uploads';
+$persistent_path = '/opt/render/project/src/uploads';
 $fallback_path = ($_SERVER['DOCUMENT_ROOT'] ?? '/var/www/html') . '/uploads';
 
 // Check persistent disk first

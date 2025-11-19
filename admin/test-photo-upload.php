@@ -57,7 +57,7 @@ echo "-------------------\n";
 
 $uploadDirs = [
     __DIR__ . '/../uploads/wound_photos',
-    '/var/www/html/uploads/wound_photos',
+    '/opt/render/project/src/uploads/wound_photos',
     '/var/www/html/api/twilio/../../uploads/wound_photos'
 ];
 
@@ -94,7 +94,7 @@ foreach ($uploadDirs as $dir) {
 echo "\n3. WRITE TEST:\n";
 echo "-------------\n";
 
-$testDir = '/var/www/html/uploads/wound_photos';
+$testDir = '/opt/render/project/src/uploads/wound_photos';
 $testFile = $testDir . '/test-' . time() . '.txt';
 
 try {

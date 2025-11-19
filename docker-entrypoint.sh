@@ -2,32 +2,32 @@
 set -e
 
 # Initialize persistent disk directories if they don't exist
-# Render mounts the disk at /var/www/html/uploads
-if [ -d "/var/www/html/uploads" ]; then
+# Render mounts the disk at /opt/render/project/src/uploads
+if [ -d "/opt/render/project/src/uploads" ]; then
   echo "Initializing persistent disk directories..."
-  mkdir -p /var/www/html/uploads/ids \
-           /var/www/html/uploads/insurance \
-           /var/www/html/uploads/notes \
-           /var/www/html/uploads/aob \
-           /var/www/html/uploads/rx \
-           /var/www/html/uploads/wound-photos
+  mkdir -p /opt/render/project/src/uploads/ids \
+           /opt/render/project/src/uploads/insurance \
+           /opt/render/project/src/uploads/notes \
+           /opt/render/project/src/uploads/aob \
+           /opt/render/project/src/uploads/rx \
+           /opt/render/project/src/uploads/wound-photos
 
   # Set proper ownership and permissions
-  chown -R www-data:www-data /var/www/html/uploads
-  chmod -R 755 /var/www/html/uploads
+  chown -R www-data:www-data /opt/render/project/src/uploads
+  chmod -R 755 /opt/render/project/src/uploads
 
-  echo "Persistent disk directories initialized at /var/www/html/uploads"
+  echo "Persistent disk directories initialized at /opt/render/project/src/uploads"
 else
-  echo "WARNING: Persistent disk not found at /var/www/html/uploads"
+  echo "WARNING: Persistent disk not found at /opt/render/project/src/uploads"
   echo "Creating local uploads directory (files will be lost on container restart)"
-  mkdir -p /var/www/html/uploads/ids \
-           /var/www/html/uploads/insurance \
-           /var/www/html/uploads/notes \
-           /var/www/html/uploads/aob \
-           /var/www/html/uploads/rx \
-           /var/www/html/uploads/wound-photos
-  chown -R www-data:www-data /var/www/html/uploads
-  chmod -R 755 /var/www/html/uploads
+  mkdir -p /opt/render/project/src/uploads/ids \
+           /opt/render/project/src/uploads/insurance \
+           /opt/render/project/src/uploads/notes \
+           /opt/render/project/src/uploads/aob \
+           /opt/render/project/src/uploads/rx \
+           /opt/render/project/src/uploads/wound-photos
+  chown -R www-data:www-data /opt/render/project/src/uploads
+  chmod -R 755 /opt/render/project/src/uploads
 fi
 
 # Set up cron jobs
