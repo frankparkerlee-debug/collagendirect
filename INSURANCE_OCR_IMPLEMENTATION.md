@@ -17,7 +17,30 @@ Implement one-time OCR processing for insurance cards to automatically extract a
 
 ## Implementation Options
 
-### Option 1: Google Cloud Vision API (Recommended)
+### Option 1: Anthropic Claude API (Recommended)
+**Pros:**
+- Uses Claude's vision capabilities for intelligent extraction
+- Directly extracts structured data (no regex parsing needed)
+- Better at understanding context and handling varied formats
+- Can handle handwritten text and unusual layouts
+- Simple API integration
+
+**Cons:**
+- Higher cost: ~$0.024 per image (Claude 3.5 Sonnet vision pricing)
+- Requires Anthropic API key
+
+**Setup:**
+1. Get API key from console.anthropic.com
+2. Set environment variable: `ANTHROPIC_API_KEY=your_api_key`
+3. Set provider: `INSURANCE_OCR_PROVIDER=anthropic`
+4. Enable OCR: `INSURANCE_OCR_ENABLED=true`
+
+**Cost Estimate:**
+- 100 cards/month: ~$2.40
+- 1000 cards/month: ~$24.00
+- Per image: $0.024
+
+### Option 2: Google Cloud Vision API
 **Pros:**
 - Excellent accuracy for text detection
 - Good at handling various card formats
@@ -49,7 +72,7 @@ function extractInsuranceInfo($imagePath) {
 }
 ```
 
-### Option 2: AWS Textract
+### Option 3: AWS Textract
 **Pros:**
 - Purpose-built for document extraction
 - Can detect key-value pairs
@@ -59,7 +82,7 @@ function extractInsuranceInfo($imagePath) {
 - More expensive ($1.50 per 1000 pages)
 - Requires AWS account setup
 
-### Option 3: Tesseract OCR (Open Source)
+### Option 4: Tesseract OCR (Open Source)
 **Pros:**
 - Free
 - No external dependencies

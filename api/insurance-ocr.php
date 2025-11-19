@@ -3,17 +3,17 @@
  * Insurance Card OCR Utility
  *
  * Extracts insurance information from insurance card images using OCR
- * Supports Google Cloud Vision API (recommended) or Tesseract OCR
+ * Supports Claude/Anthropic API (recommended), Google Cloud Vision API, or Tesseract OCR
  */
 
 class InsuranceOCR {
     private $ocr_enabled = false;
-    private $ocr_provider = 'google'; // 'google' or 'tesseract'
+    private $ocr_provider = 'anthropic'; // 'anthropic', 'google', or 'tesseract'
 
     public function __construct() {
         // Check if OCR is enabled via environment variable
         $this->ocr_enabled = !empty(getenv('INSURANCE_OCR_ENABLED'));
-        $this->ocr_provider = getenv('INSURANCE_OCR_PROVIDER') ?: 'google';
+        $this->ocr_provider = getenv('INSURANCE_OCR_PROVIDER') ?: 'anthropic';
     }
 
     /**
@@ -67,13 +67,154 @@ class InsuranceOCR {
      * Extract text from image using configured OCR provider
      */
     private function extractTextFromImage($imagePath) {
-        if ($this->ocr_provider === 'google') {
+        if ($this->ocr_provider === 'anthropic') {
+            return $this->extractWithAnthropic($imagePath);
+        } elseif ($this->ocr_provider === 'google') {
             return $this->extractWithGoogleVision($imagePath);
         } elseif ($this->ocr_provider === 'tesseract') {
             return $this->extractWithTesseract($imagePath);
         }
 
         return null;
+    }
+
+    /**
+     * Extract insurance information using Anthropic Claude API
+     * Uses Claude's vision capabilities to directly extract structured data
+     */
+    private function extractWithAnthropic($imagePath) {
+        $apiKey = getenv('ANTHROPIC_API_KEY');
+        if (!$apiKey) {
+            error_log("[InsuranceOCR] ANTHROPIC_API_KEY not set");
+            return null;
+        }
+
+        try {
+            // Read and encode the image
+            $imageData = file_get_contents($imagePath);
+            if (!$imageData) {
+                error_log("[InsuranceOCR] Failed to read image file");
+                return null;
+            }
+
+            // Detect image type
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mimeType = finfo_file($finfo, $imagePath);
+            finfo_close($finfo);
+
+            // Convert to supported format if needed
+            $supportedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (!in_array($mimeType, $supportedTypes)) {
+                error_log("[InsuranceOCR] Unsupported image type: $mimeType");
+                return null;
+            }
+
+            $base64Image = base64_encode($imageData);
+
+            // Prepare the API request
+            $payload = [
+                'model' => 'claude-3-5-sonnet-20241022',
+                'max_tokens' => 1024,
+                'messages' => [
+                    [
+                        'role' => 'user',
+                        'content' => [
+                            [
+                                'type' => 'image',
+                                'source' => [
+                                    'type' => 'base64',
+                                    'media_type' => $mimeType,
+                                    'data' => $base64Image
+                                ]
+                            ],
+                            [
+                                'type' => 'text',
+                                'text' => 'Please extract the following information from this insurance card image. Return ONLY a JSON object with these exact fields (use null for any field you cannot find):
+
+{
+  "provider": "Insurance company name",
+  "member_id": "Member ID or Identification number",
+  "group_id": "Group ID or Group number",
+  "payer_phone": "Customer service phone number (format: 1-800-XXX-XXXX)",
+  "plan_type": "Plan type (PPO, HMO, EPO, etc.)"
+}
+
+Important: Return ONLY the JSON object, no additional text or explanation.'
+                            ]
+                        ]
+                    ]
+                ]
+            ];
+
+            // Make API request
+            $ch = curl_init('https://api.anthropic.com/v1/messages');
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Content-Type: application/json',
+                'x-api-key: ' . $apiKey,
+                'anthropic-version: 2023-06-01'
+            ]);
+
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            if ($httpCode !== 200) {
+                error_log("[InsuranceOCR] Anthropic API error (HTTP $httpCode): $response");
+                return null;
+            }
+
+            $result = json_decode($response, true);
+            if (!$result || !isset($result['content'][0]['text'])) {
+                error_log("[InsuranceOCR] Invalid API response format");
+                return null;
+            }
+
+            // Extract the JSON from Claude's response
+            $text = $result['content'][0]['text'];
+
+            // Claude might wrap the JSON in markdown code blocks, so extract it
+            if (preg_match('/```json\s*(\{.*?\})\s*```/s', $text, $matches)) {
+                $text = $matches[1];
+            } elseif (preg_match('/(\{.*?\})/s', $text, $matches)) {
+                $text = $matches[1];
+            }
+
+            $extractedData = json_decode($text, true);
+            if (!$extractedData) {
+                error_log("[InsuranceOCR] Failed to parse Claude response as JSON: $text");
+                return null;
+            }
+
+            // Convert to the format expected by parseInsuranceText
+            // We'll return a formatted text string so we can reuse the parsing logic
+            $formattedText = '';
+            if (!empty($extractedData['provider'])) {
+                $formattedText .= "Provider: " . $extractedData['provider'] . "\n";
+            }
+            if (!empty($extractedData['member_id'])) {
+                $formattedText .= "Member ID: " . $extractedData['member_id'] . "\n";
+            }
+            if (!empty($extractedData['group_id'])) {
+                $formattedText .= "Group ID: " . $extractedData['group_id'] . "\n";
+            }
+            if (!empty($extractedData['payer_phone'])) {
+                $formattedText .= "Phone: " . $extractedData['payer_phone'] . "\n";
+            }
+            if (!empty($extractedData['plan_type'])) {
+                $formattedText .= "Plan Type: " . $extractedData['plan_type'] . "\n";
+            }
+
+            error_log("[InsuranceOCR] Claude extracted data: " . json_encode($extractedData));
+
+            return $formattedText;
+
+        } catch (Exception $e) {
+            error_log("[InsuranceOCR] Anthropic API exception: " . $e->getMessage());
+            return null;
+        }
     }
 
     /**
