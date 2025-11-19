@@ -1141,9 +1141,10 @@ if ($action) {
 
     // Superadmins can see all orders, others only their own
     if ($userRole === 'superadmin') {
-      $o=$pdo->prepare("SELECT id,status,product,product_id,product_price,shipments_remaining,delivery_mode,payment_type,
+      $o=$pdo->prepare("SELECT id,status,product,product_id,product_price,cpt,shipments_remaining,delivery_mode,payment_type,
                                shipping_name,shipping_phone,shipping_address,shipping_city,shipping_state,shipping_zip,
-                               wound_location,wound_laterality,wound_notes,
+                               wound_location,wound_laterality,wound_notes,wounds_data,
+                               frequency_per_week,qty_per_change,duration_days,
                                created_at,updated_at,expires_at,
                                sign_name,sign_title,signed_at,
                                rx_note_name,rx_note_mime,rx_note_path,
@@ -1154,9 +1155,10 @@ if ($action) {
                           CASE product_type WHEN 'primary' THEN 1 WHEN 'secondary' THEN 2 WHEN 'additional' THEN 3 ELSE 4 END");
       $o->execute([$pid]);
     } else {
-      $o=$pdo->prepare("SELECT id,status,product,product_id,product_price,shipments_remaining,delivery_mode,payment_type,
+      $o=$pdo->prepare("SELECT id,status,product,product_id,product_price,cpt,shipments_remaining,delivery_mode,payment_type,
                                shipping_name,shipping_phone,shipping_address,shipping_city,shipping_state,shipping_zip,
-                               wound_location,wound_laterality,wound_notes,
+                               wound_location,wound_laterality,wound_notes,wounds_data,
+                               frequency_per_week,qty_per_change,duration_days,
                                created_at,updated_at,expires_at,
                                sign_name,sign_title,signed_at,
                                rx_note_name,rx_note_mime,rx_note_path,
