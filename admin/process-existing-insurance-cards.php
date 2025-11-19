@@ -110,16 +110,20 @@ try {
         }
 
         if (!$imagePath) {
-            echo "<td style='color: red;'>File not found</td>";
+            echo "<td style='color: red;'>File not found at any path</td>";
             echo "<td style='color: red;'>✗ Skipped</td>";
             $skipped_count++;
             echo "</tr>\n";
             continue;
         }
 
+        // Show which path was found
+        echo "<td style='font-size: 0.75em; color: #666;'>Found at: " . htmlspecialchars($imagePath) . "<br>";
+        echo "Size: " . number_format(filesize($imagePath)) . " bytes</td>";
+
         // Process with OCR
         try {
-            error_log("[process-existing] Processing: $imagePath");
+            error_log("[process-existing] Processing: $imagePath (size: " . filesize($imagePath) . " bytes)");
             $insuranceData = $insuranceOCR->processInsuranceCard($imagePath);
 
             if (!$insuranceData) {
@@ -160,7 +164,8 @@ try {
             }
 
         } catch (Exception $e) {
-            echo "<td style='color: red;'>Error: " . htmlspecialchars($e->getMessage()) . "</td>";
+            error_log("[process-existing] Exception: " . $e->getMessage() . "\n" . $e->getTraceAsString());
+            echo "<td style='color: red;'>Exception: " . htmlspecialchars($e->getMessage()) . "</td>";
             echo "<td style='color: red;'>✗ Error</td>";
             $failed_count++;
         }
