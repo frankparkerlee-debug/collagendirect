@@ -11507,10 +11507,6 @@ function renderPatientDetailPage(p, orders, isEditing) {
           <input type="hidden" id="edit-state" value="${esc(p.state||'')}">
           <input type="hidden" id="edit-zip" value="${esc(p.zip||'')}">
           <input type="hidden" id="edit-cell-phone" value="${esc(p.cell_phone||'')}">
-          <input type="hidden" id="edit-insurance-provider" value="${esc(p.insurance_provider||'')}">
-          <input type="hidden" id="edit-insurance-member-id" value="${esc(p.insurance_member_id||'')}">
-          <input type="hidden" id="edit-insurance-group-id" value="${esc(p.insurance_group_id||'')}">
-          <input type="hidden" id="edit-insurance-payer-phone" value="${esc(p.insurance_payer_phone||'')}">
         ` : ''}
       </div>
 
@@ -11518,17 +11514,59 @@ function renderPatientDetailPage(p, orders, isEditing) {
       <div class="mb-4 pb-4 border-t pt-4">
         <h4 class="font-semibold text-sm mb-3">Insurance information</h4>
         <div class="space-y-3 text-sm">
-          <div class="grid grid-cols-2 gap-3">
+          ${isEditing ? `
+            <!-- Edit Mode - Editable Insurance Fields -->
             <div>
-              <div class="text-slate-500 text-xs mb-1">Type of insurance</div>
-              <div class="font-medium">${esc(p.insurance_provider||'Not provided')}</div>
+              <label class="text-xs text-slate-500 mb-1 block">Insurance Provider</label>
+              <input type="text" class="w-full text-sm" id="edit-insurance-provider" value="${esc(p.insurance_provider||'')}" placeholder="e.g., Blue Cross Blue Shield">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-xs text-slate-500 mb-1 block">Member ID</label>
+                <input type="text" class="w-full text-sm" id="edit-insurance-member-id" value="${esc(p.insurance_member_id||'')}" placeholder="Member ID">
+              </div>
+              <div>
+                <label class="text-xs text-slate-500 mb-1 block">Group ID</label>
+                <input type="text" class="w-full text-sm" id="edit-insurance-group-id" value="${esc(p.insurance_group_id||'')}" placeholder="Group ID">
+              </div>
             </div>
             <div>
-              <div class="text-slate-500 text-xs mb-1">Participation number</div>
-              <div class="font-medium">${esc(p.insurance_member_id||'N/A')}</div>
+              <label class="text-xs text-slate-500 mb-1 block">Payer Phone</label>
+              <input type="tel" class="w-full text-sm" id="edit-insurance-payer-phone" value="${esc(p.insurance_payer_phone||'')}" placeholder="1-800-XXX-XXXX">
             </div>
-          </div>
-          <!-- Validity period and membership status not yet tracked in database -->
+            ${p.insurance_ocr_processed ? `
+              <div class="text-xs text-slate-500 italic mt-2">
+                ℹ️ OCR extracted on ${fmt(p.insurance_ocr_date)} (confidence: ${Math.round((p.insurance_ocr_confidence || 0) * 100)}%)
+              </div>
+            ` : ''}
+          ` : `
+            <!-- View Mode - Display Insurance Info -->
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <div class="text-slate-500 text-xs mb-1">Type of insurance</div>
+                <div class="font-medium">${esc(p.insurance_provider||'Not provided')}</div>
+              </div>
+              <div>
+                <div class="text-slate-500 text-xs mb-1">Participation number</div>
+                <div class="font-medium">${esc(p.insurance_member_id||'N/A')}</div>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <div class="text-slate-500 text-xs mb-1">Group ID</div>
+                <div class="font-medium">${esc(p.insurance_group_id||'N/A')}</div>
+              </div>
+              <div>
+                <div class="text-slate-500 text-xs mb-1">Payer Phone</div>
+                <div class="font-medium">${esc(p.insurance_payer_phone||'N/A')}</div>
+              </div>
+            </div>
+            ${p.insurance_ocr_processed ? `
+              <div class="text-xs text-slate-500 italic mt-2">
+                ℹ️ Auto-extracted via OCR on ${fmt(p.insurance_ocr_date)}
+              </div>
+            ` : ''}
+          `}
         </div>
       </div>
 
