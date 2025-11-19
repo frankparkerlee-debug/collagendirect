@@ -43,16 +43,25 @@ class InsuranceOCR {
         error_log("[InsuranceOCR] Processing insurance card: $imagePath");
 
         try {
-            // Extract text from image
-            $extractedText = $this->extractTextFromImage($imagePath);
+            // Extract text or structured data from image
+            $extracted = $this->extractTextFromImage($imagePath);
 
-            if (!$extractedText) {
-                error_log("[InsuranceOCR] No text extracted from image");
+            if (!$extracted) {
+                error_log("[InsuranceOCR] No data extracted from image");
                 return null;
             }
 
-            // Parse insurance information from extracted text
-            $insuranceData = $this->parseInsuranceText($extractedText);
+            // If Anthropic provider returns structured data directly, use it
+            if (is_array($extracted)) {
+                // Add confidence and raw_text fields for compatibility
+                $insuranceData = array_merge($extracted, [
+                    'confidence' => $this->calculateConfidence($extracted),
+                    'raw_text' => json_encode($extracted)
+                ]);
+            } else {
+                // For other providers (Google Vision, Tesseract), parse the text
+                $insuranceData = $this->parseInsuranceText($extracted);
+            }
 
             error_log("[InsuranceOCR] Extracted insurance data: " . json_encode($insuranceData));
 
@@ -188,28 +197,17 @@ Important: Return ONLY the JSON object, no additional text or explanation.'
                 return null;
             }
 
-            // Convert to the format expected by parseInsuranceText
-            // We'll return a formatted text string so we can reuse the parsing logic
-            $formattedText = '';
-            if (!empty($extractedData['provider'])) {
-                $formattedText .= "Provider: " . $extractedData['provider'] . "\n";
-            }
-            if (!empty($extractedData['member_id'])) {
-                $formattedText .= "Member ID: " . $extractedData['member_id'] . "\n";
-            }
-            if (!empty($extractedData['group_id'])) {
-                $formattedText .= "Group ID: " . $extractedData['group_id'] . "\n";
-            }
-            if (!empty($extractedData['payer_phone'])) {
-                $formattedText .= "Phone: " . $extractedData['payer_phone'] . "\n";
-            }
-            if (!empty($extractedData['plan_type'])) {
-                $formattedText .= "Plan Type: " . $extractedData['plan_type'] . "\n";
-            }
-
             error_log("[InsuranceOCR] Claude extracted data: " . json_encode($extractedData));
 
-            return $formattedText;
+            // Return the structured data directly from Claude
+            // This bypasses the text parsing logic since Claude already gives us structured JSON
+            return [
+                'provider' => $extractedData['provider'] ?? null,
+                'member_id' => $extractedData['member_id'] ?? null,
+                'group_id' => $extractedData['group_id'] ?? null,
+                'payer_phone' => $extractedData['payer_phone'] ?? null,
+                'plan_type' => $extractedData['plan_type'] ?? null
+            ];
 
         } catch (Exception $e) {
             error_log("[InsuranceOCR] Anthropic API exception: " . $e->getMessage());
@@ -273,6 +271,31 @@ Important: Return ONLY the JSON object, no additional text or explanation.'
         }
 
         return null;
+    }
+
+    /**
+     * Calculate confidence score based on extracted data completeness
+     */
+    private function calculateConfidence($data) {
+        $confidence = 0.5; // Base confidence
+
+        if (!empty($data['provider'])) {
+            $confidence += 0.2;
+        }
+        if (!empty($data['member_id'])) {
+            $confidence += 0.2;
+        }
+        if (!empty($data['group_id'])) {
+            $confidence += 0.1;
+        }
+        if (!empty($data['payer_phone'])) {
+            $confidence += 0.1;
+        }
+        if (!empty($data['plan_type'])) {
+            $confidence += 0.1;
+        }
+
+        return min(1.0, $confidence);
     }
 
     /**
