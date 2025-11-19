@@ -334,13 +334,13 @@ try {
         if (!$order_group_id) {
           $order_group_id = guid();
 
-          // Update primary order with order_group_id
-          $pdo->prepare("UPDATE orders SET order_group_id = ?, product_type = 'primary', wound_index = ? WHERE id = ?")
-             ->execute([$order_group_id, $wound_index, $order_id]);
-
-          // Create order_groups record
+          // Create order_groups record FIRST (before updating orders with foreign key)
           $pdo->prepare("INSERT INTO order_groups (id, patient_id, user_id, status, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())")
              ->execute([$order_group_id, $patient_id, $uid, $status]);
+
+          // Now update primary order with order_group_id (foreign key constraint satisfied)
+          $pdo->prepare("UPDATE orders SET order_group_id = ?, product_type = 'primary', wound_index = ? WHERE id = ?")
+             ->execute([$order_group_id, $wound_index, $order_id]);
         }
 
         // Create orders for secondary and additional products
