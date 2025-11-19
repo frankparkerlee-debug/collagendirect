@@ -341,6 +341,22 @@ try {
       }
     }
 
+    // Insert baseline wound photo into wound_photos table
+    if ($wound_photo_path) {
+      $photo_id = guid();
+      $pdo->prepare("
+        INSERT INTO wound_photos
+          (id, patient_id, photo_path, photo_type, uploaded_via, uploaded_at, order_id, reviewed, reviewed_at)
+        VALUES (?, ?, ?, 'baseline', 'portal_order', NOW(), ?, TRUE, NOW())
+      ")->execute([
+        $photo_id,
+        $patient_id,
+        $wound_photo_path,
+        $is_multi_product ? $order_group_id : $order_ids[0]
+      ]);
+      error_log("[order-group.create] Inserted baseline photo into wound_photos: $photo_id");
+    }
+
     // Mirror to patient profile (if requested or for newly created patients)
     $attach_to_patient = ($_POST['attach_to_patient'] ?? '1') === '1' || $created_new_patient;
     if ($attach_to_patient && ($rx_path || $ins_path || $id_path)) {
