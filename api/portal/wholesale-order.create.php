@@ -80,8 +80,24 @@ try {
   // Begin transaction
   $pdo->beginTransaction();
 
+  // Generate a wholesale order number sequence for this batch
+  // Format: WS-YYYYMMDD-NNN (e.g., WS-20250119-001)
+  $datePrefix = date('Ymd');
+
+  // Find the highest wholesale order number for today
+  $countStmt = $pdo->prepare("
+    SELECT COUNT(*) as count
+    FROM orders
+    WHERE payment_type = 'wholesale'
+    AND DATE(created_at) = CURRENT_DATE
+  ");
+  $countStmt->execute();
+  $todayCount = (int)$countStmt->fetchColumn();
+  $startingNumber = $todayCount + 1;
+
   $ordersCreated = 0;
   $patientIds = []; // Track created/reused patient IDs
+  $orderCounter = $startingNumber;
 
   foreach ($items as $item) {
     $patientIndex = $item['patient_index'];
@@ -239,6 +255,16 @@ try {
     $totalPieces = $boxes * $piecesPerBox;
     $orderTotal = $boxes * $pricePerBox; // Total amount for this order
 
+    // Generate wholesale order number for this specific order
+    $wholesaleOrderNumber = sprintf('WS-%s-%03d', $datePrefix, $orderCounter);
+    $orderCounter++;
+
+    // Combine order number with user notes
+    $orderNotes = "Wholesale Order #$wholesaleOrderNumber";
+    if (!empty($notes)) {
+      $orderNotes .= "\n" . $notes;
+    }
+
     // Insert order using standard columns (no invoice fields in orders table)
     $sql = "
       INSERT INTO orders (
@@ -286,7 +312,7 @@ try {
       $shippingCity,
       $shippingState,
       $shippingZip,
-      $notes,
+      $orderNotes, // Include wholesale order number in notes
       $shipToOffice ? 'office' : 'patient' // delivery_mode
     ]);
 
