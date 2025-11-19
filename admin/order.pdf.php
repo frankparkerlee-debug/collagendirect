@@ -16,8 +16,7 @@ try {
             p.first_name, p.last_name, p.dob, p.address, p.city, p.state, p.zip, p.phone AS patient_phone,
             p.insurance_provider, p.insurance_member_id, p.insurance_group_id, p.insurance_payer_phone,
             u.first_name AS doc_first, u.last_name AS doc_last, u.license, u.license_state, u.npi,
-            u.sign_name, u.sign_title, u.sign_date, u.practice_name,
-            u.practice_address, u.practice_city, u.practice_state, u.practice_zip, u.practice_phone
+            u.sign_name, u.sign_title, u.sign_date, u.practice_name
           FROM orders o
           LEFT JOIN patients p ON p.id=o.patient_id
           LEFT JOIN users u ON u.id=o.user_id
@@ -283,10 +282,10 @@ $shipping_phone = '';
 $shipping_address = '';
 
 if ($delivery_mode === 'office') {
-  // Ship to doctor's office
-  $shipping_recipient = h($o['practice_name'] ?? 'Unknown Practice');
-  $shipping_phone = h($o['practice_phone'] ?? '—');
-  $shipping_address = h($o['practice_address'] ?? '').', '.h($o['practice_city'] ?? '').', '.h($o['practice_state'] ?? '').' '.h($o['practice_zip'] ?? '');
+  // Ship to doctor's office - use practice name
+  $shipping_recipient = h($o['practice_name'] ?? 'Doctor Office');
+  $shipping_phone = '—';  // Practice phone not yet in database
+  $shipping_address = 'Office Pickup';
 } else {
   // Ship to patient (default)
   $shipping_recipient = h(($o['first_name'] ?? '').' '.($o['last_name'] ?? ''));
@@ -298,7 +297,8 @@ $sec_shipping = '
   <h2>Shipping</h2>
   <div class="box"><table class="kv">
     <tr><td class="key">Delivery To</td><td><strong>'.ucfirst($delivery_mode).'</strong></td></tr>
-    <tr><td class="key">Recipient</td><td>'.$shipping_recipient.' • '.$shipping_phone.'</td></tr>
+    <tr><td class="key">Recipient</td><td>'.$shipping_recipient.'</td></tr>
+    '.($shipping_phone !== '—' ? '<tr><td class="key">Phone</td><td>'.$shipping_phone.'</td></tr>' : '').'
     <tr><td class="key">Address</td><td>'.$shipping_address.'</td></tr>
   </table></div>
 ';

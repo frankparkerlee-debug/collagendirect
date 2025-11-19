@@ -9791,11 +9791,20 @@ function viewOrderDetails(order) {
               bgColor = 'bg-purple-50 border-purple-200';
             }
 
+            // Calculate boxes ordered for this product
+            const freq = prod.frequency_per_week || order.frequency_per_week || 0;
+            const qty = prod.qty_per_change || order.qty_per_change || 1;
+            const days = prod.duration_days || order.duration_days || 0;
+            const weeks = days > 0 ? Math.ceil(days / 7) : 0;
+            const totalPieces = freq * qty * weeks;
+            const boxesOrdered = totalPieces > 0 ? Math.ceil(totalPieces / 10) : 0; // Assuming 10 pieces per box
+
             return `
               <div class="p-3 border rounded ${bgColor}">
                 <div class="font-medium ${typeColor} mb-1">${typeLabel}</div>
                 <div class="text-sm">${esc(prod.product || 'Unknown')}</div>
                 ${prod.cpt ? `<div class="text-xs text-slate-600 mt-1">HCPCS: ${esc(prod.cpt)}</div>` : ''}
+                ${boxesOrdered > 0 ? `<div class="text-xs text-slate-600 mt-1">Boxes Ordered: ${boxesOrdered}</div>` : ''}
               </div>
             `;
           }).join('')}
@@ -9803,7 +9812,14 @@ function viewOrderDetails(order) {
       </div>
     `;
   } else {
-    // Single product - show with HCPCS
+    // Single product - show with HCPCS and boxes
+    const freq = order.frequency_per_week || (woundDetails && woundDetails.frequency_per_week) || 0;
+    const qty = order.qty_per_change || (woundDetails && woundDetails.qty_per_change) || 1;
+    const days = order.duration_days || (woundDetails && woundDetails.duration_days) || 0;
+    const weeks = days > 0 ? Math.ceil(days / 7) : 0;
+    const totalPieces = freq * qty * weeks;
+    const boxesOrdered = totalPieces > 0 ? Math.ceil(totalPieces / 10) : 0;
+
     productListHtml = `
       <div class="mb-4">
         <h5 class="font-semibold text-sm mb-2">Product Ordered</h5>
@@ -9811,6 +9827,7 @@ function viewOrderDetails(order) {
           <div class="font-medium text-green-700 mb-1">Primary Dressing</div>
           <div class="text-sm">${esc(order.product || 'N/A')}</div>
           ${order.cpt ? `<div class="text-xs text-slate-600 mt-1">HCPCS: ${esc(order.cpt)}</div>` : ''}
+          ${boxesOrdered > 0 ? `<div class="text-xs text-slate-600 mt-1">Boxes Ordered: ${boxesOrdered}</div>` : ''}
         </div>
       </div>
     `;
@@ -9868,7 +9885,6 @@ function viewOrderDetails(order) {
           <h5 class="font-semibold text-sm mb-2">Fulfillment</h5>
           <div class="space-y-1 text-sm">
             <div><span class="text-slate-600">Delivery:</span> ${esc(order.delivery_mode === 'office' ? 'Office Pickup' : 'Ship to Patient')}</div>
-            <div><span class="text-slate-600">Boxes Sent:</span> ${order.shipments_remaining || 0}</div>
           </div>
         </div>
       </div>
