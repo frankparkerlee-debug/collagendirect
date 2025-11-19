@@ -34,16 +34,19 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
   verify_csrf();
   $action = $_POST['action'] ?? ''; $id = $_POST['id'] ?? '';
   if ($id && $action==='approve') {
-    // Check if patient is approved before allowing order approval
-    $patientCheck = $pdo->prepare("SELECT p.state, p.first_name, p.last_name
-                                    FROM orders o
-                                    JOIN patients p ON p.id = o.patient_id
-                                    WHERE o.id = ?");
-    $patientCheck->execute([$id]);
-    $patient = $patientCheck->fetch();
+    // Check if this is a wholesale order (wholesale orders don't require patient approval)
+    $orderCheck = $pdo->prepare("SELECT o.billed_by, p.state, p.first_name, p.last_name
+                                  FROM orders o
+                                  JOIN patients p ON p.id = o.patient_id
+                                  WHERE o.id = ?");
+    $orderCheck->execute([$id]);
+    $orderData = $orderCheck->fetch();
 
-    if ($patient && $patient['state'] !== 'approved') {
-      $_SESSION['error_msg'] = 'Cannot approve order: Patient "' . $patient['first_name'] . ' ' . $patient['last_name'] . '" must be approved first. Current patient status: ' . ucfirst($patient['state']);
+    $isWholesale = ($orderData['billed_by'] ?? '') === 'practice_dme';
+
+    // Only check patient approval for referral orders (not wholesale)
+    if (!$isWholesale && $orderData && $orderData['state'] !== 'approved') {
+      $_SESSION['error_msg'] = 'Cannot approve order: Patient "' . $orderData['first_name'] . ' ' . $orderData['last_name'] . '" must be approved first. Current patient status: ' . ucfirst($orderData['state']);
       header('Location: /admin/orders.php'); exit;
     }
 
@@ -513,10 +516,12 @@ if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"
             }
             echo e(($label ?: '—').' • '.($r['frequency'] ?? ''));
 
-            // Add wholesale badge if this is a wholesale order
+            // Add order type badge
             $isWholesale = ($r['billed_by'] ?? '') === 'practice_dme';
             if ($isWholesale) {
               echo ' <span class="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-purple-100 text-purple-700">Wholesale</span>';
+            } else {
+              echo ' <span class="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-700">Referral</span>';
             }
           ?>
         </td>
