@@ -28,9 +28,14 @@ try {
   echo "<p>Insurance OCR tracking fields have been added to the patients table.</p>\n";
   echo "<p>Next steps:</p>\n";
   echo "<ul>\n";
-  echo "<li>Set up Google Cloud Vision API credentials</li>\n";
-  echo "<li>Install required Composer packages: <code>composer require google/cloud-vision</code></li>\n";
-  echo "<li>Enable OCR processing in order creation</li>\n";
+  echo "<li>Get Anthropic API key from <a href='https://console.anthropic.com'>console.anthropic.com</a></li>\n";
+  echo "<li>Set environment variables in Render:</li>\n";
+  echo "<ul>\n";
+  echo "<li><code>ANTHROPIC_API_KEY=your_api_key</code></li>\n";
+  echo "<li><code>INSURANCE_OCR_PROVIDER=anthropic</code></li>\n";
+  echo "<li><code>INSURANCE_OCR_ENABLED=true</code></li>\n";
+  echo "</ul>\n";
+  echo "<li>OCR will automatically process insurance cards during order creation</li>\n";
   echo "</ul>\n";
 
 } catch (PDOException $e) {
