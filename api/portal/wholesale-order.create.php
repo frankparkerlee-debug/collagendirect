@@ -112,51 +112,59 @@ try {
     // 1) Get or create patient
     $patientId = null;
 
-    // Check if patient already exists by ID (from search)
-    if (isset($patientData['id']) && !empty($patientData['id'])) {
-      // Verify this patient belongs to the user
-      $chk = $pdo->prepare("SELECT id FROM patients WHERE id = ? AND user_id = ?");
-      $chk->execute([$patientData['id'], $uid]);
-      if ($chk->fetch()) {
-        $patientId = $patientData['id'];
+    // Check if this is office stock (multiple ways it can be indicated)
+    $isOfficeStock = (
+      ($patientData['delivery_preference'] ?? '') === 'office_stock' ||
+      ($patientData['is_office_stock'] ?? '') == '1' ||
+      strtolower($patientData['first_name'] ?? '') === 'office'
+    );
+
+    if (!$isOfficeStock) {
+      // For real patients, try to find existing patient first
+
+      // Check if patient already exists by ID (from search/autocomplete)
+      if (isset($patientData['id']) && !empty($patientData['id'])) {
+        // Verify this patient belongs to the user
+        $chk = $pdo->prepare("SELECT id FROM patients WHERE id = ? AND user_id = ?");
+        $chk->execute([$patientData['id'], $uid]);
+        if ($chk->fetch()) {
+          $patientId = $patientData['id'];
+        }
       }
-    }
 
-    // If not found, create new patient (unless it's office stock)
-    if (!$patientId) {
-      // Check if this is office stock (multiple ways it can be indicated)
-      $isOfficeStock = (
-        ($patientData['delivery_preference'] ?? '') === 'office_stock' ||
-        ($patientData['is_office_stock'] ?? '') == '1' ||
-        strtolower($patientData['first_name'] ?? '') === 'office'
-      );
+      // If not found by ID, try to match by name and phone
+      if (!$patientId) {
+        $firstName = safe($patientData['first_name'] ?? null);
+        $lastName = safe($patientData['last_name'] ?? null);
+        $phone = safe($patientData['phone'] ?? null);
 
-      // Check if shipping to office (for delivery address determination)
-      $shipToOffice = (
-        ($patientData['delivery_mode'] ?? '') === 'ship_to_office' ||
-        $isOfficeStock
-      );
+        if ($firstName && $lastName && $phone) {
+          // Normalize phone for matching (remove formatting)
+          $phoneDigits = preg_replace('/\D/', '', $phone);
 
-      if ($isOfficeStock) {
-        // For office stock, create a placeholder patient
-        $patientId = guid();
-        $pdo->prepare("
-          INSERT INTO patients
-            (id, user_id, first_name, last_name, phone, address, city, state, zip, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-        ")->execute([
-          $patientId,
-          $uid,
-          'Office',
-          'Stock',
-          null,
-          null,
-          null,
-          null,
-          null
-        ]);
-      } else {
-        // Create real patient
+          // Try to find matching patient by name and phone
+          $matchStmt = $pdo->prepare("
+            SELECT id FROM patients
+            WHERE user_id = ?
+              AND LOWER(first_name) = LOWER(?)
+              AND LOWER(last_name) = LOWER(?)
+              AND (
+                REGEXP_REPLACE(phone, '[^0-9]', '', 'g') = ?
+                OR phone = ?
+              )
+            LIMIT 1
+          ");
+          $matchStmt->execute([$uid, $firstName, $lastName, $phoneDigits, $phone]);
+          $existingPatient = $matchStmt->fetch(PDO::FETCH_ASSOC);
+
+          if ($existingPatient) {
+            $patientId = $existingPatient['id'];
+          }
+        }
+      }
+
+      // Still not found? Create new patient
+      if (!$patientId) {
         $patientId = guid();
         $pdo->prepare("
           INSERT INTO patients
@@ -174,6 +182,24 @@ try {
           safe($patientData['zip'] ?? null)
         ]);
       }
+    } else {
+      // For office stock, create a placeholder patient
+      $patientId = guid();
+      $pdo->prepare("
+        INSERT INTO patients
+          (id, user_id, first_name, last_name, phone, address, city, state, zip, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+      ")->execute([
+        $patientId,
+        $uid,
+        'Office',
+        'Stock',
+        null,
+        null,
+        null,
+        null,
+        null
+      ]);
     }
 
     $patientIds[$patientIndex] = $patientId;
