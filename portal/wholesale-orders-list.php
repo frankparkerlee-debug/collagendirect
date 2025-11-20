@@ -671,7 +671,7 @@ unset($order); // Break reference
                   p.mrn,
                   prod.pieces_per_box,
                   prod.price_wholesale,
-                  prod.product_name,
+                  prod.name as product_name,
                   pp.custom_price,
                   pp.discount_percentage
                 FROM orders o
@@ -695,7 +695,7 @@ unset($order); // Break reference
                   p.mrn,
                   prod.pieces_per_box,
                   prod.price_wholesale,
-                  prod.product_name,
+                  prod.name as product_name,
                   pp.custom_price,
                   pp.discount_percentage
                 FROM orders o
