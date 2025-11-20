@@ -817,7 +817,7 @@ unset($order); // Break reference
             <!-- Actions -->
             <div class="invoice-actions">
               <a
-                href="/portal/wholesale-order.pdf.php?order_group=<?= urlencode($orderNumber) ?>&csrf=<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>"
+                href="/portal/wholesale-order.pdf.php?order_group=<?= urlencode($orderNumber) ?>&csrf=<?= htmlspecialchars($_SESSION['csrf'] ?? '') ?>"
                 target="_blank"
                 class="btn-secondary"
               >
