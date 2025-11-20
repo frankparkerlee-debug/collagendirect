@@ -180,9 +180,9 @@ unset($order); // Break reference
 
 <style>
 .wholesale-container {
-  max-width: 1400px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1.5rem;
 }
 
 .stats-grid {
@@ -230,44 +230,36 @@ unset($order); // Break reference
 .invoice-card {
   background: white;
   border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  margin-bottom: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
   overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-  transition: all 0.2s;
-}
-
-.invoice-card:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 
 .invoice-header {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  color: white;
-  padding: 1.5rem;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 1rem 1.25rem;
   cursor: pointer;
   display: grid;
-  grid-template-columns: 200px 1fr 140px 140px 160px auto;
-  gap: 1.5rem;
+  grid-template-columns: 150px 1fr 100px 120px 100px auto;
+  gap: 1rem;
   align-items: center;
+  transition: background 0.15s;
 }
 
 .invoice-header:hover {
-  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  background: #f1f5f9;
 }
 
 .invoice-body {
-  display: none;
+  display: block;
   padding: 0;
 }
 
-.invoice-card.expanded .invoice-body {
-  display: block;
-}
-
 .invoice-details {
-  padding: 2rem;
-  background: #f8fafc;
+  padding: 1.5rem;
+  background: white;
   border-bottom: 1px solid #e2e8f0;
 }
 
@@ -399,16 +391,6 @@ unset($order); // Break reference
   color: #991b1b;
 }
 
-.expand-icon {
-  transition: transform 0.2s;
-  color: white;
-  opacity: 0.8;
-}
-
-.invoice-card.expanded .expand-icon {
-  transform: rotate(180deg);
-  opacity: 1;
-}
 
 .empty-state {
   text-align: center;
@@ -562,21 +544,18 @@ unset($order); // Break reference
           <div class="invoice-header">
             <!-- Invoice Number -->
             <div>
-              <div style="font-size: 0.75rem; opacity: 0.9; margin-bottom: 0.25rem; text-transform: uppercase; letter-spacing: 0.05em;">Invoice #</div>
-              <div style="font-weight: 700; font-size: 1.125rem;">
+              <div style="font-size: 0.7rem; color: #64748b; margin-bottom: 0.25rem; text-transform: uppercase; letter-spacing: 0.05em;">Invoice #</div>
+              <div style="font-weight: 600; font-size: 0.875rem; color: #1e293b;">
                 <?= $orderNumber ?>
-              </div>
-              <div style="font-size: 0.75rem; opacity: 0.8; margin-top: 0.125rem;">
-                <?= $orderTime ?>
               </div>
             </div>
 
             <!-- Date & Details -->
             <div>
-              <div style="font-weight: 600; font-size: 0.9375rem; margin-bottom: 0.25rem;">
+              <div style="font-weight: 600; font-size: 0.875rem; color: #1e293b; margin-bottom: 0.25rem;">
                 <?= $orderDate ?>
               </div>
-              <div style="font-size: 0.8125rem; opacity: 0.9;">
+              <div style="font-size: 0.75rem; color: #64748b;">
                 <?= $productCount ?> item<?= $productCount !== 1 ? 's' : '' ?>
                 <?php if ($patientCount > 0): ?>
                   · <?= $patientCount ?> patient<?= $patientCount !== 1 ? 's' : '' ?>
@@ -584,34 +563,30 @@ unset($order); // Break reference
               </div>
             </div>
 
-            <!-- Item Count Badge -->
+            <!-- Item Count -->
             <div style="text-align: center;">
-              <div style="background: rgba(255,255,255,0.2); border-radius: 8px; padding: 0.5rem 1rem; backdrop-filter: blur(10px);">
-                <div style="font-size: 1.5rem; font-weight: 700;"><?= $productCount ?></div>
-                <div style="font-size: 0.625rem; text-transform: uppercase; opacity: 0.9;">Items</div>
-              </div>
+              <div style="font-size: 1.25rem; font-weight: 700; color: #1e293b;"><?= $productCount ?></div>
+              <div style="font-size: 0.65rem; color: #64748b; text-transform: uppercase;">Items</div>
             </div>
 
             <!-- Total Amount -->
             <div style="text-align: right;">
-              <div style="font-size: 0.75rem; opacity: 0.9; margin-bottom: 0.25rem; text-transform: uppercase;">Total</div>
-              <div style="font-weight: 700; font-size: 1.5rem;">
+              <div style="font-size: 0.7rem; color: #64748b; margin-bottom: 0.25rem; text-transform: uppercase;">Total</div>
+              <div style="font-weight: 700; font-size: 1.125rem; color: #10b981;">
                 $<?= number_format($totalCost, 2) ?>
               </div>
             </div>
 
             <!-- Status -->
             <div>
-              <span class="status-badge <?= $statusClass ?>" style="background: rgba(255,255,255,0.95); box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              <span class="status-badge <?= $statusClass ?>">
                 <?= $statusLabel ?>
               </span>
             </div>
 
-            <!-- Expand Icon -->
+            <!-- View Invoice Link -->
             <div style="text-align: right;">
-              <svg class="expand-icon" width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-              </svg>
+              <span style="font-size: 0.75rem; color: #3b82f6; font-weight: 500;">View Invoice →</span>
             </div>
           </div>
 
