@@ -162,6 +162,39 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
   } elseif ($id && $action==='mark_unpaid') {
     $pdo->prepare("UPDATE orders SET paid_at=NULL, amount_paid=0, balance_due=amount_due, updated_at=NOW() WHERE id=?")->execute([$id]);
     $_SESSION['success_msg'] = 'Payment status reset to unpaid';
+  } elseif ($id && $action==='delete_order') {
+    // Delete wholesale order
+    try {
+      $pdo->beginTransaction();
+
+      // Get order info
+      $orderInfo = $pdo->prepare("SELECT patient_id, additional_instructions FROM orders WHERE id = ?");
+      $orderInfo->execute([$id]);
+      $orderData = $orderInfo->fetch(PDO::FETCH_ASSOC);
+
+      // Delete the order
+      $pdo->prepare("DELETE FROM orders WHERE id=?")->execute([$id]);
+
+      // If patient has no other orders, delete patient too
+      if ($orderData && $orderData['patient_id']) {
+        $patientCheck = $pdo->prepare("SELECT COUNT(*) as cnt FROM orders WHERE patient_id = ?");
+        $patientCheck->execute([$orderData['patient_id']]);
+        $result = $patientCheck->fetch(PDO::FETCH_ASSOC);
+
+        if ($result['cnt'] == 0) {
+          $pdo->prepare("DELETE FROM patients WHERE id = ?")->execute([$orderData['patient_id']]);
+        }
+      }
+
+      $pdo->commit();
+      $_SESSION['success_msg'] = 'Order deleted successfully';
+    } catch (Throwable $e) {
+      if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+      }
+      error_log('[wholesale-orders] delete_order error: ' . $e->getMessage());
+      $_SESSION['error_msg'] = 'Error deleting order';
+    }
   } elseif ($id && $action==='send_invoice') {
     // Send invoice email
     try {
@@ -762,7 +795,7 @@ require_once '_header.php';
                 <!-- Approve (if pending) -->
                 <?php if ($needsApproval): ?>
                 <form method="POST" style="display: inline;" onsubmit="return confirm('Approve this order?');">
-                  <?= csrf_token() ?>
+                  <?= csrf_field() ?>
                   <input type="hidden" name="action" value="approve">
                   <input type="hidden" name="id" value="<?= $order['id'] ?>">
                   <button type="submit" class="btn-icon success" title="Approve Order">
@@ -792,11 +825,21 @@ require_once '_header.php';
 
                 <!-- Send Invoice -->
                 <form method="POST" style="display: inline;" onsubmit="return confirm('Send invoice to <?= htmlspecialchars($order['phys_email']) ?>?');">
-                  <?= csrf_token() ?>
+                  <?= csrf_field() ?>
                   <input type="hidden" name="action" value="send_invoice">
                   <input type="hidden" name="id" value="<?= $order['id'] ?>">
                   <button type="submit" class="btn-icon warning" title="Send Invoice">
                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                  </button>
+                </form>
+
+                <!-- Delete Order -->
+                <form method="POST" style="display: inline;" onsubmit="return confirm('⚠️ Are you sure you want to DELETE this order? This action cannot be undone!');">
+                  <?= csrf_field() ?>
+                  <input type="hidden" name="action" value="delete_order">
+                  <input type="hidden" name="id" value="<?= $order['id'] ?>">
+                  <button type="submit" class="btn-icon" title="Delete Order" style="color: #dc2626; border-color: #dc2626;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                   </button>
                 </form>
               </div>
