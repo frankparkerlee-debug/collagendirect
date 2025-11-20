@@ -414,9 +414,11 @@ try {
     $filesCount = count($_FILES);
     error_log('[orders.create] Files submitted: ' . $filesDebug);
 
-    // Store debug info in additional_instructions for immediate visibility
+    // Store debug info in additional_instructions for immediate visibility (write to ALL orders in group)
     $debugInfo = "DEBUG-" . date('His') . ": \$_FILES count=$filesCount, keys=$filesDebug";
-    $pdo->prepare("UPDATE orders SET additional_instructions = COALESCE(additional_instructions, '') || E'\\n' || ? WHERE id = ?")->execute([$debugInfo, $order_id]);
+    foreach ($all_order_ids as $oid) {
+      $pdo->prepare("UPDATE orders SET additional_instructions = COALESCE(additional_instructions, '') || E'\\n' || ? WHERE id = ?")->execute([$debugInfo, $oid]);
+    }
 
     [$rx_path,  $rx_mime]  = save_upload('file_rx_note',  '/uploads/notes');
     if (!$rx_path) [$rx_path,  $rx_mime]  = save_upload('rx_note',  '/uploads/notes'); // fallback
@@ -463,14 +465,21 @@ try {
     }
 
     // Update order with file columns if present
+    // IMPORTANT: Update ALL orders in the group (for multi-product orders), not just the primary
     if ($rx_path || $ins_path || $id_path || $wound_photo_path) {
       $sets=[]; $params=[];
-      if ($rx_path)  { $sets[]='rx_note_path=?';  $params[]=$rx_path;  $sets[]='rx_note_mime=?';  $params[]=$rx_mime; }
+      if ($rx_path)  { $sets[]='rx_note_path=?';  $params[]=$rx_path;  $sets[]='rx_note_name=?';  $params[]=basename($rx_path);  $sets[]='rx_note_mime=?';  $params[]=$rx_mime; }
       if ($ins_path) { $sets[]='ins_card_path=?'; $params[]=$ins_path; $sets[]='ins_card_mime=?'; $params[]=$ins_mime; }
       if ($id_path)  { $sets[]='id_card_path=?';  $params[]=$id_path;  $sets[]='id_card_mime=?';  $params[]=$id_mime; }
       if ($wound_photo_path) { $sets[]='baseline_wound_photo_path=?'; $params[]=$wound_photo_path; $sets[]='baseline_wound_photo_mime=?'; $params[]=$wound_photo_mime; }
-      $params[] = $order_id; $params[] = $uid;
-      $pdo->prepare("UPDATE orders SET ".implode(', ',$sets).", updated_at=NOW() WHERE id=? AND user_id=?")->execute($params);
+
+      // Update ALL orders in this group (not just primary order)
+      foreach ($all_order_ids as $oid) {
+        $params_copy = $params;
+        $params_copy[] = $oid;
+        $params_copy[] = $uid;
+        $pdo->prepare("UPDATE orders SET ".implode(', ',$sets).", updated_at=NOW() WHERE id=? AND user_id=?")->execute($params_copy);
+      }
     }
 
     // Insert baseline wound photo into wound_photos table
