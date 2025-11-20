@@ -105,6 +105,7 @@ try {
     SELECT
       o.id,
       o.product_price,
+      o.frequency,
       o.frequency_per_week,
       o.duration_days,
       o.refills_allowed,
@@ -129,15 +130,27 @@ try {
 
     // Get frequency and quantity
     $fpw = (int)($order['frequency_per_week'] ?? 0);
+
+    // Fallback: parse legacy frequency text field if frequency_per_week is 0
+    if ($fpw === 0 && !empty($order['frequency'])) {
+      $fpw = patches_per_week($order['frequency']);
+    }
+
+    // Fallback: if still 0, assume daily (7x/week) for older orders
+    if ($fpw === 0) {
+      $fpw = 7; // Conservative default: daily changes
+    }
+
     $qty = max(1, (int)($order['qty_per_change'] ?? 1));
     $days = max(0, (int)($order['duration_days'] ?? 0));
+
+    // Fallback: default to 30 days if missing
+    if ($days === 0) {
+      $days = 30;
+    }
+
     $refills = max(0, (int)($order['refills_allowed'] ?? 0));
     $pieces_per_box = max(1, (int)($order['pieces_per_box'] ?? 10));
-
-    // Skip orders with missing critical data
-    if ($fpw === 0 || $days === 0) {
-      continue;
-    }
 
     // UNIVERSAL CALCULATION (same for both wholesale and referral):
     // Step 1: Calculate total pieces needed

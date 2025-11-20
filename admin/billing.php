@@ -332,15 +332,21 @@ function projected_rev($row, $rates, $hasProducts, $hasShipRem) {
   $fpw = (int)($row['frequency_per_week'] ?? 0);
   if ($fpw <= 0) $fpw = patches_per_week_text(isset($row['frequency'])?$row['frequency']:null);
 
+  // Fallback: if still 0, assume daily (7x/week)
+  if ($fpw === 0) {
+    $fpw = 7; // Conservative default: daily changes
+  }
+
   $qty  = max(1, (int)($row['qty_per_change'] ?? 1));
   $days = max(0, (int)($row['duration_days'] ?? 0));
+
+  // Fallback: default to 30 days if missing
+  if ($days === 0) {
+    $days = 30;
+  }
+
   $ref  = max(0, (int)($row['refills_allowed'] ?? 0));
   $pieces_per_box = max(1, (int)($row['pieces_per_box'] ?? 10));
-
-  // Skip if missing critical data
-  if ($fpw === 0 || $days === 0) {
-    return 0.0;
-  }
 
   // Calculate total pieces needed
   // Formula: (duration_days / 7) × frequency_per_week × qty_per_change × (1 + refills)
