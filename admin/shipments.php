@@ -370,46 +370,61 @@ document.addEventListener('DOMContentLoaded', function() {
   function updateExportButton() {
     if (!exportBtn) return;
     const selectedCount = Array.from(checkboxes).filter(c => c.checked).length;
-    exportBtn.disabled = selectedCount === 0;
-    exportBtn.textContent = selectedCount > 0
-      ? `Export ${selectedCount} Selected to Excel`
-      : 'Export Selected to Excel';
+
+    if (selectedCount === 0) {
+      exportBtn.disabled = true;
+      exportBtn.setAttribute('disabled', 'disabled');
+      exportBtn.textContent = 'Export Selected to Excel';
+    } else {
+      exportBtn.disabled = false;
+      exportBtn.removeAttribute('disabled');
+      exportBtn.textContent = `Export ${selectedCount} Selected to Excel`;
+    }
+
     console.log('Export button updated:', { selectedCount, disabled: exportBtn.disabled });
   }
 
   // Export functionality
   if (exportBtn) {
-    exportBtn.addEventListener('click', function() {
+    exportBtn.addEventListener('click', function(e) {
+      e.preventDefault(); // Prevent any default behavior
       console.log('Export button clicked');
+
       const selectedIds = Array.from(checkboxes)
         .filter(c => c.checked)
         .map(c => c.value);
 
       console.log('Selected IDs:', selectedIds);
-      if (selectedIds.length === 0) return;
+      if (selectedIds.length === 0) {
+        alert('Please select at least one shipment to export.');
+        return;
+      }
 
-    // Create form and submit
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '/admin/export-shipments.php';
+      // Create form and submit
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/admin/export-shipments.php';
 
-    const input = document.createElement('input');
-    input.type = 'hidden';
-    input.name = 'order_ids';
-    input.value = JSON.stringify(selectedIds);
-    form.appendChild(input);
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'order_ids';
+      input.value = JSON.stringify(selectedIds);
+      form.appendChild(input);
 
-    const csrf = document.createElement('input');
-    csrf.type = 'hidden';
-    csrf.name = 'csrf';
-    csrf.value = '<?=csrf_token()?>';
-    form.appendChild(csrf);
+      const csrf = document.createElement('input');
+      csrf.type = 'hidden';
+      csrf.name = 'csrf';
+      csrf.value = '<?=csrf_token()?>';
+      form.appendChild(csrf);
 
       document.body.appendChild(form);
+      console.log('Submitting form with', selectedIds.length, 'orders');
       form.submit();
-      document.body.removeChild(form);
     });
   }
+
+  // Initialize button state
+  updateExportButton();
 
   // Address popup functionality
   addressBtns.forEach(btn => {
