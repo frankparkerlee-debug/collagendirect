@@ -1218,14 +1218,31 @@ $products = $productsStmt->fetchAll(PDO::FETCH_ASSOC);
           $productId = $productData['product_id'];
           $boxes = (int)$productData['boxes'];
 
-          // Find product details
-          $stmt = $pdo->prepare("SELECT id, name, price_wholesale, pieces_per_box FROM products WHERE id = ?");
-          $stmt->execute([$productId]);
+          // Find product details with practice-specific pricing
+          $stmt = $pdo->prepare("
+            SELECT
+              p.id,
+              p.name,
+              p.price_wholesale,
+              p.pieces_per_box,
+              pp.custom_price,
+              pp.discount_percentage,
+              CASE
+                WHEN pp.custom_price IS NOT NULL AND pp.custom_price > 0 THEN pp.custom_price * p.pieces_per_box
+                WHEN pp.discount_percentage IS NOT NULL THEN
+                  p.price_wholesale * (1 - pp.discount_percentage / 100)
+                ELSE p.price_wholesale
+              END as effective_price_per_box
+            FROM products p
+            LEFT JOIN practice_pricing pp ON pp.product_id = p.id AND pp.user_id = ?
+            WHERE p.id = ?
+          ");
+          $stmt->execute([$userId, $productId]);
           $product = $stmt->fetch(PDO::FETCH_ASSOC);
 
           if ($product && $boxes > 0) {
-            // price_wholesale is already per BOX, not per piece
-            $pricePerBox = (float)($product['price_wholesale'] ?? 0);
+            // Use practice-specific pricing (effective_price_per_box)
+            $pricePerBox = (float)($product['effective_price_per_box'] ?? $product['price_wholesale'] ?? 0);
             $lineTotal = $pricePerBox * $boxes;
 
             $orderItems[] = [
