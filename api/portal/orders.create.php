@@ -415,20 +415,41 @@ try {
     error_log('[orders.create] Files submitted: ' . $filesDebug);
 
     // Store debug info in additional_instructions for immediate visibility (write to ALL orders in group)
-    $debugInfo = "DEBUG-" . date('His') . ": \$_FILES count=$filesCount, keys=$filesDebug";
+    $fileRxInfo = '';
+    if (isset($_FILES['file_rx_note'])) {
+      $f = $_FILES['file_rx_note'];
+      $fileRxInfo = sprintf(
+        " file_rx_note[error=%d, size=%d, type=%s, tmp=%s]",
+        $f['error'] ?? -1,
+        $f['size'] ?? 0,
+        $f['type'] ?? 'unknown',
+        !empty($f['tmp_name']) ? 'yes' : 'no'
+      );
+    }
+    $debugInfo = "DEBUG-" . date('His') . ": \$_FILES count=$filesCount, keys=$filesDebug" . $fileRxInfo;
     foreach ($all_order_ids as $oid) {
       $pdo->prepare("UPDATE orders SET additional_instructions = COALESCE(additional_instructions, '') || E'\\n' || ? WHERE id = ?")->execute([$debugInfo, $oid]);
     }
 
-    [$rx_path,  $rx_mime]  = save_upload('file_rx_note',  '/uploads/notes');
-    if (!$rx_path) [$rx_path,  $rx_mime]  = save_upload('rx_note',  '/uploads/notes'); // fallback
+    try {
+      [$rx_path,  $rx_mime]  = save_upload('file_rx_note',  '/uploads/notes');
+    } catch (Throwable $e) {
+      error_log('[orders.create] ERROR saving file_rx_note: ' . $e->getMessage());
+      $rx_path = null; $rx_mime = null;
+    }
+
+    if (!$rx_path) {
+      try {
+        [$rx_path,  $rx_mime]  = save_upload('rx_note',  '/uploads/notes'); // fallback
+      } catch (Throwable $e) {
+        error_log('[orders.create] ERROR saving rx_note (fallback): ' . $e->getMessage());
+      }
+    }
 
     if ($rx_path) {
       error_log('[orders.create] Visit note uploaded successfully: ' . $rx_path);
-      @file_put_contents($debugFile, date('Y-m-d H:i:s') . " [Order: $order_id] Visit note uploaded: $rx_path\n", FILE_APPEND);
     } else {
-      error_log('[orders.create] No visit note uploaded (file_rx_note and rx_note both empty)');
-      @file_put_contents($debugFile, date('Y-m-d H:i:s') . " [Order: $order_id] No visit note uploaded\n", FILE_APPEND);
+      error_log('[orders.create] No visit note uploaded - file may have failed validation or upload');
     }
     [$ins_path, $ins_mime] = save_upload('ins_card','/uploads/insurance');
     [$id_path,  $id_mime]  = save_upload('id_card',  '/uploads/ids');
