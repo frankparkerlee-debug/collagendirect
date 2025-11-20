@@ -557,7 +557,7 @@ unset($order); // Break reference
           ]))
         );
       ?>
-        <div class="invoice-card" onclick="toggleInvoice(this)" data-order-number="<?= $orderNumber ?>">
+        <div class="invoice-card" onclick="toggleInvoice(this, event)" data-order-number="<?= $orderNumber ?>">
           <!-- Invoice Header (Collapsed View) -->
           <div class="invoice-header">
             <!-- Invoice Number -->
@@ -877,9 +877,9 @@ unset($order); // Break reference
 </div>
 
 <script>
-function toggleInvoice(card) {
+function toggleInvoice(card, event) {
   // Prevent toggle if clicking on a link
-  if (event.target.tagName === 'A' || event.target.closest('a')) {
+  if (event && (event.target.tagName === 'A' || event.target.closest('a'))) {
     return;
   }
 
