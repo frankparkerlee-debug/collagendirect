@@ -38,13 +38,30 @@ function dir_from_docroot(string $subdir): string {
 }
 /** Save a single uploaded file into /public/uploads/{ids|insurance|notes} */
 function save_upload(string $field, string $subdir): array {
-  if (empty($_FILES[$field]) || empty($_FILES[$field]['tmp_name'])) return [null,null];
-  if (!is_uploaded_file($_FILES[$field]['tmp_name'])) return [null,null];
+  error_log("[save_upload] Starting upload for field: $field");
+
+  if (empty($_FILES[$field])) {
+    error_log("[save_upload] $_FILES[$field] is empty");
+    return [null,null];
+  }
+
+  if (empty($_FILES[$field]['tmp_name'])) {
+    error_log("[save_upload] $_FILES[$field]['tmp_name'] is empty. Error code: " . ($_FILES[$field]['error'] ?? 'unknown'));
+    return [null,null];
+  }
 
   $tmp  = $_FILES[$field]['tmp_name'];
+  error_log("[save_upload] tmp_name: $tmp, exists: " . (file_exists($tmp) ? 'yes' : 'no'));
+
+  if (!is_uploaded_file($tmp)) {
+    error_log("[save_upload] is_uploaded_file() returned false for $tmp");
+    return [null,null];
+  }
+
   // Trust finfo for MIME (more reliable than $_FILES['type'])
   $fi = new finfo(FILEINFO_MIME_TYPE);
   $mime = $fi->file($tmp) ?: 'application/octet-stream';
+  error_log("[save_upload] Detected MIME type: $mime");
 
   // Allow-list
   $allowed = [
@@ -55,7 +72,10 @@ function save_upload(string $field, string $subdir): array {
     'image/heic'      => 'heic',
     'text/plain'      => 'txt'
   ];
-  if (!isset($allowed[$mime])) throw new RuntimeException("unsupported_file_type_$field");
+  if (!isset($allowed[$mime])) {
+    error_log("[save_upload] Unsupported MIME type: $mime");
+    throw new RuntimeException("unsupported_file_type_$field: $mime");
+  }
 
   // Clean original name, prepend random token
   $orig = $_FILES[$field]['name'] ?? 'file';
@@ -63,12 +83,32 @@ function save_upload(string $field, string $subdir): array {
   $name  = bin2hex(random_bytes(8)) . '-' . $clean;
 
   $root = dir_from_docroot($subdir);
-  if (!is_dir($root)) { @mkdir($root, 0775, true); }
-  if (!is_dir($root) || !is_writable($root)) throw new RuntimeException("upload_dir_unwritable_$field");
+  error_log("[save_upload] Target directory: $root");
+
+  if (!is_dir($root)) {
+    error_log("[save_upload] Directory doesn't exist, creating...");
+    @mkdir($root, 0775, true);
+  }
+
+  if (!is_dir($root)) {
+    error_log("[save_upload] Failed to create directory: $root");
+    throw new RuntimeException("upload_dir_not_created_$field");
+  }
+
+  if (!is_writable($root)) {
+    error_log("[save_upload] Directory not writable: $root");
+    throw new RuntimeException("upload_dir_unwritable_$field");
+  }
 
   $dest = rtrim($root, '/') . '/' . $name;
-  if (!move_uploaded_file($tmp, $dest)) throw new RuntimeException("failed_to_move_upload_$field");
+  error_log("[save_upload] Moving file to: $dest");
 
+  if (!move_uploaded_file($tmp, $dest)) {
+    error_log("[save_upload] move_uploaded_file() failed from $tmp to $dest");
+    throw new RuntimeException("failed_to_move_upload_$field");
+  }
+
+  error_log("[save_upload] Upload successful: $dest");
   $rel = rtrim($subdir, '/') . '/' . $name; // web path
   return [$rel, $mime];
 }
