@@ -852,12 +852,18 @@ unset($order); // Break reference
 </div>
 
 <script>
-function toggleInvoice(card, event) {
+// Define toggleInvoice function globally
+window.toggleInvoice = function(card, event) {
   // Prevent toggle if clicking on a link
   if (event && (event.target.tagName === 'A' || event.target.closest('a'))) {
     return;
   }
 
   card.classList.toggle('expanded');
+};
+
+// Also ensure it's available without window prefix
+function toggleInvoice(card, event) {
+  window.toggleInvoice(card, event);
 }
 </script>
