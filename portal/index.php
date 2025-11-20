@@ -6712,10 +6712,22 @@ if ($page==='logout'){
   </div>
 
 <?php elseif ($page==='wholesale'): ?>
-  <?php include __DIR__ . '/wholesale-new.php'; ?>
+  <?php
+  // Check if we're in "create" mode
+  $tab = $_GET['tab'] ?? '';
+  $step = $_GET['step'] ?? '';
+
+  if ($tab === 'create' || !empty($step)) {
+    // Show wholesale order creation form
+    include __DIR__ . '/wholesale-new.php';
+  } else {
+    // Show wholesale orders list (default)
+    include __DIR__ . '/wholesale-orders-list.php';
+  }
+  ?>
 
 <?php elseif ($page==='my-wholesale-orders'): ?>
-  <?php header('Location: ?page=wholesale&tab=manage'); exit; ?>
+  <?php header('Location: ?page=wholesale'); exit; ?>
 
 <?php elseif ($page==='wholesale-order'): ?>
   <?php header('Location: ?page=wholesale&tab=create'); exit; ?>

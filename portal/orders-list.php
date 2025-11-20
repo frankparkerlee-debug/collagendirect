@@ -16,6 +16,7 @@ $userId = $user['id'];
 $userRole = $user['role'] ?? '';
 
 // Fetch orders with grouping support
+// EXCLUDE wholesale orders (billed_by='practice_dme') - those are shown in the Wholesale Orders page
 $sql = "
   SELECT
     COALESCE(og.id, o.id) as display_id,
@@ -52,6 +53,7 @@ $sql = "
   LEFT JOIN order_groups og ON og.id = o.order_group_id
   JOIN patients p ON p.id = o.patient_id
   WHERE o.user_id = ?
+    AND (o.billed_by IS NULL OR o.billed_by != 'practice_dme')
   ORDER BY created_at DESC
 ";
 
@@ -169,8 +171,8 @@ foreach ($orders as $order) {
   <!-- Header -->
   <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem;">
     <div>
-      <h1 style="font-size: 1.875rem; font-weight: 700; margin-bottom: 0.5rem;">My Orders</h1>
-      <p style="color: #64748b; font-size: 0.875rem;">Manage all your patient orders and shipments</p>
+      <h1 style="font-size: 1.875rem; font-weight: 700; margin-bottom: 0.5rem;">Patient Orders</h1>
+      <p style="color: #64748b; font-size: 0.875rem;">Manage your patient referral orders and shipments</p>
     </div>
     <a href="?page=new-order" class="btn btn-primary">
       <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right: 0.5rem;">
@@ -188,14 +190,6 @@ foreach ($orders as $order) {
       placeholder="Search patient or product..."
       style="flex: 1; min-width: 250px; padding: 0.5rem 1rem; border: 1px solid #e2e8f0; border-radius: 6px;"
     >
-    <select
-      id="filter-order-type"
-      style="padding: 0.5rem 1rem; border: 1px solid #e2e8f0; border-radius: 6px; min-width: 150px;"
-    >
-      <option value="">All Order Types</option>
-      <option value="referral">Referral</option>
-      <option value="wholesale">Wholesale</option>
-    </select>
     <select
       id="filter-status"
       style="padding: 0.5rem 1rem; border: 1px solid #e2e8f0; border-radius: 6px; min-width: 120px;"
@@ -379,20 +373,17 @@ function toggleOrderDetails(row) {
 document.addEventListener('DOMContentLoaded', function() {
   const searchInput = document.getElementById('search-orders');
   const statusFilter = document.getElementById('filter-status');
-  const orderTypeFilter = document.getElementById('filter-order-type');
   const dateFilter = document.getElementById('filter-date');
 
   function filterOrders() {
     const searchTerm = (searchInput?.value || '').toLowerCase();
     const selectedStatus = (statusFilter?.value || '').toLowerCase();
-    const selectedOrderType = (orderTypeFilter?.value || '').toLowerCase();
     const selectedDate = dateFilter?.value || '';
 
     document.querySelectorAll('.order-row').forEach(row => {
       const text = row.textContent.toLowerCase();
       const products = row.getAttribute('data-products') || '';
       const status = (row.getAttribute('data-status') || '').toLowerCase();
-      const paymentType = (row.getAttribute('data-payment-type') || '').toLowerCase();
       const createdDate = row.getAttribute('data-created-date') || '';
 
       // Match search (patient name or products)
@@ -401,19 +392,15 @@ document.addEventListener('DOMContentLoaded', function() {
       // Match status
       const matchesStatus = !selectedStatus || status === selectedStatus;
 
-      // Match order type (wholesale vs referral)
-      const matchesOrderType = !selectedOrderType || paymentType === selectedOrderType;
-
       // Match date
       const matchesDate = !selectedDate || createdDate === selectedDate;
 
-      row.style.display = (matchesSearch && matchesStatus && matchesOrderType && matchesDate) ? 'block' : 'none';
+      row.style.display = (matchesSearch && matchesStatus && matchesDate) ? 'block' : 'none';
     });
   }
 
   if (searchInput) searchInput.addEventListener('input', filterOrders);
   if (statusFilter) statusFilter.addEventListener('change', filterOrders);
-  if (orderTypeFilter) orderTypeFilter.addEventListener('change', filterOrders);
   if (dateFilter) dateFilter.addEventListener('change', filterOrders);
 });
 </script>
