@@ -37,7 +37,8 @@ try {
             u.first_name AS doc_first, u.last_name AS doc_last, u.practice_name, u.address AS practice_address,
             u.city AS practice_city, u.state AS practice_state, u.zip AS practice_zip, u.phone AS practice_phone,
             pr.pieces_per_box, pr.price_wholesale,
-            pp.custom_price AS practice_custom_price
+            pp.custom_price AS practice_custom_price,
+            pp.discount_percentage AS practice_discount_percentage
           FROM orders o
           LEFT JOIN patients p ON p.id=o.patient_id
           LEFT JOIN users u ON u.id=o.user_id
@@ -106,17 +107,21 @@ foreach ($orders as $order) {
   $boxes = (int)($order['qty_per_change'] ?? 1);
   $pieces_per_box = (int)($order['pieces_per_box'] ?? 10); // Get from products table JOIN
 
-  // Check for practice-specific custom pricing first
+  // Calculate price per box using practice-specific pricing
   $practice_custom_price = (float)($order['practice_custom_price'] ?? 0);
+  $practice_discount = (float)($order['practice_discount_percentage'] ?? 0);
+  $base_price = (float)($order['price_wholesale'] ?? 0);
 
   if ($practice_custom_price > 0) {
-    // Practice has custom pricing (stored as price per piece)
-    // Convert to price per box: custom_price × pieces_per_box
+    // Custom price per piece → convert to per box
     $price_per_box = $practice_custom_price * $pieces_per_box;
+  } elseif ($practice_discount != 0) {
+    // Apply discount/upcharge percentage to base wholesale price
+    $price_per_box = $base_price * (1 - $practice_discount / 100);
   } else {
-    // Use product_price from order (which is price per piece)
+    // Use product_price from order or fall back to wholesale price
     $price_per_piece = (float)($order['product_price'] ?? 0);
-    $price_per_box = $price_per_piece * $pieces_per_box; // Reconstruct per-box price
+    $price_per_box = $price_per_piece > 0 ? $price_per_piece * $pieces_per_box : $base_price;
   }
 
   $line_total = $boxes * $price_per_box;
