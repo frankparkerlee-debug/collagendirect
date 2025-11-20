@@ -240,13 +240,14 @@ try {
         o.rx_note_path,
         o.product_type,
         o.order_group_id,
+        o.billed_by,
         p.ins_card_path,
         p.id_card_path,
         p.notes_path,
         p.first_name,
         p.last_name,
         p.dob
-        ".($hasProducts?", pr.name AS prod_name, pr.size AS prod_size, pr.sku, pr.$hcpcsCol AS cpt_code, pr.price_admin, o.product":"")."
+        ".($hasProducts?", pr.name AS prod_name, pr.size AS prod_size, pr.sku, pr.$hcpcsCol AS cpt_code, pr.price_admin, pr.pieces_per_box, o.product":"")."
       FROM orders o
       LEFT JOIN patients p ON p.id = o.patient_id
       ".($hasProducts?"LEFT JOIN products pr ON pr.id = o.product_id":"")."
@@ -275,6 +276,7 @@ try {
       MAX(ins_card_path) as ins_card_path,
       MAX(id_card_path) as id_card_path,
       MAX(notes_path) as notes_path,
+      MAX(billed_by) as billed_by,
       first_name,
       last_name,
       dob,
@@ -283,7 +285,8 @@ try {
       STRING_AGG(DISTINCT sku, ', ' ORDER BY sku) as sku,
       STRING_AGG(DISTINCT cpt_code, ', ' ORDER BY cpt_code) as cpt_code,
       AVG(price_admin) as price_admin,
-      STRING_AGG(DISTINCT product, ', ' ORDER BY product) as product":"'1' as prod_name, '' as sku, '' as cpt_code, 0 as price_admin, '' as product")."
+      AVG(pieces_per_box) as pieces_per_box,
+      STRING_AGG(DISTINCT product, ', ' ORDER BY product) as product":"'1' as prod_name, '' as sku, '' as cpt_code, 0 as price_admin, 10 as pieces_per_box, '' as product")."
     FROM grouped_orders
     GROUP BY
       COALESCE(order_group_id, id::text),
@@ -323,36 +326,60 @@ if ($hasRates) {
   } catch (Throwable $e) { error_log("[rates] ".$e->getMessage()); }
 }
 
-/* Projected revenue with new quantity model */
+/* Projected revenue with box-based quantity model */
 function projected_rev($row, $rates, $hasProducts, $hasShipRem) {
-  // frequency per week (prefer numeric; fallback to legacy text)
+  // Get order parameters
   $fpw = (int)($row['frequency_per_week'] ?? 0);
   if ($fpw <= 0) $fpw = patches_per_week_text(isset($row['frequency'])?$row['frequency']:null);
 
   $qty  = max(1, (int)($row['qty_per_change'] ?? 1));
   $days = max(0, (int)($row['duration_days'] ?? 0));
   $ref  = max(0, (int)($row['refills_allowed'] ?? 0));
+  $pieces_per_box = max(1, (int)($row['pieces_per_box'] ?? 10));
 
-  // total authorized weeks across all fills
-  $weeks_authorized = ($days > 0) ? (int)ceil($days / 7) : 0;
-  if ($weeks_authorized <= 0) $weeks_authorized = 4; // conservative default
-  $weeks_authorized_all = $weeks_authorized * (1 + $ref);
-
-  // remaining window to fulfill
-  $shipRem = $hasShipRem ? (int)($row['shipments_remaining'] ?? 0) : 0;
-  $remaining_weeks = $shipRem > 0 ? min($shipRem, $weeks_authorized_all) : $weeks_authorized_all;
-
-  // billable units
-  $units_remaining = $remaining_weeks * $fpw * $qty;
-
-  // unit rate: CPT rate preferred, else product price
-  $unit = 0.0;
-  if ($hasProducts && !empty($row['cpt_code']) && isset($rates[$row['cpt_code']]) && $rates[$row['cpt_code']] > 0) {
-    $unit = (float)$rates[$row['cpt_code']];
-  } else {
-    $unit = (float)($row['product_price'] ?? 0);
+  // Skip if missing critical data
+  if ($fpw === 0 || $days === 0) {
+    return 0.0;
   }
-  return $unit > 0 ? $unit * $units_remaining : 0.0;
+
+  // Calculate total pieces needed
+  // Formula: (duration_days / 7) × frequency_per_week × qty_per_change × (1 + refills)
+  $weeks = $days / 7.0;
+  $total_pieces = $weeks * $fpw * $qty * (1 + $ref);
+
+  // Calculate total boxes needed (round up)
+  $total_boxes = (int)ceil($total_pieces / $pieces_per_box);
+
+  // Get boxes remaining to calculate what's left to bill
+  $boxes_remaining = $hasShipRem ? (int)($row['shipments_remaining'] ?? 0) : $total_boxes;
+  $pieces_remaining = ($boxes_remaining / $total_boxes) * $total_pieces;
+
+  // Determine if this is wholesale or referral
+  $billedBy = $row['billed_by'] ?? 'collagen_direct';
+  $isWholesale = ($billedBy === 'practice_dme');
+
+  if ($isWholesale) {
+    // WHOLESALE: Revenue = Boxes × Price Per Box
+    $price_per_box = (float)($row['product_price'] ?? 0);
+    if ($price_per_box <= 0) $price_per_box = 150.0; // Fallback
+    return $boxes_remaining * $price_per_box;
+  } else {
+    // REFERRAL: Revenue = Pieces × CPT Rate Per Piece
+    $cpt_rate_per_piece = 0.0;
+    if ($hasProducts && !empty($row['cpt_code']) && isset($rates[$row['cpt_code']]) && $rates[$row['cpt_code']] > 0) {
+      // CPT rates are per piece
+      $cpt_rate_per_piece = (float)$rates[$row['cpt_code']];
+    } else {
+      // Fallback: estimate from product_price or default
+      $product_price = (float)($row['product_price'] ?? 0);
+      if ($product_price > 0) {
+        $cpt_rate_per_piece = $product_price / $pieces_per_box;
+      } else {
+        $cpt_rate_per_piece = 150.0 / $pieces_per_box; // ~$15/piece for 10pc box
+      }
+    }
+    return $pieces_remaining * $cpt_rate_per_piece;
+  }
 }
 
 /* ================= View ================= */

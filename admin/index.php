@@ -134,52 +134,69 @@ try {
     $refills = max(0, (int)($order['refills_allowed'] ?? 0));
     $pieces_per_box = max(1, (int)($order['pieces_per_box'] ?? 10));
 
-    // Calculate total BOXES and pricing differently for wholesale vs referral orders
+    // Skip orders with missing critical data
+    if ($fpw === 0 || $days === 0) {
+      continue;
+    }
+
+    // UNIVERSAL CALCULATION (same for both wholesale and referral):
+    // Step 1: Calculate total pieces needed
+    // Formula: (duration_days / 7) × frequency_per_week × qty_per_change
+    $weeks = $days / 7.0;
+    $total_pieces = $weeks * $fpw * $qty * (1 + $refills);
+
+    // Step 2: Calculate boxes needed (round up)
+    // Formula: ceil(total_pieces / pieces_per_box)
+    $total_boxes = (int)ceil($total_pieces / $pieces_per_box);
+
+    // Step 3: Calculate revenue based on order type
     if ($isWholesale) {
-      // WHOLESALE ORDERS:
-      // - qty_per_change = number of BOXES ordered
-      // - product_price = price PER PIECE
-      // - shipments_remaining is NOT used (one-time orders)
-      $total_boxes = $qty; // qty_per_change stores boxes for wholesale
-      $price_per_piece = (float)($order['product_price'] ?? 0);
-      $price_per_box = $price_per_piece * $pieces_per_box;
+      // WHOLESALE: Revenue = Total Boxes × Price Per Box
+      $price_per_box = (float)($order['product_price'] ?? 0);
+      if ($price_per_box <= 0) $price_per_box = 150.0; // Fallback
 
       // Wholesale orders are one-time, so all revenue is "earned" (no projected)
       $boxes_remaining = 0;
       $boxes_delivered = $total_boxes;
+      $order_total = $total_boxes * $price_per_box;
     } else {
-      // REFERRAL ORDERS (insurance/recurring):
-      // - qty_per_change = pieces per dressing change
-      // - product_price = price per box (or use CPT rate)
-      // - shipments_remaining = boxes not yet delivered
-      // Formula: Boxes = (Frequency × Days × Qty) / Pieces Per Box
-      // Where: Frequency = Changes Per Week / 7
-      $changes_per_day = $fpw / 7.0;
-      $total_changes = $changes_per_day * $days * (1 + $refills);
-      $total_pieces_needed = $total_changes * $qty;
-      $total_boxes = (int)ceil($total_pieces_needed / $pieces_per_box);
-
-      // Get price per BOX (not per piece)
-      $price_per_box = 0.0;
+      // REFERRAL: Revenue = Total Pieces × CPT Rate Per Piece
+      // Get CPT rate (this is typically per piece for billing)
+      $cpt_rate_per_piece = 0.0;
       $cpt = $order['cpt_code'] ?? '';
       if ($hasRates && $cpt && isset($rates[$cpt]) && $rates[$cpt] > 0) {
-        // Use CPT reimbursement rate (this is per box)
-        $price_per_box = $rates[$cpt];
+        // CPT rates are per piece
+        $cpt_rate_per_piece = $rates[$cpt];
       } else {
-        // Use product_price from order (this should be per box for referral orders)
-        $price_per_box = (float)($order['product_price'] ?? 0);
+        // Fallback: use product_price or estimate $150/box ÷ pieces_per_box
+        $product_price = (float)($order['product_price'] ?? 0);
+        if ($product_price > 0) {
+          $cpt_rate_per_piece = $product_price / $pieces_per_box;
+        } else {
+          $cpt_rate_per_piece = 150.0 / $pieces_per_box; // ~$15/piece for 10pc box
+        }
       }
-      if ($price_per_box <= 0) $price_per_box = 150.0; // Conservative fallback
 
-      // shipments_remaining is in BOXES
+      // Total revenue based on pieces
+      $order_total = $total_pieces * $cpt_rate_per_piece;
+
+      // Split between delivered and remaining based on shipments_remaining
       $boxes_remaining = (int)($order['shipments_remaining'] ?? 0);
       $boxes_delivered = max(0, $total_boxes - $boxes_remaining);
     }
 
     // Calculate earned (delivered) and projected (remaining) revenue
-    $order_earned = $boxes_delivered * $price_per_box;
-    $order_projected = $boxes_remaining * $price_per_box;
-    $order_total = $order_earned + $order_projected;
+    // For both types: split revenue proportionally based on boxes delivered/remaining
+    if ($total_boxes > 0) {
+      $delivered_ratio = $boxes_delivered / $total_boxes;
+      $remaining_ratio = $boxes_remaining / $total_boxes;
+      $order_earned = $order_total * $delivered_ratio;
+      $order_projected = $order_total * $remaining_ratio;
+    } else {
+      $order_earned = 0.0;
+      $order_projected = 0.0;
+      $order_total = 0.0;
+    }
 
     $earnedRevenue += $order_earned;
     $projectedRevenue += $order_projected;
