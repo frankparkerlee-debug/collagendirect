@@ -393,7 +393,8 @@ include __DIR__.'/_header.php';
           $oid      = (string)($row['id'] ?? '');
           $fullname = trim(($row['first_name'] ?? '').' '.($row['last_name'] ?? ''));
           // Use document paths from database instead of filesystem scan
-          $noteLinks = !empty($row['notes_path']) ? [$row['notes_path']] : [];
+          // Use rx_note_path from orders table (visit note for this specific order)
+          $noteLinks = !empty($row['rx_note_path']) ? [$row['rx_note_path']] : [];
           $idLinks   = !empty($row['id_card_path']) ? [$row['id_card_path']] : [];
           $insLinks  = !empty($row['ins_card_path']) ? [$row['ins_card_path']] : [];
 

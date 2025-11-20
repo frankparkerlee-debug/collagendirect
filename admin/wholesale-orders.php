@@ -235,7 +235,7 @@ if (!$hasBilledBy) {
         o.product_price as unit_price,
         o.status,
         o.paid_at,
-        o.tracking_number,
+        NULL as tracking_number,
         o.notes,
         o.billed_by,
         o.order_number as invoice_number,
