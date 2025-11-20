@@ -34,9 +34,9 @@ $locationsStmt->execute([$userId]);
 $locations = $locationsStmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch available products for Step 2 with user's custom pricing/discounts
-// Use DISTINCT ON to show only one product per name+size (removes duplicates)
+// Use DISTINCT ON with HCPCS + size to remove duplicates (e.g., "Collagen Dressing" vs "Collagen Drx")
 $productsStmt = $pdo->prepare("
-  SELECT DISTINCT ON (LOWER(TRIM(p.name)), LOWER(TRIM(COALESCE(p.size, ''))))
+  SELECT DISTINCT ON (COALESCE(p.hcpcs_code, ''), LOWER(TRIM(COALESCE(p.size, ''))))
     p.*,
     pp.custom_price,
     pp.discount_percentage,
@@ -52,7 +52,7 @@ $productsStmt = $pdo->prepare("
     AND (p.name NOT ILIKE '%deprecated%' OR p.name IS NULL)
     AND (p.category NOT ILIKE '%deprecated%' OR p.category IS NULL)
   ORDER BY
-    LOWER(TRIM(p.name)),
+    COALESCE(p.hcpcs_code, ''),
     LOWER(TRIM(COALESCE(p.size, ''))),
     CASE WHEN p.hcpcs_code IS NOT NULL AND p.hcpcs_code != '' THEN 0 ELSE 1 END,
     CASE WHEN p.price_wholesale > 0 THEN 0 ELSE 1 END,

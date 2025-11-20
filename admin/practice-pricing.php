@@ -118,17 +118,17 @@ $stmt = $pdo->query("
 $practices = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch all products (excluding deprecated ones and duplicates)
-// Use DISTINCT ON to keep only one product per name+size combination
-// Prefer products with complete data (HCPCS code, proper pricing)
+// Use DISTINCT ON with HCPCS + size to remove duplicates (e.g., "Collagen Dressing" vs "Collagen Drx")
+// Prefer products with complete data (HCPCS code, proper pricing, longer names)
 $stmt = $pdo->query("
-  SELECT DISTINCT ON (LOWER(TRIM(name)), LOWER(TRIM(COALESCE(size, ''))))
+  SELECT DISTINCT ON (COALESCE(hcpcs_code, ''), LOWER(TRIM(COALESCE(size, ''))))
     id, name, size, price_wholesale, pieces_per_box, category, hcpcs_code
   FROM products
   WHERE active = TRUE
     AND (name NOT ILIKE '%deprecated%' OR name IS NULL)
     AND (category NOT ILIKE '%deprecated%' OR category IS NULL)
   ORDER BY
-    LOWER(TRIM(name)),
+    COALESCE(hcpcs_code, ''),
     LOWER(TRIM(COALESCE(size, ''))),
     CASE WHEN hcpcs_code IS NOT NULL AND hcpcs_code != '' THEN 0 ELSE 1 END,
     CASE WHEN price_wholesale > 0 THEN 0 ELSE 1 END,
