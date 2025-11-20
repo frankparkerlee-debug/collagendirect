@@ -416,7 +416,7 @@ try {
 
     // Store debug info in additional_instructions for immediate visibility
     $debugInfo = "DEBUG-" . date('His') . ": \$_FILES count=$filesCount, keys=$filesDebug";
-    $pdo->prepare("UPDATE orders SET additional_instructions = CONCAT(COALESCE(additional_instructions, ''), '\n', ?) WHERE id = ?")->execute([$debugInfo, $order_id]);
+    $pdo->prepare("UPDATE orders SET additional_instructions = COALESCE(additional_instructions, '') || E'\\n' || ? WHERE id = ?")->execute([$debugInfo, $order_id]);
 
     [$rx_path,  $rx_mime]  = save_upload('file_rx_note',  '/uploads/notes');
     if (!$rx_path) [$rx_path,  $rx_mime]  = save_upload('rx_note',  '/uploads/notes'); // fallback
