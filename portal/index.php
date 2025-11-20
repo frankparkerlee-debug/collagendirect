@@ -6735,6 +6735,9 @@ if ($page==='logout'){
   <?php header('Location: ?page=wholesale&tab=create'); exit; ?>
 
 <?php elseif ($page==='create-wholesale-order'): ?>
+  <?php header('Location: ?page=wholesale&tab=create'); exit; ?>
+
+<?php elseif ($page==='create-wholesale-order-old-deprecated'): ?>
   <!-- Google Places API -->
   <script src="https://maps.googleapis.com/maps/api/js?key=<?= getenv('GOOGLE_PLACES_API_KEY') ?: 'YOUR_API_KEY' ?>&libraries=places"></script>
 
