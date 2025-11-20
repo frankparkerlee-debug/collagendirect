@@ -336,39 +336,57 @@ document.addEventListener('DOMContentLoaded', function() {
   const closeModal = document.getElementById('closeModal');
   const addressBtns = document.querySelectorAll('.address-btn');
 
-  // Select all functionality
-  selectAll.addEventListener('change', function() {
-    checkboxes.forEach(cb => cb.checked = this.checked);
-    updateExportButton();
+  console.log('Shipments page loaded:', {
+    selectAll: !!selectAll,
+    checkboxCount: checkboxes.length,
+    exportBtn: !!exportBtn,
+    addressBtnCount: addressBtns.length
   });
+
+  // Select all functionality
+  if (selectAll) {
+    selectAll.addEventListener('change', function() {
+      console.log('Select all clicked:', this.checked);
+      checkboxes.forEach(cb => cb.checked = this.checked);
+      updateExportButton();
+    });
+  }
 
   // Individual checkbox change
   checkboxes.forEach(cb => {
     cb.addEventListener('change', function() {
+      console.log('Checkbox changed:', this.value, this.checked);
       const allChecked = Array.from(checkboxes).every(c => c.checked);
       const someChecked = Array.from(checkboxes).some(c => c.checked);
-      selectAll.checked = allChecked;
-      selectAll.indeterminate = someChecked && !allChecked;
+      if (selectAll) {
+        selectAll.checked = allChecked;
+        selectAll.indeterminate = someChecked && !allChecked;
+      }
       updateExportButton();
     });
   });
 
   // Update export button state
   function updateExportButton() {
+    if (!exportBtn) return;
     const selectedCount = Array.from(checkboxes).filter(c => c.checked).length;
     exportBtn.disabled = selectedCount === 0;
     exportBtn.textContent = selectedCount > 0
       ? `Export ${selectedCount} Selected to Excel`
       : 'Export Selected to Excel';
+    console.log('Export button updated:', { selectedCount, disabled: exportBtn.disabled });
   }
 
   // Export functionality
-  exportBtn.addEventListener('click', function() {
-    const selectedIds = Array.from(checkboxes)
-      .filter(c => c.checked)
-      .map(c => c.value);
+  if (exportBtn) {
+    exportBtn.addEventListener('click', function() {
+      console.log('Export button clicked');
+      const selectedIds = Array.from(checkboxes)
+        .filter(c => c.checked)
+        .map(c => c.value);
 
-    if (selectedIds.length === 0) return;
+      console.log('Selected IDs:', selectedIds);
+      if (selectedIds.length === 0) return;
 
     // Create form and submit
     const form = document.createElement('form');
@@ -387,10 +405,11 @@ document.addEventListener('DOMContentLoaded', function() {
     csrf.value = '<?=csrf_token()?>';
     form.appendChild(csrf);
 
-    document.body.appendChild(form);
-    form.submit();
-    document.body.removeChild(form);
-  });
+      document.body.appendChild(form);
+      form.submit();
+      document.body.removeChild(form);
+    });
+  }
 
   // Address popup functionality
   addressBtns.forEach(btn => {
