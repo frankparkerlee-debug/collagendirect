@@ -410,15 +410,23 @@ try {
 
   try {
     // Log what files were submitted for debugging
-    error_log('[orders.create] Files submitted: ' . json_encode(array_keys($_FILES)));
+    $filesDebug = json_encode(array_keys($_FILES));
+    error_log('[orders.create] Files submitted: ' . $filesDebug);
+
+    // Also write to a debug file that we can access
+    $debugFile = __DIR__ . '/../../uploads/order_upload_debug.log';
+    $debugMsg = date('Y-m-d H:i:s') . " [Order: $order_id] Files submitted: $filesDebug\n";
+    @file_put_contents($debugFile, $debugMsg, FILE_APPEND);
 
     [$rx_path,  $rx_mime]  = save_upload('file_rx_note',  '/uploads/notes');
     if (!$rx_path) [$rx_path,  $rx_mime]  = save_upload('rx_note',  '/uploads/notes'); // fallback
 
     if ($rx_path) {
       error_log('[orders.create] Visit note uploaded successfully: ' . $rx_path);
+      @file_put_contents($debugFile, date('Y-m-d H:i:s') . " [Order: $order_id] Visit note uploaded: $rx_path\n", FILE_APPEND);
     } else {
       error_log('[orders.create] No visit note uploaded (file_rx_note and rx_note both empty)');
+      @file_put_contents($debugFile, date('Y-m-d H:i:s') . " [Order: $order_id] No visit note uploaded\n", FILE_APPEND);
     }
     [$ins_path, $ins_mime] = save_upload('ins_card','/uploads/insurance');
     [$id_path,  $id_mime]  = save_upload('id_card',  '/uploads/ids');
@@ -496,6 +504,12 @@ try {
   } catch (Throwable $upErr) {
     // Log upload errors but don't fail the order creation
     error_log('[orders.create upload] ERROR: ' . $upErr->getMessage() . ' - Trace: ' . $upErr->getTraceAsString());
+
+    // Also write error to debug file
+    $debugFile = __DIR__ . '/../../uploads/order_upload_debug.log';
+    $errorMsg = date('Y-m-d H:i:s') . " [Order: $order_id] ERROR: " . $upErr->getMessage() . "\n";
+    @file_put_contents($debugFile, $errorMsg, FILE_APPEND);
+
     // Continue with order creation even if file upload fails
   }
 
