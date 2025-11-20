@@ -860,7 +860,7 @@ require_once '_header.php';
       <h3 class="modal-title">Mark Order as Shipped</h3>
     </div>
     <form method="POST" id="shipForm">
-      <?= csrf_token() ?>
+      <?= csrf_field() ?>
       <input type="hidden" name="action" value="mark_shipped">
       <input type="hidden" name="id" id="shipOrderId">
       <div class="modal-body">
@@ -884,7 +884,7 @@ require_once '_header.php';
       <h3 class="modal-title">Record Payment</h3>
     </div>
     <form method="POST" id="paymentForm">
-      <?= csrf_token() ?>
+      <?= csrf_field() ?>
       <input type="hidden" name="action" value="record_payment">
       <input type="hidden" name="id" id="paymentOrderId">
       <div class="modal-body">
