@@ -280,24 +280,13 @@ if (!$hasBilledBy) {
         o.product_price as unit_price,
         o.status,
         o.paid_at,
-        NULL as tracking_number,
         o.notes,
         o.billed_by,
         o.order_number as invoice_number,
         o.created_at as invoice_date,
-        (o.created_at::date + 30) as due_date,
-        'Net 30' as payment_terms,
-        COALESCE(o.amount_due, 0) as amount_due,
-        COALESCE(o.amount_paid, 0) as amount_paid,
-        COALESCE(o.balance_due, 0) as balance_due,
-        CASE
-          WHEN o.paid_at IS NOT NULL THEN -1
-          WHEN (CURRENT_DATE - o.created_at::date) <= 30 THEN 0
-          WHEN (CURRENT_DATE - o.created_at::date) <= 60 THEN 1
-          WHEN (CURRENT_DATE - o.created_at::date) <= 90 THEN 2
-          ELSE 3
-        END as aging_bucket,
-        GREATEST(0, (CURRENT_DATE - (o.created_at::date + 30))) as days_past_due,
+        o.amount_due,
+        o.amount_paid,
+        o.balance_due,
         u.practice_name,
         u.first_name as phys_first,
         u.last_name as phys_last,
@@ -668,8 +657,30 @@ require_once '_header.php';
             }
 
             $isPaid = !empty($order['paid_at']) && $balanceDue == 0;
-            $agingBucket = (int)($order['aging_bucket'] ?? 0);
-            $daysPastDue = (int)($order['days_past_due'] ?? 0);
+
+            // Calculate aging in PHP instead of SQL
+            $createdDate = new DateTime($order['created_at']);
+            $dueDate = clone $createdDate;
+            $dueDate->modify('+30 days');
+            $today = new DateTime();
+            $daysOld = $today->diff($createdDate)->days;
+            $daysPastDue = max(0, $today->diff($dueDate)->days);
+            if ($today < $dueDate) {
+              $daysPastDue = 0;
+            }
+
+            // Determine aging bucket
+            if ($isPaid) {
+              $agingBucket = -1;
+            } elseif ($daysOld <= 30) {
+              $agingBucket = 0;
+            } elseif ($daysOld <= 60) {
+              $agingBucket = 1;
+            } elseif ($daysOld <= 90) {
+              $agingBucket = 2;
+            } else {
+              $agingBucket = 3;
+            }
 
             // Determine aging badge
             $agingBadge = '';
@@ -729,15 +740,11 @@ require_once '_header.php';
               <?php endif; ?>
             </td>
             <td>
-              <?php if (!empty($order['due_date'])): ?>
-                <div style="font-weight: 500;"><?= date('M j, Y', strtotime($order['due_date'])) ?></div>
-                <?php if (!$isPaid && $daysPastDue > 0): ?>
-                  <div style="font-size: 0.75rem; color: #dc2626;"><?= $daysPastDue ?> days past due</div>
-                <?php elseif (!$isPaid): ?>
-                  <div style="font-size: 0.75rem; color: var(--muted);">Net 30</div>
-                <?php endif; ?>
-              <?php else: ?>
-                <div style="color: var(--muted); font-size: 0.875rem;">N/A</div>
+              <div style="font-weight: 500;"><?= $dueDate->format('M j, Y') ?></div>
+              <?php if (!$isPaid && $daysPastDue > 0): ?>
+                <div style="font-size: 0.75rem; color: #dc2626;"><?= $daysPastDue ?> days past due</div>
+              <?php elseif (!$isPaid): ?>
+                <div style="font-size: 0.75rem; color: var(--muted);">Net 30</div>
               <?php endif; ?>
             </td>
             <td>
