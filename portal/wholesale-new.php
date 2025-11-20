@@ -34,8 +34,9 @@ $locationsStmt->execute([$userId]);
 $locations = $locationsStmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch available products for Step 2 with user's custom pricing/discounts
+// Use DISTINCT ON to show only one product per name+size (removes duplicates)
 $productsStmt = $pdo->prepare("
-  SELECT
+  SELECT DISTINCT ON (LOWER(TRIM(p.name)), LOWER(TRIM(COALESCE(p.size, ''))))
     p.*,
     pp.custom_price,
     pp.discount_percentage,
@@ -48,7 +49,15 @@ $productsStmt = $pdo->prepare("
   FROM products p
   LEFT JOIN practice_pricing pp ON pp.product_id = p.id AND pp.user_id = ?
   WHERE p.active = true
-  ORDER BY p.name ASC
+    AND (p.name NOT ILIKE '%deprecated%' OR p.name IS NULL)
+    AND (p.category NOT ILIKE '%deprecated%' OR p.category IS NULL)
+  ORDER BY
+    LOWER(TRIM(p.name)),
+    LOWER(TRIM(COALESCE(p.size, ''))),
+    CASE WHEN p.hcpcs_code IS NOT NULL AND p.hcpcs_code != '' THEN 0 ELSE 1 END,
+    CASE WHEN p.price_wholesale > 0 THEN 0 ELSE 1 END,
+    LENGTH(p.name) DESC,
+    p.id ASC
 ");
 $productsStmt->execute([$userId]);
 $products = $productsStmt->fetchAll(PDO::FETCH_ASSOC);
