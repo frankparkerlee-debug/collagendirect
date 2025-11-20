@@ -181,12 +181,16 @@ try {
         // CPT rates are per piece
         $cpt_rate_per_piece = $rates[$cpt];
       } else {
-        // Fallback: use product_price or estimate $150/box ÷ pieces_per_box
-        $product_price = (float)($order['product_price'] ?? 0);
-        if ($product_price > 0) {
-          $cpt_rate_per_piece = $product_price / $pieces_per_box;
+        // Fallback: use product_price (which is price per box on orders) ÷ pieces_per_box
+        // This gives us price per piece
+        $price_per_box = (float)($order['product_price'] ?? 0);
+
+        if ($price_per_box > 0) {
+          // We have a price per box, divide by pieces to get per-piece rate
+          $cpt_rate_per_piece = $price_per_box / $pieces_per_box;
         } else {
-          $cpt_rate_per_piece = 150.0 / $pieces_per_box; // ~$15/piece for 10pc box
+          // Ultimate fallback: $150/box ÷ pieces_per_box = ~$15/piece for 10pc box
+          $cpt_rate_per_piece = 150.0 / $pieces_per_box;
         }
       }
 
