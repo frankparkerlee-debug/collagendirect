@@ -128,6 +128,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
     // Physician credentials (optional now)
     $npi = preg_replace('/\D/', '', $_POST['npi'] ?? '');
+    $ptan = trim($_POST['ptan'] ?? '');
     $license = trim($_POST['license'] ?? '');
     $licenseState = $_POST['license_state'] ?? null;
     $licenseExpiry = !empty($_POST['license_expiry']) ? $_POST['license_expiry'] : null;
@@ -163,15 +164,15 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         INSERT INTO users(
           id, email, password_hash, first_name, last_name, practice_name,
           address, city, state, zip, phone,
-          npi, license, license_state, license_expiry,
+          npi, ptan, license, license_state, license_expiry,
           role, user_type, account_type, status, can_manage_physicians,
           is_referral_only, has_dme_license, is_hybrid,
           created_at, updated_at
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'practice_admin','practice_admin',?,'active',TRUE,?,?,?,NOW(),NOW())
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'practice_admin','practice_admin',?,'active',TRUE,?,?,?,NOW(),NOW())
       ")->execute([
         $userId, $email, password_hash($password, PASSWORD_DEFAULT), $firstName, $lastName, $practiceName,
         $address, $city, $state, $zip, $phone,
-        $npi ?: null, $license ?: null, $licenseState, $licenseExpiry,
+        $npi ?: null, $ptan ?: null, $license ?: null, $licenseState, $licenseExpiry,
         $accountType,
         $isReferralOnly, $hasDmeLicense, $isHybrid
       ]);
@@ -183,14 +184,14 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
       $pdo->prepare("
         INSERT INTO users(
           id, email, password_hash, first_name, last_name,
-          npi, license, license_state, license_expiry,
+          npi, ptan, license, license_state, license_expiry,
           role, user_type, account_type, status,
           is_referral_only, has_dme_license, is_hybrid,
           created_at, updated_at
-        ) VALUES (?,?,?,?,?,?,?,?,?,'physician','physician',?,'active',?,?,?,NOW(),NOW())
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,'physician','physician',?,'active',?,?,?,NOW(),NOW())
       ")->execute([
         $userId, $email, password_hash($password, PASSWORD_DEFAULT), $firstName, $lastName,
-        $npi ?: null, $license ?: null, $licenseState, $licenseExpiry,
+        $npi ?: null, $ptan ?: null, $license ?: null, $licenseState, $licenseExpiry,
         $accountType,
         $isReferralOnly, $hasDmeLicense, $isHybrid
       ]);
@@ -269,6 +270,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         has_dme_license = ?,
         is_hybrid = ?,
         npi = ?,
+        ptan = ?,
         license = ?,
         license_state = ?,
         license_expiry = ?,
@@ -289,6 +291,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
       $hasDmeLicense,
       $isHybrid,
       preg_replace('/\D/', '', $_POST['npi'] ?? '') ?: null,
+      trim($_POST['ptan'] ?? '') ?: null,
       trim($_POST['license'] ?? '') ?: null,
       $_POST['license_state'] ?? null,
       !empty($_POST['license_expiry']) ? $_POST['license_expiry'] : null,
@@ -538,6 +541,10 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                   <input class="border rounded px-2 py-1 w-full" name="npi" value="<?=e($u['npi']??'')?>">
                 </div>
                 <div>
+                  <label class="text-xs text-slate-600">PTAN</label>
+                  <input class="border rounded px-2 py-1 w-full" name="ptan" value="<?=e($u['ptan']??'')?>">
+                </div>
+                <div>
                   <label class="text-xs text-slate-600">License</label>
                   <input class="border rounded px-2 py-1 w-full" name="license" value="<?=e($u['license']??'')?>">
                 </div>
@@ -737,6 +744,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         <!-- Physician Credentials (Optional) -->
         <div class="mb-2">
           <input class="border rounded px-2 py-1 w-full" name="npi" placeholder="NPI (10 digits)" maxlength="10">
+        </div>
+        <div class="mb-2">
+          <input class="border rounded px-2 py-1 w-full" name="ptan" placeholder="PTAN (Optional)">
         </div>
         <div class="mb-2">
           <input class="border rounded px-2 py-1 w-full" name="license" placeholder="Medical License Number">
