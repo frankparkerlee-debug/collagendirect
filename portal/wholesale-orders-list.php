@@ -546,6 +546,13 @@ unset($order); // Break reference
         $statusClass = 'status-' . str_replace(' ', '_', $status);
         $statusLabel = ucwords(str_replace('_', ' ', $status));
 
+        // Calculate payment aging (Net 30 terms)
+        $orderTimestamp = strtotime($order['order_date']);
+        $currentTimestamp = time();
+        $daysOld = floor(($currentTimestamp - $orderTimestamp) / (60 * 60 * 24));
+        $isOverdue = $daysOld >= 25; // Turn red at day 25 (approaching Net 30)
+        $agingColor = $isOverdue ? '#ef4444' : '#64748b'; // Red if overdue, gray otherwise
+
         $shippingAddress = trim(
           implode(', ', array_filter([
             $order['shipping_address'] ?? '',
@@ -570,6 +577,9 @@ unset($order); // Break reference
             <div>
               <div style="font-weight: 600; font-size: 0.875rem; color: #1e293b; margin-bottom: 0.25rem;">
                 <?= $orderDate ?>
+                <span style="font-size: 0.75rem; color: <?= $agingColor ?>; font-weight: 500; margin-left: 0.5rem;">
+                  (<?= $daysOld ?> day<?= $daysOld !== 1 ? 's' : '' ?> old<?= $isOverdue ? ' - OVERDUE' : '' ?>)
+                </span>
               </div>
               <div style="font-size: 0.75rem; color: #64748b;">
                 <?= $productCount ?> item<?= $productCount !== 1 ? 's' : '' ?>
