@@ -405,8 +405,17 @@ try {
   // These are WEB paths; filesystem destination is resolved from DOCUMENT_ROOT.
   // Note: Frontend sends 'file_rx_note' but we check both 'file_rx_note' and 'rx_note' for compatibility
   try {
+    // Log what files were submitted for debugging
+    error_log('[orders.create] Files submitted: ' . json_encode(array_keys($_FILES)));
+
     [$rx_path,  $rx_mime]  = save_upload('file_rx_note',  '/uploads/notes');
     if (!$rx_path) [$rx_path,  $rx_mime]  = save_upload('rx_note',  '/uploads/notes'); // fallback
+
+    if ($rx_path) {
+      error_log('[orders.create] Visit note uploaded successfully: ' . $rx_path);
+    } else {
+      error_log('[orders.create] No visit note uploaded (file_rx_note and rx_note both empty)');
+    }
     [$ins_path, $ins_mime] = save_upload('ins_card','/uploads/insurance');
     [$id_path,  $id_mime]  = save_upload('id_card',  '/uploads/ids');
     [$wound_photo_path, $wound_photo_mime] = save_upload('baseline_wound_photo', '/uploads/wound-photos');
@@ -482,8 +491,8 @@ try {
     }
   } catch (Throwable $upErr) {
     // Swallow upload errors post-response to avoid breaking the already-submitted order.
-    // Consider logging to a file if desired:
-    // error_log('[orders.create upload] '.$upErr->getMessage());
+    // Log the error so we can diagnose upload failures
+    error_log('[orders.create upload] ERROR: ' . $upErr->getMessage() . ' - Trace: ' . $upErr->getTraceAsString());
   }
 
   // Send email notifications
