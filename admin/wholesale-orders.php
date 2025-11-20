@@ -1,5 +1,6 @@
 <?php
 // /public/admin/wholesale-orders.php — Dedicated wholesale orders view
+// Updated: 2025-11-20 - Fixed column references
 declare(strict_types=1);
 $bootstrap = __DIR__.'/_bootstrap.php'; if (is_file($bootstrap)) require_once $bootstrap;
 require_once __DIR__.'/db.php';
