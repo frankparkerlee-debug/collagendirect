@@ -25,16 +25,16 @@ $sql = "
     COUNT(DISTINCT o.id) as product_count,
     COUNT(DISTINCT o.patient_id) as patient_count,
     MAX(o.status) as status,
-    o.delivery_mode,
-    o.shipping_address,
-    o.shipping_city,
-    o.shipping_state,
-    o.shipping_zip,
-    o.shipping_name
+    MAX(o.delivery_mode) as delivery_mode,
+    MAX(o.shipping_address) as shipping_address,
+    MAX(o.shipping_city) as shipping_city,
+    MAX(o.shipping_state) as shipping_state,
+    MAX(o.shipping_zip) as shipping_zip,
+    MAX(o.shipping_name) as shipping_name
   FROM orders o
   WHERE o.user_id = ?
     AND o.billed_by = 'practice_dme'
-    AND o.review_status != 'draft'
+    AND (o.review_status IS NULL OR o.review_status != 'draft')
   GROUP BY o.order_number
   ORDER BY MIN(o.created_at) DESC
 ";
