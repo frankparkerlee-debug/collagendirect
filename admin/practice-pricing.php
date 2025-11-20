@@ -49,7 +49,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           ");
           $stmt->execute([$userId, $product['id'], $customPricePerPiece, $catalogDiscount, $admin['id']]);
         }
-        $message = "Catalog-wide {$catalogDiscount}% discount applied to all products";
+        $adjustmentType = $catalogDiscount > 0 ? 'discount' : ($catalogDiscount < 0 ? 'upcharge' : 'pricing adjustment');
+        $message = "Catalog-wide " . abs($catalogDiscount) . "% {$adjustmentType} applied to all products";
       } else {
         // Apply individual product pricing
         foreach ($productPrices as $productId => $customPrice) {
@@ -377,24 +378,27 @@ $totalProductCount = count($products);
         <!-- Catalog-Wide Discount -->
         <div class="card" style="padding: 1.5rem; margin-bottom: 2rem; background: linear-gradient(135deg, var(--brand-light) 0%, var(--brand-lighter) 100%); border: 2px solid var(--brand);">
           <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--brand); margin-bottom: 1rem;">
-            Catalog-Wide Discount
+            Catalog-Wide Pricing Adjustment
           </h3>
           <p style="font-size: 0.875rem; color: var(--ink-light); margin-bottom: 1.5rem;">
-            Apply the same discount percentage to all products. This will override any individual product pricing below.
+            Apply the same percentage adjustment to all products. Use positive values for discounts or negative values for upcharges. This will override any individual product pricing below.
           </p>
 
           <div style="display: flex; gap: 1rem; align-items: flex-end;">
             <div style="flex: 0 0 200px;">
               <label style="display: block; font-weight: 500; color: var(--ink); margin-bottom: 0.5rem; font-size: 0.875rem;">
-                Discount Percentage
+                Discount / Upcharge %
               </label>
               <div style="position: relative;">
-                <input type="number" name="catalog_discount" id="catalog-discount" step="0.01" min="0" max="100" placeholder="0.00"
+                <input type="number" name="catalog_discount" id="catalog-discount" step="0.01" min="-100" max="100" placeholder="0.00"
                        style="width: 100%; padding-right: 2rem;" onchange="toggleCatalogMode(this.value)">
                 <span style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--muted); font-weight: 600;">%</span>
               </div>
+              <div style="font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem;">
+                Positive = discount, Negative = upcharge
+              </div>
             </div>
-            <button type="submit" class="btn btn-primary" onclick="return confirm('Apply catalog-wide discount? This will override all individual product pricing.')">
+            <button type="submit" class="btn btn-primary" onclick="return confirm('Apply catalog-wide pricing? This will override all individual product pricing.')">
               Apply to All Products
             </button>
           </div>
@@ -426,9 +430,9 @@ $totalProductCount = count($products);
                   <th style="width: 40%;">Product</th>
                   <th>Default Price</th>
                   <th>Custom Price/pc</th>
-                  <th>Discount %</th>
+                  <th title="Positive = discount, Negative = upcharge">Discount/Upcharge %</th>
                   <th>Custom Price/box</th>
-                  <th>Savings</th>
+                  <th>Price Change</th>
                 </tr>
               </thead>
               <tbody>
@@ -476,12 +480,13 @@ $totalProductCount = count($products);
                                class="discount-input"
                                data-product-id="<?= $product['id'] ?>"
                                step="0.01"
-                               min="0"
+                               min="-100"
                                max="100"
                                placeholder="0"
                                value="<?= $discount !== '' ? number_format($discount, 2) : '' ?>"
                                style="width: 80px; text-align: right; padding-right: 1.5rem;"
-                               onchange="calculatePrice(this)">
+                               onchange="calculatePrice(this)"
+                               title="Positive = discount, Negative = upcharge">
                         <span style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 0.75rem;">%</span>
                       </div>
                     </td>
@@ -496,19 +501,19 @@ $totalProductCount = count($products);
                       <?php if ($customPricePerPiece): ?>
                         <?php
                           $customPricePerBox = $customPricePerPiece * $piecesPerBox;
-                          $savings = $defaultPricePerBox - $customPricePerBox;
-                          $savingsPercent = $defaultPricePerBox > 0 ? ($savings / $defaultPricePerBox) * 100 : 0;
+                          $priceChange = $customPricePerBox - $defaultPricePerBox;
+                          $changePercent = $defaultPricePerBox > 0 ? ($priceChange / $defaultPricePerBox) * 100 : 0;
                         ?>
-                        <?php if ($savings > 0): ?>
-                          <span style="color: var(--success); font-weight: 500;">
-                            -$<?= number_format($savings, 2) ?> (<?= number_format($savingsPercent, 1) ?>%)
+                        <?php if ($priceChange < 0): ?>
+                          <span style="color: var(--success); font-weight: 500;" title="Discount">
+                            <?= number_format($priceChange, 2) ?> (<?= number_format($changePercent, 1) ?>%)
                           </span>
-                        <?php elseif ($savings < 0): ?>
-                          <span style="color: var(--error); font-weight: 500;">
-                            +$<?= number_format(abs($savings), 2) ?>
+                        <?php elseif ($priceChange > 0): ?>
+                          <span style="color: var(--brand); font-weight: 500;" title="Upcharge">
+                            +$<?= number_format($priceChange, 2) ?> (+<?= number_format($changePercent, 1) ?>%)
                           </span>
                         <?php else: ?>
-                          <span style="color: var(--muted);">-</span>
+                          <span style="color: var(--muted);">No change</span>
                         <?php endif; ?>
                       <?php else: ?>
                         <span style="color: var(--muted);">-</span>
@@ -551,17 +556,19 @@ function calculateDiscount(priceInput) {
     const customBoxPrice = customPrice * piecesPerBox;
     boxPriceCell.innerHTML = `$${customBoxPrice.toFixed(2)}`;
 
-    // Update savings
+    // Update price change (negative = discount, positive = upcharge)
     const defaultBoxPrice = defaultPrice * piecesPerBox;
-    const savings = defaultBoxPrice - customBoxPrice;
-    const savingsPercent = (savings / defaultBoxPrice) * 100;
+    const priceChange = customBoxPrice - defaultBoxPrice;
+    const changePercent = (priceChange / defaultBoxPrice) * 100;
 
-    if (savings > 0) {
-      savingsCell.innerHTML = `<span style="color: var(--success); font-weight: 500;">-$${savings.toFixed(2)} (${savingsPercent.toFixed(1)}%)</span>`;
-    } else if (savings < 0) {
-      savingsCell.innerHTML = `<span style="color: var(--error); font-weight: 500;">+$${Math.abs(savings).toFixed(2)}</span>`;
+    if (priceChange < 0) {
+      // Discount - green
+      savingsCell.innerHTML = `<span style="color: var(--success); font-weight: 500;" title="Discount">${priceChange.toFixed(2)} (${changePercent.toFixed(1)}%)</span>`;
+    } else if (priceChange > 0) {
+      // Upcharge - blue/brand color
+      savingsCell.innerHTML = `<span style="color: var(--brand); font-weight: 500;" title="Upcharge">+$${priceChange.toFixed(2)} (+${changePercent.toFixed(1)}%)</span>`;
     } else {
-      savingsCell.innerHTML = '<span style="color: var(--muted);">-</span>';
+      savingsCell.innerHTML = '<span style="color: var(--muted);">No change</span>';
     }
   } else {
     discountInput.value = '';
@@ -578,11 +585,12 @@ function calculatePrice(discountInput) {
   const defaultPrice = parseFloat(priceInput.dataset.defaultPrice);
   const piecesPerBox = parseInt(priceInput.dataset.piecesPerBox) || 10;
 
-  if (discount > 0 && defaultPrice > 0) {
+  if (discount !== 0 && defaultPrice > 0) {
+    // Positive discount = price reduction, Negative discount = upcharge
     const customPrice = defaultPrice * (1 - (discount / 100));
     priceInput.value = customPrice.toFixed(2);
 
-    // Update box price and savings
+    // Update box price and price change
     const boxPriceCell = priceInput.closest('tr').querySelector('.custom-box-price');
     const savingsCell = priceInput.closest('tr').querySelector('.savings');
 
@@ -590,15 +598,23 @@ function calculatePrice(discountInput) {
     boxPriceCell.innerHTML = `$${customBoxPrice.toFixed(2)}`;
 
     const defaultBoxPrice = defaultPrice * piecesPerBox;
-    const savings = defaultBoxPrice - customBoxPrice;
-    const savingsPercent = (savings / defaultBoxPrice) * 100;
+    const priceChange = customBoxPrice - defaultBoxPrice;
+    const changePercent = (priceChange / defaultBoxPrice) * 100;
 
-    savingsCell.innerHTML = `<span style="color: var(--success); font-weight: 500;">-$${savings.toFixed(2)} (${savingsPercent.toFixed(1)}%)</span>`;
+    if (priceChange < 0) {
+      // Discount - green
+      savingsCell.innerHTML = `<span style="color: var(--success); font-weight: 500;" title="Discount">${priceChange.toFixed(2)} (${changePercent.toFixed(1)}%)</span>`;
+    } else if (priceChange > 0) {
+      // Upcharge - blue/brand color
+      savingsCell.innerHTML = `<span style="color: var(--brand); font-weight: 500;" title="Upcharge">+$${priceChange.toFixed(2)} (+${changePercent.toFixed(1)}%)</span>`;
+    } else {
+      savingsCell.innerHTML = '<span style="color: var(--muted);">No change</span>';
+    }
   }
 }
 
 function toggleCatalogMode(value) {
-  const hasValue = value && parseFloat(value) > 0;
+  const hasValue = value && parseFloat(value) !== 0;
   const productInputs = document.querySelectorAll('.custom-price-input, .discount-input');
 
   productInputs.forEach(input => {
