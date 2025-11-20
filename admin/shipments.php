@@ -95,9 +95,15 @@ if ($dateTo !== '') {
 $whereClause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
 
 $sql = "
-  SELECT o.id, o.product, o.shipping_name, o.shipping_city, o.shipping_state,
-         o.rx_note_name, o.rx_note_mime, o.status, o.created_at
+  SELECT o.id, o.product, o.shipping_name, o.shipping_street, o.shipping_city,
+         o.shipping_state, o.shipping_zip,
+         o.rx_note_name, o.rx_note_mime, o.status, o.created_at,
+         o.billed_by, o.payment_type,
+         p.first_name as patient_first, p.last_name as patient_last,
+         u.practice_name
   FROM orders o
+  LEFT JOIN patients p ON p.id = o.patient_id
+  LEFT JOIN users u ON u.id = o.user_id
   $whereClause
   ORDER BY o.created_at DESC
   LIMIT 500
@@ -182,6 +188,7 @@ include __DIR__ . '/_header.php';
     <thead class="border-b">
       <tr class="text-left">
         <th class="py-2">ID</th>
+        <th class="py-2">Type</th>
         <th class="py-2">Item</th>
         <th class="py-2">Deliver To</th>
         <th class="py-2">Carrier</th>
@@ -197,11 +204,43 @@ include __DIR__ . '/_header.php';
         $displayVal = looks_like_filename($rawTrack) ? '' : $rawTrack; // avoid showing filenames in field
         $carrier    = $r['rx_note_mime'] ?: detect_carrier($displayVal);
         $trackHref  = $displayVal ? tracking_url($displayVal, $carrier ?: null) : '';
+
+        // Determine order type
+        $isWholesale = ($r['billed_by'] === 'practice_dme' || $r['payment_type'] === 'wholesale');
+        $orderType = $isWholesale ? 'Wholesale' : 'Referral';
+        $typeBadgeClass = $isWholesale ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700';
+
+        // Determine delivery recipient and full address
+        if ($isWholesale) {
+          $deliveryName = $r['practice_name'] ?? 'Practice';
+        } else {
+          $deliveryName = trim(($r['patient_first'] ?? '') . ' ' . ($r['patient_last'] ?? ''));
+          if (empty($deliveryName)) {
+            $deliveryName = $r['shipping_name'] ?? 'Patient';
+          }
+        }
+
+        // Build full address for tooltip
+        $fullAddress = trim(implode(', ', array_filter([
+          $r['shipping_street'] ?? '',
+          $r['shipping_city'] ?? '',
+          $r['shipping_state'] ?? '',
+          $r['shipping_zip'] ?? ''
+        ])));
       ?>
       <tr class="border-b hover:bg-slate-50">
         <td class="py-3">#<?=e($r['id'])?></td>
+        <td class="py-3">
+          <span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold <?=$typeBadgeClass?>">
+            <?=$orderType?>
+          </span>
+        </td>
         <td class="py-3"><?=e($r['product'] ?? '')?></td>
-        <td class="py-3"><?=e(($r['shipping_name'] ?? '').' — '.($r['shipping_city'] ?? '').', '.($r['shipping_state'] ?? ''))?></td>
+        <td class="py-3">
+          <span class="cursor-help underline decoration-dotted" title="<?=e($fullAddress)?>">
+            <?=e($deliveryName)?>
+          </span>
+        </td>
         <td class="py-3">
           <form method="post" class="inline"><?=csrf_field()?>
             <input type="hidden" name="action" value="save_tracking">
