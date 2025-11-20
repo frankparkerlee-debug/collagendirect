@@ -779,13 +779,14 @@ if ($action) {
       $sql = "SELECT COUNT(DISTINCT patient_id) FROM orders WHERE 1=1" . $dateFilter . $productFilter;
       $q = $pdo->prepare($sql); $q->execute($productArgs); $patients = (int)$q->fetchColumn();
 
-      $sql = "SELECT COUNT(*) FROM orders WHERE status IN ('submitted','pending')" . $dateFilter . $productFilter;
+      // Count distinct orders (grouped orders count as 1)
+      $sql = "SELECT COUNT(DISTINCT COALESCE(order_group_id, id)) FROM orders WHERE status IN ('submitted','pending')" . $dateFilter . $productFilter;
       $q = $pdo->prepare($sql); $q->execute($productArgs); $pending = (int)$q->fetchColumn();
 
-      $sql = "SELECT COUNT(*) FROM orders WHERE status IN ('approved','active','shipped')" . $dateFilter . $productFilter;
+      $sql = "SELECT COUNT(DISTINCT COALESCE(order_group_id, id)) FROM orders WHERE status IN ('approved','active','shipped')" . $dateFilter . $productFilter;
       $q = $pdo->prepare($sql); $q->execute($productArgs); $active = (int)$q->fetchColumn();
 
-      $sql = "SELECT COUNT(*) FROM orders WHERE 1=1" . $dateFilter . $productFilter;
+      $sql = "SELECT COUNT(DISTINCT COALESCE(order_group_id, id)) FROM orders WHERE 1=1" . $dateFilter . $productFilter;
       $q = $pdo->prepare($sql); $q->execute($productArgs); $total = (int)$q->fetchColumn();
     } else {
       $args = array_merge([$userId], $productArgs);
@@ -793,13 +794,14 @@ if ($action) {
       $sql = "SELECT COUNT(DISTINCT patient_id) FROM orders WHERE user_id=?" . $dateFilter . $productFilter;
       $q = $pdo->prepare($sql); $q->execute($args); $patients = (int)$q->fetchColumn();
 
-      $sql = "SELECT COUNT(*) FROM orders WHERE user_id=? AND status IN ('submitted','pending')" . $dateFilter . $productFilter;
+      // Count distinct orders (grouped orders count as 1)
+      $sql = "SELECT COUNT(DISTINCT COALESCE(order_group_id, id)) FROM orders WHERE user_id=? AND status IN ('submitted','pending')" . $dateFilter . $productFilter;
       $q = $pdo->prepare($sql); $q->execute($args); $pending = (int)$q->fetchColumn();
 
-      $sql = "SELECT COUNT(*) FROM orders WHERE user_id=? AND status IN ('approved','active','shipped')" . $dateFilter . $productFilter;
+      $sql = "SELECT COUNT(DISTINCT COALESCE(order_group_id, id)) FROM orders WHERE user_id=? AND status IN ('approved','active','shipped')" . $dateFilter . $productFilter;
       $q = $pdo->prepare($sql); $q->execute($args); $active = (int)$q->fetchColumn();
 
-      $sql = "SELECT COUNT(*) FROM orders WHERE user_id=?" . $dateFilter . $productFilter;
+      $sql = "SELECT COUNT(DISTINCT COALESCE(order_group_id, id)) FROM orders WHERE user_id=?" . $dateFilter . $productFilter;
       $q = $pdo->prepare($sql); $q->execute($args); $total = (int)$q->fetchColumn();
     }
 
@@ -865,7 +867,8 @@ if ($action) {
         $q->execute($args);
         $patientCount = (int)$q->fetchColumn();
 
-        $sql = "SELECT COUNT(*) FROM orders WHERE created_at >= ? AND created_at <= ?" . $productFilter;
+        // Count distinct orders (grouped orders count as 1)
+        $sql = "SELECT COUNT(DISTINCT COALESCE(order_group_id, id)) FROM orders WHERE created_at >= ? AND created_at <= ?" . $productFilter;
         $q = $pdo->prepare($sql);
         $q->execute($args);
         $orderCount = (int)$q->fetchColumn();
@@ -876,7 +879,8 @@ if ($action) {
         $q->execute($args);
         $patientCount = (int)$q->fetchColumn();
 
-        $sql = "SELECT COUNT(*) FROM orders WHERE user_id=? AND created_at >= ? AND created_at <= ?" . $productFilter;
+        // Count distinct orders (grouped orders count as 1)
+        $sql = "SELECT COUNT(DISTINCT COALESCE(order_group_id, id)) FROM orders WHERE user_id=? AND created_at >= ? AND created_at <= ?" . $productFilter;
         $q = $pdo->prepare($sql);
         $q->execute($args);
         $orderCount = (int)$q->fetchColumn();
