@@ -285,19 +285,19 @@ if (!$hasBilledBy) {
         o.billed_by,
         o.order_number as invoice_number,
         o.created_at as invoice_date,
-        (o.created_at + INTERVAL '30 days') as due_date,
+        (o.created_at::date + 30) as due_date,
         'Net 30' as payment_terms,
         COALESCE(o.amount_due, 0) as amount_due,
         COALESCE(o.amount_paid, 0) as amount_paid,
         COALESCE(o.balance_due, 0) as balance_due,
         CASE
           WHEN o.paid_at IS NOT NULL THEN -1
-          WHEN EXTRACT(DAY FROM (CURRENT_DATE - o.created_at)) <= 30 THEN 0
-          WHEN EXTRACT(DAY FROM (CURRENT_DATE - o.created_at)) <= 60 THEN 1
-          WHEN EXTRACT(DAY FROM (CURRENT_DATE - o.created_at)) <= 90 THEN 2
+          WHEN (CURRENT_DATE - o.created_at::date) <= 30 THEN 0
+          WHEN (CURRENT_DATE - o.created_at::date) <= 60 THEN 1
+          WHEN (CURRENT_DATE - o.created_at::date) <= 90 THEN 2
           ELSE 3
         END as aging_bucket,
-        GREATEST(0, EXTRACT(DAY FROM (CURRENT_DATE - (o.created_at + INTERVAL '30 days')))::INTEGER) as days_past_due,
+        GREATEST(0, (CURRENT_DATE - (o.created_at::date + 30))) as days_past_due,
         u.practice_name,
         u.first_name as phys_first,
         u.last_name as phys_last,
