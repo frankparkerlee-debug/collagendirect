@@ -230,30 +230,22 @@ if (!$hasBilledBy) {
         o.id,
         o.created_at,
         o.product,
-        o.shipments_remaining,
+        o.qty_per_change as shipments_remaining,
         o.product_price as unit_price,
         o.status,
         o.paid_at,
-        o.invoice_sent_at,
         o.tracking_number,
         o.notes,
         o.billed_by,
-        o.invoice_number,
-        o.invoice_date,
-        o.due_date,
-        o.payment_terms,
-        o.amount_due,
-        o.amount_paid,
-        o.balance_due,
-        CASE
-          WHEN o.due_date IS NULL THEN NULL
-          WHEN CURRENT_DATE <= o.due_date THEN 0
-          WHEN CURRENT_DATE - o.due_date::DATE <= 30 THEN 1
-          WHEN CURRENT_DATE - o.due_date::DATE <= 60 THEN 2
-          WHEN CURRENT_DATE - o.due_date::DATE <= 90 THEN 3
-          ELSE 4
-        END as aging_bucket,
-        CURRENT_DATE - o.due_date::DATE as days_past_due,
+        o.order_number as invoice_number,
+        o.created_at as invoice_date,
+        NULL as due_date,
+        'Net 30' as payment_terms,
+        0 as amount_due,
+        0 as amount_paid,
+        0 as balance_due,
+        0 as aging_bucket,
+        0 as days_past_due,
         u.practice_name,
         u.first_name as phys_first,
         u.last_name as phys_last,
