@@ -16,28 +16,65 @@ if (!isset($user) || !is_array($user)) {
 
 $userId = $user['id'];
 
-// Fetch wholesale orders grouped by order_number
+// Check if order_number column exists
+$hasOrderNumber = false;
+try {
+  $checkCol = $pdo->query("
+    SELECT column_name
+    FROM information_schema.columns
+    WHERE table_name = 'orders' AND column_name = 'order_number'
+  ")->fetchColumn();
+  $hasOrderNumber = !empty($checkCol);
+} catch (Exception $e) {
+  $hasOrderNumber = false;
+}
+
+// Fetch wholesale orders grouped by order_number (if column exists) or by order id
 // Wholesale orders are identified by billed_by='practice_dme'
-$sql = "
-  SELECT
-    o.order_number,
-    MIN(o.created_at) as order_date,
-    COUNT(DISTINCT o.id) as product_count,
-    COUNT(DISTINCT o.patient_id) as patient_count,
-    MAX(o.status) as status,
-    MAX(o.delivery_mode) as delivery_mode,
-    MAX(o.shipping_address) as shipping_address,
-    MAX(o.shipping_city) as shipping_city,
-    MAX(o.shipping_state) as shipping_state,
-    MAX(o.shipping_zip) as shipping_zip,
-    MAX(o.shipping_name) as shipping_name
-  FROM orders o
-  WHERE o.user_id = ?
-    AND o.billed_by = 'practice_dme'
-    AND (o.review_status IS NULL OR o.review_status != 'draft')
-  GROUP BY o.order_number
-  ORDER BY MIN(o.created_at) DESC
-";
+if ($hasOrderNumber) {
+  // Group by order_number when available
+  $sql = "
+    SELECT
+      COALESCE(o.order_number, o.id) as order_number,
+      MIN(o.created_at) as order_date,
+      COUNT(DISTINCT o.id) as product_count,
+      COUNT(DISTINCT o.patient_id) as patient_count,
+      MAX(o.status) as status,
+      MAX(o.delivery_mode) as delivery_mode,
+      MAX(o.shipping_address) as shipping_address,
+      MAX(o.shipping_city) as shipping_city,
+      MAX(o.shipping_state) as shipping_state,
+      MAX(o.shipping_zip) as shipping_zip,
+      MAX(o.shipping_name) as shipping_name
+    FROM orders o
+    WHERE o.user_id = ?
+      AND o.billed_by = 'practice_dme'
+      AND (o.review_status IS NULL OR o.review_status != 'draft')
+    GROUP BY COALESCE(o.order_number, o.id)
+    ORDER BY MIN(o.created_at) DESC
+  ";
+} else {
+  // Fallback: show individual orders when order_number doesn't exist
+  $sql = "
+    SELECT
+      o.id as order_number,
+      o.created_at as order_date,
+      1 as product_count,
+      1 as patient_count,
+      o.status,
+      o.delivery_mode,
+      o.shipping_address,
+      o.shipping_city,
+      o.shipping_state,
+      o.shipping_zip,
+      o.shipping_name
+    FROM orders o
+    WHERE o.user_id = ?
+      AND o.billed_by = 'practice_dme'
+      AND (o.review_status IS NULL OR o.review_status != 'draft')
+    ORDER BY o.created_at DESC
+  ";
+}
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute([$userId]);
@@ -62,23 +99,45 @@ $completedCount = 0;
 // We'll calculate totals when we fetch each order's details
 foreach ($groupedOrders as &$order) {
   // Fetch detailed items for this order to calculate discounted total
-  $detailStmt = $pdo->prepare("
-    SELECT
-      o.id,
-      o.product_id,
-      o.product,
-      o.product_price,
-      o.qty_per_change as boxes,
-      prod.pieces_per_box,
-      prod.price_wholesale,
-      pp.discount_percentage,
-      pp.custom_price
-    FROM orders o
-    LEFT JOIN products prod ON o.product_id = prod.id
-    LEFT JOIN practice_pricing pp ON pp.product_id = o.product_id AND pp.user_id = ?
-    WHERE o.order_number = ? AND o.user_id = ?
-  ");
-  $detailStmt->execute([$userId, $order['order_number'], $userId]);
+  if ($hasOrderNumber) {
+    // Query by order_number when available
+    $detailStmt = $pdo->prepare("
+      SELECT
+        o.id,
+        o.product_id,
+        o.product,
+        o.product_price,
+        o.qty_per_change as boxes,
+        prod.pieces_per_box,
+        prod.price_wholesale,
+        pp.discount_percentage,
+        pp.custom_price
+      FROM orders o
+      LEFT JOIN products prod ON o.product_id = prod.id
+      LEFT JOIN practice_pricing pp ON pp.product_id = o.product_id AND pp.user_id = ?
+      WHERE (o.order_number = ? OR (o.order_number IS NULL AND o.id = ?)) AND o.user_id = ?
+    ");
+    $detailStmt->execute([$userId, $order['order_number'], $order['order_number'], $userId]);
+  } else {
+    // Query by order id when order_number column doesn't exist
+    $detailStmt = $pdo->prepare("
+      SELECT
+        o.id,
+        o.product_id,
+        o.product,
+        o.product_price,
+        o.qty_per_change as boxes,
+        prod.pieces_per_box,
+        prod.price_wholesale,
+        pp.discount_percentage,
+        pp.custom_price
+      FROM orders o
+      LEFT JOIN products prod ON o.product_id = prod.id
+      LEFT JOIN practice_pricing pp ON pp.product_id = o.product_id AND pp.user_id = ?
+      WHERE o.id = ? AND o.user_id = ?
+    ");
+    $detailStmt->execute([$userId, $order['order_number'], $userId]);
+  }
   $items = $detailStmt->fetchAll(PDO::FETCH_ASSOC);
 
   $orderTotal = 0;
@@ -624,29 +683,55 @@ unset($order); // Break reference
             <!-- Items Table -->
             <?php
             // Fetch detailed order items with pricing
-            $detailStmt = $pdo->prepare("
-              SELECT
-                o.id as order_id,
-                o.product,
-                o.product_id,
-                o.product_price,
-                o.qty_per_change as boxes,
-                p.first_name,
-                p.last_name,
-                p.mrn,
-                prod.pieces_per_box,
-                prod.price_wholesale,
-                prod.product_name,
-                pp.custom_price,
-                pp.discount_percentage
-              FROM orders o
-              LEFT JOIN patients p ON o.patient_id = p.id
-              LEFT JOIN products prod ON o.product_id = prod.id
-              LEFT JOIN practice_pricing pp ON pp.product_id = o.product_id AND pp.user_id = ?
-              WHERE o.order_number = ? AND o.user_id = ?
-              ORDER BY o.created_at ASC
-            ");
-            $detailStmt->execute([$userId, $order['order_number'], $userId]);
+            if ($hasOrderNumber) {
+              $detailStmt = $pdo->prepare("
+                SELECT
+                  o.id as order_id,
+                  o.product,
+                  o.product_id,
+                  o.product_price,
+                  o.qty_per_change as boxes,
+                  p.first_name,
+                  p.last_name,
+                  p.mrn,
+                  prod.pieces_per_box,
+                  prod.price_wholesale,
+                  prod.product_name,
+                  pp.custom_price,
+                  pp.discount_percentage
+                FROM orders o
+                LEFT JOIN patients p ON o.patient_id = p.id
+                LEFT JOIN products prod ON o.product_id = prod.id
+                LEFT JOIN practice_pricing pp ON pp.product_id = o.product_id AND pp.user_id = ?
+                WHERE (o.order_number = ? OR (o.order_number IS NULL AND o.id = ?)) AND o.user_id = ?
+                ORDER BY o.created_at ASC
+              ");
+              $detailStmt->execute([$userId, $order['order_number'], $order['order_number'], $userId]);
+            } else {
+              $detailStmt = $pdo->prepare("
+                SELECT
+                  o.id as order_id,
+                  o.product,
+                  o.product_id,
+                  o.product_price,
+                  o.qty_per_change as boxes,
+                  p.first_name,
+                  p.last_name,
+                  p.mrn,
+                  prod.pieces_per_box,
+                  prod.price_wholesale,
+                  prod.product_name,
+                  pp.custom_price,
+                  pp.discount_percentage
+                FROM orders o
+                LEFT JOIN patients p ON o.patient_id = p.id
+                LEFT JOIN products prod ON o.product_id = prod.id
+                LEFT JOIN practice_pricing pp ON pp.product_id = o.product_id AND pp.user_id = ?
+                WHERE o.id = ? AND o.user_id = ?
+                ORDER BY o.created_at ASC
+              ");
+              $detailStmt->execute([$userId, $order['order_number'], $userId]);
+            }
             $orderItems = $detailStmt->fetchAll(PDO::FETCH_ASSOC);
 
             $invoiceSubtotal = 0;
