@@ -1,7 +1,9 @@
 <?php
 /**
- * Wholesale Orders List Page
+ * Wholesale Orders List Page - Invoice View
  * Displays grouped wholesale orders by order number (WS-YYYYMMDD-XXX)
+ * Each order is presented as an invoice with proper formatting
+ * Applies practice-specific pricing discounts from practice_pricing table
  */
 
 // This file is included by portal/index.php
@@ -14,7 +16,7 @@ if (!isset($user) || !is_array($user)) {
 
 $userId = $user['id'];
 
-// Fetch wholesale orders grouped by order number
+// Fetch wholesale orders grouped by order_number
 // Wholesale orders are identified by billed_by='practice_dme'
 $sql = "
   SELECT
@@ -22,16 +24,14 @@ $sql = "
     MIN(o.created_at) as order_date,
     COUNT(DISTINCT o.id) as product_count,
     COUNT(DISTINCT o.patient_id) as patient_count,
-    SUM(o.product_price) as total_cost,
     MAX(o.status) as status,
-    GROUP_CONCAT(DISTINCT p.product_name ORDER BY p.product_name SEPARATOR ', ') as products,
     o.delivery_mode,
     o.shipping_address,
     o.shipping_city,
     o.shipping_state,
-    o.shipping_zip
+    o.shipping_zip,
+    o.shipping_name
   FROM orders o
-  LEFT JOIN products p ON o.product_id = p.id
   WHERE o.user_id = ?
     AND o.billed_by = 'practice_dme'
     AND o.review_status != 'draft'
@@ -43,14 +43,70 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute([$userId]);
 $groupedOrders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Calculate summary stats
+// Get practice information for invoice header
+$practiceStmt = $pdo->prepare("
+  SELECT practice_name, first_name, last_name, email, phone,
+         address, city, state, zip, npi
+  FROM users
+  WHERE id = ?
+");
+$practiceStmt->execute([$userId]);
+$practice = $practiceStmt->fetch(PDO::FETCH_ASSOC);
+
+// Calculate summary stats with discounted pricing
 $totalOrders = count($groupedOrders);
 $totalSpent = 0;
 $pendingCount = 0;
 $completedCount = 0;
 
-foreach ($groupedOrders as $order) {
-  $totalSpent += (float)($order['total_cost'] ?? 0);
+// We'll calculate totals when we fetch each order's details
+foreach ($groupedOrders as &$order) {
+  // Fetch detailed items for this order to calculate discounted total
+  $detailStmt = $pdo->prepare("
+    SELECT
+      o.id,
+      o.product_id,
+      o.product,
+      o.product_price,
+      o.qty_per_change as boxes,
+      prod.pieces_per_box,
+      prod.price_wholesale,
+      pp.discount_percentage,
+      pp.custom_price
+    FROM orders o
+    LEFT JOIN products prod ON o.product_id = prod.id
+    LEFT JOIN practice_pricing pp ON pp.product_id = o.product_id AND pp.user_id = ?
+    WHERE o.order_number = ? AND o.user_id = ?
+  ");
+  $detailStmt->execute([$userId, $order['order_number'], $userId]);
+  $items = $detailStmt->fetchAll(PDO::FETCH_ASSOC);
+
+  $orderTotal = 0;
+  foreach ($items as $item) {
+    $boxes = (int)($item['boxes'] ?? 0);
+    $piecesPerBox = (int)($item['pieces_per_box'] ?? 1);
+
+    // Recalculate with discount applied
+    if (!empty($item['custom_price']) && $item['custom_price'] > 0) {
+      // Custom price per piece
+      $pricePerPiece = (float)$item['custom_price'];
+      $pricePerBox = $pricePerPiece * $piecesPerBox;
+    } elseif (!empty($item['discount_percentage']) && $item['discount_percentage'] > 0) {
+      // Apply discount to wholesale price
+      $pricePerBox = (float)($item['price_wholesale'] ?? 0);
+      $discountMultiplier = 1 - ((float)$item['discount_percentage'] / 100);
+      $pricePerBox = $pricePerBox * $discountMultiplier;
+    } else {
+      // Use stored price (product_price is per piece in orders table)
+      $pricePerPiece = (float)($item['product_price'] ?? 0);
+      $pricePerBox = $pricePerPiece * $piecesPerBox;
+    }
+
+    $orderTotal += $boxes * $pricePerBox;
+  }
+
+  $order['total_cost'] = $orderTotal;
+  $totalSpent += $orderTotal;
 
   $status = strtolower($order['status'] ?? '');
   if (in_array($status, ['submitted', 'pending', 'awaiting_approval', 'approved'])) {
@@ -59,6 +115,7 @@ foreach ($groupedOrders as $order) {
     $completedCount++;
   }
 }
+unset($order); // Break reference
 
 ?>
 
@@ -111,43 +168,138 @@ foreach ($groupedOrders as $order) {
   color: #f59e0b;
 }
 
-.order-card {
+.invoice-card {
   background: white;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  padding: 1.5rem;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
   transition: all 0.2s;
+}
+
+.invoice-card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.invoice-header {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  padding: 1.5rem;
   cursor: pointer;
-  border-left: 4px solid #10b981;
-}
-
-.order-card:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  transform: translateY(-2px);
-}
-
-.order-card.expanded {
-  background: #f8fafc;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-
-.order-header {
   display: grid;
-  grid-template-columns: 180px 1fr 120px 120px 150px auto;
+  grid-template-columns: 200px 1fr 140px 140px 160px auto;
   gap: 1.5rem;
   align-items: center;
 }
 
-.order-details {
-  display: none;
-  margin-top: 1.5rem;
-  padding-top: 1.5rem;
-  border-top: 2px solid #e2e8f0;
+.invoice-header:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
 }
 
-.order-card.expanded .order-details {
+.invoice-body {
+  display: none;
+  padding: 0;
+}
+
+.invoice-card.expanded .invoice-body {
   display: block;
+}
+
+.invoice-details {
+  padding: 2rem;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.invoice-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.invoice-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.invoice-meta-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+}
+
+.invoice-meta-value {
+  font-size: 0.875rem;
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.invoice-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+}
+
+.invoice-items-table thead {
+  background: #1e293b;
+  color: white;
+}
+
+.invoice-items-table th {
+  padding: 0.875rem 1rem;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.invoice-items-table th.text-right {
+  text-align: right;
+}
+
+.invoice-items-table th.text-center {
+  text-align: center;
+}
+
+.invoice-items-table tbody tr {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.invoice-items-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.invoice-items-table td {
+  padding: 1rem;
+  font-size: 0.875rem;
+}
+
+.invoice-items-table tfoot {
+  background: #f8fafc;
+  border-top: 2px solid #1e293b;
+}
+
+.invoice-items-table tfoot td {
+  padding: 1rem;
+  font-weight: 600;
+}
+
+.discount-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  background: #fef3c7;
+  color: #92400e;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-left: 0.5rem;
 }
 
 .status-badge {
@@ -190,12 +342,13 @@ foreach ($groupedOrders as $order) {
 
 .expand-icon {
   transition: transform 0.2s;
-  color: #64748b;
+  color: white;
+  opacity: 0.8;
 }
 
-.order-card.expanded .expand-icon {
+.invoice-card.expanded .expand-icon {
   transform: rotate(180deg);
-  color: #10b981;
+  opacity: 1;
 }
 
 .empty-state {
@@ -235,33 +388,33 @@ foreach ($groupedOrders as $order) {
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
 }
 
-.detail-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
-.detail-section {
+.btn-secondary {
+  padding: 0.625rem 1.25rem;
   background: white;
-  padding: 1rem;
+  color: #3b82f6;
+  border: 1px solid #3b82f6;
   border-radius: 8px;
-  border: 1px solid #e2e8f0;
-}
-
-.detail-label {
-  font-size: 0.75rem;
-  color: #64748b;
-  text-transform: uppercase;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-  letter-spacing: 0.025em;
-}
-
-.detail-value {
   font-size: 0.875rem;
-  color: #1e293b;
-  font-weight: 500;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+  background: #3b82f6;
+  color: white;
+}
+
+.invoice-actions {
+  padding: 1.5rem 2rem;
+  background: white;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
 }
 </style>
 
@@ -270,10 +423,10 @@ foreach ($groupedOrders as $order) {
   <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem;">
     <div>
       <h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; color: #1e293b;">
-        Wholesale Orders
+        Wholesale Orders & Invoices
       </h1>
       <p style="color: #64748b; font-size: 0.875rem;">
-        Manage your wholesale and office stock orders
+        View and manage your wholesale orders - each order is your invoice
       </p>
     </div>
     <a href="?page=wholesale&tab=create" class="btn-primary">
@@ -287,7 +440,7 @@ foreach ($groupedOrders as $order) {
   <!-- Summary Stats -->
   <div class="stats-grid">
     <div class="stat-card">
-      <div class="stat-label">Total Orders</div>
+      <div class="stat-label">Total Invoices</div>
       <div class="stat-value"><?= $totalOrders ?></div>
     </div>
     <div class="stat-card amber">
@@ -304,7 +457,7 @@ foreach ($groupedOrders as $order) {
     </div>
   </div>
 
-  <!-- Orders List -->
+  <!-- Orders/Invoices List -->
   <?php if (empty($groupedOrders)): ?>
     <div class="empty-state">
       <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -324,7 +477,7 @@ foreach ($groupedOrders as $order) {
       </a>
     </div>
   <?php else: ?>
-    <div id="orders-list">
+    <div id="invoices-list">
       <?php foreach ($groupedOrders as $order):
         $orderNumber = htmlspecialchars($order['order_number'] ?? 'N/A');
         $orderDate = date('M j, Y', strtotime($order['order_date']));
@@ -345,51 +498,52 @@ foreach ($groupedOrders as $order) {
           ]))
         );
       ?>
-        <div class="order-card" onclick="toggleOrderCard(this)" data-order-number="<?= $orderNumber ?>">
-          <div class="order-header">
-            <!-- Order Number -->
+        <div class="invoice-card" onclick="toggleInvoice(this)" data-order-number="<?= $orderNumber ?>">
+          <!-- Invoice Header (Collapsed View) -->
+          <div class="invoice-header">
+            <!-- Invoice Number -->
             <div>
-              <div class="stat-label" style="margin-bottom: 0.25rem;">Order #</div>
-              <div style="font-weight: 700; font-size: 1rem; color: #10b981;">
+              <div style="font-size: 0.75rem; opacity: 0.9; margin-bottom: 0.25rem; text-transform: uppercase; letter-spacing: 0.05em;">Invoice #</div>
+              <div style="font-weight: 700; font-size: 1.125rem;">
                 <?= $orderNumber ?>
               </div>
-              <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.125rem;">
+              <div style="font-size: 0.75rem; opacity: 0.8; margin-top: 0.125rem;">
                 <?= $orderTime ?>
               </div>
             </div>
 
             <!-- Date & Details -->
             <div>
-              <div style="font-weight: 600; font-size: 0.875rem; color: #1e293b; margin-bottom: 0.25rem;">
+              <div style="font-weight: 600; font-size: 0.9375rem; margin-bottom: 0.25rem;">
                 <?= $orderDate ?>
               </div>
-              <div style="font-size: 0.75rem; color: #64748b;">
-                <?= $productCount ?> product<?= $productCount !== 1 ? 's' : '' ?>
+              <div style="font-size: 0.8125rem; opacity: 0.9;">
+                <?= $productCount ?> item<?= $productCount !== 1 ? 's' : '' ?>
                 <?php if ($patientCount > 0): ?>
                   · <?= $patientCount ?> patient<?= $patientCount !== 1 ? 's' : '' ?>
                 <?php endif; ?>
               </div>
             </div>
 
-            <!-- Product Count Badge -->
+            <!-- Item Count Badge -->
             <div style="text-align: center;">
-              <div style="background: #10b981; color: white; border-radius: 8px; padding: 0.5rem 1rem;">
+              <div style="background: rgba(255,255,255,0.2); border-radius: 8px; padding: 0.5rem 1rem; backdrop-filter: blur(10px);">
                 <div style="font-size: 1.5rem; font-weight: 700;"><?= $productCount ?></div>
-                <div style="font-size: 0.625rem; text-transform: uppercase; opacity: 0.9;">Products</div>
+                <div style="font-size: 0.625rem; text-transform: uppercase; opacity: 0.9;">Items</div>
               </div>
             </div>
 
-            <!-- Total Cost -->
+            <!-- Total Amount -->
             <div style="text-align: right;">
-              <div class="stat-label" style="margin-bottom: 0.25rem;">Total</div>
-              <div style="font-weight: 700; font-size: 1.25rem; color: #1e293b;">
+              <div style="font-size: 0.75rem; opacity: 0.9; margin-bottom: 0.25rem; text-transform: uppercase;">Total</div>
+              <div style="font-weight: 700; font-size: 1.5rem;">
                 $<?= number_format($totalCost, 2) ?>
               </div>
             </div>
 
             <!-- Status -->
             <div>
-              <span class="status-badge <?= $statusClass ?>">
+              <span class="status-badge <?= $statusClass ?>" style="background: rgba(255,255,255,0.95); box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                 <?= $statusLabel ?>
               </span>
             </div>
@@ -402,119 +556,215 @@ foreach ($groupedOrders as $order) {
             </div>
           </div>
 
-          <!-- Expanded Details -->
-          <div class="order-details">
+          <!-- Invoice Body (Expanded View) -->
+          <div class="invoice-body">
+            <!-- Invoice Details -->
+            <div class="invoice-details">
+              <!-- Practice & Order Info -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; margin-bottom: 2rem;">
+                <!-- Bill To -->
+                <div>
+                  <h4 style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 600; margin-bottom: 0.75rem; letter-spacing: 0.05em;">Bill To</h4>
+                  <div style="color: #1e293b;">
+                    <div style="font-weight: 700; font-size: 1rem; margin-bottom: 0.25rem;">
+                      <?= htmlspecialchars($practice['practice_name'] ?? ($practice['first_name'] . ' ' . $practice['last_name'])) ?>
+                    </div>
+                    <?php if (!empty($practice['address'])): ?>
+                      <div style="font-size: 0.875rem; color: #64748b; line-height: 1.5;">
+                        <?= htmlspecialchars($practice['address']) ?><br>
+                        <?= htmlspecialchars(($practice['city'] ?? '') . ', ' . ($practice['state'] ?? '') . ' ' . ($practice['zip'] ?? '')) ?>
+                      </div>
+                    <?php endif; ?>
+                    <?php if (!empty($practice['npi'])): ?>
+                      <div style="font-size: 0.875rem; color: #64748b; margin-top: 0.5rem;">
+                        NPI: <?= htmlspecialchars($practice['npi']) ?>
+                      </div>
+                    <?php endif; ?>
+                  </div>
+                </div>
+
+                <!-- Ship To -->
+                <div>
+                  <h4 style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 600; margin-bottom: 0.75rem; letter-spacing: 0.05em;">Ship To</h4>
+                  <div style="color: #1e293b;">
+                    <div style="font-weight: 600; font-size: 0.9375rem; margin-bottom: 0.25rem;">
+                      <?= htmlspecialchars($order['shipping_name'] ?? 'N/A') ?>
+                    </div>
+                    <?php if ($shippingAddress): ?>
+                      <div style="font-size: 0.875rem; color: #64748b; line-height: 1.5;">
+                        <?= htmlspecialchars($shippingAddress) ?>
+                      </div>
+                    <?php endif; ?>
+                    <div style="font-size: 0.875rem; color: #64748b; margin-top: 0.5rem;">
+                      <span style="display: inline-flex; align-items: center; padding: 0.125rem 0.5rem; background: #dbeafe; color: #1e40af; border-radius: 4px; font-size: 0.75rem; font-weight: 500;">
+                        <?= $order['delivery_mode'] === 'office' ? 'Office Delivery' : 'Patient Delivery' ?>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Order Metadata -->
+              <div class="invoice-meta-grid">
+                <div class="invoice-meta-item">
+                  <span class="invoice-meta-label">Invoice Number</span>
+                  <span class="invoice-meta-value"><?= $orderNumber ?></span>
+                </div>
+                <div class="invoice-meta-item">
+                  <span class="invoice-meta-label">Invoice Date</span>
+                  <span class="invoice-meta-value"><?= $orderDate ?> at <?= $orderTime ?></span>
+                </div>
+                <div class="invoice-meta-item">
+                  <span class="invoice-meta-label">Status</span>
+                  <span class="status-badge <?= $statusClass ?>"><?= $statusLabel ?></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Items Table -->
             <?php
-            // Fetch detailed order items for this order number
+            // Fetch detailed order items with pricing
             $detailStmt = $pdo->prepare("
               SELECT
                 o.id as order_id,
                 o.product,
+                o.product_id,
                 o.product_price,
-                o.qty_per_change,
-                o.shipments_remaining,
+                o.qty_per_change as boxes,
                 p.first_name,
                 p.last_name,
                 p.mrn,
                 prod.pieces_per_box,
-                prod.product_name
+                prod.price_wholesale,
+                prod.product_name,
+                pp.custom_price,
+                pp.discount_percentage
               FROM orders o
               LEFT JOIN patients p ON o.patient_id = p.id
               LEFT JOIN products prod ON o.product_id = prod.id
+              LEFT JOIN practice_pricing pp ON pp.product_id = o.product_id AND pp.user_id = ?
               WHERE o.order_number = ? AND o.user_id = ?
               ORDER BY o.created_at ASC
             ");
-            $detailStmt->execute([$order['order_number'], $userId]);
+            $detailStmt->execute([$userId, $order['order_number'], $userId]);
             $orderItems = $detailStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $invoiceSubtotal = 0;
+            $totalDiscount = 0;
             ?>
 
-            <!-- Shipping Information -->
-            <?php if ($shippingAddress): ?>
-              <div class="detail-grid">
-                <div class="detail-section">
-                  <div class="detail-label">Shipping Address</div>
-                  <div class="detail-value"><?= htmlspecialchars($shippingAddress) ?></div>
-                </div>
-                <div class="detail-section">
-                  <div class="detail-label">Delivery Mode</div>
-                  <div class="detail-value">
-                    <?= $order['delivery_mode'] === 'ship_to_office' ? 'Ship to Office' : 'Ship to Patient' ?>
-                  </div>
-                </div>
-              </div>
-            <?php endif; ?>
+            <table class="invoice-items-table">
+              <thead>
+                <tr>
+                  <th style="width: 35%;">Item Description</th>
+                  <th style="width: 20%;">Patient</th>
+                  <th class="text-center" style="width: 10%;">Boxes</th>
+                  <th class="text-center" style="width: 10%;">Pcs/Box</th>
+                  <th class="text-right" style="width: 12%;">Unit Price</th>
+                  <th class="text-right" style="width: 13%;">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php foreach ($orderItems as $item):
+                  $boxes = (int)($item['boxes'] ?? 0);
+                  $piecesPerBox = (int)($item['pieces_per_box'] ?? 1);
+                  $wholesalePrice = (float)($item['price_wholesale'] ?? 0);
 
-            <!-- Products Table -->
-            <h4 style="font-weight: 600; margin-bottom: 1rem; color: #1e293b;">
-              Order Items (<?= count($orderItems) ?>)
-            </h4>
-            <div style="background: white; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0;">
-              <table style="width: 100%; border-collapse: collapse;">
-                <thead style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
-                  <tr>
-                    <th style="padding: 0.75rem 1rem; text-align: left; font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase;">Product</th>
-                    <th style="padding: 0.75rem 1rem; text-align: left; font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase;">Patient</th>
-                    <th style="padding: 0.75rem 1rem; text-align: center; font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase;">Boxes</th>
-                    <th style="padding: 0.75rem 1rem; text-align: center; font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase;">Pcs/Box</th>
-                    <th style="padding: 0.75rem 1rem; text-align: right; font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase;">Price</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <?php foreach ($orderItems as $item):
-                    $boxes = (int)($item['shipments_remaining'] ?? 0);
-                    $piecesPerBox = (int)($item['pieces_per_box'] ?? 10);
-                    $itemPrice = (float)($item['product_price'] ?? 0);
-                  ?>
-                    <tr style="border-bottom: 1px solid #f1f5f9;">
-                      <td style="padding: 1rem; font-size: 0.875rem; font-weight: 500; color: #1e293b;">
-                        <?= htmlspecialchars($item['product_name'] ?? $item['product'] ?? 'N/A') ?>
-                      </td>
-                      <td style="padding: 1rem; font-size: 0.875rem;">
-                        <div style="font-weight: 500; color: #1e293b;">
-                          <?= htmlspecialchars(trim(($item['first_name'] ?? '') . ' ' . ($item['last_name'] ?? ''))) ?>
-                        </div>
-                        <div style="font-size: 0.75rem; color: #94a3b8;">
-                          MRN: <?= htmlspecialchars($item['mrn'] ?? 'N/A') ?>
-                        </div>
-                      </td>
-                      <td style="padding: 1rem; text-align: center; font-size: 0.875rem; font-weight: 600; color: #1e293b;">
-                        <?= $boxes ?>
-                      </td>
-                      <td style="padding: 1rem; text-align: center; font-size: 0.875rem; color: #64748b;">
-                        <?= $piecesPerBox ?>
-                      </td>
-                      <td style="padding: 1rem; text-align: right; font-size: 0.875rem; font-weight: 600; color: #1e293b;">
-                        $<?= number_format($itemPrice, 2) ?>
-                      </td>
-                    </tr>
-                  <?php endforeach; ?>
-                </tbody>
-                <tfoot style="background: #f8fafc; border-top: 2px solid #e2e8f0;">
-                  <tr>
-                    <td colspan="4" style="padding: 1rem; text-align: right; font-weight: 600; font-size: 0.875rem; color: #64748b;">
-                      Order Total:
-                    </td>
-                    <td style="padding: 1rem; text-align: right; font-weight: 700; font-size: 1.125rem; color: #10b981;">
-                      $<?= number_format($totalCost, 2) ?>
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
+                  // Calculate actual price with discounts
+                  $hasDiscount = false;
+                  $discountPercent = 0;
 
-            <!-- Action Buttons -->
-            <div style="margin-top: 1.5rem; display: flex; gap: 0.75rem;">
+                  if (!empty($item['custom_price']) && $item['custom_price'] > 0) {
+                    // Custom price per piece
+                    $pricePerPiece = (float)$item['custom_price'];
+                    $pricePerBox = $pricePerPiece * $piecesPerBox;
+                    $hasDiscount = true; // Custom pricing is essentially a discount
+                    $originalPrice = $wholesalePrice;
+                    $discountPercent = $originalPrice > 0 ? (($originalPrice - $pricePerBox) / $originalPrice * 100) : 0;
+                  } elseif (!empty($item['discount_percentage']) && $item['discount_percentage'] > 0) {
+                    // Apply percentage discount
+                    $discountPercent = (float)$item['discount_percentage'];
+                    $pricePerBox = $wholesalePrice * (1 - ($discountPercent / 100));
+                    $hasDiscount = true;
+                  } else {
+                    // Use stored price (product_price is per piece)
+                    $pricePerPiece = (float)($item['product_price'] ?? 0);
+                    $pricePerBox = $pricePerPiece * $piecesPerBox;
+                  }
+
+                  $lineTotal = $boxes * $pricePerBox;
+                  $invoiceSubtotal += $lineTotal;
+
+                  if ($hasDiscount && $discountPercent > 0) {
+                    $originalLineTotal = $boxes * $wholesalePrice;
+                    $totalDiscount += ($originalLineTotal - $lineTotal);
+                  }
+                ?>
+                  <tr>
+                    <td style="font-weight: 500; color: #1e293b;">
+                      <?= htmlspecialchars($item['product_name'] ?? $item['product'] ?? 'N/A') ?>
+                      <?php if ($hasDiscount && $discountPercent > 0): ?>
+                        <span class="discount-badge"><?= number_format($discountPercent, 1) ?>% off</span>
+                      <?php endif; ?>
+                    </td>
+                    <td>
+                      <div style="font-weight: 500; color: #1e293b; font-size: 0.875rem;">
+                        <?= htmlspecialchars(trim(($item['first_name'] ?? '') . ' ' . ($item['last_name'] ?? ''))) ?>
+                      </div>
+                      <div style="font-size: 0.75rem; color: #94a3b8;">
+                        <?= htmlspecialchars($item['mrn'] ?? 'N/A') ?>
+                      </div>
+                    </td>
+                    <td class="text-center" style="font-weight: 600; color: #1e293b;">
+                      <?= $boxes ?>
+                    </td>
+                    <td class="text-center" style="color: #64748b;">
+                      <?= $piecesPerBox ?>
+                    </td>
+                    <td class="text-right" style="color: #64748b;">
+                      $<?= number_format($pricePerBox, 2) ?>
+                    </td>
+                    <td class="text-right" style="font-weight: 600; color: #1e293b;">
+                      $<?= number_format($lineTotal, 2) ?>
+                    </td>
+                  </tr>
+                <?php endforeach; ?>
+              </tbody>
+              <tfoot>
+                <?php if ($totalDiscount > 0): ?>
+                  <tr style="border-bottom: 1px solid #e2e8f0;">
+                    <td colspan="5" style="text-align: right; color: #64748b;">Subtotal (before discount):</td>
+                    <td style="text-align: right; color: #64748b;">$<?= number_format($invoiceSubtotal + $totalDiscount, 2) ?></td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #e2e8f0;">
+                    <td colspan="5" style="text-align: right; color: #10b981; font-weight: 600;">
+                      Practice Discount:
+                    </td>
+                    <td style="text-align: right; color: #10b981; font-weight: 600;">
+                      -$<?= number_format($totalDiscount, 2) ?>
+                    </td>
+                  </tr>
+                <?php endif; ?>
+                <tr>
+                  <td colspan="5" style="text-align: right; font-size: 1.125rem; color: #1e293b;">Invoice Total:</td>
+                  <td style="text-align: right; font-size: 1.25rem; font-weight: 700; color: #10b981;">
+                    $<?= number_format($invoiceSubtotal, 2) ?>
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+
+            <!-- Actions -->
+            <div class="invoice-actions">
               <a
                 href="/portal/wholesale-order.pdf.php?order_group=<?= urlencode($orderNumber) ?>&csrf=<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>"
                 target="_blank"
-                style="padding: 0.625rem 1.25rem; background: white; color: #3b82f6; border: 1px solid #3b82f6; border-radius: 8px; font-size: 0.875rem; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.2s;"
-                onmouseover="this.style.background='#3b82f6'; this.style.color='white';"
-                onmouseout="this.style.background='white'; this.style.color='#3b82f6';"
+                class="btn-secondary"
               >
                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                 </svg>
-                Download Invoice
+                Download PDF Invoice
               </a>
             </div>
           </div>
@@ -529,20 +779,20 @@ foreach ($groupedOrders as $order) {
       <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
       </svg>
-      About Wholesale Orders
+      About Wholesale Invoices
     </h3>
     <ul style="margin: 0; padding-left: 1.5rem; color: #475569; font-size: 0.875rem; line-height: 1.7;">
-      <li style="margin-bottom: 0.5rem;">Wholesale orders are grouped by order number (WS-YYYYMMDD-XXX) for easy tracking</li>
-      <li style="margin-bottom: 0.5rem;">Each order can contain multiple products for one or more patients</li>
-      <li style="margin-bottom: 0.5rem;">Click on any order to view detailed product breakdown and shipping information</li>
-      <li style="margin-bottom: 0.5rem;">Download invoices directly from the order details for your records</li>
-      <li>Wholesale pricing is automatically applied based on your practice's wholesale agreement</li>
+      <li style="margin-bottom: 0.5rem;">Each wholesale order is your invoice - click to expand and view full details</li>
+      <li style="margin-bottom: 0.5rem;">Invoices show your practice-specific discounted pricing automatically</li>
+      <li style="margin-bottom: 0.5rem;">Download PDF invoices for your accounting records</li>
+      <li style="margin-bottom: 0.5rem;">All prices shown reflect any custom pricing or percentage discounts configured for your practice</li>
+      <li>Contact support if you have questions about your pricing or need to request custom pricing</li>
     </ul>
   </div>
 </div>
 
 <script>
-function toggleOrderCard(card) {
+function toggleInvoice(card) {
   // Prevent toggle if clicking on a link
   if (event.target.tagName === 'A' || event.target.closest('a')) {
     return;

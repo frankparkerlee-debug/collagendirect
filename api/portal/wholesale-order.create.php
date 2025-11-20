@@ -254,12 +254,12 @@ try {
       $shippingPhone = safe($patientData['phone'] ?? null);
     }
 
-    // Calculate pricing - check for custom pricing first
+    // Calculate pricing - check for custom pricing and discounts
     $piecesPerBox = (int)($productData['pieces_per_box'] ?? 1);
 
-    // Check if this practice has custom pricing for this product
+    // Check if this practice has custom pricing or discount for this product
     $customPriceStmt = $pdo->prepare("
-      SELECT custom_price
+      SELECT custom_price, discount_percentage
       FROM practice_pricing
       WHERE user_id = ? AND product_id = ?
     ");
@@ -270,6 +270,12 @@ try {
       // Use custom pricing (already stored as price per piece)
       $pricePerPiece = (float)$customPricing['custom_price'];
       $pricePerBox = $pricePerPiece * $piecesPerBox;
+    } elseif ($customPricing && $customPricing['discount_percentage'] > 0) {
+      // Apply percentage discount to default wholesale price
+      $pricePerBox = (float)($productData['price_wholesale'] ?? 0); // price_wholesale is per BOX
+      $discountMultiplier = 1 - ((float)$customPricing['discount_percentage'] / 100);
+      $pricePerBox = $pricePerBox * $discountMultiplier;
+      $pricePerPiece = $piecesPerBox > 0 ? $pricePerBox / $piecesPerBox : 0;
     } else {
       // Use default pricing from products table
       $pricePerBox = (float)($productData['price_wholesale'] ?? 0); // price_wholesale is per BOX
