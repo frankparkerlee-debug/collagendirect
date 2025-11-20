@@ -215,21 +215,94 @@ try {
     $params['cpt_code'] = '%' . $cptFilter . '%';
   }
 
+  // Group multi-product orders together by order_group_id
+  // For orders without a group, treat each as its own group
   $sql = "
+    WITH grouped_orders AS (
+      SELECT
+        o.id,
+        o.user_id,
+        o.patient_id,
+        o.created_at,
+        o.frequency,
+        o.frequency_per_week,
+        o.qty_per_change,
+        o.duration_days,
+        o.refills_allowed,
+        ".($hasShipRem?"o.shipments_remaining,":"")."
+        o.product_price,
+        o.rx_note_name AS tracking,
+        o.rx_note_mime AS carrier,
+        o.insurer_name,
+        o.member_id,
+        o.group_id,
+        o.payer_phone,
+        o.rx_note_path,
+        o.product_type,
+        o.order_group_id,
+        p.ins_card_path,
+        p.id_card_path,
+        p.notes_path,
+        p.first_name,
+        p.last_name,
+        p.dob
+        ".($hasProducts?", pr.name AS prod_name, pr.size AS prod_size, pr.sku, pr.$hcpcsCol AS cpt_code, pr.price_admin, o.product":"")."
+      FROM orders o
+      LEFT JOIN patients p ON p.id = o.patient_id
+      ".($hasProducts?"LEFT JOIN products pr ON pr.id = o.product_id":"")."
+      WHERE $where
+    )
     SELECT
-      o.id, o.user_id, o.patient_id, o.product_id, o.product, o.frequency,
-      o.frequency_per_week, o.qty_per_change, o.duration_days, o.refills_allowed,
-      ".($hasShipRem?"o.shipments_remaining,":"")."
-      o.product_price, o.created_at, o.rx_note_name AS tracking, o.rx_note_mime AS carrier,
-      o.insurer_name, o.member_id, o.group_id, o.payer_phone,
-      o.rx_note_path, p.ins_card_path, p.id_card_path, p.notes_path,
-      p.first_name, p.last_name, p.dob
-      ".($hasProducts?", pr.name AS prod_name, pr.size AS prod_size, pr.sku, pr.$hcpcsCol AS cpt_code, pr.price_admin":"")."
-    FROM orders o
-    LEFT JOIN patients p ON p.id=o.patient_id
-    ".($hasProducts?"LEFT JOIN products pr ON pr.id=o.product_id":"")."
-    WHERE $where
-    ORDER BY o.created_at DESC
+      -- Use the primary order ID as the main ID (or first order in group)
+      MIN(id) as id,
+      user_id,
+      patient_id,
+      created_at,
+      frequency,
+      frequency_per_week,
+      qty_per_change,
+      duration_days,
+      refills_allowed,
+      ".($hasShipRem?"MAX(shipments_remaining) as shipments_remaining,":"")."
+      SUM(product_price) as product_price,
+      MAX(tracking) as tracking,
+      MAX(carrier) as carrier,
+      insurer_name,
+      member_id,
+      group_id,
+      payer_phone,
+      MAX(rx_note_path) as rx_note_path,
+      MAX(ins_card_path) as ins_card_path,
+      MAX(id_card_path) as id_card_path,
+      MAX(notes_path) as notes_path,
+      first_name,
+      last_name,
+      dob,
+      -- Aggregate product information
+      ".($hasProducts?"STRING_AGG(DISTINCT prod_name || COALESCE(' ' || prod_size, ''), ', ' ORDER BY prod_name || COALESCE(' ' || prod_size, '')) as prod_name,
+      STRING_AGG(DISTINCT sku, ', ' ORDER BY sku) as sku,
+      STRING_AGG(DISTINCT cpt_code, ', ' ORDER BY cpt_code) as cpt_code,
+      AVG(price_admin) as price_admin,
+      STRING_AGG(DISTINCT product, ', ' ORDER BY product) as product":"'1' as prod_name, '' as sku, '' as cpt_code, 0 as price_admin, '' as product")."
+    FROM grouped_orders
+    GROUP BY
+      COALESCE(order_group_id, id::text),
+      user_id,
+      patient_id,
+      created_at,
+      frequency,
+      frequency_per_week,
+      qty_per_change,
+      duration_days,
+      refills_allowed,
+      insurer_name,
+      member_id,
+      group_id,
+      payer_phone,
+      first_name,
+      last_name,
+      dob
+    ORDER BY created_at DESC
   ";
   error_log("[billing-debug] Full SQL: " . $sql);
   $st=$pdo->prepare($sql); $st->execute($params); $rows=$st->fetchAll();
