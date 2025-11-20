@@ -456,19 +456,21 @@ try {
 
     // Store debug info in additional_instructions for immediate visibility (write to ALL orders in group)
     $fileRxInfo = '';
-    if (isset($_FILES['file_rx_note'])) {
+    if (isset($_FILES['file_rx_note']) && is_array($_FILES['file_rx_note'])) {
       $f = $_FILES['file_rx_note'];
       $fileRxInfo = sprintf(
         " file_rx_note[error=%d, size=%d, type=%s, tmp=%s]",
-        $f['error'] ?? -1,
-        $f['size'] ?? 0,
-        $f['type'] ?? 'unknown',
+        isset($f['error']) ? (int)$f['error'] : -1,
+        isset($f['size']) ? (int)$f['size'] : 0,
+        isset($f['type']) ? $f['type'] : 'unknown',
         !empty($f['tmp_name']) ? 'yes' : 'no'
       );
     }
     $debugInfo = "DEBUG-" . date('His') . ": \$_FILES count=$filesCount, keys=$filesDebug" . $fileRxInfo;
-    foreach ($all_order_ids as $oid) {
-      $pdo->prepare("UPDATE orders SET additional_instructions = COALESCE(additional_instructions, '') || E'\\n' || ? WHERE id = ?")->execute([$debugInfo, $oid]);
+    if (isset($all_order_ids) && is_array($all_order_ids)) {
+      foreach ($all_order_ids as $oid) {
+        $pdo->prepare("UPDATE orders SET additional_instructions = COALESCE(additional_instructions, '') || E'\\n' || ? WHERE id = ?")->execute([$debugInfo, $oid]);
+      }
     }
 
     try {
