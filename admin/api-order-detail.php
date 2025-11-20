@@ -21,13 +21,15 @@ try {
       o.id,
       o.created_at,
       o.product,
-      o.shipments_remaining,
+      o.qty_per_change as shipments_remaining,
       o.product_price as unit_price,
       o.status,
       o.paid_at,
       o.invoice_sent_at,
       o.tracking_number,
       o.notes,
+      o.order_number,
+      o.billed_by,
       u.practice_name,
       u.first_name as phys_first,
       u.last_name as phys_last,
@@ -38,8 +40,8 @@ try {
       pr.pieces_per_box,
       pr.price_wholesale
     FROM orders o
-    JOIN users u ON o.user_id = u.id
-    JOIN patients p ON o.patient_id = p.id
+    LEFT JOIN users u ON o.user_id = u.id
+    LEFT JOIN patients p ON o.patient_id = p.id
     LEFT JOIN products pr ON o.product_id = pr.id
     WHERE o.id = ?
   ");
