@@ -95,7 +95,7 @@ if ($dateTo !== '') {
 $whereClause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
 
 $sql = "
-  SELECT o.id, o.product, o.shipping_name, o.shipping_street, o.shipping_city,
+  SELECT o.id, o.product, o.shipping_name, o.shipping_address, o.shipping_city,
          o.shipping_state, o.shipping_zip,
          o.rx_note_name, o.rx_note_mime, o.status, o.created_at,
          o.billed_by, o.payment_type,
@@ -222,7 +222,7 @@ include __DIR__ . '/_header.php';
 
         // Build full address for tooltip
         $fullAddress = trim(implode(', ', array_filter([
-          $r['shipping_street'] ?? '',
+          $r['shipping_address'] ?? '',
           $r['shipping_city'] ?? '',
           $r['shipping_state'] ?? '',
           $r['shipping_zip'] ?? ''
