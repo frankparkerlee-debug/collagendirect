@@ -2305,7 +2305,9 @@ if ($action) {
         if ($p && is_string($p) && strpos($p,'/uploads/')===0) $files[]=$p;
       }
 
-      $pdo->prepare("DELETE FROM orders   WHERE patient_id=? AND user_id=?")->execute([$pid,$userId]);
+      // Delete order_groups first (due to foreign key constraints)
+      $pdo->prepare("DELETE FROM order_groups WHERE patient_id=? AND user_id=?")->execute([$pid,$userId]);
+      $pdo->prepare("DELETE FROM orders WHERE patient_id=? AND user_id=?")->execute([$pid,$userId]);
       $pdo->prepare("DELETE FROM patients WHERE id=? AND user_id=?")->execute([$pid,$userId]);
 
       $pdo->commit();
