@@ -117,11 +117,13 @@ $stmt = $pdo->query("
 ");
 $practices = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Fetch all products
+// Fetch all products (excluding deprecated ones)
 $stmt = $pdo->query("
   SELECT id, name, size, price_wholesale, pieces_per_box, category, hcpcs_code
   FROM products
   WHERE active = TRUE
+    AND (name NOT ILIKE '%deprecated%' OR name IS NULL)
+    AND (category NOT ILIKE '%deprecated%' OR category IS NULL)
   ORDER BY name ASC, size ASC
 ");
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
