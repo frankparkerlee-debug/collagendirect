@@ -36,11 +36,13 @@ try {
             p.first_name, p.last_name, p.phone AS patient_phone, p.address, p.city, p.state, p.zip,
             u.first_name AS doc_first, u.last_name AS doc_last, u.practice_name, u.address AS practice_address,
             u.city AS practice_city, u.state AS practice_state, u.zip AS practice_zip, u.phone AS practice_phone,
-            pr.pieces_per_box, pr.price_wholesale
+            pr.pieces_per_box, pr.price_wholesale,
+            pp.custom_price AS practice_custom_price
           FROM orders o
           LEFT JOIN patients p ON p.id=o.patient_id
           LEFT JOIN users u ON u.id=o.user_id
           LEFT JOIN products pr ON pr.id=o.product_id
+          LEFT JOIN practice_pricing pp ON pp.user_id = o.user_id AND pp.product_id = o.product_id
           WHERE o.user_id = ?
             AND o.payment_type = 'wholesale'
             AND o.additional_instructions LIKE ?
@@ -102,9 +104,21 @@ foreach ($orders as $order) {
   }
 
   $boxes = (int)($order['qty_per_change'] ?? 1);
-  $price_per_piece = (float)($order['product_price'] ?? 0);
   $pieces_per_box = (int)($order['pieces_per_box'] ?? 10); // Get from products table JOIN
-  $price_per_box = $price_per_piece * $pieces_per_box; // Reconstruct per-box price
+
+  // Check for practice-specific custom pricing first
+  $practice_custom_price = (float)($order['practice_custom_price'] ?? 0);
+
+  if ($practice_custom_price > 0) {
+    // Practice has custom pricing (stored as price per piece)
+    // Convert to price per box: custom_price × pieces_per_box
+    $price_per_box = $practice_custom_price * $pieces_per_box;
+  } else {
+    // Use product_price from order (which is price per piece)
+    $price_per_piece = (float)($order['product_price'] ?? 0);
+    $price_per_box = $price_per_piece * $pieces_per_box; // Reconstruct per-box price
+  }
+
   $line_total = $boxes * $price_per_box;
 
   $patient_groups[$patient_name]['products'][] = [

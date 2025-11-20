@@ -104,6 +104,8 @@ try {
   $revenueQuery = "
     SELECT
       o.id,
+      o.user_id,
+      o.product_id,
       o.product_price,
       o.frequency,
       o.frequency_per_week,
@@ -113,10 +115,12 @@ try {
       o.billed_by,
       " . ($hasShipRem ? "o.shipments_remaining," : "0 AS shipments_remaining,") . "
       u.practice_name,
+      pp.custom_price AS practice_custom_price,
       " . ($hasProducts ? "pr.name AS product_name, pr.hcpcs_code AS cpt_code, pr.pieces_per_box" : "'Unknown' AS product_name, '' AS cpt_code, 10 AS pieces_per_box") . "
     FROM orders o
     LEFT JOIN users u ON u.id = o.user_id
     " . ($hasProducts ? "LEFT JOIN products pr ON pr.id = o.product_id" : "") . "
+    LEFT JOIN practice_pricing pp ON pp.user_id = o.user_id AND pp.product_id = o.product_id
     WHERE " . $revenueWhere . "
   ";
 
@@ -165,8 +169,18 @@ try {
     // Step 3: Calculate revenue based on order type
     if ($isWholesale) {
       // WHOLESALE: Revenue = Total Boxes × Price Per Box
-      $price_per_box = (float)($order['product_price'] ?? 0);
-      if ($price_per_box <= 0) $price_per_box = 150.0; // Fallback
+      // Check for practice-specific custom pricing first
+      $practice_custom_price = (float)($order['practice_custom_price'] ?? 0);
+
+      if ($practice_custom_price > 0) {
+        // Practice has custom pricing (stored as price per piece)
+        // Convert to price per box: custom_price × pieces_per_box
+        $price_per_box = $practice_custom_price * $pieces_per_box;
+      } else {
+        // Use default product_price from order
+        $price_per_box = (float)($order['product_price'] ?? 0);
+        if ($price_per_box <= 0) $price_per_box = 150.0; // Fallback
+      }
 
       // Wholesale orders are one-time, so all revenue is "earned" (no projected)
       $boxes_remaining = 0;

@@ -222,6 +222,7 @@ try {
       SELECT
         o.id,
         o.user_id,
+        o.product_id,
         o.patient_id,
         o.created_at,
         o.frequency,
@@ -241,6 +242,7 @@ try {
         o.product_type,
         o.order_group_id,
         o.billed_by,
+        pp.custom_price AS practice_custom_price,
         p.ins_card_path,
         p.id_card_path,
         p.notes_path,
@@ -251,6 +253,7 @@ try {
       FROM orders o
       LEFT JOIN patients p ON p.id = o.patient_id
       ".($hasProducts?"LEFT JOIN products pr ON pr.id = o.product_id":"")."
+      LEFT JOIN practice_pricing pp ON pp.user_id = o.user_id AND pp.product_id = o.product_id
       WHERE $where
     )
     SELECT
@@ -277,6 +280,7 @@ try {
       MAX(id_card_path) as id_card_path,
       MAX(notes_path) as notes_path,
       MAX(billed_by) as billed_by,
+      MAX(practice_custom_price) as practice_custom_price,
       first_name,
       last_name,
       dob,
@@ -366,8 +370,18 @@ function projected_rev($row, $rates, $hasProducts, $hasShipRem) {
 
   if ($isWholesale) {
     // WHOLESALE: Revenue = Boxes × Price Per Box
-    $price_per_box = (float)($row['product_price'] ?? 0);
-    if ($price_per_box <= 0) $price_per_box = 150.0; // Fallback
+    // Check for practice-specific custom pricing first
+    $practice_custom_price = (float)($row['practice_custom_price'] ?? 0);
+
+    if ($practice_custom_price > 0) {
+      // Practice has custom pricing (stored as price per piece)
+      // Convert to price per box: custom_price × pieces_per_box
+      $price_per_box = $practice_custom_price * $pieces_per_box;
+    } else {
+      // Use default product_price from order
+      $price_per_box = (float)($row['product_price'] ?? 0);
+      if ($price_per_box <= 0) $price_per_box = 150.0; // Fallback
+    }
     return $boxes_remaining * $price_per_box;
   } else {
     // REFERRAL: Revenue = Pieces × CPT Rate Per Piece
