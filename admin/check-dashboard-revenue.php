@@ -60,6 +60,7 @@ try {
     SELECT
       o.id,
       o.product_price,
+      o.frequency,
       o.frequency_per_week,
       o.duration_days,
       o.refills_allowed,
@@ -67,7 +68,7 @@ try {
       o.billed_by,
       " . ($hasShipRem ? "o.shipments_remaining," : "0 AS shipments_remaining,") . "
       u.practice_name,
-      " . ($hasProducts ? "pr.name AS product_name, pr.hcpcs_code AS cpt_code, pr.pieces_per_box" : "'Unknown' AS product_name, '' AS cpt_code, 10 AS pieces_per_box") . "
+      " . ($hasProducts ? "pr.name AS product_name, pr.hcpcs_code AS cpt_code, pr.pieces_per_box, pr.price_admin" : "'Unknown' AS product_name, '' AS cpt_code, 10 AS pieces_per_box, 0 AS price_admin") . "
     FROM orders o
     LEFT JOIN users u ON u.id = o.user_id
     " . ($hasProducts ? "LEFT JOIN products pr ON pr.id = o.product_id" : "") . "
@@ -83,6 +84,17 @@ try {
   $wholesaleOrders = 0;
   $referralOrders = 0;
 
+  // Helper function
+  function patches_per_week(?string $f): int {
+    $f = strtolower(trim((string)$f));
+    if ($f==='daily') return 7;
+    if ($f==='every other day') return 4;
+    if ($f==='weekly') return 1;
+    if (preg_match('/(\d+)\s*x\s*\/?\s*week/', $f, $m)) return max(1,(int)$m[1]);
+    if (preg_match('/(\d+)\s*x\s*per\s*week/', $f, $m)) return max(1,(int)$m[1]);
+    return 1;
+  }
+
   foreach ($orders as $order) {
     $billedBy = $order['billed_by'] ?? 'collagen_direct';
     $isWholesale = ($billedBy === 'practice_dme');
@@ -93,40 +105,66 @@ try {
       $referralOrders++;
     }
 
+    // Apply fallback logic (NEW - matches admin/index.php)
     $fpw = (int)($order['frequency_per_week'] ?? 0);
-    $qty = max(1, (int)($order['qty_per_change'] ?? 1));
+    if ($fpw === 0 && !empty($order['frequency'])) {
+      $fpw = patches_per_week($order['frequency']);
+    }
+    if ($fpw === 0) {
+      $fpw = 7; // Default: daily changes
+    }
+
     $days = max(0, (int)($order['duration_days'] ?? 0));
+    if ($days === 0) {
+      $days = 30; // Default: 30 days
+    }
+
+    $qty = max(1, (int)($order['qty_per_change'] ?? 1));
     $refills = max(0, (int)($order['refills_allowed'] ?? 0));
     $pieces_per_box = max(1, (int)($order['pieces_per_box'] ?? 10));
 
+    // Calculate total pieces and boxes
+    $weeks = $days / 7.0;
+    $total_pieces = $weeks * $fpw * $qty * (1 + $refills);
+    $total_boxes = (int)ceil($total_pieces / $pieces_per_box);
+
     if ($isWholesale) {
-      $total_boxes = $qty;
-      $price_per_piece = (float)($order['product_price'] ?? 0);
-      $price_per_box = $price_per_piece * $pieces_per_box;
+      // WHOLESALE: Revenue = Boxes × Price Per Box
+      $price_per_box = (float)($order['product_price'] ?? 0);
+      if ($price_per_box <= 0) $price_per_box = 150.0;
       $boxes_remaining = 0;
       $boxes_delivered = $total_boxes;
+      $order_total = $total_boxes * $price_per_box;
     } else {
-      $changes_per_day = $fpw / 7.0;
-      $total_changes = $changes_per_day * $days * (1 + $refills);
-      $total_pieces_needed = $total_changes * $qty;
-      $total_boxes = (int)ceil($total_pieces_needed / $pieces_per_box);
-
-      $price_per_box = 0.0;
+      // REFERRAL: Revenue = Pieces × CPT Rate Per Piece
+      $cpt_rate_per_piece = 0.0;
       $cpt = $order['cpt_code'] ?? '';
       if ($hasRates && $cpt && isset($rates[$cpt]) && $rates[$cpt] > 0) {
-        $price_per_box = $rates[$cpt];
+        $cpt_rate_per_piece = $rates[$cpt];
       } else {
-        $price_per_box = (float)($order['product_price'] ?? 0);
+        $product_price = (float)($order['price_admin'] ?? 0);
+        if ($product_price > 0) {
+          $cpt_rate_per_piece = $product_price / $pieces_per_box;
+        } else {
+          $cpt_rate_per_piece = 150.0 / $pieces_per_box;
+        }
       }
-      if ($price_per_box <= 0) $price_per_box = 150.0;
-
+      $order_total = $total_pieces * $cpt_rate_per_piece;
       $boxes_remaining = (int)($order['shipments_remaining'] ?? 0);
       $boxes_delivered = max(0, $total_boxes - $boxes_remaining);
     }
 
-    $order_earned = $boxes_delivered * $price_per_box;
-    $order_projected = $boxes_remaining * $price_per_box;
-    $order_total = $order_earned + $order_projected;
+    // Split revenue between earned and projected
+    if ($total_boxes > 0) {
+      $delivered_ratio = $boxes_delivered / $total_boxes;
+      $remaining_ratio = $boxes_remaining / $total_boxes;
+      $order_earned = $order_total * $delivered_ratio;
+      $order_projected = $order_total * $remaining_ratio;
+    } else {
+      $order_earned = 0.0;
+      $order_projected = 0.0;
+      $order_total = 0.0;
+    }
 
     $earnedRevenue += $order_earned;
     $projectedRevenue += $order_projected;
