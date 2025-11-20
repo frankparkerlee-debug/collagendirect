@@ -9760,6 +9760,16 @@ async function toggleAccordion(rowEl, patientId, page){
 }
 
 /* ORDER DETAILS VIEWER */
+// Helper function to view order details by ID (looks up from cache)
+function viewOrderDetailsByIdCached(orderId) {
+  const order = window._orderDetailsCache[orderId];
+  if (!order) {
+    console.error('Order not found in cache:', orderId);
+    return;
+  }
+  viewOrderDetails(order);
+}
+
 function viewOrderDetails(order) {
   const dlg = document.getElementById('dlg-order-details');
   const content = document.getElementById('order-details-content');
@@ -11391,6 +11401,9 @@ function toggleAllOrders(patientId, totalOrders) {
 }
 
 // Render a single order card for patient detail page
+// Global order cache for detail view (safer than passing JSON through HTML attributes)
+window._orderDetailsCache = window._orderDetailsCache || {};
+
 function renderOrderCard(o, index) {
   const statusColors = {
     'draft': 'bg-slate-100 text-slate-700',
@@ -11403,6 +11416,9 @@ function renderOrderCard(o, index) {
 
   const statusColor = statusColors[o.status] || 'bg-slate-100 text-slate-600';
   const isDraft = o.review_status === 'draft' || o.status === 'draft';
+
+  // Cache the order for detail view (avoids passing complex JSON through HTML)
+  window._orderDetailsCache[o.id] = o;
 
   // Build product display
   let productDisplay = '';
@@ -11440,7 +11456,7 @@ function renderOrderCard(o, index) {
   }
 
   return `
-    <div class="border rounded-lg p-3 hover:bg-slate-50 transition-colors cursor-pointer" onclick="viewOrderDetails(${JSON.stringify(o).replace(/"/g, '&quot;')})">
+    <div class="border rounded-lg p-3 hover:bg-slate-50 transition-colors cursor-pointer" onclick="viewOrderDetailsByIdCached('${esc(o.id)}')">
       <div class="flex items-start justify-between mb-2">
         <div class="flex-1">
           ${productDisplay}
@@ -11461,7 +11477,7 @@ function renderOrderCard(o, index) {
           </svg>
           Visit Note
         </a>` : ''}
-        <a href="/portal/order.pdf.php?id=${esc(o.id)}" target="_blank" class="text-xs text-blue-600 hover:underline flex items-center gap-1" onclick="event.stopPropagation()">
+        <a href="/portal/order.pdf.php?id=${esc(o.id)}&csrf=${esc(window.CSRF_TOKEN || '')}" target="_blank" class="text-xs text-blue-600 hover:underline flex items-center gap-1" onclick="event.stopPropagation()">
           <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
           </svg>
