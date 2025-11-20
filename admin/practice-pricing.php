@@ -119,10 +119,10 @@ $practices = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch all products
 $stmt = $pdo->query("
-  SELECT id, name, size, price_wholesale, pieces_per_box, category
+  SELECT id, name, size, price_wholesale, pieces_per_box, category, hcpcs_code
   FROM products
   WHERE active = TRUE
-  ORDER BY name ASC
+  ORDER BY name ASC, size ASC
 ");
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -450,6 +450,9 @@ $totalProductCount = count($products);
                     <td>
                       <div style="font-weight: 500; color: var(--ink);">
                         <?= htmlspecialchars($product['name']) ?>
+                        <?php if (!empty($product['hcpcs_code'])): ?>
+                          <span style="color: var(--muted); font-weight: 400; font-size: 0.875rem;">(<?= htmlspecialchars($product['hcpcs_code']) ?>)</span>
+                        <?php endif; ?>
                       </div>
                       <div style="font-size: 0.75rem; color: var(--muted);">
                         <?= htmlspecialchars($product['size']) ?> - <?= $piecesPerBox ?> pieces/box
