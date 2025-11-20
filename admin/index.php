@@ -123,38 +123,60 @@ try {
   $stmt->execute($revenueParams);
 
   foreach ($stmt->fetchAll() as $order) {
+    // Check if this is a wholesale order
+    $billedBy = $order['billed_by'] ?? 'collagen_direct';
+    $isWholesale = ($billedBy === 'practice_dme');
+
     // Get frequency and quantity
     $fpw = (int)($order['frequency_per_week'] ?? 0);
     $qty = max(1, (int)($order['qty_per_change'] ?? 1));
     $days = max(0, (int)($order['duration_days'] ?? 0));
     $refills = max(0, (int)($order['refills_allowed'] ?? 0));
-
-    // Calculate total BOXES needed for this order
-    // Formula: Boxes = (Frequency × Days × Qty) / Pieces Per Box
-    // Where: Frequency = Changes Per Week / 7
     $pieces_per_box = max(1, (int)($order['pieces_per_box'] ?? 10));
-    $changes_per_day = $fpw / 7.0;
-    $total_changes = $changes_per_day * $days * (1 + $refills);
-    $total_pieces_needed = $total_changes * $qty;
-    $total_boxes = (int)ceil($total_pieces_needed / $pieces_per_box);
 
-    // Get price per BOX (not per piece)
-    $price_per_box = 0.0;
-    $cpt = $order['cpt_code'] ?? '';
-    if ($hasRates && $cpt && isset($rates[$cpt]) && $rates[$cpt] > 0) {
-      // Use CPT reimbursement rate (this is per box)
-      $price_per_box = $rates[$cpt];
+    // Calculate total BOXES and pricing differently for wholesale vs referral orders
+    if ($isWholesale) {
+      // WHOLESALE ORDERS:
+      // - qty_per_change = number of BOXES ordered
+      // - product_price = price PER PIECE
+      // - shipments_remaining is NOT used (one-time orders)
+      $total_boxes = $qty; // qty_per_change stores boxes for wholesale
+      $price_per_piece = (float)($order['product_price'] ?? 0);
+      $price_per_box = $price_per_piece * $pieces_per_box;
+
+      // Wholesale orders are one-time, so all revenue is "earned" (no projected)
+      $boxes_remaining = 0;
+      $boxes_delivered = $total_boxes;
     } else {
-      // Use product_price from order (this should be per box)
-      $price_per_box = (float)($order['product_price'] ?? 0);
+      // REFERRAL ORDERS (insurance/recurring):
+      // - qty_per_change = pieces per dressing change
+      // - product_price = price per box (or use CPT rate)
+      // - shipments_remaining = boxes not yet delivered
+      // Formula: Boxes = (Frequency × Days × Qty) / Pieces Per Box
+      // Where: Frequency = Changes Per Week / 7
+      $changes_per_day = $fpw / 7.0;
+      $total_changes = $changes_per_day * $days * (1 + $refills);
+      $total_pieces_needed = $total_changes * $qty;
+      $total_boxes = (int)ceil($total_pieces_needed / $pieces_per_box);
+
+      // Get price per BOX (not per piece)
+      $price_per_box = 0.0;
+      $cpt = $order['cpt_code'] ?? '';
+      if ($hasRates && $cpt && isset($rates[$cpt]) && $rates[$cpt] > 0) {
+        // Use CPT reimbursement rate (this is per box)
+        $price_per_box = $rates[$cpt];
+      } else {
+        // Use product_price from order (this should be per box for referral orders)
+        $price_per_box = (float)($order['product_price'] ?? 0);
+      }
+      if ($price_per_box <= 0) $price_per_box = 150.0; // Conservative fallback
+
+      // shipments_remaining is in BOXES
+      $boxes_remaining = (int)($order['shipments_remaining'] ?? 0);
+      $boxes_delivered = max(0, $total_boxes - $boxes_remaining);
     }
-    if ($price_per_box <= 0) $price_per_box = 150.0; // Conservative fallback
 
     // Calculate earned (delivered) and projected (remaining) revenue
-    // shipments_remaining is in BOXES
-    $boxes_remaining = (int)($order['shipments_remaining'] ?? 0);
-    $boxes_delivered = max(0, $total_boxes - $boxes_remaining);
-
     $order_earned = $boxes_delivered * $price_per_box;
     $order_projected = $boxes_remaining * $price_per_box;
     $order_total = $order_earned + $order_projected;
@@ -163,9 +185,8 @@ try {
     $projectedRevenue += $order_projected;
     $totalRevenue += $order_total;
 
-    // Split revenue by order type
-    $billedBy = $order['billed_by'] ?? 'collagen_direct';
-    if ($billedBy === 'practice_dme') {
+    // Split revenue by order type (billedBy already set above)
+    if ($isWholesale) {
       $wholesaleRevenue += $order_total;
     } else {
       $referralRevenue += $order_total;
