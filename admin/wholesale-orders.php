@@ -111,12 +111,57 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
   } elseif ($id && $action==='mark_delivered') {
     $pdo->prepare("UPDATE orders SET status='delivered', delivered_at=NOW(), updated_at=NOW() WHERE id=?")->execute([$id]);
     $_SESSION['success_msg'] = 'Order marked as delivered';
-  } elseif ($id && $action==='mark_paid') {
-    $pdo->prepare("UPDATE orders SET paid_at=NOW(), updated_at=NOW() WHERE id=?")->execute([$id]);
-    $_SESSION['success_msg'] = 'Payment recorded successfully';
+  } elseif ($id && $action==='record_payment') {
+    // Record a payment (partial or full)
+    $paymentAmount = (float)($_POST['payment_amount'] ?? 0);
+    $paymentMethod = $_POST['payment_method'] ?? 'check';
+    $paymentNotes = $_POST['payment_notes'] ?? '';
+
+    if ($paymentAmount > 0) {
+      // Get current order financials
+      $stmt = $pdo->prepare("SELECT amount_due, amount_paid, balance_due, qty_per_change, product_price, pieces_per_box FROM orders o LEFT JOIN products pr ON o.product_id = pr.id WHERE o.id = ?");
+      $stmt->execute([$id]);
+      $orderData = $stmt->fetch(PDO::FETCH_ASSOC);
+
+      if ($orderData) {
+        // Calculate order value if not set
+        $currentAmountDue = (float)($orderData['amount_due'] ?? 0);
+        $currentAmountPaid = (float)($orderData['amount_paid'] ?? 0);
+        $currentBalance = (float)($orderData['balance_due'] ?? 0);
+
+        if ($currentAmountDue == 0) {
+          $boxes = (int)($orderData['qty_per_change'] ?? 0);
+          $unitPrice = (float)($orderData['product_price'] ?? 0);
+          $piecesPerBox = (int)($orderData['pieces_per_box'] ?? 10);
+          $currentAmountDue = $boxes * $unitPrice * $piecesPerBox;
+          $currentBalance = $currentAmountDue;
+        }
+
+        // Apply payment
+        $newAmountPaid = $currentAmountPaid + $paymentAmount;
+        $newBalance = $currentAmountDue - $newAmountPaid;
+
+        // Update order
+        $updateStmt = $pdo->prepare("
+          UPDATE orders
+          SET amount_due = ?,
+              amount_paid = ?,
+              balance_due = ?,
+              paid_at = CASE WHEN ? <= 0 THEN NOW() ELSE paid_at END,
+              notes = CONCAT(COALESCE(notes, ''), '\n', ?),
+              updated_at = NOW()
+          WHERE id = ?
+        ");
+
+        $paymentNote = date('Y-m-d H:i') . " - Payment recorded: $" . number_format($paymentAmount, 2) . " via " . $paymentMethod . ($paymentNotes ? " - " . $paymentNotes : "");
+        $updateStmt->execute([$currentAmountDue, $newAmountPaid, $newBalance, $newBalance, $paymentNote, $id]);
+
+        $_SESSION['success_msg'] = 'Payment of $' . number_format($paymentAmount, 2) . ' recorded successfully';
+      }
+    }
   } elseif ($id && $action==='mark_unpaid') {
-    $pdo->prepare("UPDATE orders SET paid_at=NULL, updated_at=NOW() WHERE id=?")->execute([$id]);
-    $_SESSION['success_msg'] = 'Payment status updated';
+    $pdo->prepare("UPDATE orders SET paid_at=NULL, amount_paid=0, balance_due=amount_due, updated_at=NOW() WHERE id=?")->execute([$id]);
+    $_SESSION['success_msg'] = 'Payment status reset to unpaid';
   } elseif ($id && $action==='send_invoice') {
     // Send invoice email
     try {
@@ -240,13 +285,19 @@ if (!$hasBilledBy) {
         o.billed_by,
         o.order_number as invoice_number,
         o.created_at as invoice_date,
-        NULL as due_date,
+        (o.created_at + INTERVAL '30 days') as due_date,
         'Net 30' as payment_terms,
-        0 as amount_due,
-        0 as amount_paid,
-        0 as balance_due,
-        0 as aging_bucket,
-        0 as days_past_due,
+        COALESCE(o.amount_due, 0) as amount_due,
+        COALESCE(o.amount_paid, 0) as amount_paid,
+        COALESCE(o.balance_due, 0) as balance_due,
+        CASE
+          WHEN o.paid_at IS NOT NULL THEN -1
+          WHEN EXTRACT(DAY FROM (CURRENT_DATE - o.created_at)) <= 30 THEN 0
+          WHEN EXTRACT(DAY FROM (CURRENT_DATE - o.created_at)) <= 60 THEN 1
+          WHEN EXTRACT(DAY FROM (CURRENT_DATE - o.created_at)) <= 90 THEN 2
+          ELSE 3
+        END as aging_bucket,
+        GREATEST(0, EXTRACT(DAY FROM (CURRENT_DATE - (o.created_at + INTERVAL '30 days')))::INTEGER) as days_past_due,
         u.practice_name,
         u.first_name as phys_first,
         u.last_name as phys_last,
@@ -602,18 +653,22 @@ require_once '_header.php';
             $pieces_per_box = (int)($order['pieces_per_box'] ?? 10);
             $unit_price = (float)($order['unit_price'] ?? $order['price_wholesale'] ?? 0);
 
-            // Use invoice amount if available, otherwise calculate
-            $balanceDue = (float)($order['balance_due'] ?? 0);
+            // Calculate total order value
+            $orderValue = $boxes * ($unit_price * $pieces_per_box);
+
+            // Use database payment tracking if available
             $amountDue = (float)($order['amount_due'] ?? 0);
             $amountPaid = (float)($order['amount_paid'] ?? 0);
-            if ($balanceDue > 0) {
-              $orderValue = $balanceDue;
-            } else {
-              $orderValue = $boxes * ($unit_price * $pieces_per_box);
+            $balanceDue = (float)($order['balance_due'] ?? 0);
+
+            // If no payment tracking set, initialize with order value
+            if ($amountDue == 0 && $amountPaid == 0 && $balanceDue == 0) {
+              $amountDue = $orderValue;
+              $balanceDue = $orderValue;
             }
 
-            $isPaid = $balanceDue == 0 || !empty($order['paid_at']);
-            $agingBucket = $order['aging_bucket'] ?? null;
+            $isPaid = !empty($order['paid_at']) && $balanceDue == 0;
+            $agingBucket = (int)($order['aging_bucket'] ?? 0);
             $daysPastDue = (int)($order['days_past_due'] ?? 0);
 
             // Determine aging badge
@@ -622,14 +677,17 @@ require_once '_header.php';
             if ($isPaid) {
               $agingBadge = 'Paid';
               $agingColor = '#15803d';
-            } elseif ($agingBucket === null || $agingBucket === 0) {
-              $agingBadge = 'Current';
+            } elseif ($agingBucket == -1) {
+              $agingBadge = 'Paid';
+              $agingColor = '#15803d';
+            } elseif ($agingBucket === 0) {
+              $agingBadge = '0-30 days';
               $agingColor = '#15803d';
             } elseif ($agingBucket === 1) {
-              $agingBadge = '0-30 days';
+              $agingBadge = '31-60 days';
               $agingColor = '#ca8a04';
             } elseif ($agingBucket === 2) {
-              $agingBadge = '31-60 days';
+              $agingBadge = '61-90 days';
               $agingColor = '#ea580c';
             } elseif ($agingBucket === 3) {
               $agingBadge = '61-90 days';
@@ -713,17 +771,17 @@ require_once '_header.php';
                 </button>
                 <?php endif; ?>
 
-                <!-- Payment Toggle -->
+                <!-- Record Payment -->
                 <?php if (!$isPaid): ?>
-                <form method="POST" style="display: inline;" onsubmit="return confirm('Mark as paid?');">
-                  <?= csrf_token() ?>
-                  <input type="hidden" name="action" value="mark_paid">
-                  <input type="hidden" name="id" value="<?= $order['id'] ?>">
-                  <button type="submit" class="btn-icon" title="Mark as Paid" style="color: #059669; border-color: #059669;">
-                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                  </button>
-                </form>
+                <button class="btn-icon" onclick="openPaymentModal('<?= $order['id'] ?>', <?= $balanceDue ?>, '<?= htmlspecialchars($order['invoice_number'] ?? $order['id']) ?>')" title="Record Payment" style="color: #059669; border-color: #059669;">
+                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </button>
                 <?php endif; ?>
+
+                <!-- View Invoice -->
+                <button class="btn-icon" onclick="viewInvoice('<?= $order['id'] ?>')" title="View Invoice" style="color: #0ea5e9; border-color: #0ea5e9;">
+                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                </button>
 
                 <!-- Send Invoice -->
                 <form method="POST" style="display: inline;" onsubmit="return confirm('Send invoice to <?= htmlspecialchars($order['phys_email']) ?>?');">
@@ -764,6 +822,63 @@ require_once '_header.php';
       <div class="modal-footer">
         <button type="button" class="btn" onclick="closeShipModal()">Cancel</button>
         <button type="submit" class="btn" style="background: var(--info); color: white; border-color: var(--info);">Mark as Shipped</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Payment Recording Modal -->
+<div id="paymentModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title">Record Payment</h3>
+    </div>
+    <form method="POST" id="paymentForm">
+      <?= csrf_token() ?>
+      <input type="hidden" name="action" value="record_payment">
+      <input type="hidden" name="id" id="paymentOrderId">
+      <div class="modal-body">
+        <div style="background: #f8fafc; padding: 1rem; border-radius: 6px; margin-bottom: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.25rem;">Invoice #</div>
+              <div style="font-weight: 600;" id="paymentInvoiceNum">-</div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.25rem;">Balance Due</div>
+              <div style="font-weight: 700; font-size: 1.25rem; color: #dc2626;" id="paymentBalanceDue">$0.00</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+          <label style="display: block; font-weight: 500; margin-bottom: 0.5rem; font-size: 0.875rem;">Payment Amount *</label>
+          <input type="number" name="payment_amount" id="paymentAmount" step="0.01" min="0.01" required class="w-full" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 1rem;" placeholder="0.00">
+          <div style="margin-top: 0.5rem;">
+            <button type="button" class="btn btn-sm" onclick="setFullPayment()" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">Pay Full Balance</button>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+          <label style="display: block; font-weight: 500; margin-bottom: 0.5rem; font-size: 0.875rem;">Payment Method</label>
+          <select name="payment_method" class="w-full" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius);">
+            <option value="check">Check</option>
+            <option value="wire">Wire Transfer</option>
+            <option value="ach">ACH</option>
+            <option value="credit_card">Credit Card</option>
+            <option value="cash">Cash</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+          <label style="display: block; font-weight: 500; margin-bottom: 0.5rem; font-size: 0.875rem;">Notes (Optional)</label>
+          <textarea name="payment_notes" rows="3" class="w-full" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius);" placeholder="Check number, transaction ID, etc."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn" onclick="closePaymentModal()">Cancel</button>
+        <button type="submit" class="btn" style="background: #059669; color: white; border-color: #059669;">Record Payment</button>
       </div>
     </form>
   </div>
@@ -920,6 +1035,46 @@ async function viewOrderDetail(orderId) {
       </div>
     `;
   }
+}
+
+// Payment Modal Functions
+let currentBalanceDue = 0;
+
+function openPaymentModal(orderId, balanceDue, invoiceNum) {
+  currentBalanceDue = balanceDue;
+  document.getElementById('paymentOrderId').value = orderId;
+  document.getElementById('paymentInvoiceNum').textContent = invoiceNum;
+  document.getElementById('paymentBalanceDue').textContent = '$' + balanceDue.toFixed(2);
+  document.getElementById('paymentAmount').value = '';
+  document.getElementById('paymentModal').classList.add('active');
+}
+
+function closePaymentModal() {
+  document.getElementById('paymentModal').classList.remove('active');
+}
+
+function setFullPayment() {
+  document.getElementById('paymentAmount').value = currentBalanceDue.toFixed(2);
+}
+
+// Invoice Viewing Function
+function viewInvoice(orderId) {
+  // Fetch order to get order_number for wholesale PDF
+  fetch(`/admin/api-order-detail.php?id=${orderId}`)
+    .then(res => res.json())
+    .then(data => {
+      if (data.ok && data.order.order_number) {
+        // Use existing wholesale order PDF with CSRF token
+        const csrfToken = '<?= $_SESSION['csrf'] ?? '' ?>';
+        window.open(`/portal/wholesale-order.pdf.php?order_group=${data.order.order_number}&csrf=${csrfToken}`, '_blank');
+      } else {
+        alert('Unable to generate invoice for this order');
+      }
+    })
+    .catch(err => {
+      console.error('Error fetching order:', err);
+      alert('Error loading invoice');
+    });
 }
 
 // Close modals on background click
