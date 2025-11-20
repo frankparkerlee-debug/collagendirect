@@ -115,7 +115,12 @@ $rows = $stmt->fetchAll();
 
 include __DIR__ . '/_header.php';
 ?>
-<div class="text-xl font-semibold mb-4">Manage Shipments</div>
+<div class="flex justify-between items-center mb-4">
+  <div class="text-xl font-semibold">Manage Shipments</div>
+  <button id="exportBtn" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed" disabled>
+    Export Selected to Excel
+  </button>
+</div>
 
 <!-- Filter Form -->
 <div class="bg-white border rounded-lg p-4 mb-4 shadow-sm">
@@ -187,6 +192,9 @@ include __DIR__ . '/_header.php';
   <table class="w-full text-sm">
     <thead class="border-b">
       <tr class="text-left">
+        <th class="py-2 px-2">
+          <input type="checkbox" id="selectAll" class="rounded">
+        </th>
         <th class="py-2">ID</th>
         <th class="py-2">Type</th>
         <th class="py-2">Item</th>
@@ -228,7 +236,13 @@ include __DIR__ . '/_header.php';
           $r['shipping_zip'] ?? ''
         ])));
       ?>
-      <tr class="border-b hover:bg-slate-50">
+      <tr class="border-b hover:bg-slate-50" data-order-id="<?=e($r['id'])?>"
+          data-name="<?=e($deliveryName)?>"
+          data-address="<?=e($fullAddress)?>"
+          data-product="<?=e($r['product'] ?? '')?>">
+        <td class="py-3 px-2">
+          <input type="checkbox" class="order-checkbox rounded" value="<?=e($r['id'])?>">
+        </td>
         <td class="py-3">#<?=e($r['id'])?></td>
         <td class="py-3">
           <span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold <?=$typeBadgeClass?>">
@@ -237,9 +251,11 @@ include __DIR__ . '/_header.php';
         </td>
         <td class="py-3"><?=e($r['product'] ?? '')?></td>
         <td class="py-3">
-          <span class="cursor-help underline decoration-dotted" title="<?=e($fullAddress)?>">
+          <button type="button" class="text-brand underline hover:text-brand/80 address-btn"
+                  data-name="<?=e($deliveryName)?>"
+                  data-address="<?=e($fullAddress)?>">
             <?=e($deliveryName)?>
-          </span>
+          </button>
         </td>
         <td class="py-3">
           <form method="post" class="inline"><?=csrf_field()?>
@@ -286,4 +302,128 @@ include __DIR__ . '/_header.php';
     </tbody>
   </table>
 </div>
+
+<!-- Address Popup Modal -->
+<div id="addressModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+  <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+    <div class="flex justify-between items-start mb-4">
+      <h3 class="text-lg font-semibold">Shipping Address</h3>
+      <button id="closeModal" class="text-gray-500 hover:text-gray-700">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+    <div class="space-y-2">
+      <div>
+        <div class="text-sm font-medium text-gray-500">Recipient</div>
+        <div id="modalName" class="text-base"></div>
+      </div>
+      <div>
+        <div class="text-sm font-medium text-gray-500">Address</div>
+        <div id="modalAddress" class="text-base"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const selectAll = document.getElementById('selectAll');
+  const checkboxes = document.querySelectorAll('.order-checkbox');
+  const exportBtn = document.getElementById('exportBtn');
+  const modal = document.getElementById('addressModal');
+  const closeModal = document.getElementById('closeModal');
+  const addressBtns = document.querySelectorAll('.address-btn');
+
+  // Select all functionality
+  selectAll.addEventListener('change', function() {
+    checkboxes.forEach(cb => cb.checked = this.checked);
+    updateExportButton();
+  });
+
+  // Individual checkbox change
+  checkboxes.forEach(cb => {
+    cb.addEventListener('change', function() {
+      const allChecked = Array.from(checkboxes).every(c => c.checked);
+      const someChecked = Array.from(checkboxes).some(c => c.checked);
+      selectAll.checked = allChecked;
+      selectAll.indeterminate = someChecked && !allChecked;
+      updateExportButton();
+    });
+  });
+
+  // Update export button state
+  function updateExportButton() {
+    const selectedCount = Array.from(checkboxes).filter(c => c.checked).length;
+    exportBtn.disabled = selectedCount === 0;
+    exportBtn.textContent = selectedCount > 0
+      ? `Export ${selectedCount} Selected to Excel`
+      : 'Export Selected to Excel';
+  }
+
+  // Export functionality
+  exportBtn.addEventListener('click', function() {
+    const selectedIds = Array.from(checkboxes)
+      .filter(c => c.checked)
+      .map(c => c.value);
+
+    if (selectedIds.length === 0) return;
+
+    // Create form and submit
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/admin/export-shipments.php';
+
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'order_ids';
+    input.value = JSON.stringify(selectedIds);
+    form.appendChild(input);
+
+    const csrf = document.createElement('input');
+    csrf.type = 'hidden';
+    csrf.name = 'csrf';
+    csrf.value = '<?=csrf_token()?>';
+    form.appendChild(csrf);
+
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+  });
+
+  // Address popup functionality
+  addressBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      const name = this.getAttribute('data-name');
+      const address = this.getAttribute('data-address');
+
+      document.getElementById('modalName').textContent = name;
+      document.getElementById('modalAddress').textContent = address || 'No address available';
+
+      modal.classList.remove('hidden');
+    });
+  });
+
+  // Close modal
+  closeModal.addEventListener('click', function() {
+    modal.classList.add('hidden');
+  });
+
+  // Close on background click
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) {
+      modal.classList.add('hidden');
+    }
+  });
+
+  // Close on escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+      modal.classList.add('hidden');
+    }
+  });
+});
+</script>
+
 <?php include __DIR__ . '/_footer.php'; ?>
