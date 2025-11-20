@@ -411,12 +411,12 @@ try {
   try {
     // Log what files were submitted for debugging
     $filesDebug = json_encode(array_keys($_FILES));
+    $filesCount = count($_FILES);
     error_log('[orders.create] Files submitted: ' . $filesDebug);
 
-    // Also write to a debug file that we can access
-    $debugFile = __DIR__ . '/../../uploads/order_upload_debug.log';
-    $debugMsg = date('Y-m-d H:i:s') . " [Order: $order_id] Files submitted: $filesDebug\n";
-    @file_put_contents($debugFile, $debugMsg, FILE_APPEND);
+    // Store debug info in additional_instructions for immediate visibility
+    $debugInfo = "DEBUG-" . date('His') . ": \$_FILES count=$filesCount, keys=$filesDebug";
+    $pdo->prepare("UPDATE orders SET additional_instructions = CONCAT(COALESCE(additional_instructions, ''), '\n', ?) WHERE id = ?")->execute([$debugInfo, $order_id]);
 
     [$rx_path,  $rx_mime]  = save_upload('file_rx_note',  '/uploads/notes');
     if (!$rx_path) [$rx_path,  $rx_mime]  = save_upload('rx_note',  '/uploads/notes'); // fallback
