@@ -2,7 +2,12 @@
 // /public/api/portal/orders.create.php
 declare(strict_types=1);
 require __DIR__ . '/../db.php';
+
+// Must set headers BEFORE any output to prevent "headers already sent" errors
 header('Content-Type: application/json');
+
+// Prevent any warnings/notices from breaking JSON response
+ini_set('display_errors', '0');
 
 if (empty($_SESSION['user_id'])) {
   http_response_code(401);
@@ -40,8 +45,8 @@ function dir_from_docroot(string $subdir): string {
 function save_upload(string $field, string $subdir): array {
   error_log("[save_upload] Starting upload for field: $field");
 
-  if (empty($_FILES[$field])) {
-    error_log("[save_upload] $_FILES[$field] is empty");
+  if (!isset($_FILES[$field]) || empty($_FILES[$field])) {
+    error_log("[save_upload] $_FILES[$field] is not set or empty");
     return [null,null];
   }
 
@@ -493,9 +498,27 @@ try {
     } else {
       error_log('[orders.create] No visit note uploaded - file may have failed validation or upload');
     }
-    [$ins_path, $ins_mime] = save_upload('ins_card','/uploads/insurance');
-    [$id_path,  $id_mime]  = save_upload('id_card',  '/uploads/ids');
-    [$wound_photo_path, $wound_photo_mime] = save_upload('baseline_wound_photo', '/uploads/wound-photos');
+
+    try {
+      [$ins_path, $ins_mime] = save_upload('ins_card','/uploads/insurance');
+    } catch (Throwable $e) {
+      error_log('[orders.create] ERROR saving ins_card: ' . $e->getMessage());
+      $ins_path = null; $ins_mime = null;
+    }
+
+    try {
+      [$id_path,  $id_mime]  = save_upload('id_card',  '/uploads/ids');
+    } catch (Throwable $e) {
+      error_log('[orders.create] ERROR saving id_card: ' . $e->getMessage());
+      $id_path = null; $id_mime = null;
+    }
+
+    try {
+      [$wound_photo_path, $wound_photo_mime] = save_upload('baseline_wound_photo', '/uploads/wound-photos');
+    } catch (Throwable $e) {
+      error_log('[orders.create] ERROR saving baseline_wound_photo: ' . $e->getMessage());
+      $wound_photo_path = null; $wound_photo_mime = null;
+    }
 
     // Validate insurance docs if insurance payment and files were not uploaded
     if ($payment_type === 'insurance') {
