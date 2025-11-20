@@ -101,12 +101,17 @@ try {
   // Check if it's an individual (Type 1) or organization (Type 2)
   $enumType = $provider['enumeration_type'] ?? '';
 
+  $practiceName = '';
+
   if ($enumType === 'NPI-1') {
     // Individual provider
     $providerType = 'Individual';
     $nppesFirstName = $provider['basic']['first_name'] ?? '';
     $nppesLastName = $provider['basic']['last_name'] ?? '';
     $credentials = $provider['basic']['credential'] ?? '';
+
+    // For individuals, use their name + credentials as practice name suggestion
+    $practiceName = trim($nppesFirstName . ' ' . $nppesLastName . ($credentials ? ', ' . $credentials : ''));
 
     if (!empty($provider['taxonomies']) && is_array($provider['taxonomies'])) {
       $primaryTaxonomy = array_filter($provider['taxonomies'], fn($t) => ($t['primary'] ?? false) === true);
@@ -117,9 +122,10 @@ try {
       }
     }
   } else {
-    // Organization - we'll be more lenient
+    // Organization - use organization name
     $providerType = 'Organization';
     $nppesLastName = $provider['basic']['organization_name'] ?? '';
+    $practiceName = $provider['basic']['organization_name'] ?? '';
   }
 
   // Verify NPI is active
@@ -211,6 +217,7 @@ try {
       'providerType' => $providerType,
       'taxonomy' => $taxonomy,
       'status' => $status,
+      'practiceName' => $practiceName,
       'address' => $addressLine1,
       'city' => $city,
       'state' => $state,
