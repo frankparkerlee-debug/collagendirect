@@ -33,8 +33,25 @@ $locationsStmt = $pdo->prepare("
 $locationsStmt->execute([$userId]);
 $locations = $locationsStmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Fetch available products for Step 2
-$products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
+// Fetch available products for Step 2 with user's custom pricing/discounts
+$productsStmt = $pdo->prepare("
+  SELECT
+    p.*,
+    pp.custom_price,
+    pp.discount_percentage,
+    CASE
+      WHEN pp.custom_price IS NOT NULL AND pp.custom_price > 0 THEN pp.custom_price
+      WHEN pp.discount_percentage IS NOT NULL AND pp.discount_percentage > 0 THEN
+        (p.price_wholesale / p.pieces_per_box) * (1 - pp.discount_percentage / 100)
+      ELSE (p.price_wholesale / p.pieces_per_box)
+    END as effective_price_per_piece
+  FROM products p
+  LEFT JOIN practice_pricing pp ON pp.product_id = p.id AND pp.user_id = ?
+  WHERE p.active = true
+  ORDER BY p.name ASC
+");
+$productsStmt->execute([$userId]);
+$products = $productsStmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!-- Load search-helpers for address autocomplete -->
@@ -994,11 +1011,19 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
       }
 
       const product = productData[selectedProductId];
-      // price_wholesale is already per BOX (not per piece)
-      const pricePerBox = parseFloat(product.price_wholesale || 0);
       const piecesPerBox = parseInt(product.pieces_per_box || 10);
 
-      priceInfo.textContent = `$${pricePerBox.toFixed(2)}/box (${piecesPerBox} pieces)`;
+      // Use effective_price_per_piece which includes any discounts
+      const pricePerPiece = parseFloat(product.effective_price_per_piece || (product.price_wholesale / piecesPerBox) || 0);
+      const pricePerBox = pricePerPiece * piecesPerBox;
+
+      // Show discount badge if applicable
+      let priceDisplay = `$${pricePerBox.toFixed(2)}/box (${piecesPerBox} pieces)`;
+      if (product.discount_percentage > 0) {
+        priceDisplay += ` - ${product.discount_percentage}% off`;
+      }
+
+      priceInfo.textContent = priceDisplay;
       productIdInput.value = selectedProductId;
       quantityContainer.style.display = 'block';
 
@@ -1026,8 +1051,10 @@ $products = $pdo->query("SELECT * FROM products WHERE active = true ORDER BY nam
 
         if (productId && boxes > 0) {
           const product = productData[productId];
-          // price_wholesale is already per BOX (not per piece)
-          const pricePerBox = parseFloat(product.price_wholesale || 0);
+          const piecesPerBox = parseInt(product.pieces_per_box || 10);
+          // Use effective_price_per_piece which includes any discounts
+          const pricePerPiece = parseFloat(product.effective_price_per_piece || (product.price_wholesale / piecesPerBox) || 0);
+          const pricePerBox = pricePerPiece * piecesPerBox;
           patientTotal += boxes * pricePerBox;
           boxesInput.value = boxes;
         }
