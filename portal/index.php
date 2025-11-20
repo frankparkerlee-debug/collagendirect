@@ -11341,6 +11341,39 @@ document.addEventListener('click', (e)=>{
 
 /* ========== FULL-PAGE PATIENT DETAIL/EDIT RENDERING ========== */
 
+// Toggle showing all orders in patient profile
+function toggleAllOrders(patientId, totalOrders) {
+  const ordersList = document.getElementById(`orders-list-${patientId}`);
+  const button = document.getElementById(`see-all-orders-btn-${patientId}`);
+  const textSpan = document.getElementById(`see-all-orders-text-${patientId}`);
+  const icon = document.getElementById(`see-all-orders-icon-${patientId}`);
+
+  // Check if currently showing all
+  const isShowingAll = ordersList.dataset.showingAll === 'true';
+
+  if (isShowingAll) {
+    // Collapse - show only first 5
+    const allOrders = Array.from(ordersList.children);
+    allOrders.forEach((order, idx) => {
+      if (idx >= 5) {
+        order.style.display = 'none';
+      }
+    });
+    textSpan.textContent = `See all orders (${totalOrders})`;
+    icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>';
+    ordersList.dataset.showingAll = 'false';
+  } else {
+    // Expand - show all
+    const allOrders = Array.from(ordersList.children);
+    allOrders.forEach((order) => {
+      order.style.display = '';
+    });
+    textSpan.textContent = `Show fewer orders`;
+    icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>';
+    ordersList.dataset.showingAll = 'true';
+  }
+}
+
 // Render a single order card for patient detail page
 function renderOrderCard(o, index) {
   const statusColors = {
@@ -11628,13 +11661,17 @@ function renderPatientDetailPage(p, orders, isEditing) {
 
         ${orders.length > 0 ? `
           <!-- All Orders (with proper status) -->
-          <div class="space-y-2">
+          <div class="space-y-2" id="orders-list-${esc(p.id)}">
             ${orders.slice(0, 5).map((o, i) => renderOrderCard(o, i)).join('')}
           </div>
           ${orders.length > 5 ? `
-            <button class="text-xs text-slate-600 hover:text-slate-900 mt-3 flex items-center gap-1">
-              See all orders (${orders.length})
-              <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button
+              class="text-xs text-slate-600 hover:text-slate-900 mt-3 flex items-center gap-1"
+              id="see-all-orders-btn-${esc(p.id)}"
+              onclick="toggleAllOrders('${esc(p.id)}', ${orders.length})"
+            >
+              <span id="see-all-orders-text-${esc(p.id)}">See all orders (${orders.length})</span>
+              <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" id="see-all-orders-icon-${esc(p.id)}">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
               </svg>
             </button>
