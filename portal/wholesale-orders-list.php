@@ -253,8 +253,24 @@ unset($order); // Break reference
 }
 
 .invoice-body {
-  display: block;
+  display: none;
   padding: 0;
+}
+
+.invoice-card.expanded .invoice-body {
+  display: block;
+}
+
+.invoice-card .when-expanded {
+  display: none;
+}
+
+.invoice-card.expanded .when-collapsed {
+  display: none;
+}
+
+.invoice-card.expanded .when-expanded {
+  display: inline;
 }
 
 .invoice-details {
@@ -584,9 +600,12 @@ unset($order); // Break reference
               </span>
             </div>
 
-            <!-- View Invoice Link -->
+            <!-- Expand/Collapse Indicator -->
             <div style="text-align: right;">
-              <span style="font-size: 0.75rem; color: #3b82f6; font-weight: 500;">View Invoice →</span>
+              <span class="expand-indicator" style="font-size: 0.75rem; color: #3b82f6; font-weight: 500;">
+                <span class="when-collapsed">View Details ▼</span>
+                <span class="when-expanded" style="display: none;">Hide Details ▲</span>
+              </span>
             </div>
           </div>
 
