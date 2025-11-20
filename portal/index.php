@@ -10428,8 +10428,7 @@ function addWound() {
       <div>
         <label class="text-sm">Change Frequency <span class="text-red-600">*</span></label>
         <select class="wound-frequency w-full">
-          <option value="">Select frequency</option>
-          <option value="7">Daily (7x/week)</option>
+          <option value="7" selected>Daily (7x/week)</option>
           <option value="5">5x/week</option>
           <option value="4">Every other day (4x/week)</option>
           <option value="3">3x/week</option>
