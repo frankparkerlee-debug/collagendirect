@@ -397,13 +397,17 @@ try {
     }
   }
 
-  // 7) Respond to client ASAP; then continue with uploads/updates
-  respond_now(['ok'=>true,'data'=>['order_id'=>$order_id,'order_group_id'=>$order_group_id,'patient_id'=>$patient_id]]);
-
-  /* -------------------- POST-RESPONSE: uploads & attachments -------------------- */
+  /* -------------------- File uploads & attachments -------------------- */
+  // IMPORTANT: Process file uploads BEFORE responding to client
+  // $_FILES is not available after fastcgi_finish_request()
   // Files (optional). Keep your existing subdirectories.
   // These are WEB paths; filesystem destination is resolved from DOCUMENT_ROOT.
   // Note: Frontend sends 'file_rx_note' but we check both 'file_rx_note' and 'rx_note' for compatibility
+  $rx_path = null; $rx_mime = null;
+  $ins_path = null; $ins_mime = null;
+  $id_path = null; $id_mime = null;
+  $wound_photo_path = null; $wound_photo_mime = null;
+
   try {
     // Log what files were submitted for debugging
     error_log('[orders.create] Files submitted: ' . json_encode(array_keys($_FILES)));
@@ -490,11 +494,16 @@ try {
       }
     }
   } catch (Throwable $upErr) {
-    // Swallow upload errors post-response to avoid breaking the already-submitted order.
-    // Log the error so we can diagnose upload failures
+    // Log upload errors but don't fail the order creation
     error_log('[orders.create upload] ERROR: ' . $upErr->getMessage() . ' - Trace: ' . $upErr->getTraceAsString());
+    // Continue with order creation even if file upload fails
   }
 
+  // 7) Respond to client with success
+  respond_now(['ok'=>true,'data'=>['order_id'=>$order_id,'order_group_id'=>$order_group_id,'patient_id'=>$patient_id]]);
+
+  /* -------------------- POST-RESPONSE: Additional processing -------------------- */
+  // Everything after this point runs after the response is sent to the client
   // Send email notifications
   try {
     require_once __DIR__ . '/../lib/email_notifications.php';
