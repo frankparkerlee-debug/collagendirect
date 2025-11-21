@@ -12,11 +12,18 @@ require_once __DIR__ . '/_header.php';
 
 require_admin();
 
-// Path to CSV file
-$csvPath = '/Users/parkerlee/Desktop/Support Documents/Dressing Rule Matrix (11.21).csv';
+$csvPath = null;
+$csvData = null;
 
-if (!file_exists($csvPath)) {
-  die("<div class='main-content'><div class='alert alert-danger'>CSV file not found at: $csvPath</div></div>");
+// Check if CSV was uploaded
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['csv_file'])) {
+  $uploadedFile = $_FILES['csv_file'];
+
+  if ($uploadedFile['error'] === UPLOAD_ERR_OK) {
+    $csvPath = $uploadedFile['tmp_name'];
+  } else {
+    $uploadError = "Upload failed with error code: " . $uploadedFile['error'];
+  }
 }
 ?>
 
@@ -32,7 +39,13 @@ if (!file_exists($csvPath)) {
       </p>
     </div>
 
-    <?php if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_import'])): ?>
+    <?php if (isset($uploadError)): ?>
+      <div style="padding: 1rem; background: #fee; border: 1px solid #dc3545; border-radius: 4px; color: #991b1b; margin-bottom: 2rem;">
+        <strong>Upload Error:</strong> <?= htmlspecialchars($uploadError) ?>
+      </div>
+    <?php endif; ?>
+
+    <?php if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_import']) && $csvPath): ?>
 
       <div style="background: white; border: 1px solid var(--border); border-radius: 8px; padding: 2rem; margin-bottom: 2rem;">
         <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1.5rem;">Import Results</h2>
@@ -207,7 +220,7 @@ if (!file_exists($csvPath)) {
         ?>
       </div>
 
-    <?php else: ?>
+    <?php elseif ($csvPath && !isset($_POST['confirm_import'])): ?>
 
       <!-- Preview and Confirmation -->
       <div style="background: white; border: 1px solid var(--border); border-radius: 8px; padding: 2rem; margin-bottom: 2rem;">
@@ -262,10 +275,40 @@ if (!file_exists($csvPath)) {
           </p>
         </div>
 
-        <form method="POST">
+        <form method="POST" enctype="multipart/form-data">
+          <input type="hidden" name="csv_uploaded" value="1">
           <button type="submit" name="confirm_import" value="1"
                   style="padding: 0.875rem 2rem; font-size: 1rem; font-weight: 600; background: var(--brand); color: white; border: none; border-radius: 6px; cursor: pointer;">
             Import <?= count($rows) ?> Products from CSV
+          </button>
+          <a href="/admin/products.php" style="margin-left: 1rem; padding: 0.875rem 2rem; font-size: 1rem; border: 1px solid var(--border); border-radius: 6px; text-decoration: none; color: var(--ink); display: inline-block;">
+            Cancel
+          </a>
+        </form>
+      </div>
+
+    <?php else: ?>
+
+      <!-- Upload Form -->
+      <div style="background: white; border: 1px solid var(--border); border-radius: 8px; padding: 2rem; margin-bottom: 2rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem;">Upload CSV File</h2>
+
+        <p style="color: var(--muted); font-size: 0.875rem; margin-bottom: 1.5rem;">
+          Upload the Dressing Rule Matrix (11.21) CSV file to import products into the database.
+        </p>
+
+        <form method="POST" enctype="multipart/form-data">
+          <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: var(--ink);">
+              CSV File
+            </label>
+            <input type="file" name="csv_file" accept=".csv" required
+                   style="display: block; width: 100%; padding: 0.75rem; border: 2px dashed var(--border); border-radius: 6px; background: var(--bg-gray);">
+          </div>
+
+          <button type="submit"
+                  style="padding: 0.875rem 2rem; font-size: 1rem; font-weight: 600; background: var(--brand); color: white; border: none; border-radius: 6px; cursor: pointer;">
+            Upload and Preview
           </button>
           <a href="/admin/products.php" style="margin-left: 1rem; padding: 0.875rem 2rem; font-size: 1rem; border: 1px solid var(--border); border-radius: 6px; text-decoration: none; color: var(--ink); display: inline-block;">
             Cancel
