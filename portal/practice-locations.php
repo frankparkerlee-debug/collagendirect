@@ -4,15 +4,26 @@
  * Allows practice admins to manage multiple facility addresses
  */
 
-// This file is included by portal/index.php
-global $pdo, $user;
+require_once __DIR__ . '/../admin/db.php';
+require_once __DIR__ . '/../admin/auth.php';
+require_once __DIR__ . '/../admin/config.php';
 
-if (!isset($user) || !is_array($user)) {
-  echo '<div style="padding: 2rem;">Unauthorized access</div>';
-  return;
+$userId = $_SESSION['user_id'] ?? null;
+if (!$userId) {
+  header('Location: /login');
+  exit;
 }
 
-$userId = $user['id'];
+// Load user data
+$stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
+$stmt->execute([$userId]);
+$user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$user) {
+  header('Location: /login');
+  exit;
+}
+
 $isPracticeAdmin = in_array($user['role'] ?? '', ['practice_admin', 'superadmin']);
 
 // Handle POST actions (add, edit, delete, set primary)
