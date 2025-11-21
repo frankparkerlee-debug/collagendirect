@@ -70,6 +70,7 @@ try {
   $products = $data['products'] ?? [];
   $items = $data['items'] ?? [];
   $notes = safe($data['notes'] ?? null);
+  $locationId = isset($data['location_id']) && !empty($data['location_id']) ? (int)$data['location_id'] : null;
 
   if (empty($items)) {
     http_response_code(400);
@@ -229,35 +230,68 @@ try {
 
     // Determine shipping details - check if shipping to office
     if ($shipToOffice) {
-      // Get practice address - check current user first, then practice admin
-      $userStmt = $pdo->prepare("SELECT practice_name, address, city, state, zip, role FROM users WHERE id = ?");
-      $userStmt->execute([$uid]);
-      $user = $userStmt->fetch(PDO::FETCH_ASSOC);
-
-      // If current user doesn't have address, find practice admin with same practice_name
-      if ($user && empty($user['address']) && !empty($user['practice_name'])) {
-        $adminStmt = $pdo->prepare("
-          SELECT practice_name, address, city, state, zip
-          FROM users
-          WHERE practice_name = ?
-            AND role = 'practice_admin'
-            AND address IS NOT NULL
-            AND address != ''
-          LIMIT 1
+      // Check if a specific location was selected
+      if ($locationId) {
+        // Use the selected practice location
+        $locationStmt = $pdo->prepare("
+          SELECT location_name, address, city, state, zip, phone
+          FROM practice_locations
+          WHERE id = ? AND user_id = ? AND is_active = TRUE
         ");
-        $adminStmt->execute([$user['practice_name']]);
-        $adminUser = $adminStmt->fetch(PDO::FETCH_ASSOC);
-        if ($adminUser) {
-          $user = $adminUser; // Use practice admin's address
-        }
-      }
+        $locationStmt->execute([$locationId, $uid]);
+        $location = $locationStmt->fetch(PDO::FETCH_ASSOC);
 
-      $shippingName = $user['practice_name'] ?? 'Office Stock';
-      $shippingAddress = $user['address'] ?? null;
-      $shippingCity = $user['city'] ?? null;
-      $shippingState = $user['state'] ?? null;
-      $shippingZip = $user['zip'] ?? null;
-      $shippingPhone = null;
+        if ($location) {
+          $shippingName = $location['location_name'];
+          $shippingAddress = $location['address'];
+          $shippingCity = $location['city'];
+          $shippingState = $location['state'];
+          $shippingZip = $location['zip'];
+          $shippingPhone = $location['phone'] ?? null;
+        } else {
+          // Location not found, fall back to user address
+          $userStmt = $pdo->prepare("SELECT practice_name, address, city, state, zip FROM users WHERE id = ?");
+          $userStmt->execute([$uid]);
+          $user = $userStmt->fetch(PDO::FETCH_ASSOC);
+
+          $shippingName = $user['practice_name'] ?? 'Office Stock';
+          $shippingAddress = $user['address'] ?? null;
+          $shippingCity = $user['city'] ?? null;
+          $shippingState = $user['state'] ?? null;
+          $shippingZip = $user['zip'] ?? null;
+          $shippingPhone = null;
+        }
+      } else {
+        // No location selected - use practice address from users table
+        $userStmt = $pdo->prepare("SELECT practice_name, address, city, state, zip, role FROM users WHERE id = ?");
+        $userStmt->execute([$uid]);
+        $user = $userStmt->fetch(PDO::FETCH_ASSOC);
+
+        // If current user doesn't have address, find practice admin with same practice_name
+        if ($user && empty($user['address']) && !empty($user['practice_name'])) {
+          $adminStmt = $pdo->prepare("
+            SELECT practice_name, address, city, state, zip
+            FROM users
+            WHERE practice_name = ?
+              AND role = 'practice_admin'
+              AND address IS NOT NULL
+              AND address != ''
+            LIMIT 1
+          ");
+          $adminStmt->execute([$user['practice_name']]);
+          $adminUser = $adminStmt->fetch(PDO::FETCH_ASSOC);
+          if ($adminUser) {
+            $user = $adminUser; // Use practice admin's address
+          }
+        }
+
+        $shippingName = $user['practice_name'] ?? 'Office Stock';
+        $shippingAddress = $user['address'] ?? null;
+        $shippingCity = $user['city'] ?? null;
+        $shippingState = $user['state'] ?? null;
+        $shippingZip = $user['zip'] ?? null;
+        $shippingPhone = null;
+      }
     } else{
       // Use patient's address
       $shippingName = ($patientData['first_name'] ?? '') . ' ' . ($patientData['last_name'] ?? '');

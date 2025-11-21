@@ -338,15 +338,21 @@ $products = $productsStmt->fetchAll(PDO::FETCH_ASSOC);
   if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['patients'])) {
     $_SESSION['wholesale_patients'] = $_POST['patients'];
 
+    // Store location_id if provided
+    if (isset($_POST['location_id'])) {
+      $_SESSION['wholesale_location_id'] = $_POST['location_id'];
+    }
+
     // Also store products if coming back from Step 3
     if (isset($_POST['products'])) {
       $_SESSION['wholesale_products'] = $_POST['products'];
     }
   }
 
-  // Retrieve patients and products from session
+  // Retrieve patients, products, and location from session
   $patients = $_SESSION['wholesale_patients'] ?? [];
   $savedProducts = $_SESSION['wholesale_products'] ?? [];
+  $locationId = $_SESSION['wholesale_location_id'] ?? null;
   ?>
 
   <?php if ($step == '1'): ?>
@@ -1441,7 +1447,8 @@ $products = $productsStmt->fetchAll(PDO::FETCH_ASSOC);
           'patients' => $patients,
           'products' => $savedProducts,
           'items' => $orderItems,
-          'grand_total' => $grandTotal
+          'grand_total' => $grandTotal,
+          'location_id' => $locationId
         ]) ?>;
 
         // Function to update row total when quantity changes
