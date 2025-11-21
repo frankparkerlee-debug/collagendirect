@@ -1,6 +1,6 @@
 <?php
 /**
- * Practice Locations Management
+ * Practice Locations Management - Inline Editing
  * Allows practice admins to manage multiple facility addresses
  */
 
@@ -115,43 +115,73 @@ $locations->execute([$userId]);
 $locations = $locations->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
+<!-- Google Maps Places API -->
+<?php if (defined('GOOGLE_MAPS_API_KEY') && GOOGLE_MAPS_API_KEY): ?>
+<script src="https://maps.googleapis.com/maps/api/js?key=<?= GOOGLE_MAPS_API_KEY ?>&libraries=places"></script>
+<?php endif; ?>
+
 <style>
 .locations-container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 2rem;
 }
 
-.location-card {
+.locations-table {
+  width: 100%;
+  border-collapse: collapse;
   background: white;
-  border: 1px solid #e2e8f0;
   border-radius: 8px;
-  padding: 1.5rem;
-  margin-bottom: 1rem;
-  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
-.location-card.primary {
+.locations-table thead {
+  background: #f8fafc;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.locations-table th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.locations-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: middle;
+}
+
+.locations-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.location-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+.location-input:focus {
+  outline: none;
   border-color: #10b981;
-  border-width: 2px;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
 }
 
 .primary-badge {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
   background: #10b981;
   color: white;
   padding: 0.25rem 0.75rem;
   border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 600;
-}
-
-.location-actions {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 1rem;
+  display: inline-block;
 }
 
 .btn {
@@ -163,6 +193,8 @@ $locations = $locations->fetchAll(PDO::FETCH_ASSOC);
   border: 1px solid #e2e8f0;
   background: white;
   transition: all 0.2s;
+  text-decoration: none;
+  display: inline-block;
 }
 
 .btn-primary {
@@ -173,6 +205,11 @@ $locations = $locations->fetchAll(PDO::FETCH_ASSOC);
 
 .btn-primary:hover {
   background: #059669;
+}
+
+.btn-secondary {
+  background: white;
+  color: #64748b;
 }
 
 .btn-secondary:hover {
@@ -189,72 +226,25 @@ $locations = $locations->fetchAll(PDO::FETCH_ASSOC);
   background: #dc2626;
 }
 
-.form-group {
-  margin-bottom: 1rem;
+.btn-small {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8125rem;
 }
 
-.form-group label {
-  display: block;
-  font-weight: 500;
-  margin-bottom: 0.5rem;
-  color: #1e293b;
+.add-row {
+  background: #f0fdf4 !important;
 }
 
-.form-control {
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 0.875rem;
+.add-row td {
+  border-bottom: 2px solid #10b981;
 }
 
-.form-control:focus {
-  outline: none;
-  border-color: #10b981;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
-}
-
-.modal {
-  display: none;
-  position: fixed;
-  z-index: 1000;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  align-items: center;
-  justify-content: center;
-}
-
-.modal.active {
-  display: flex;
-}
-
-.modal-content {
+.empty-state {
+  text-align: center;
+  padding: 3rem;
   background: white;
-  border-radius: 12px;
-  max-width: 600px;
-  width: 90%;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.modal-header {
-  padding: 1.5rem;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.modal-body {
-  padding: 1.5rem;
-}
-
-.modal-footer {
-  padding: 1.5rem;
-  border-top: 1px solid #e2e8f0;
-  display: flex;
-  gap: 0.75rem;
-  justify-content: flex-end;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
 }
 </style>
 
@@ -262,13 +252,8 @@ $locations = $locations->fetchAll(PDO::FETCH_ASSOC);
   <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem;">
     <div>
       <h1 style="font-size: 1.875rem; font-weight: 700; margin-bottom: 0.5rem;">Practice Locations</h1>
-      <p style="color: #64748b; font-size: 0.875rem;">Manage delivery addresses for wholesale orders</p>
+      <p style="color: #64748b; font-size: 0.875rem;">Manage delivery addresses for wholesale orders. Click "+ Add Location" to add a new row.</p>
     </div>
-    <?php if ($isPracticeAdmin): ?>
-    <button onclick="openAddModal()" class="btn btn-primary">
-      + Add Location
-    </button>
-    <?php endif; ?>
   </div>
 
   <?php if (isset($_SESSION['success_msg'])): ?>
@@ -283,126 +268,243 @@ $locations = $locations->fetchAll(PDO::FETCH_ASSOC);
     </div>
     <?php unset($_SESSION['error_msg']); endif; ?>
 
-  <?php if (empty($locations)): ?>
-    <div style="text-align: center; padding: 3rem; background: white; border-radius: 8px; border: 1px solid #e2e8f0;">
+  <?php if (empty($locations) && !$isPracticeAdmin): ?>
+    <div class="empty-state">
       <svg width="64" height="64" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin: 0 auto 1rem; opacity: 0.3;">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
       </svg>
       <h3 style="font-size: 1.125rem; margin-bottom: 0.5rem;">No locations yet</h3>
-      <p style="color: #64748b; margin-bottom: 1.5rem;">Add your first practice location to start ordering</p>
-      <?php if ($isPracticeAdmin): ?>
-      <button onclick="openAddModal()" class="btn btn-primary">Add Location</button>
-      <?php endif; ?>
+      <p style="color: #64748b;">Contact your practice admin to add locations</p>
     </div>
   <?php else: ?>
-    <?php foreach ($locations as $location): ?>
-      <div class="location-card <?= $location['is_primary'] ? 'primary' : '' ?>">
-        <?php if ($location['is_primary']): ?>
-          <span class="primary-badge">PRIMARY</span>
-        <?php endif; ?>
+    <table class="locations-table">
+      <thead>
+        <tr>
+          <th style="width: 20%;">Location Name</th>
+          <th style="width: 25%;">Street Address</th>
+          <th style="width: 15%;">City</th>
+          <th style="width: 8%;">State</th>
+          <th style="width: 10%;">ZIP</th>
+          <th style="width: 12%;">Phone</th>
+          <th style="width: 10%; text-align: center;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php foreach ($locations as $location): ?>
+          <tr data-location-id="<?= $location['id'] ?>">
+            <td>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <?= htmlspecialchars($location['location_name']) ?>
+                <?php if ($location['is_primary']): ?>
+                  <span class="primary-badge">PRIMARY</span>
+                <?php endif; ?>
+              </div>
+            </td>
+            <td><?= htmlspecialchars($location['address']) ?></td>
+            <td><?= htmlspecialchars($location['city']) ?></td>
+            <td><?= htmlspecialchars($location['state']) ?></td>
+            <td><?= htmlspecialchars($location['zip']) ?></td>
+            <td><?= htmlspecialchars($location['phone'] ?: '-') ?></td>
+            <td style="text-align: center;">
+              <?php if ($isPracticeAdmin): ?>
+                <button onclick="editLocation(<?= $location['id'] ?>)" class="btn btn-secondary btn-small">Edit</button>
+                <?php if (!$location['is_primary']): ?>
+                  <form method="POST" style="display: inline;" onsubmit="return confirm('Set as primary location?');">
+                    <input type="hidden" name="action" value="set_primary">
+                    <input type="hidden" name="location_id" value="<?= $location['id'] ?>">
+                    <button type="submit" class="btn btn-secondary btn-small">Set Primary</button>
+                  </form>
+                  <form method="POST" style="display: inline;" onsubmit="return confirm('Delete this location?');">
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="location_id" value="<?= $location['id'] ?>">
+                    <button type="submit" class="btn btn-danger btn-small">Delete</button>
+                  </form>
+                <?php endif; ?>
+              <?php endif; ?>
+            </td>
+          </tr>
+        <?php endforeach; ?>
 
-        <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 0.75rem;">
-          <?= htmlspecialchars($location['location_name']) ?>
-        </h3>
-
-        <div style="color: #64748b; line-height: 1.6;">
-          <div><?= htmlspecialchars($location['address']) ?></div>
-          <div><?= htmlspecialchars($location['city']) ?>, <?= htmlspecialchars($location['state']) ?> <?= htmlspecialchars($location['zip']) ?></div>
-          <?php if ($location['phone']): ?>
-            <div>Phone: <?= htmlspecialchars($location['phone']) ?></div>
-          <?php endif; ?>
-        </div>
-
+        <!-- Add New Row (always visible when admin) -->
         <?php if ($isPracticeAdmin): ?>
-          <div class="location-actions">
-            <button onclick="openEditModal(<?= htmlspecialchars(json_encode($location)) ?>)" class="btn btn-secondary">
-              Edit
-            </button>
-            <?php if (!$location['is_primary']): ?>
-              <form method="POST" style="display: inline;">
-                <input type="hidden" name="action" value="set_primary">
-                <input type="hidden" name="location_id" value="<?= $location['id'] ?>">
-                <button type="submit" class="btn btn-secondary">Set as Primary</button>
+          <tr class="add-row" id="add-row" style="display: none;">
+            <td colspan="7">
+              <form method="POST" id="add-form" style="display: grid; grid-template-columns: 1fr 1.5fr 1fr 0.5fr 0.75fr 1fr auto; gap: 0.75rem; align-items: end;">
+                <input type="hidden" name="action" value="add">
+
+                <div>
+                  <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 0.25rem;">Location Name *</label>
+                  <input type="text" name="location_name" class="location-input" placeholder="Main Office" required>
+                </div>
+
+                <div>
+                  <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 0.25rem;">Street Address *</label>
+                  <input type="text" name="address" id="new-address" class="location-input address-autocomplete" placeholder="123 Main St" required>
+                </div>
+
+                <div>
+                  <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 0.25rem;">City *</label>
+                  <input type="text" name="city" id="new-city" class="location-input" required>
+                </div>
+
+                <div>
+                  <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 0.25rem;">State *</label>
+                  <input type="text" name="state" id="new-state" class="location-input" maxlength="2" pattern="[A-Z]{2}" placeholder="TX" required style="text-transform: uppercase;">
+                </div>
+
+                <div>
+                  <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 0.25rem;">ZIP *</label>
+                  <input type="text" name="zip" id="new-zip" class="location-input" pattern="\d{5}" maxlength="5" required>
+                </div>
+
+                <div>
+                  <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 0.25rem;">Phone</label>
+                  <input type="tel" name="phone" class="location-input" placeholder="(123) 456-7890">
+                </div>
+
+                <div style="display: flex; gap: 0.5rem;">
+                  <button type="submit" class="btn btn-primary">Save</button>
+                  <button type="button" onclick="cancelAdd()" class="btn btn-secondary">Cancel</button>
+                </div>
               </form>
-              <form method="POST" style="display: inline;" onsubmit="return confirm('Delete this location?');">
-                <input type="hidden" name="action" value="delete">
-                <input type="hidden" name="location_id" value="<?= $location['id'] ?>">
-                <button type="submit" class="btn btn-danger">Delete</button>
+            </td>
+          </tr>
+
+          <!-- Edit Row (hidden by default) -->
+          <tr class="add-row" id="edit-row" style="display: none;">
+            <td colspan="7">
+              <form method="POST" id="edit-form" style="display: grid; grid-template-columns: 1fr 1.5fr 1fr 0.5fr 0.75fr 1fr auto; gap: 0.75rem; align-items: end;">
+                <input type="hidden" name="action" value="edit">
+                <input type="hidden" name="location_id" id="edit-location-id">
+
+                <div>
+                  <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 0.25rem;">Location Name *</label>
+                  <input type="text" name="location_name" id="edit-name" class="location-input" required>
+                </div>
+
+                <div>
+                  <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 0.25rem;">Street Address *</label>
+                  <input type="text" name="address" id="edit-address" class="location-input address-autocomplete" required>
+                </div>
+
+                <div>
+                  <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 0.25rem;">City *</label>
+                  <input type="text" name="city" id="edit-city" class="location-input" required>
+                </div>
+
+                <div>
+                  <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 0.25rem;">State *</label>
+                  <input type="text" name="state" id="edit-state" class="location-input" maxlength="2" pattern="[A-Z]{2}" required style="text-transform: uppercase;">
+                </div>
+
+                <div>
+                  <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 0.25rem;">ZIP *</label>
+                  <input type="text" name="zip" id="edit-zip" class="location-input" pattern="\d{5}" maxlength="5" required>
+                </div>
+
+                <div>
+                  <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 0.25rem;">Phone</label>
+                  <input type="tel" name="phone" id="edit-phone" class="location-input">
+                </div>
+
+                <div style="display: flex; gap: 0.5rem;">
+                  <button type="submit" class="btn btn-primary">Update</button>
+                  <button type="button" onclick="cancelEdit()" class="btn btn-secondary">Cancel</button>
+                </div>
               </form>
-            <?php endif; ?>
-          </div>
+            </td>
+          </tr>
         <?php endif; ?>
+      </tbody>
+    </table>
+
+    <?php if ($isPracticeAdmin): ?>
+      <div style="margin-top: 1rem;">
+        <button onclick="showAddRow()" class="btn btn-primary" id="add-btn">+ Add Location</button>
       </div>
-    <?php endforeach; ?>
+    <?php endif; ?>
   <?php endif; ?>
 </div>
 
-<!-- Add/Edit Location Modal -->
-<div id="location-modal" class="modal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h2 id="modal-title" style="font-size: 1.25rem; font-weight: 600;">Add Location</h2>
-    </div>
-    <form method="POST" id="location-form">
-      <div class="modal-body">
-        <input type="hidden" name="action" id="form-action" value="add">
-        <input type="hidden" name="location_id" id="location-id" value="">
-
-        <div class="form-group">
-          <label for="location_name">Location Name *</label>
-          <input type="text" name="location_name" id="location_name" class="form-control" placeholder="e.g., Main Office, Satellite Clinic" required>
-        </div>
-
-        <div class="form-group">
-          <label for="address">Street Address *</label>
-          <input type="text" name="address" id="address" class="form-control" required>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 1rem;">
-          <div class="form-group">
-            <label for="city">City *</label>
-            <input type="text" name="city" id="city" class="form-control" required>
-          </div>
-
-          <div class="form-group">
-            <label for="state">State *</label>
-            <input type="text" name="state" id="state" class="form-control" maxlength="2" pattern="[A-Z]{2}" placeholder="TX" required>
-          </div>
-
-          <div class="form-group">
-            <label for="zip">ZIP *</label>
-            <input type="text" name="zip" id="zip" class="form-control" pattern="\d{5}" maxlength="5" required>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="phone">Phone</label>
-          <input type="tel" name="phone" id="phone" class="form-control" placeholder="(123) 456-7890">
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button type="button" onclick="closeModal()" class="btn btn-secondary">Cancel</button>
-        <button type="submit" class="btn btn-primary">Save Location</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<!-- Google Maps Places API for Address Autocomplete -->
-<?php if (defined('GOOGLE_MAPS_API_KEY') && GOOGLE_MAPS_API_KEY): ?>
-<script src="https://maps.googleapis.com/maps/api/js?key=<?= GOOGLE_MAPS_API_KEY ?>&libraries=places"></script>
 <script>
-let autocomplete;
+let currentEditRow = null;
+let autocompleteInstances = {};
 
-function initAutocomplete() {
-  const addressInput = document.getElementById('address');
+function showAddRow() {
+  document.getElementById('add-row').style.display = 'table-row';
+  document.getElementById('add-btn').style.display = 'none';
+  document.getElementById('edit-row').style.display = 'none';
 
-  autocomplete = new google.maps.places.Autocomplete(addressInput, {
+  // Initialize autocomplete for new address
+  <?php if (defined('GOOGLE_MAPS_API_KEY') && GOOGLE_MAPS_API_KEY): ?>
+  setTimeout(() => initAutocomplete('new-address', 'new-city', 'new-state', 'new-zip'), 100);
+  <?php endif; ?>
+}
+
+function cancelAdd() {
+  document.getElementById('add-row').style.display = 'none';
+  document.getElementById('add-btn').style.display = 'inline-block';
+  document.getElementById('add-form').reset();
+}
+
+function editLocation(locationId) {
+  // Hide add row if visible
+  document.getElementById('add-row').style.display = 'none';
+  document.getElementById('add-btn').style.display = 'none';
+
+  // Get location data from the row
+  const row = document.querySelector(`tr[data-location-id="${locationId}"]`);
+  const cells = row.querySelectorAll('td');
+
+  // Extract text content (strip HTML like badges)
+  const locationName = cells[0].textContent.trim().replace('PRIMARY', '').trim();
+  const address = cells[1].textContent.trim();
+  const city = cells[2].textContent.trim();
+  const state = cells[3].textContent.trim();
+  const zip = cells[4].textContent.trim();
+  const phone = cells[5].textContent.trim() === '-' ? '' : cells[5].textContent.trim();
+
+  // Populate edit form
+  document.getElementById('edit-location-id').value = locationId;
+  document.getElementById('edit-name').value = locationName;
+  document.getElementById('edit-address').value = address;
+  document.getElementById('edit-city').value = city;
+  document.getElementById('edit-state').value = state;
+  document.getElementById('edit-zip').value = zip;
+  document.getElementById('edit-phone').value = phone;
+
+  // Show edit row
+  document.getElementById('edit-row').style.display = 'table-row';
+  currentEditRow = locationId;
+
+  // Initialize autocomplete for edit address
+  <?php if (defined('GOOGLE_MAPS_API_KEY') && GOOGLE_MAPS_API_KEY): ?>
+  setTimeout(() => initAutocomplete('edit-address', 'edit-city', 'edit-state', 'edit-zip'), 100);
+  <?php endif; ?>
+}
+
+function cancelEdit() {
+  document.getElementById('edit-row').style.display = 'none';
+  document.getElementById('add-btn').style.display = 'inline-block';
+  document.getElementById('edit-form').reset();
+  currentEditRow = null;
+}
+
+<?php if (defined('GOOGLE_MAPS_API_KEY') && GOOGLE_MAPS_API_KEY): ?>
+function initAutocomplete(addressId, cityId, stateId, zipId) {
+  const addressInput = document.getElementById(addressId);
+
+  if (!addressInput || autocompleteInstances[addressId]) {
+    return;
+  }
+
+  const autocomplete = new google.maps.places.Autocomplete(addressInput, {
     types: ['address'],
     componentRestrictions: { country: 'us' }
   });
+
+  autocompleteInstances[addressId] = autocomplete;
 
   autocomplete.addListener('place_changed', function() {
     const place = autocomplete.getPlace();
@@ -411,7 +513,6 @@ function initAutocomplete() {
       return;
     }
 
-    // Parse address components
     let street = '';
     let city = '';
     let state = '';
@@ -433,56 +534,11 @@ function initAutocomplete() {
       }
     });
 
-    // Auto-fill the form fields
-    document.getElementById('address').value = street;
-    document.getElementById('city').value = city;
-    document.getElementById('state').value = state;
-    document.getElementById('zip').value = zip;
+    document.getElementById(addressId).value = street;
+    document.getElementById(cityId).value = city;
+    document.getElementById(stateId).value = state;
+    document.getElementById(zipId).value = zip;
   });
 }
-</script>
 <?php endif; ?>
-
-<script>
-function openAddModal() {
-  document.getElementById('modal-title').textContent = 'Add Location';
-  document.getElementById('form-action').value = 'add';
-  document.getElementById('location-form').reset();
-  document.getElementById('location-id').value = '';
-  document.getElementById('location-modal').classList.add('active');
-
-  // Initialize Google Maps autocomplete when modal opens
-  <?php if (defined('GOOGLE_MAPS_API_KEY') && GOOGLE_MAPS_API_KEY): ?>
-  setTimeout(initAutocomplete, 100);
-  <?php endif; ?>
-}
-
-function openEditModal(location) {
-  document.getElementById('modal-title').textContent = 'Edit Location';
-  document.getElementById('form-action').value = 'edit';
-  document.getElementById('location-id').value = location.id;
-  document.getElementById('location_name').value = location.location_name;
-  document.getElementById('address').value = location.address;
-  document.getElementById('city').value = location.city;
-  document.getElementById('state').value = location.state;
-  document.getElementById('zip').value = location.zip;
-  document.getElementById('phone').value = location.phone || '';
-  document.getElementById('location-modal').classList.add('active');
-
-  // Initialize Google Maps autocomplete when modal opens
-  <?php if (defined('GOOGLE_MAPS_API_KEY') && GOOGLE_MAPS_API_KEY): ?>
-  setTimeout(initAutocomplete, 100);
-  <?php endif; ?>
-}
-
-function closeModal() {
-  document.getElementById('location-modal').classList.remove('active');
-}
-
-// Close modal when clicking outside
-document.getElementById('location-modal').addEventListener('click', function(e) {
-  if (e.target === this) {
-    closeModal();
-  }
-});
 </script>
