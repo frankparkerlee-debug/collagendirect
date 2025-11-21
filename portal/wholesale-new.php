@@ -762,8 +762,8 @@ $products = $productsStmt->fetchAll(PDO::FETCH_ASSOC);
           }
         });
       } else {
-        // Add first patient row automatically if no session data
-        addPatientRow();
+        // Default to Office Order first (not Patient Order)
+        addOfficeStockRow();
       }
     });
     </script>
