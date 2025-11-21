@@ -36,7 +36,12 @@ $locations = $locationsStmt->fetchAll(PDO::FETCH_ASSOC);
 // Fetch available products for Step 2 with user's custom pricing/discounts
 // Use DISTINCT ON with HCPCS + size to remove duplicates (e.g., "Collagen Dressing" vs "Collagen Drx")
 $productsStmt = $pdo->prepare("
-  SELECT DISTINCT ON (COALESCE(p.hcpcs_code, ''), LOWER(TRIM(COALESCE(p.size, ''))))
+  SELECT DISTINCT ON (
+    CASE
+      WHEN p.hcpcs_code IS NOT NULL AND p.hcpcs_code != '' THEN p.hcpcs_code || '|' || LOWER(TRIM(COALESCE(p.size, '')))
+      ELSE 'NO_HCPCS|' || LOWER(TRIM(p.name)) || '|' || LOWER(TRIM(COALESCE(p.size, '')))
+    END
+  )
     p.*,
     pp.custom_price,
     pp.discount_percentage,
@@ -52,8 +57,10 @@ $productsStmt = $pdo->prepare("
     AND (p.name NOT ILIKE '%deprecated%' OR p.name IS NULL)
     AND (p.category NOT ILIKE '%deprecated%' OR p.category IS NULL)
   ORDER BY
-    COALESCE(p.hcpcs_code, ''),
-    LOWER(TRIM(COALESCE(p.size, ''))),
+    CASE
+      WHEN p.hcpcs_code IS NOT NULL AND p.hcpcs_code != '' THEN p.hcpcs_code || '|' || LOWER(TRIM(COALESCE(p.size, '')))
+      ELSE 'NO_HCPCS|' || LOWER(TRIM(p.name)) || '|' || LOWER(TRIM(COALESCE(p.size, '')))
+    END,
     CASE WHEN p.hcpcs_code IS NOT NULL AND p.hcpcs_code != '' THEN 0 ELSE 1 END,
     CASE WHEN p.price_wholesale > 0 THEN 0 ELSE 1 END,
     LENGTH(p.name) DESC,

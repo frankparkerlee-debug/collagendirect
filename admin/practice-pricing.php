@@ -119,17 +119,25 @@ $practices = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch all products (excluding deprecated ones and duplicates)
 // Use DISTINCT ON with HCPCS + size to remove duplicates (e.g., "Collagen Dressing" vs "Collagen Drx")
+// For products WITHOUT HCPCS codes, use product name to avoid grouping different products together
 // Prefer products with complete data (HCPCS code, proper pricing, longer names)
 $stmt = $pdo->query("
-  SELECT DISTINCT ON (COALESCE(hcpcs_code, ''), LOWER(TRIM(COALESCE(size, ''))))
+  SELECT DISTINCT ON (
+    CASE
+      WHEN hcpcs_code IS NOT NULL AND hcpcs_code != '' THEN hcpcs_code || '|' || LOWER(TRIM(COALESCE(size, '')))
+      ELSE 'NO_HCPCS|' || LOWER(TRIM(name)) || '|' || LOWER(TRIM(COALESCE(size, '')))
+    END
+  )
     id, name, size, price_wholesale, pieces_per_box, category, hcpcs_code
   FROM products
   WHERE active = TRUE
     AND (name NOT ILIKE '%deprecated%' OR name IS NULL)
     AND (category NOT ILIKE '%deprecated%' OR category IS NULL)
   ORDER BY
-    COALESCE(hcpcs_code, ''),
-    LOWER(TRIM(COALESCE(size, ''))),
+    CASE
+      WHEN hcpcs_code IS NOT NULL AND hcpcs_code != '' THEN hcpcs_code || '|' || LOWER(TRIM(COALESCE(size, '')))
+      ELSE 'NO_HCPCS|' || LOWER(TRIM(name)) || '|' || LOWER(TRIM(COALESCE(size, '')))
+    END,
     CASE WHEN hcpcs_code IS NOT NULL AND hcpcs_code != '' THEN 0 ELSE 1 END,
     CASE WHEN price_wholesale > 0 THEN 0 ELSE 1 END,
     LENGTH(name) DESC,
