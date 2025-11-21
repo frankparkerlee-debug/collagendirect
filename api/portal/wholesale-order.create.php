@@ -182,22 +182,36 @@ try {
         ]);
       }
     } else {
-      // For office stock, create a placeholder patient (auto-approved)
-      $patientId = guid();
-      $pdo->prepare("
-        INSERT INTO patients
-          (id, user_id, first_name, last_name, phone, address, city, zip, state, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'approved', NOW(), NOW())
-      ")->execute([
-        $patientId,
-        $uid,
-        'Office',
-        'Stock',
-        null,
-        null,
-        null,
-        null
-      ]);
+      // For office stock, use or create a shared "Office Stock" patient for this user
+      $officeStockStmt = $pdo->prepare("
+        SELECT id FROM patients
+        WHERE user_id = ? AND first_name = 'Office' AND last_name = 'Stock'
+        LIMIT 1
+      ");
+      $officeStockStmt->execute([$uid]);
+      $officeStock = $officeStockStmt->fetch(PDO::FETCH_ASSOC);
+
+      if ($officeStock) {
+        // Use existing Office Stock patient
+        $patientId = $officeStock['id'];
+      } else {
+        // Create a single Office Stock patient for this practice (auto-approved)
+        $patientId = guid();
+        $pdo->prepare("
+          INSERT INTO patients
+            (id, user_id, first_name, last_name, phone, address, city, zip, state, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'approved', NOW(), NOW())
+        ")->execute([
+          $patientId,
+          $uid,
+          'Office',
+          'Stock',
+          null,
+          null,
+          null,
+          null
+        ]);
+      }
     }
 
     $patientIds[$patientIndex] = $patientId;

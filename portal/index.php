@@ -2334,12 +2334,12 @@ if ($action) {
     ")->fetchAll(PDO::FETCH_COLUMN);
 
     $hcpcsCol = in_array('hcpcs_code', $colCheck) ? 'hcpcs_code' : 'cpt_code';
-    $categoryCol = in_array('category', $colCheck) ? ', category' : '';
-    $wholesalePriceCol = in_array('price_wholesale', $colCheck) ? ', price_wholesale' : '';
-    $piecesPerBoxCol = in_array('pieces_per_box', $colCheck) ? ', pieces_per_box' : '';
-    $canBePrimaryCol = in_array('can_be_primary', $colCheck) ? ', can_be_primary' : '';
-    $canBeSecondaryCol = in_array('can_be_secondary', $colCheck) ? ', can_be_secondary' : '';
-    $canBeAdditionalCol = in_array('can_be_additional', $colCheck) ? ', can_be_additional' : '';
+    $categoryCol = in_array('category', $colCheck) ? ', p.category' : '';
+    $wholesalePriceCol = in_array('price_wholesale', $colCheck) ? ', p.price_wholesale' : '';
+    $piecesPerBoxCol = in_array('pieces_per_box', $colCheck) ? ', p.pieces_per_box' : '';
+    $canBePrimaryCol = in_array('can_be_primary', $colCheck) ? ', p.can_be_primary' : '';
+    $canBeSecondaryCol = in_array('can_be_secondary', $colCheck) ? ', p.can_be_secondary' : '';
+    $canBeAdditionalCol = in_array('can_be_additional', $colCheck) ? ', p.can_be_additional' : '';
 
     // Include practice-specific pricing if practice_pricing table exists
     $hasPracticePricing = false;
@@ -2356,13 +2356,30 @@ if ($action) {
 
     if ($hasPracticePricing) {
       // Get products with practice-specific pricing override
-      $sql = "SELECT p.id, p.name, p.size, p.size AS uom, p.price_admin AS price, p.{$hcpcsCol} AS hcpcs_code{$categoryCol}{$wholesalePriceCol}{$piecesPerBoxCol}{$canBePrimaryCol}{$canBeSecondaryCol}{$canBeAdditionalCol},
-                     COALESCE(pp.custom_price, p.price_wholesale) AS effective_wholesale_price,
-                     pp.discount_percentage
+      // NOW ALIGNED: Uses same deduplication and deprecated filters as wholesale (portal/wholesale-new.php)
+      $sql = "SELECT DISTINCT ON (
+                CASE
+                  WHEN p.hcpcs_code IS NOT NULL AND p.hcpcs_code != '' THEN p.hcpcs_code || '|' || LOWER(TRIM(COALESCE(p.size, '')))
+                  ELSE 'NO_HCPCS|' || LOWER(TRIM(p.name)) || '|' || LOWER(TRIM(COALESCE(p.size, '')))
+                END
+              )
+              p.id, p.name, p.size, p.size AS uom, p.price_admin AS price, p.{$hcpcsCol} AS hcpcs_code{$categoryCol}{$wholesalePriceCol}{$piecesPerBoxCol}{$canBePrimaryCol}{$canBeSecondaryCol}{$canBeAdditionalCol},
+              COALESCE(pp.custom_price, p.price_wholesale) AS effective_wholesale_price,
+              pp.discount_percentage
               FROM products p
               LEFT JOIN practice_pricing pp ON pp.product_id = p.id AND pp.user_id = ?
-              WHERE p.active=TRUE
-              ORDER BY p.name ASC";
+              WHERE p.active = TRUE
+                AND (p.name NOT ILIKE '%deprecated%' OR p.name IS NULL)
+                AND (p.category NOT ILIKE '%deprecated%' OR p.category IS NULL)
+              ORDER BY
+                CASE
+                  WHEN p.hcpcs_code IS NOT NULL AND p.hcpcs_code != '' THEN p.hcpcs_code || '|' || LOWER(TRIM(COALESCE(p.size, '')))
+                  ELSE 'NO_HCPCS|' || LOWER(TRIM(p.name)) || '|' || LOWER(TRIM(COALESCE(p.size, '')))
+                END,
+                CASE WHEN p.hcpcs_code IS NOT NULL AND p.hcpcs_code != '' THEN 0 ELSE 1 END,
+                CASE WHEN p.price_wholesale > 0 THEN 0 ELSE 1 END,
+                LENGTH(p.name) DESC,
+                p.id ASC";
       $stmt = $pdo->prepare($sql);
       $stmt->execute([$userId]);
       $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -2375,9 +2392,27 @@ if ($action) {
         }
       }
     } else {
-      // Fallback to standard query
-      $sql = "SELECT id, name, size, size AS uom, price_admin AS price, {$hcpcsCol} AS hcpcs_code{$categoryCol}{$wholesalePriceCol}{$piecesPerBoxCol}{$canBePrimaryCol}{$canBeSecondaryCol}{$canBeAdditionalCol}
-              FROM products WHERE active=TRUE ORDER BY name ASC";
+      // Fallback to standard query (also with deduplication and deprecated filter)
+      $sql = "SELECT DISTINCT ON (
+                CASE
+                  WHEN hcpcs_code IS NOT NULL AND hcpcs_code != '' THEN hcpcs_code || '|' || LOWER(TRIM(COALESCE(size, '')))
+                  ELSE 'NO_HCPCS|' || LOWER(TRIM(name)) || '|' || LOWER(TRIM(COALESCE(size, '')))
+                END
+              )
+              id, name, size, size AS uom, price_admin AS price, {$hcpcsCol} AS hcpcs_code{$categoryCol}{$wholesalePriceCol}{$piecesPerBoxCol}{$canBePrimaryCol}{$canBeSecondaryCol}{$canBeAdditionalCol}
+              FROM products
+              WHERE active = TRUE
+                AND (name NOT ILIKE '%deprecated%' OR name IS NULL)
+                AND (category NOT ILIKE '%deprecated%' OR category IS NULL)
+              ORDER BY
+                CASE
+                  WHEN hcpcs_code IS NOT NULL AND hcpcs_code != '' THEN hcpcs_code || '|' || LOWER(TRIM(COALESCE(size, '')))
+                  ELSE 'NO_HCPCS|' || LOWER(TRIM(name)) || '|' || LOWER(TRIM(COALESCE(size, '')))
+                END,
+                CASE WHEN hcpcs_code IS NOT NULL AND hcpcs_code != '' THEN 0 ELSE 1 END,
+                CASE WHEN price_wholesale > 0 THEN 0 ELSE 1 END,
+                LENGTH(name) DESC,
+                id ASC";
       $rows = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
 

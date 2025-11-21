@@ -88,8 +88,29 @@ if ($selectedPracticeId) {
   $practiceLocations = $locStmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-// Get all active products
-$productsStmt = $pdo->query("SELECT * FROM products WHERE active = TRUE ORDER BY name ASC");
+// Get all active products (deduplicated, no deprecated products - same as portal)
+$productsStmt = $pdo->query("
+  SELECT DISTINCT ON (
+    CASE
+      WHEN hcpcs_code IS NOT NULL AND hcpcs_code != '' THEN hcpcs_code || '|' || LOWER(TRIM(COALESCE(size, '')))
+      ELSE 'NO_HCPCS|' || LOWER(TRIM(name)) || '|' || LOWER(TRIM(COALESCE(size, '')))
+    END
+  )
+    *
+  FROM products
+  WHERE active = TRUE
+    AND (name NOT ILIKE '%deprecated%' OR name IS NULL)
+    AND (category NOT ILIKE '%deprecated%' OR category IS NULL)
+  ORDER BY
+    CASE
+      WHEN hcpcs_code IS NOT NULL AND hcpcs_code != '' THEN hcpcs_code || '|' || LOWER(TRIM(COALESCE(size, '')))
+      ELSE 'NO_HCPCS|' || LOWER(TRIM(name)) || '|' || LOWER(TRIM(COALESCE(size, '')))
+    END,
+    CASE WHEN hcpcs_code IS NOT NULL AND hcpcs_code != '' THEN 0 ELSE 1 END,
+    CASE WHEN price_wholesale > 0 THEN 0 ELSE 1 END,
+    LENGTH(name) DESC,
+    id ASC
+");
 $products = $productsStmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Get custom pricing for selected practice
@@ -106,22 +127,33 @@ if ($selectedPracticeId) {
   }
 }
 
-// Build product data for JavaScript with pricing
+// Build product data for JavaScript with pricing (same logic as portal)
 $productDataForJS = [];
 foreach ($products as $product) {
-  $piecesPerBox = $product['pieces_per_box'] ?? 1;
-  $defaultPricePerBox = $product['price_wholesale'];
+  $piecesPerBox = max(1, (int)($product['pieces_per_box'] ?? 10));
+  $defaultPricePerBox = (float)($product['price_wholesale'] ?? 0);
   $defaultPricePerPiece = $piecesPerBox > 0 ? $defaultPricePerBox / $piecesPerBox : 0;
 
+  // Apply practice-specific pricing (same as portal/wholesale-new.php lines 48-53)
   $pricePerPiece = $defaultPricePerPiece;
   if (isset($customPricing[$product['id']])) {
-    $pricePerPiece = (float)$customPricing[$product['id']]['custom_price'];
+    $customPrice = (float)($customPricing[$product['id']]['custom_price'] ?? 0);
+    $discountPct = (float)($customPricing[$product['id']]['discount_percentage'] ?? 0);
+
+    if ($customPrice > 0) {
+      // Custom price per piece
+      $pricePerPiece = $customPrice;
+    } elseif ($discountPct != 0) {
+      // Apply discount/upcharge percentage to default price
+      $pricePerPiece = $defaultPricePerPiece * (1 - $discountPct / 100);
+    }
   }
   $pricePerBox = $pricePerPiece * $piecesPerBox;
 
   $productDataForJS[$product['id']] = [
     'id' => $product['id'],
     'name' => $product['name'],
+    'size' => $product['size'] ?? '',
     'pieces_per_box' => $piecesPerBox,
     'price_per_box' => $pricePerBox,
     'price_per_piece' => $pricePerPiece
