@@ -105,14 +105,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
 }
 
-// Fetch locations
-$locations = $pdo->prepare("
-  SELECT * FROM practice_locations
-  WHERE user_id = ? AND is_active = TRUE
-  ORDER BY is_primary DESC, location_name ASC
-");
-$locations->execute([$userId]);
-$locations = $locations->fetchAll(PDO::FETCH_ASSOC);
+// Check if table exists first
+$tableExists = false;
+try {
+  $tableCheck = $pdo->query("
+    SELECT EXISTS (
+      SELECT FROM information_schema.tables
+      WHERE table_name = 'practice_locations'
+    )
+  ");
+  $tableExists = $tableCheck->fetchColumn();
+} catch (Exception $e) {
+  $tableExists = false;
+}
+
+// Fetch locations if table exists
+$locations = [];
+if ($tableExists) {
+  try {
+    $locationsStmt = $pdo->prepare("
+      SELECT * FROM practice_locations
+      WHERE user_id = ? AND is_active = TRUE
+      ORDER BY is_primary DESC, location_name ASC
+    ");
+    $locationsStmt->execute([$userId]);
+    $locations = $locationsStmt->fetchAll(PDO::FETCH_ASSOC);
+  } catch (Exception $e) {
+    $_SESSION['error_msg'] = 'Error loading locations: ' . $e->getMessage();
+  }
+}
 ?>
 
 <!-- Google Maps Places API -->
@@ -268,7 +289,15 @@ $locations = $locations->fetchAll(PDO::FETCH_ASSOC);
     </div>
     <?php unset($_SESSION['error_msg']); endif; ?>
 
-  <?php if (empty($locations) && !$isPracticeAdmin): ?>
+  <?php if (!$tableExists): ?>
+    <div style="background: #fef3c7; border: 1px solid #f59e0b; color: #92400e; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem;">
+      <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5rem;">⚠️ Database Setup Required</h3>
+      <p style="margin-bottom: 1rem;">The practice_locations table needs to be created before you can manage locations.</p>
+      <a href="/admin/fix-schema-direct.php" style="background: #f59e0b; color: white; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; display: inline-block; font-weight: 600;">
+        Run Database Setup
+      </a>
+    </div>
+  <?php elseif (empty($locations) && !$isPracticeAdmin): ?>
     <div class="empty-state">
       <svg width="64" height="64" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin: 0 auto 1rem; opacity: 0.3;">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
