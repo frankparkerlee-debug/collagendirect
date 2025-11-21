@@ -390,6 +390,59 @@ $locations = $locations->fetchAll(PDO::FETCH_ASSOC);
   </div>
 </div>
 
+<!-- Google Maps Places API for Address Autocomplete -->
+<?php if (defined('GOOGLE_MAPS_API_KEY') && GOOGLE_MAPS_API_KEY): ?>
+<script src="https://maps.googleapis.com/maps/api/js?key=<?= GOOGLE_MAPS_API_KEY ?>&libraries=places"></script>
+<script>
+let autocomplete;
+
+function initAutocomplete() {
+  const addressInput = document.getElementById('address');
+
+  autocomplete = new google.maps.places.Autocomplete(addressInput, {
+    types: ['address'],
+    componentRestrictions: { country: 'us' }
+  });
+
+  autocomplete.addListener('place_changed', function() {
+    const place = autocomplete.getPlace();
+
+    if (!place.address_components) {
+      return;
+    }
+
+    // Parse address components
+    let street = '';
+    let city = '';
+    let state = '';
+    let zip = '';
+
+    place.address_components.forEach(component => {
+      const types = component.types;
+
+      if (types.includes('street_number')) {
+        street = component.long_name;
+      } else if (types.includes('route')) {
+        street += (street ? ' ' : '') + component.long_name;
+      } else if (types.includes('locality')) {
+        city = component.long_name;
+      } else if (types.includes('administrative_area_level_1')) {
+        state = component.short_name;
+      } else if (types.includes('postal_code')) {
+        zip = component.long_name;
+      }
+    });
+
+    // Auto-fill the form fields
+    document.getElementById('address').value = street;
+    document.getElementById('city').value = city;
+    document.getElementById('state').value = state;
+    document.getElementById('zip').value = zip;
+  });
+}
+</script>
+<?php endif; ?>
+
 <script>
 function openAddModal() {
   document.getElementById('modal-title').textContent = 'Add Location';
@@ -397,6 +450,11 @@ function openAddModal() {
   document.getElementById('location-form').reset();
   document.getElementById('location-id').value = '';
   document.getElementById('location-modal').classList.add('active');
+
+  // Initialize Google Maps autocomplete when modal opens
+  <?php if (defined('GOOGLE_MAPS_API_KEY') && GOOGLE_MAPS_API_KEY): ?>
+  setTimeout(initAutocomplete, 100);
+  <?php endif; ?>
 }
 
 function openEditModal(location) {
@@ -410,6 +468,11 @@ function openEditModal(location) {
   document.getElementById('zip').value = location.zip;
   document.getElementById('phone').value = location.phone || '';
   document.getElementById('location-modal').classList.add('active');
+
+  // Initialize Google Maps autocomplete when modal opens
+  <?php if (defined('GOOGLE_MAPS_API_KEY') && GOOGLE_MAPS_API_KEY): ?>
+  setTimeout(initAutocomplete, 100);
+  <?php endif; ?>
 }
 
 function closeModal() {
