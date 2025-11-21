@@ -5007,10 +5007,6 @@ if ($page==='logout'){
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
         <span>Physician Roster</span>
       </a>
-      <a class="<?php echo $page==='practice-locations'?'active':''; ?>" href="/portal/practice-locations.php">
-        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-        <span>Practice Locations</span>
-      </a>
       <?php endif; ?>
       <a class="<?php echo $page==='profile'?'active':''; ?>" href="?page=profile">
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
@@ -5584,6 +5580,11 @@ if ($page==='logout'){
   </section>
 
 <?php elseif ($page==='profile'): ?>
+  <!-- Google Maps Places API for address autocomplete -->
+  <?php if (defined('GOOGLE_MAPS_API_KEY') && GOOGLE_MAPS_API_KEY): ?>
+  <script src="https://maps.googleapis.com/maps/api/js?key=<?= GOOGLE_MAPS_API_KEY ?>&libraries=places"></script>
+  <?php endif; ?>
+
   <div class="mb-4">
     <h1 class="text-2xl font-bold">Admin</h1>
     <p class="text-slate-600 mt-1">Manage your profile, practice information, and account settings</p>
@@ -5952,68 +5953,432 @@ if ($page==='logout'){
     <!-- Practice Locations Tab -->
     <div class="profile-tab-content hidden" data-tab-content="locations">
       <?php
-      // Fetch practice locations for this user
-      $locationsStmt = $pdo->prepare("
-        SELECT * FROM practice_locations
-        WHERE user_id = ? AND is_active = TRUE
-        ORDER BY is_primary DESC, location_name ASC
-      ");
-      $locationsStmt->execute([$userId]);
-      $practiceLocations = $locationsStmt->fetchAll(PDO::FETCH_ASSOC);
+      // Check if table exists first
+      $tableExists = false;
+      try {
+        $tableCheck = $pdo->query("
+          SELECT EXISTS (
+            SELECT FROM information_schema.tables
+            WHERE table_name = 'practice_locations'
+          )
+        ");
+        $tableExists = $tableCheck->fetchColumn();
+      } catch (Exception $e) {
+        $tableExists = false;
+      }
+
+      // Fetch practice locations for this user if table exists
+      $practiceLocations = [];
+      if ($tableExists) {
+        try {
+          $locationsStmt = $pdo->prepare("
+            SELECT * FROM practice_locations
+            WHERE user_id = ? AND is_active = TRUE
+            ORDER BY is_primary DESC, location_name ASC
+          ");
+          $locationsStmt->execute([$userId]);
+          $practiceLocations = $locationsStmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+          // Error fetching locations
+        }
+      }
       ?>
-      <div class="max-w-6xl">
-        <div class="flex items-center justify-between mb-6">
-          <div>
-            <h2 class="text-lg font-semibold">Practice Locations</h2>
-            <p class="text-sm text-slate-600 mt-1">Manage delivery addresses for wholesale orders</p>
-          </div>
-          <button onclick="openAddLocationModal()" class="btn btn-primary">
-            + Add Location
-          </button>
+
+      <style>
+.locations-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.locations-table thead {
+  background: #f1f5f9;
+}
+
+.locations-table th {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  color: #475569;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.locations-table td {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.875rem;
+}
+
+.locations-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.primary-badge {
+  background: #10b981;
+  color: white;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.location-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+.location-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.add-row {
+  background: #f0fdf4 !important;
+}
+
+.add-row td {
+  border-bottom: 2px solid #10b981;
+}
+
+.profile-locations-btn {
+  background: #3b82f6;
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.profile-locations-btn:hover {
+  background: #2563eb;
+}
+
+.profile-locations-btn-secondary {
+  background: white;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+}
+
+.profile-locations-btn-secondary:hover {
+  background: #f1f5f9;
+}
+
+.profile-locations-btn-danger {
+  background: #ef4444;
+  color: white;
+  border-color: #ef4444;
+}
+
+.profile-locations-btn-danger:hover {
+  background: #dc2626;
+}
+
+.profile-locations-btn-small {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8125rem;
+}
+      </style>
+
+      <div class="max-w-full">
+        <div style="margin-bottom: 1.5rem;">
+          <h2 class="text-lg font-semibold mb-1">Practice Locations</h2>
+          <p class="text-sm text-slate-600">Manage delivery addresses for wholesale orders. Click "+ Add Location" to add a new row.</p>
         </div>
 
-        <div id="profile-locations-success" class="hidden bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg mb-4"></div>
-        <div id="profile-locations-error" class="hidden bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-4"></div>
-
-        <?php if (empty($practiceLocations)): ?>
-          <div class="text-center py-12 bg-white rounded-lg border border-slate-200">
-            <svg width="64" height="64" fill="none" stroke="currentColor" viewBox="0 0 24 24" class="mx-auto mb-4 opacity-30">
+        <?php if (!$tableExists): ?>
+          <div style="background: #fef3c7; border: 1px solid #f59e0b; color: #92400e; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem;">
+            <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5rem;">⚠️ Database Setup Required</h3>
+            <p style="margin-bottom: 1rem;">The practice_locations table needs to be created before you can manage locations.</p>
+            <a href="/admin/fix-schema-direct.php" style="background: #f59e0b; color: white; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; display: inline-block; font-weight: 600;">
+              Run Database Setup
+            </a>
+          </div>
+        <?php elseif (empty($practiceLocations) && !$isPracticeAdmin): ?>
+          <div style="text-align: center; padding: 3rem; background: white; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <svg width="64" height="64" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin: 0 auto 1rem; opacity: 0.3;">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
             </svg>
-            <h3 class="text-lg font-medium mb-2">No locations yet</h3>
-            <p class="text-slate-600 mb-4">Add your first practice location to start ordering</p>
-            <button onclick="openAddLocationModal()" class="btn btn-primary">Add Location</button>
+            <h3 style="font-size: 1.125rem; margin-bottom: 0.5rem;">No locations yet</h3>
+            <p style="color: #64748b;">Contact your practice admin to add locations</p>
           </div>
         <?php else: ?>
-          <div id="locations-list" class="space-y-3">
-            <?php foreach ($practiceLocations as $location): ?>
-              <div class="bg-white rounded-lg border <?= $location['is_primary'] ? 'border-green-500 border-2' : 'border-slate-200' ?> p-4 relative">
-                <?php if ($location['is_primary']): ?>
-                  <span class="absolute top-4 right-4 bg-green-500 text-white text-xs font-semibold px-2 py-1 rounded">PRIMARY</span>
-                <?php endif; ?>
+          <table class="locations-table">
+            <thead>
+              <tr>
+                <th style="width: 20%;">Location Name</th>
+                <th style="width: 25%;">Street Address</th>
+                <th style="width: 15%;">City</th>
+                <th style="width: 8%;">State</th>
+                <th style="width: 10%;">ZIP</th>
+                <th style="width: 12%;">Phone</th>
+                <th style="width: 10%; text-align: center;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ($practiceLocations as $location): ?>
+                <tr data-location-id="<?= $location['id'] ?>">
+                  <td>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                      <?= htmlspecialchars($location['location_name']) ?>
+                      <?php if ($location['is_primary']): ?>
+                        <span class="primary-badge">PRIMARY</span>
+                      <?php endif; ?>
+                    </div>
+                  </td>
+                  <td><?= htmlspecialchars($location['address']) ?></td>
+                  <td><?= htmlspecialchars($location['city']) ?></td>
+                  <td><?= htmlspecialchars($location['state']) ?></td>
+                  <td><?= htmlspecialchars($location['zip']) ?></td>
+                  <td><?= htmlspecialchars($location['phone'] ?: '-') ?></td>
+                  <td style="text-align: center;">
+                    <?php if ($isPracticeAdmin): ?>
+                      <button onclick="editProfileLocation(<?= $location['id'] ?>)" class="profile-locations-btn profile-locations-btn-secondary profile-locations-btn-small">Edit</button>
+                      <?php if (!$location['is_primary']): ?>
+                        <form method="POST" action="/portal/practice-locations.php" style="display: inline;" onsubmit="return confirm('Set as primary location?');">
+                          <input type="hidden" name="action" value="set_primary">
+                          <input type="hidden" name="location_id" value="<?= $location['id'] ?>">
+                          <button type="submit" class="profile-locations-btn profile-locations-btn-secondary profile-locations-btn-small">Set Primary</button>
+                        </form>
+                        <form method="POST" action="/portal/practice-locations.php" style="display: inline;" onsubmit="return confirm('Delete this location?');">
+                          <input type="hidden" name="action" value="delete">
+                          <input type="hidden" name="location_id" value="<?= $location['id'] ?>">
+                          <button type="submit" class="profile-locations-btn profile-locations-btn-danger profile-locations-btn-small">Delete</button>
+                        </form>
+                      <?php endif; ?>
+                    <?php endif; ?>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
 
-                <h3 class="text-base font-semibold mb-2"><?= htmlspecialchars($location['location_name']) ?></h3>
-                <div class="text-sm text-slate-600 space-y-1">
-                  <div><?= htmlspecialchars($location['address']) ?></div>
-                  <div><?= htmlspecialchars($location['city']) ?>, <?= htmlspecialchars($location['state']) ?> <?= htmlspecialchars($location['zip']) ?></div>
-                  <?php if ($location['phone']): ?>
-                    <div>Phone: <?= htmlspecialchars($location['phone']) ?></div>
-                  <?php endif; ?>
-                </div>
+              <!-- Add New Row (always visible when admin) -->
+              <?php if ($isPracticeAdmin): ?>
+                <tr class="add-row" id="profile-add-row" style="display: none;">
+                  <td colspan="7">
+                    <form method="POST" action="/portal/practice-locations.php" id="profile-add-form" style="display: grid; grid-template-columns: 1fr 1.5fr 1fr 0.5fr 0.75fr 1fr auto; gap: 0.75rem; align-items: end;">
+                      <input type="hidden" name="action" value="add">
 
-                <div class="flex gap-2 mt-3">
-                  <button onclick='editLocation(<?= json_encode($location) ?>)' class="text-sm px-3 py-1 bg-slate-100 hover:bg-slate-200 rounded">Edit</button>
-                  <?php if (!$location['is_primary']): ?>
-                    <button onclick="setPrimaryLocation(<?= $location['id'] ?>)" class="text-sm px-3 py-1 bg-slate-100 hover:bg-slate-200 rounded">Set as Primary</button>
-                    <button onclick="deleteLocation(<?= $location['id'] ?>)" class="text-sm px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded">Delete</button>
-                  <?php endif; ?>
-                </div>
-              </div>
-            <?php endforeach; ?>
-          </div>
+                      <div>
+                        <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 0.25rem;">Location Name *</label>
+                        <input type="text" name="location_name" class="location-input" placeholder="Main Office" required>
+                      </div>
+
+                      <div>
+                        <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 0.25rem;">Street Address *</label>
+                        <input type="text" name="address" id="profile-new-address" class="location-input address-autocomplete" placeholder="123 Main St" required>
+                      </div>
+
+                      <div>
+                        <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 0.25rem;">City *</label>
+                        <input type="text" name="city" id="profile-new-city" class="location-input" required>
+                      </div>
+
+                      <div>
+                        <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 0.25rem;">State *</label>
+                        <input type="text" name="state" id="profile-new-state" class="location-input" maxlength="2" pattern="[A-Z]{2}" placeholder="TX" required style="text-transform: uppercase;">
+                      </div>
+
+                      <div>
+                        <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 0.25rem;">ZIP *</label>
+                        <input type="text" name="zip" id="profile-new-zip" class="location-input" pattern="\d{5}" maxlength="5" required>
+                      </div>
+
+                      <div>
+                        <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 0.25rem;">Phone</label>
+                        <input type="tel" name="phone" class="location-input" placeholder="(123) 456-7890">
+                      </div>
+
+                      <div style="display: flex; gap: 0.5rem;">
+                        <button type="submit" class="profile-locations-btn">Save</button>
+                        <button type="button" onclick="cancelProfileAdd()" class="profile-locations-btn profile-locations-btn-secondary">Cancel</button>
+                      </div>
+                    </form>
+                  </td>
+                </tr>
+
+                <!-- Edit Row (hidden by default) -->
+                <tr class="add-row" id="profile-edit-row" style="display: none;">
+                  <td colspan="7">
+                    <form method="POST" action="/portal/practice-locations.php" id="profile-edit-form" style="display: grid; grid-template-columns: 1fr 1.5fr 1fr 0.5fr 0.75fr 1fr auto; gap: 0.75rem; align-items: end;">
+                      <input type="hidden" name="action" value="edit">
+                      <input type="hidden" name="location_id" id="profile-edit-location-id">
+
+                      <div>
+                        <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 0.25rem;">Location Name *</label>
+                        <input type="text" name="location_name" id="profile-edit-name" class="location-input" required>
+                      </div>
+
+                      <div>
+                        <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 0.25rem;">Street Address *</label>
+                        <input type="text" name="address" id="profile-edit-address" class="location-input address-autocomplete" required>
+                      </div>
+
+                      <div>
+                        <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 0.25rem;">City *</label>
+                        <input type="text" name="city" id="profile-edit-city" class="location-input" required>
+                      </div>
+
+                      <div>
+                        <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 0.25rem;">State *</label>
+                        <input type="text" name="state" id="profile-edit-state" class="location-input" maxlength="2" pattern="[A-Z]{2}" required style="text-transform: uppercase;">
+                      </div>
+
+                      <div>
+                        <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 0.25rem;">ZIP *</label>
+                        <input type="text" name="zip" id="profile-edit-zip" class="location-input" pattern="\d{5}" maxlength="5" required>
+                      </div>
+
+                      <div>
+                        <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 0.25rem;">Phone</label>
+                        <input type="tel" name="phone" id="profile-edit-phone" class="location-input">
+                      </div>
+
+                      <div style="display: flex; gap: 0.5rem;">
+                        <button type="submit" class="profile-locations-btn">Update</button>
+                        <button type="button" onclick="cancelProfileEdit()" class="profile-locations-btn profile-locations-btn-secondary">Cancel</button>
+                      </div>
+                    </form>
+                  </td>
+                </tr>
+              <?php endif; ?>
+            </tbody>
+          </table>
+
+          <?php if ($isPracticeAdmin): ?>
+            <div style="margin-top: 1rem;">
+              <button onclick="showProfileAddRow()" class="profile-locations-btn" id="profile-add-btn">+ Add Location</button>
+            </div>
+          <?php endif; ?>
         <?php endif; ?>
       </div>
+
+      <script>
+let profileCurrentEditRow = null;
+let profileAutocompleteInstances = {};
+
+function showProfileAddRow() {
+  document.getElementById('profile-add-row').style.display = 'table-row';
+  document.getElementById('profile-add-btn').style.display = 'none';
+  document.getElementById('profile-edit-row').style.display = 'none';
+
+  // Initialize autocomplete for new address
+  <?php if (defined('GOOGLE_MAPS_API_KEY') && GOOGLE_MAPS_API_KEY): ?>
+  setTimeout(() => initProfileAutocomplete('profile-new-address', 'profile-new-city', 'profile-new-state', 'profile-new-zip'), 100);
+  <?php endif; ?>
+}
+
+function cancelProfileAdd() {
+  document.getElementById('profile-add-row').style.display = 'none';
+  document.getElementById('profile-add-btn').style.display = 'inline-block';
+  document.getElementById('profile-add-form').reset();
+}
+
+function editProfileLocation(locationId) {
+  // Hide add row if visible
+  document.getElementById('profile-add-row').style.display = 'none';
+  document.getElementById('profile-add-btn').style.display = 'none';
+
+  // Get location data from the row
+  const row = document.querySelector(`tr[data-location-id="${locationId}"]`);
+  const cells = row.querySelectorAll('td');
+
+  // Extract text content (strip HTML like badges)
+  const locationName = cells[0].textContent.trim().replace('PRIMARY', '').trim();
+  const address = cells[1].textContent.trim();
+  const city = cells[2].textContent.trim();
+  const state = cells[3].textContent.trim();
+  const zip = cells[4].textContent.trim();
+  const phone = cells[5].textContent.trim() === '-' ? '' : cells[5].textContent.trim();
+
+  // Populate edit form
+  document.getElementById('profile-edit-location-id').value = locationId;
+  document.getElementById('profile-edit-name').value = locationName;
+  document.getElementById('profile-edit-address').value = address;
+  document.getElementById('profile-edit-city').value = city;
+  document.getElementById('profile-edit-state').value = state;
+  document.getElementById('profile-edit-zip').value = zip;
+  document.getElementById('profile-edit-phone').value = phone;
+
+  // Show edit row
+  document.getElementById('profile-edit-row').style.display = 'table-row';
+  profileCurrentEditRow = locationId;
+
+  // Initialize autocomplete for edit address
+  <?php if (defined('GOOGLE_MAPS_API_KEY') && GOOGLE_MAPS_API_KEY): ?>
+  setTimeout(() => initProfileAutocomplete('profile-edit-address', 'profile-edit-city', 'profile-edit-state', 'profile-edit-zip'), 100);
+  <?php endif; ?>
+}
+
+function cancelProfileEdit() {
+  document.getElementById('profile-edit-row').style.display = 'none';
+  document.getElementById('profile-add-btn').style.display = 'inline-block';
+  document.getElementById('profile-edit-form').reset();
+  profileCurrentEditRow = null;
+}
+
+<?php if (defined('GOOGLE_MAPS_API_KEY') && GOOGLE_MAPS_API_KEY): ?>
+function initProfileAutocomplete(addressId, cityId, stateId, zipId) {
+  const addressInput = document.getElementById(addressId);
+
+  if (!addressInput || profileAutocompleteInstances[addressId]) {
+    return;
+  }
+
+  const autocomplete = new google.maps.places.Autocomplete(addressInput, {
+    types: ['address'],
+    componentRestrictions: { country: 'us' }
+  });
+
+  profileAutocompleteInstances[addressId] = autocomplete;
+
+  autocomplete.addListener('place_changed', function() {
+    const place = autocomplete.getPlace();
+
+    if (!place.address_components) {
+      return;
+    }
+
+    let street = '';
+    let city = '';
+    let state = '';
+    let zip = '';
+
+    place.address_components.forEach(component => {
+      const types = component.types;
+
+      if (types.includes('street_number')) {
+        street = component.long_name;
+      } else if (types.includes('route')) {
+        street += (street ? ' ' : '') + component.long_name;
+      } else if (types.includes('locality')) {
+        city = component.long_name;
+      } else if (types.includes('administrative_area_level_1')) {
+        state = component.short_name;
+      } else if (types.includes('postal_code')) {
+        zip = component.long_name;
+      }
+    });
+
+    document.getElementById(addressId).value = street;
+    document.getElementById(cityId).value = city;
+    document.getElementById(stateId).value = state;
+    document.getElementById(zipId).value = zip;
+  });
+}
+<?php endif; ?>
+      </script>
     </div>
 
     <!-- Security Tab -->
