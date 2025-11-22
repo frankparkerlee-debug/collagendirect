@@ -3665,6 +3665,7 @@ if ($action) {
       $first = trim((string)($_POST['first_name'] ?? ''));
       $last = trim((string)($_POST['last_name'] ?? ''));
       $email = strtolower(trim((string)($_POST['email'] ?? '')));
+      $npi = trim((string)($_POST['npi'] ?? ''));
       $license = trim((string)($_POST['license'] ?? ''));
       $license_state = trim((string)($_POST['license_state'] ?? ''));
       $license_expiry = $_POST['license_expiry'] ?? null;
@@ -3685,6 +3686,7 @@ if ($action) {
     $firstNameCol = in_array('first_name', $ppCols) ? 'first_name' : 'physician_first_name';
     $lastNameCol = in_array('last_name', $ppCols) ? 'last_name' : 'physician_last_name';
     $emailCol = in_array('email', $ppCols) ? 'email' : 'physician_email';
+    $npiCol = in_array('npi', $ppCols) ? 'npi' : null;
     $licenseCol = in_array('license', $ppCols) ? 'license' : 'physician_license';
     $licenseStateCol = in_array('license_state', $ppCols) ? 'license_state' : 'physician_license_state';
     $licenseExpiryCol = in_array('license_expiry', $ppCols) ? 'license_expiry' : 'physician_license_expiry';
@@ -3709,6 +3711,11 @@ if ($action) {
     $placeholders = ['?', '?', '?', '?', '?'];
 
     // Add optional columns only if they exist
+    if ($npiCol && in_array($npiCol, $ppCols)) {
+      $columns[] = $npiCol;
+      $values[] = $npi ?: null;
+      $placeholders[] = '?';
+    }
     if (in_array($licenseCol, $ppCols)) {
       $columns[] = $licenseCol;
       $values[] = $license ?: null;
@@ -5869,6 +5876,10 @@ if ($page==='logout'){
             <div>
               <label class="text-sm font-medium">Email *</label>
               <input type="email" id="phys-email" class="w-full mt-1" required>
+            </div>
+            <div>
+              <label class="text-sm font-medium">NPI</label>
+              <input type="text" id="phys-npi" class="w-full mt-1" placeholder="1234567890" maxlength="20">
             </div>
             <div class="grid grid-cols-2 gap-4">
               <div>
@@ -9591,6 +9602,7 @@ if (<?php echo json_encode($page==='profile'); ?>){
           const firstNameEl = form.querySelector('#phys-first-name');
           const lastNameEl = form.querySelector('#phys-last-name');
           const emailEl = form.querySelector('#phys-email');
+          const npiEl = form.querySelector('#phys-npi');
           const licenseEl = form.querySelector('#phys-license');
           const licenseStateEl = form.querySelector('#phys-license-state');
           const licenseExpiryEl = form.querySelector('#phys-license-expiry');
@@ -9604,6 +9616,7 @@ if (<?php echo json_encode($page==='profile'); ?>){
           const firstName = firstNameEl.value.trim();
           const lastName = lastNameEl.value.trim();
           const email = emailEl.value.trim();
+          const npi = npiEl ? npiEl.value.trim() : '';
           const license = licenseEl ? licenseEl.value.trim() : '';
           const licenseState = licenseStateEl ? licenseStateEl.value : '';
           const licenseExpiry = licenseExpiryEl ? licenseExpiryEl.value : '';
@@ -9622,6 +9635,7 @@ if (<?php echo json_encode($page==='profile'); ?>){
           formData.append('first_name', firstName);
           formData.append('last_name', lastName);
           formData.append('email', email);
+          formData.append('npi', npi);
           formData.append('license', license);
           formData.append('license_state', licenseState);
           formData.append('license_expiry', licenseExpiry);
