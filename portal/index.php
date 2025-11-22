@@ -7617,8 +7617,25 @@ function initProfileAutocomplete(addressId, cityId, stateId, zipId) {
             </div>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-3 bg-slate-50 rounded-xl border">
+            <?php if ($isPracticeAdmin): ?>
+            <div>
+              <label class="text-sm font-medium">Ordering Physician <span class="text-red-600">*</span></label>
+              <select id="physician-select" class="w-full">
+                <option value="">Select Physician...</option>
+                <option value="manual">Enter Manually</option>
+              </select>
+              <input id="sign-name" class="w-full mt-2" placeholder="Dr. Jane Doe" style="display: none;">
+            </div>
+            <?php else: ?>
             <div><label class="text-sm font-medium">E-Signature Name <span class="text-red-600">*</span></label><input id="sign-name" class="w-full" placeholder="Dr. Jane Doe"></div>
+            <?php endif; ?>
             <div><label class="text-sm">Title</label><input id="sign-title" class="w-full" placeholder="MD / PA-C / NP"></div>
+            <div class="hidden">
+              <label class="text-sm">NPI</label><input id="physician-npi" class="w-full" readonly>
+            </div>
+            <div class="hidden">
+              <label class="text-sm">License #</label><input id="physician-license" class="w-full" readonly>
+            </div>
             <label class="flex items-start gap-2 text-sm md:col-span-2"><input id="ack-sig" type="checkbox"> <span>I certify medical necessity and authorize this order (e-signature).</span></label>
           </div>
         </div>
@@ -11137,6 +11154,62 @@ async function openOrderDialog(preselectId=null){
   // hide office address by default
   const officeAddr = document.getElementById('office-addr');
   if (officeAddr) officeAddr.classList.add('hidden');
+
+  // Load physicians for practice admins
+  <?php if ($isPracticeAdmin): ?>
+  const physicianSelect = document.getElementById('physician-select');
+  const signNameInput = document.getElementById('sign-name');
+  if (physicianSelect) {
+    // Fetch physicians from practice_physicians table
+    try {
+      const physResponse = await fetch('/api/portal/get-physicians.php');
+      const physData = await physResponse.json();
+
+      if (physData.ok && physData.physicians) {
+        // Populate dropdown with physicians
+        physData.physicians.forEach(phys => {
+          const option = document.createElement('option');
+          option.value = phys.id;
+          option.textContent = phys.physician_name + (phys.npi ? ` (NPI: ${phys.npi})` : '');
+          option.dataset.name = phys.physician_name;
+          option.dataset.npi = phys.npi || '';
+          option.dataset.license = phys.license_number || '';
+          option.dataset.signature = phys.signature_text || phys.physician_name;
+          physicianSelect.insertBefore(option, physicianSelect.options[1]); // Insert before "Enter Manually"
+        });
+      }
+    } catch (e) {
+      console.error('Failed to load physicians:', e);
+    }
+
+    // Handle physician selection
+    physicianSelect.addEventListener('change', function() {
+      const selectedOption = this.options[this.selectedIndex];
+
+      if (this.value === 'manual') {
+        // Show manual input
+        signNameInput.style.display = 'block';
+        signNameInput.value = '';
+        signNameInput.removeAttribute('readonly');
+        document.getElementById('physician-npi').value = '';
+        document.getElementById('physician-license').value = '';
+      } else if (this.value) {
+        // Auto-populate from selected physician
+        signNameInput.style.display = 'block';
+        signNameInput.value = selectedOption.dataset.signature || selectedOption.dataset.name;
+        signNameInput.setAttribute('readonly', 'readonly');
+        document.getElementById('physician-npi').value = selectedOption.dataset.npi;
+        document.getElementById('physician-license').value = selectedOption.dataset.license;
+      } else {
+        // No selection
+        signNameInput.style.display = 'none';
+        signNameInput.value = '';
+        document.getElementById('physician-npi').value = '';
+        document.getElementById('physician-license').value = '';
+      }
+    });
+  }
+  <?php endif; ?>
 
   // clear office shipping (with null checks)
   ['ship-name','ship-phone','ship-addr','ship-city','ship-state','ship-zip'].forEach(id=>{
