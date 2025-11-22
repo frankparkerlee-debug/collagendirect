@@ -3711,7 +3711,8 @@ if ($action) {
 
     $adminCol = in_array('practice_admin_id', $ppCols) ? 'practice_admin_id' :
                 (in_array('practice_manager_id', $ppCols) ? 'practice_manager_id' : 'practice_user_id');
-    $npiCol = in_array('npi', $ppCols) ? 'npi' : null;
+    $npiCol = in_array('npi', $ppCols) ? 'npi' :
+              (in_array('physician_npi', $ppCols) ? 'physician_npi' : null);
     $licenseCol = in_array('license', $ppCols) ? 'license' :
                   (in_array('license_number', $ppCols) ? 'license_number' : 'physician_license');
     $licenseStateCol = in_array('license_state', $ppCols) ? 'license_state' : 'physician_license_state';
