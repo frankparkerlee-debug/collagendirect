@@ -3684,14 +3684,12 @@ if ($action) {
     try {
       $first = trim((string)($_POST['first_name'] ?? ''));
       $last = trim((string)($_POST['last_name'] ?? ''));
-      $email = strtolower(trim((string)($_POST['email'] ?? '')));
       $npi = trim((string)($_POST['npi'] ?? ''));
       $license = trim((string)($_POST['license'] ?? ''));
       $license_state = trim((string)($_POST['license_state'] ?? ''));
       $license_expiry = $_POST['license_expiry'] ?? null;
 
       if ($first === '' || $last === '') jerr('First and last name are required');
-      if (!filter_var($email, FILTER_VALIDATE_EMAIL)) jerr('Invalid email address');
 
       // Detect column names
       $ppCols = $pdo->query("
@@ -3762,62 +3760,10 @@ if ($action) {
       $stmt = $pdo->prepare($sql);
       $stmt->execute($values);
 
-      // Send welcome email to the physician
-      $practiceName = $user['practice_name'] ?? 'the practice';
-      $physicianFullName = trim($first . ' ' . $last);
+      // Get the inserted physician ID
+      $insertedId = $pdo->lastInsertId();
 
-      $emailSubject = "You've been added to $practiceName on CollagenDirect";
-      $emailHtml = "
-        <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
-          <h2 style='color: #2563eb;'>Welcome to CollagenDirect</h2>
-          <p>Hello Dr. $physicianFullName,</p>
-          <p>You have been added as a physician to <strong>$practiceName</strong> on the CollagenDirect platform.</p>
-
-          <h3>What is CollagenDirect?</h3>
-          <p>CollagenDirect is a comprehensive wound care management platform that enables healthcare providers to:</p>
-          <ul>
-            <li>Order advanced wound care products for patients</li>
-            <li>Track patient progress and treatment outcomes</li>
-            <li>Access clinical resources and support</li>
-            <li>Streamline the ordering and fulfillment process</li>
-          </ul>
-
-          <h3>Next Steps</h3>
-          <p>Your practice administrator at $practiceName can now create orders on your behalf. If you need to access the portal directly or have questions about the platform, please contact your practice administrator.</p>
-
-          <div style='margin-top: 30px; padding: 20px; background-color: #f3f4f6; border-radius: 8px;'>
-            <p style='margin: 0; font-size: 14px; color: #6b7280;'>
-              <strong>Questions?</strong> Contact our support team at
-              <a href='mailto:support@collagendirect.health' style='color: #2563eb;'>support@collagendirect.health</a>
-            </p>
-          </div>
-
-          <p style='margin-top: 30px; font-size: 12px; color: #9ca3af;'>
-            Best regards,<br>
-            The CollagenDirect Team
-          </p>
-        </div>
-      ";
-
-      // Send email (non-blocking, log errors but don't fail the request)
-      try {
-        $emailSent = sg_send(
-          ['email' => $email, 'name' => $physicianFullName],
-          $emailSubject,
-          $emailHtml,
-          ['categories' => ['physician', 'welcome']]
-        );
-        if ($emailSent) {
-          error_log("Welcome email sent successfully to physician: $email");
-        } else {
-          error_log("Failed to send welcome email to physician: $email (sg_send returned false)");
-        }
-      } catch (Exception $emailError) {
-        error_log("Exception sending welcome email to physician $email: " . $emailError->getMessage());
-        // Don't fail the request if email fails
-      }
-
-      jok(['physician_id' => $physicianId]);
+      jok(['physician_id' => $insertedId]);
     } catch (Exception $e) {
       error_log("Error adding physician: " . $e->getMessage());
       jerr('Database error: ' . $e->getMessage());
@@ -5897,10 +5843,6 @@ if ($page==='logout'){
                 <label class="text-sm font-medium">Last Name *</label>
                 <input type="text" id="phys-last-name" class="w-full mt-1" required>
               </div>
-            </div>
-            <div>
-              <label class="text-sm font-medium">Email *</label>
-              <input type="email" id="phys-email" class="w-full mt-1" required>
             </div>
             <div>
               <label class="text-sm font-medium">NPI</label>
@@ -9626,21 +9568,19 @@ if (<?php echo json_encode($page==='profile'); ?>){
 
           const firstNameEl = form.querySelector('#phys-first-name');
           const lastNameEl = form.querySelector('#phys-last-name');
-          const emailEl = form.querySelector('#phys-email');
           const npiEl = form.querySelector('#phys-npi');
           const licenseEl = form.querySelector('#phys-license');
           const licenseStateEl = form.querySelector('#phys-license-state');
           const licenseExpiryEl = form.querySelector('#phys-license-expiry');
 
-          if (!firstNameEl || !lastNameEl || !emailEl) {
+          if (!firstNameEl || !lastNameEl) {
             alert('Form elements not found. Please try again.');
-            console.error('Missing form elements:', {firstNameEl, lastNameEl, emailEl});
+            console.error('Missing form elements:', {firstNameEl, lastNameEl});
             return;
           }
 
           const firstName = firstNameEl.value.trim();
           const lastName = lastNameEl.value.trim();
-          const email = emailEl.value.trim();
           const npi = npiEl ? npiEl.value.trim() : '';
           const license = licenseEl ? licenseEl.value.trim() : '';
           const licenseState = licenseStateEl ? licenseStateEl.value : '';
@@ -9651,15 +9591,9 @@ if (<?php echo json_encode($page==='profile'); ?>){
             return;
           }
 
-          if (!email) {
-            alert('Email is required');
-            return;
-          }
-
           const formData = new FormData();
           formData.append('first_name', firstName);
           formData.append('last_name', lastName);
-          formData.append('email', email);
           formData.append('npi', npi);
           formData.append('license', license);
           formData.append('license_state', licenseState);
