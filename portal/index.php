@@ -7630,12 +7630,9 @@ function initProfileAutocomplete(addressId, cityId, stateId, zipId) {
             <div><label class="text-sm font-medium">E-Signature Name <span class="text-red-600">*</span></label><input id="sign-name" class="w-full" placeholder="Dr. Jane Doe"></div>
             <?php endif; ?>
             <div><label class="text-sm">Title</label><input id="sign-title" class="w-full" placeholder="MD / PA-C / NP"></div>
-            <div class="hidden">
-              <label class="text-sm">NPI</label><input id="physician-npi" class="w-full" readonly>
-            </div>
-            <div class="hidden">
-              <label class="text-sm">License #</label><input id="physician-license" class="w-full" readonly>
-            </div>
+            <input type="hidden" id="physician-id" value="">
+            <input type="hidden" id="physician-npi" value="">
+            <input type="hidden" id="physician-license" value="">
             <label class="flex items-start gap-2 text-sm md:col-span-2"><input id="ack-sig" type="checkbox"> <span>I certify medical necessity and authorize this order (e-signature).</span></label>
           </div>
         </div>
@@ -11170,7 +11167,7 @@ async function openOrderDialog(preselectId=null){
         physData.physicians.forEach(phys => {
           const option = document.createElement('option');
           option.value = phys.id;
-          option.textContent = phys.physician_name + (phys.npi ? ` (NPI: ${phys.npi})` : '');
+          option.textContent = phys.physician_name;
           option.dataset.name = phys.physician_name;
           option.dataset.npi = phys.npi || '';
           option.dataset.license = phys.license_number || '';
@@ -11191,6 +11188,7 @@ async function openOrderDialog(preselectId=null){
         signNameInput.style.display = 'block';
         signNameInput.value = '';
         signNameInput.removeAttribute('readonly');
+        document.getElementById('physician-id').value = '';
         document.getElementById('physician-npi').value = '';
         document.getElementById('physician-license').value = '';
       } else if (this.value) {
@@ -11198,12 +11196,14 @@ async function openOrderDialog(preselectId=null){
         signNameInput.style.display = 'block';
         signNameInput.value = selectedOption.dataset.signature || selectedOption.dataset.name;
         signNameInput.setAttribute('readonly', 'readonly');
+        document.getElementById('physician-id').value = this.value;
         document.getElementById('physician-npi').value = selectedOption.dataset.npi;
         document.getElementById('physician-license').value = selectedOption.dataset.license;
       } else {
         // No selection
         signNameInput.style.display = 'none';
         signNameInput.value = '';
+        document.getElementById('physician-id').value = '';
         document.getElementById('physician-npi').value = '';
         document.getElementById('physician-license').value = '';
       }
