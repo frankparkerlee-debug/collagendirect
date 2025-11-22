@@ -38,13 +38,51 @@ try {
     exit;
   }
 
-  // Fetch active physicians for this practice
-  $stmt = $pdo->prepare("
-    SELECT id, physician_name, npi, license_number, signature_text
-    FROM practice_physicians
-    WHERE practice_user_id = ? AND is_active = TRUE
-    ORDER BY physician_name ASC
-  ");
+  // Detect column names dynamically
+  $ppCols = $pdo->query("
+    SELECT column_name FROM information_schema.columns
+    WHERE table_name = 'practice_physicians'
+  ")->fetchAll(PDO::FETCH_COLUMN);
+
+  // Determine which columns exist
+  $adminCol = in_array('practice_admin_id', $ppCols) ? 'practice_admin_id' :
+              (in_array('practice_manager_id', $ppCols) ? 'practice_manager_id' : 'practice_user_id');
+  $hasPhysicianName = in_array('physician_name', $ppCols);
+  $npiCol = in_array('npi', $ppCols) ? 'npi' : null;
+  $licenseCol = in_array('license_number', $ppCols) ? 'license_number' :
+                (in_array('license', $ppCols) ? 'license' : null);
+  $signatureCol = in_array('signature_text', $ppCols) ? 'signature_text' : null;
+
+  // Build SELECT query based on available columns
+  if ($hasPhysicianName) {
+    $selectCols = "id, physician_name";
+    if ($npiCol) $selectCols .= ", $npiCol as npi";
+    if ($licenseCol) $selectCols .= ", $licenseCol as license_number";
+    if ($signatureCol) $selectCols .= ", $signatureCol as signature_text";
+
+    $stmt = $pdo->prepare("
+      SELECT $selectCols
+      FROM practice_physicians
+      WHERE $adminCol = ? AND is_active = TRUE
+      ORDER BY physician_name ASC
+    ");
+  } else {
+    // Table has separate first_name and last_name columns
+    $firstNameCol = in_array('first_name', $ppCols) ? 'first_name' : 'physician_first_name';
+    $lastNameCol = in_array('last_name', $ppCols) ? 'last_name' : 'physician_last_name';
+
+    $selectCols = "id, CONCAT($firstNameCol, ' ', $lastNameCol) as physician_name";
+    if ($npiCol) $selectCols .= ", $npiCol as npi";
+    if ($licenseCol) $selectCols .= ", $licenseCol as license_number";
+    if ($signatureCol) $selectCols .= ", $signatureCol as signature_text";
+
+    $stmt = $pdo->prepare("
+      SELECT $selectCols
+      FROM practice_physicians
+      WHERE $adminCol = ? AND is_active = TRUE
+      ORDER BY $firstNameCol ASC, $lastNameCol ASC
+    ");
+  }
 
   $stmt->execute([$userId]);
   $physicians = $stmt->fetchAll(PDO::FETCH_ASSOC);

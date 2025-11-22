@@ -3681,34 +3681,39 @@ if ($action) {
 
       if (empty($ppCols)) jerr('practice_physicians table not found');
 
-    $adminCol = in_array('practice_admin_id', $ppCols) ? 'practice_admin_id' : 'practice_manager_id';
-    $physicianIdCol = in_array('physician_id', $ppCols) ? 'physician_id' : 'physician_npi';
-    $firstNameCol = in_array('first_name', $ppCols) ? 'first_name' : 'physician_first_name';
-    $lastNameCol = in_array('last_name', $ppCols) ? 'last_name' : 'physician_last_name';
-    $emailCol = in_array('email', $ppCols) ? 'email' : 'physician_email';
+    $adminCol = in_array('practice_admin_id', $ppCols) ? 'practice_admin_id' :
+                (in_array('practice_manager_id', $ppCols) ? 'practice_manager_id' : 'practice_user_id');
     $npiCol = in_array('npi', $ppCols) ? 'npi' : null;
-    $licenseCol = in_array('license', $ppCols) ? 'license' : 'physician_license';
+    $licenseCol = in_array('license', $ppCols) ? 'license' :
+                  (in_array('license_number', $ppCols) ? 'license_number' : 'physician_license');
     $licenseStateCol = in_array('license_state', $ppCols) ? 'license_state' : 'physician_license_state';
     $licenseExpiryCol = in_array('license_expiry', $ppCols) ? 'license_expiry' : 'physician_license_expiry';
 
-    // Check if physician already exists in this practice
-    $check = $pdo->prepare("SELECT id FROM practice_physicians WHERE {$adminCol} = ? AND {$emailCol} = ?");
-    $check->execute([$userId, $email]);
-    if ($check->fetch()) jerr('This physician is already in your practice');
-
-    // Generate physician ID or NPI based on column type
-    // If using physician_npi (VARCHAR(20)), generate shorter 16-char ID
-    // If using physician_id (VARCHAR(64)), generate longer 32-char ID
-    if ($physicianIdCol === 'physician_npi') {
-      $physicianId = substr(bin2hex(random_bytes(16)), 0, 20);
-    } else {
-      $physicianId = bin2hex(random_bytes(16));
-    }
+    // Check if table uses physician_name (single column) or first_name/last_name (separate columns)
+    $hasPhysicianName = in_array('physician_name', $ppCols);
+    $fullName = trim($first . ' ' . $last);
 
     // Build dynamic INSERT with only existing columns
-    $columns = [$adminCol, $physicianIdCol, $firstNameCol, $lastNameCol, $emailCol];
-    $values = [$userId, $physicianId, $first, $last, $email];
-    $placeholders = ['?', '?', '?', '?', '?'];
+    $columns = [$adminCol];
+    $values = [$userId];
+    $placeholders = ['?'];
+
+    // Add physician name (combined or separate)
+    if ($hasPhysicianName) {
+      $columns[] = 'physician_name';
+      $values[] = $fullName;
+      $placeholders[] = '?';
+    } else {
+      // Use separate first_name and last_name columns
+      $firstNameCol = in_array('first_name', $ppCols) ? 'first_name' : 'physician_first_name';
+      $lastNameCol = in_array('last_name', $ppCols) ? 'last_name' : 'physician_last_name';
+      $columns[] = $firstNameCol;
+      $columns[] = $lastNameCol;
+      $values[] = $first;
+      $values[] = $last;
+      $placeholders[] = '?';
+      $placeholders[] = '?';
+    }
 
     // Add optional columns only if they exist
     if ($npiCol && in_array($npiCol, $ppCols)) {
