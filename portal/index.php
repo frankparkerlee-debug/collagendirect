@@ -2233,6 +2233,26 @@ if ($action) {
           error_log("[patient.upload] Failed to update insurance card path. pid=$pid, patientOwnerId=$patientOwnerId, rel=$rel");
           jerr('Failed to update patient record - patient not found or access denied');
         }
+
+        // Process insurance card with OCR if enabled
+        require_once __DIR__ . '/../api/insurance-ocr.php';
+        $ocr = new InsuranceOCR();
+        if ($ocr->isEnabled() && in_array($mime, ['image/jpeg', 'image/png', 'image/webp'])) {
+          error_log("[patient.upload] Processing insurance card OCR for patient $pid");
+          $insuranceData = $ocr->processInsuranceCard($abs);
+          if ($insuranceData) {
+            $ocr->saveToPatient($pdo, $pid, $insuranceData);
+            error_log("[patient.upload] Insurance OCR completed successfully for patient $pid");
+          } else {
+            error_log("[patient.upload] Insurance OCR failed or returned no data for patient $pid");
+          }
+        } else {
+          if (!$ocr->isEnabled()) {
+            error_log("[patient.upload] Insurance OCR is disabled (set INSURANCE_OCR_ENABLED=1 to enable)");
+          } elseif (!in_array($mime, ['image/jpeg', 'image/png', 'image/webp'])) {
+            error_log("[patient.upload] Skipping OCR for non-image file: $mime");
+          }
+        }
       } elseif ($type==='notes'){
         // Delete old file if exists
         $oldPath = $pdo->prepare("SELECT notes_path FROM patients WHERE id=? AND user_id=?");

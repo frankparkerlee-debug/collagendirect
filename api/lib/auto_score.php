@@ -63,12 +63,33 @@ function queueApprovalScore($patientId, $pdo, $async = true) {
         ];
       }
 
+      // Check for clinical notes in patients table (legacy location)
       if (!empty($patient['notes_path'])) {
         $documents[] = [
           'type' => 'Clinical Notes',
           'filename' => basename($patient['notes_path']),
           'path' => $patient['notes_path'],
           'mime' => $patient['notes_mime'] ?? 'unknown'
+        ];
+      }
+
+      // Check for visit notes in orders table (current location)
+      $orderStmt = $pdo->prepare("
+        SELECT rx_note_path, rx_note_mime, rx_note_name
+        FROM orders
+        WHERE patient_id = ?
+        ORDER BY created_at DESC
+        LIMIT 1
+      ");
+      $orderStmt->execute([$patientId]);
+      $order = $orderStmt->fetch(PDO::FETCH_ASSOC);
+
+      if ($order && !empty($order['rx_note_path'])) {
+        $documents[] = [
+          'type' => 'Visit Notes',
+          'filename' => $order['rx_note_name'] ?? basename($order['rx_note_path']),
+          'path' => $order['rx_note_path'],
+          'mime' => $order['rx_note_mime'] ?? 'unknown'
         ];
       }
 
