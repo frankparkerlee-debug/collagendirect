@@ -3679,7 +3679,12 @@ if ($action) {
   }
 
   if ($action==='practice.add_physician'){
-    if ($userRole !== 'practice_admin') jerr('Access denied', 403);
+    error_log("[practice.add_physician] Starting - userRole: $userRole, userId: $userId");
+
+    if ($userRole !== 'practice_admin') {
+      error_log("[practice.add_physician] Access denied - role is $userRole, not practice_admin");
+      jerr('Access denied', 403);
+    }
 
     try {
       $first = trim((string)($_POST['first_name'] ?? ''));
@@ -3689,7 +3694,12 @@ if ($action) {
       $license_state = trim((string)($_POST['license_state'] ?? ''));
       $license_expiry = $_POST['license_expiry'] ?? null;
 
-      if ($first === '' || $last === '') jerr('First and last name are required');
+      error_log("[practice.add_physician] Received data - first: $first, last: $last, npi: $npi");
+
+      if ($first === '' || $last === '') {
+        error_log("[practice.add_physician] Validation failed - missing first or last name");
+        jerr('First and last name are required');
+      }
 
       // Detect column names
       $ppCols = $pdo->query("
@@ -3757,15 +3767,20 @@ if ($action) {
 
       // Insert physician
       $sql = "INSERT INTO practice_physicians (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")";
+      error_log("[practice.add_physician] SQL: $sql");
+      error_log("[practice.add_physician] Values: " . json_encode($values));
+
       $stmt = $pdo->prepare($sql);
       $stmt->execute($values);
 
       // Get the inserted physician ID
       $insertedId = $pdo->lastInsertId();
+      error_log("[practice.add_physician] Success! Inserted ID: $insertedId");
 
       jok(['physician_id' => $insertedId]);
     } catch (Exception $e) {
-      error_log("Error adding physician: " . $e->getMessage());
+      error_log("[practice.add_physician] Exception: " . $e->getMessage());
+      error_log("[practice.add_physician] Stack trace: " . $e->getTraceAsString());
       jerr('Database error: ' . $e->getMessage());
     }
   }
