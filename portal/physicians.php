@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       ]);
 
       $_SESSION['success_msg'] = 'Physician added successfully';
-      header('Location: /portal/?page=physicians');
+      header('Location: /portal/?page=profile#physicians');
       exit;
 
     } catch (Exception $e) {
@@ -90,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       ]);
 
       $_SESSION['success_msg'] = 'Physician updated successfully';
-      header('Location: /portal/?page=physicians');
+      header('Location: /portal/?page=profile#physicians');
       exit;
 
     } catch (Exception $e) {
@@ -110,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $stmt->execute([$_POST['physician_id'], $userId]);
 
       $_SESSION['success_msg'] = 'Physician deactivated';
-      header('Location: /portal/?page=physicians');
+      header('Location: /portal/?page=profile#physicians');
       exit;
 
     } catch (Exception $e) {
@@ -129,7 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $stmt->execute([$_POST['physician_id'], $userId]);
 
       $_SESSION['success_msg'] = 'Physician reactivated';
-      header('Location: /portal/?page=physicians');
+      header('Location: /portal/?page=profile#physicians');
       exit;
 
     } catch (Exception $e) {

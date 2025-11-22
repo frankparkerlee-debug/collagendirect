@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       } catch (PDOException $e) {
         $_SESSION['error_msg'] = 'Error adding location: ' . $e->getMessage();
       }
-      header('Location: ?page=practice-locations');
+      header('Location: /portal/?page=profile#locations');
       exit;
     }
   } elseif ($action === 'edit' && $isPracticeAdmin) {
@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       } catch (PDOException $e) {
         $_SESSION['error_msg'] = 'Error updating location: ' . $e->getMessage();
       }
-      header('Location: ?page=practice-locations');
+      header('Location: /portal/?page=profile#locations');
       exit;
     }
   } elseif ($action === 'delete' && $isPracticeAdmin) {
@@ -91,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->prepare("DELETE FROM practice_locations WHERE id = ? AND user_id = ?")->execute([$locationId, $userId]);
         $_SESSION['success_msg'] = 'Location deleted successfully';
       }
-      header('Location: ?page=practice-locations');
+      header('Location: /portal/?page=profile#locations');
       exit;
     }
   } elseif ($action === 'set_primary' && $isPracticeAdmin) {
@@ -110,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->rollBack();
         $_SESSION['error_msg'] = 'Error setting primary location';
       }
-      header('Location: ?page=practice-locations');
+      header('Location: /portal/?page=profile#locations');
       exit;
     }
   }
