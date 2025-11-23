@@ -48,10 +48,17 @@ try {
   $adminCol = in_array('practice_admin_id', $ppCols) ? 'practice_admin_id' :
               (in_array('practice_manager_id', $ppCols) ? 'practice_manager_id' : 'practice_user_id');
   $hasPhysicianName = in_array('physician_name', $ppCols);
+  $hasIsActive = in_array('is_active', $ppCols);
   $npiCol = in_array('npi', $ppCols) ? 'npi' : null;
   $licenseCol = in_array('license_number', $ppCols) ? 'license_number' :
                 (in_array('license', $ppCols) ? 'license' : null);
   $signatureCol = in_array('signature_text', $ppCols) ? 'signature_text' : null;
+
+  // Build WHERE clause - only check is_active if column exists
+  $whereClause = "$adminCol = ?";
+  if ($hasIsActive) {
+    $whereClause .= " AND is_active = TRUE";
+  }
 
   // Build SELECT query based on available columns
   if ($hasPhysicianName) {
@@ -63,7 +70,7 @@ try {
     $stmt = $pdo->prepare("
       SELECT $selectCols
       FROM practice_physicians
-      WHERE $adminCol = ? AND is_active = TRUE
+      WHERE $whereClause
       ORDER BY physician_name ASC
     ");
   } else {
@@ -79,7 +86,7 @@ try {
     $stmt = $pdo->prepare("
       SELECT $selectCols
       FROM practice_physicians
-      WHERE $adminCol = ? AND is_active = TRUE
+      WHERE $whereClause
       ORDER BY $firstNameCol ASC, $lastNameCol ASC
     ");
   }

@@ -92,7 +92,7 @@ try {
       $phys_stmt = $pdo->prepare("
         SELECT first_name, last_name, npi, license_number, signature_text
         FROM practice_physicians
-        WHERE id = ? AND practice_admin_id = ? AND is_active = TRUE
+        WHERE id = ? AND practice_admin_id = ?
       ");
       $phys_stmt->execute([$physician_id, $uid]);
       $selected_physician = $phys_stmt->fetch(PDO::FETCH_ASSOC);

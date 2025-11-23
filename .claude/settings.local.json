@@ -6,7 +6,9 @@
       "Bash(git push:*)",
       "Bash(git log:*)",
       "Bash(find:*)",
-      "Bash(php:*)"
+      "Bash(php:*)",
+      "Bash(/opt/homebrew/bin/brew:*)",
+      "Bash(/opt/homebrew/bin/php:*)"
     ],
     "deny": [],
     "ask": []
