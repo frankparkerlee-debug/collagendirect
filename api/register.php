@@ -166,6 +166,41 @@ try {
     'active'
   ]);
 
+  // Create default practice location from registration address
+  // This ensures the registration address appears in practice locations for wholesale orders
+  if (in_array($userType, ['practice_admin', 'dme_wholesale']) && !empty($address)) {
+    try {
+      // Generate location ID
+      $locationId = bin2hex(random_bytes(16));
+
+      // Use practice_name as the default location name, or fall back to "Main Office"
+      $locationName = !empty($practiceName) ? $practiceName : 'Main Office';
+
+      $locationStmt = $pdo->prepare("
+        INSERT INTO practice_locations (
+          id, user_id, location_name, address, city, state, zip, phone,
+          is_primary, is_active, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE, TRUE, NOW(), NOW())
+      ");
+
+      $locationStmt->execute([
+        $locationId,
+        $id,
+        $locationName,
+        $address,
+        $city,
+        $state,
+        $zip,
+        $phone
+      ]);
+
+      error_log("[register.php] Created default practice location for user $id: $locationName");
+    } catch (Exception $locError) {
+      // Don't fail registration if location creation fails
+      error_log("[register.php] Failed to create default practice location: " . $locError->getMessage());
+    }
+  }
+
   // Handle additional physicians for practice_admin
   if ($userType === 'practice_admin' && !empty($data['additionalPhysicians']) && is_array($data['additionalPhysicians'])) {
     $physicianStmt = $pdo->prepare("
