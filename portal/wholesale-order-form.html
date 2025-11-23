@@ -192,6 +192,25 @@
       </div>
     </div>
 
+    <!-- Physician Selection (for practice admins) -->
+    <div id="wholesale-physician-selector" style="margin-top: 1.5rem; padding: 1rem; background: white; border-radius: 12px; border: 2px solid #dbeafe; display: none;">
+      <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #374151;">
+        Ordering Physician <span style="color: #ef4444;">*</span>
+      </label>
+      <select id="wholesale-physician-select" class="form-select" style="border-radius: 8px; margin-bottom: 0.5rem;">
+        <option value="">Select Physician...</option>
+        <option value="manual">Enter Manually</option>
+      </select>
+      <input type="text" id="wholesale-sign-name" class="form-control" placeholder="Dr. Jane Doe" style="display: none; border-radius: 8px; margin-bottom: 0.5rem;">
+      <input type="text" id="wholesale-sign-title" class="form-control" placeholder="MD / PA-C / NP" style="border-radius: 8px;">
+      <input type="hidden" id="wholesale-physician-id" value="">
+      <input type="hidden" id="wholesale-physician-npi" value="">
+      <input type="hidden" id="wholesale-physician-license" value="">
+      <p style="margin-top: 0.5rem; font-size: 0.75rem; color: #64748b;">
+        This physician will be listed as the ordering provider for all orders in this batch
+      </p>
+    </div>
+
     <!-- Submit Button -->
     <button type="button" id="btn-submit-all-orders" class="btn btn-lg" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; border: none; padding: 0.875rem 2rem; border-radius: 12px; font-weight: 600; box-shadow: 0 6px 16px rgba(5, 150, 105, 0.3); width: 100%; margin-top: 1.5rem; display: none;">
       <svg style="width: 18px; height: 18px; display: inline-block; margin-right: 0.5rem; vertical-align: middle;" fill="none" stroke="currentColor" viewBox="0 0 24 24">

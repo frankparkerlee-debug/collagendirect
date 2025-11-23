@@ -111,13 +111,19 @@ $sec_patient = '
   </table></div>
 ';
 
+// Use physician data from order if available (multi-physician practice), otherwise from user
+$physician_name = $o['e_sign_name'] ?? (($o['doc_first']??"")." ".($o['doc_last']??""));
+$physician_npi = $o['physician_npi'] ?? $o['npi'] ?? "—";
+$physician_license = $o['physician_license'] ?? $o['license'] ?? "—";
+$physician_license_state = $o['physician_license_state'] ?? $o['license_state'] ?? "—";
+
 $sec_physician = '
   <h2>Ordering Physician</h2>
   <div class="box"><table class="kv">
-    <tr><td class="key">Name</td><td>'.h(($o['doc_first']??"")." ".($o['doc_last']??"")).'</td></tr>
+    <tr><td class="key">Name</td><td>'.h($physician_name).'</td></tr>
     <tr><td class="key">Practice</td><td>'.h($o['practice_name'] ?? "—").'</td></tr>
-    <tr><td class="key">NPI</td><td>'.h($o['npi'] ?? "—").'</td></tr>
-    <tr><td class="key">License</td><td>'.h($o['license'] ?? "—").' ('.h($o['license_state'] ?? "—").')</td></tr>
+    <tr><td class="key">NPI</td><td>'.h($physician_npi).'</td></tr>
+    <tr><td class="key">License</td><td>'.h($physician_license).' ('.h($physician_license_state).')</td></tr>
   </table></div>
 ';
 

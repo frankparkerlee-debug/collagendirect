@@ -72,6 +72,48 @@ try {
   $notes = safe($data['notes'] ?? null);
   $locationId = isset($data['location_id']) && !empty($data['location_id']) ? (int)$data['location_id'] : null;
 
+  // Physician data for multi-physician practices
+  $physicianData = $data['physician'] ?? null;
+  $physician_id = null;
+  $physician_npi = null;
+  $physician_license = null;
+  $sign_name = null;
+  $sign_title = null;
+
+  if ($physicianData) {
+    $physician_id = safe($physicianData['physician_id'] ?? null);
+    $physician_npi = safe($physicianData['physician_npi'] ?? null);
+    $physician_license = safe($physicianData['physician_license'] ?? null);
+    $sign_name = safe($physicianData['sign_name'] ?? null);
+    $sign_title = safe($physicianData['sign_title'] ?? null);
+
+    // If physician_id is provided, fetch full physician data from practice_physicians
+    if ($physician_id) {
+      $phys_stmt = $pdo->prepare("
+        SELECT first_name, last_name, npi, license_number, signature_text
+        FROM practice_physicians
+        WHERE id = ? AND practice_admin_id = ? AND is_active = TRUE
+      ");
+      $phys_stmt->execute([$physician_id, $uid]);
+      $selected_physician = $phys_stmt->fetch(PDO::FETCH_ASSOC);
+
+      if ($selected_physician) {
+        if (!$sign_name) $sign_name = $selected_physician['signature_text'] ?: trim(($selected_physician['first_name'] ?? '') . ' ' . ($selected_physician['last_name'] ?? ''));
+        $physician_npi = $selected_physician['npi'] ?? $physician_npi;
+        $physician_license = $selected_physician['license_number'] ?? $physician_license;
+      }
+    }
+  }
+
+  // Fallback to current user if no physician data provided
+  if (!$sign_name || !$sign_title) {
+    $u = $pdo->prepare("SELECT first_name, last_name, sign_title FROM users WHERE id=?");
+    $u->execute([$uid]);
+    $ud = $u->fetch(PDO::FETCH_ASSOC);
+    if (!$sign_name && $ud) $sign_name = trim(($ud['first_name'] ?? '') . ' ' . ($ud['last_name'] ?? '')) ?: 'Physician';
+    if (!$sign_title && $ud) $sign_title = $ud['sign_title'] ?? 'Physician';
+  }
+
   // Debug logging
   error_log("[wholesale-order.create] Received location_id: " . var_export($locationId, true));
   error_log("[wholesale-order.create] Full data location_id: " . var_export($data['location_id'] ?? 'NOT_SET', true));
@@ -378,10 +420,16 @@ try {
         shipping_zip,
         additional_instructions,
         delivery_mode,
+        e_sign_name,
+        e_sign_title,
+        e_sign_at,
+        physician_id,
+        physician_npi,
+        physician_license,
         created_at,
         updated_at
       ) VALUES (
-        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW()
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW()
       )
     ";
 
@@ -406,7 +454,13 @@ try {
       $shippingState,
       $shippingZip,
       $orderNotes, // Include wholesale order number in notes
-      $shipToOffice ? 'office' : 'patient' // delivery_mode
+      $shipToOffice ? 'office' : 'patient', // delivery_mode
+      $sign_name, // e_sign_name
+      $sign_title, // e_sign_title
+      date('Y-m-d H:i:s'), // e_sign_at
+      $physician_id, // physician_id (from practice_physicians)
+      $physician_npi, // physician_npi
+      $physician_license // physician_license
     ]);
 
     $ordersCreated++;

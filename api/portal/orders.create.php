@@ -279,9 +279,34 @@ try {
     exit;
   }
 
-  // Signer
+  // Signer - handle practice physician selection for multi-physician practices
+  $physician_id = safe($_POST['physician_id'] ?? null);
+  $physician_npi = safe($_POST['physician_npi'] ?? null);
+  $physician_license = safe($_POST['physician_license'] ?? null);
   $sign_name  = safe($_POST['sign_name']  ?? null);
   $sign_title = safe($_POST['sign_title'] ?? null);
+
+  // If physician_id is provided (practice admin selected a physician from roster)
+  if ($physician_id) {
+    // Fetch physician details from practice_physicians table
+    $phys_stmt = $pdo->prepare("
+      SELECT first_name, last_name, npi, license_number, license_state, signature_text
+      FROM practice_physicians
+      WHERE id = ? AND practice_admin_id = ? AND is_active = TRUE
+    ");
+    $phys_stmt->execute([$physician_id, $uid]);
+    $selected_physician = $phys_stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($selected_physician) {
+      // Use selected physician's data
+      if (!$sign_name) $sign_name = $selected_physician['signature_text'] ?: trim(($selected_physician['first_name'] ?? '') . ' ' . ($selected_physician['last_name'] ?? ''));
+      $physician_npi = $selected_physician['npi'] ?? $physician_npi;
+      $physician_license = $selected_physician['license_number'] ?? $physician_license;
+      // Note: sign_title should come from form as it may vary per order
+    }
+  }
+
+  // Fallback to current user if no physician selected or data missing
   if (!$sign_name || !$sign_title) {
     $u = $pdo->prepare("SELECT first_name, last_name, sign_title FROM users WHERE id=?");
     $u->execute([$uid]);
@@ -308,6 +333,7 @@ try {
      shipping_name, shipping_phone, shipping_address, shipping_city, shipping_state, shipping_zip,
      rx_note_path, rx_note_mime, ins_card_path, ins_card_mime, id_card_path, id_card_mime,
      e_sign_user_id, e_sign_name, e_sign_title, e_sign_at, e_sign_ip,
+     physician_id, physician_npi, physician_license,
      review_status)
     VALUES
     (?,?,?,?,?,?,?,?,?,?,0,NOW(),NOW(),
@@ -318,6 +344,7 @@ try {
      ?,?,?,?,?,?,
      NULL,NULL,NULL,NULL,NULL,NULL,
      ?,?,?,?,?,
+     ?,?,?,
      ?)";
 
   $pdo->prepare($sql)->execute([
@@ -339,6 +366,8 @@ try {
     $shipping_name, $shipping_phone, $shipping_address, $shipping_city, $shipping_state, $shipping_zip,
     // e-sign
     $uid, $sign_name, $sign_title, date('Y-m-d H:i:s'), $_SERVER['REMOTE_ADDR'] ?? null,
+    // physician (for multi-physician practices)
+    $physician_id, $physician_npi, $physician_license,
     // review status
     $review_status
   ]);

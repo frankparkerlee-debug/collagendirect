@@ -12,7 +12,9 @@ const wholesaleState = {
   selectedProducts: [],
   products: [],
   patients: [],
-  practiceLocations: []
+  practiceLocations: [],
+  physicians: [],
+  isPracticeAdmin: false
 };
 
 // Initialize on DOM ready
@@ -21,10 +23,11 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initializeWholesaleForm() {
-  // Load products, patients, and practice locations
+  // Load products, patients, practice locations, and physicians
   loadProducts();
   loadPatients();
   loadPracticeLocations();
+  loadPhysicians();
 
   // Initialize Google Places Autocomplete
   initializeAddressAutocomplete();
@@ -102,6 +105,62 @@ async function loadPracticeLocations() {
     }
   } catch (error) {
     console.error('Failed to load practice locations:', error);
+  }
+}
+
+// Load physicians for practice admins
+async function loadPhysicians() {
+  try {
+    const response = await fetch('/api/portal/get-physicians.php');
+    const data = await response.json();
+    if (data.ok && data.physicians && data.physicians.length > 0) {
+      wholesaleState.physicians = data.physicians;
+      wholesaleState.isPracticeAdmin = true;
+
+      const select = document.getElementById('wholesale-physician-select');
+      const signNameInput = document.getElementById('wholesale-sign-name');
+
+      // Populate dropdown
+      data.physicians.forEach(phys => {
+        const option = document.createElement('option');
+        option.value = phys.id;
+        option.textContent = phys.physician_name;
+        option.dataset.name = phys.physician_name;
+        option.dataset.npi = phys.npi || '';
+        option.dataset.license = phys.license_number || '';
+        option.dataset.signature = phys.signature_text || phys.physician_name;
+        select.insertBefore(option, select.options[1]); // Insert before "Enter Manually"
+      });
+
+      // Handle physician selection
+      select.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+
+        if (this.value === 'manual') {
+          signNameInput.style.display = 'block';
+          signNameInput.value = '';
+          signNameInput.removeAttribute('readonly');
+          document.getElementById('wholesale-physician-id').value = '';
+          document.getElementById('wholesale-physician-npi').value = '';
+          document.getElementById('wholesale-physician-license').value = '';
+        } else if (this.value) {
+          signNameInput.style.display = 'block';
+          signNameInput.value = selectedOption.dataset.signature || selectedOption.dataset.name;
+          signNameInput.setAttribute('readonly', 'readonly');
+          document.getElementById('wholesale-physician-id').value = this.value;
+          document.getElementById('wholesale-physician-npi').value = selectedOption.dataset.npi;
+          document.getElementById('wholesale-physician-license').value = selectedOption.dataset.license;
+        } else {
+          signNameInput.style.display = 'none';
+          signNameInput.value = '';
+          document.getElementById('wholesale-physician-id').value = '';
+          document.getElementById('wholesale-physician-npi').value = '';
+          document.getElementById('wholesale-physician-license').value = '';
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Failed to load physicians:', error);
   }
 }
 
@@ -353,6 +412,7 @@ function renderCart() {
     document.getElementById('cart-empty').style.display = 'block';
     document.getElementById('cart-items-list').style.display = 'none';
     document.getElementById('cart-total').style.display = 'none';
+    document.getElementById('wholesale-physician-selector').style.display = 'none';
     document.getElementById('btn-submit-all-orders').style.display = 'none';
     return;
   }
@@ -360,6 +420,12 @@ function renderCart() {
   document.getElementById('cart-empty').style.display = 'none';
   document.getElementById('cart-items-list').style.display = 'block';
   document.getElementById('cart-total').style.display = 'block';
+
+  // Show physician selector for practice admins
+  if (wholesaleState.isPracticeAdmin) {
+    document.getElementById('wholesale-physician-selector').style.display = 'block';
+  }
+
   document.getElementById('btn-submit-all-orders').style.display = 'block';
 
   // Render cart items
@@ -436,6 +502,17 @@ async function submitAllOrders() {
     return;
   }
 
+  // Validate physician selection for practice admins
+  if (wholesaleState.isPracticeAdmin) {
+    const physicianSelect = document.getElementById('wholesale-physician-select');
+    const signTitle = document.getElementById('wholesale-sign-title').value.trim();
+
+    if (!physicianSelect.value || !signTitle) {
+      alert('Please select a physician and provide their title before submitting');
+      return;
+    }
+  }
+
   const totalPatients = wholesaleState.cart.length;
   const totalProducts = wholesaleState.cart.reduce((sum, item) => sum + item.products.length, 0);
 
@@ -449,6 +526,15 @@ async function submitAllOrders() {
   button.innerHTML = '<svg style="width: 18px; height: 18px; display: inline-block; margin-right: 0.5rem; vertical-align: middle; animation: spin 1s linear infinite;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="4" fill="none" stroke-linecap="round"></path></svg> Submitting...';
 
   try {
+    // Collect physician data
+    const physicianData = wholesaleState.isPracticeAdmin ? {
+      physician_id: document.getElementById('wholesale-physician-id').value,
+      physician_npi: document.getElementById('wholesale-physician-npi').value,
+      physician_license: document.getElementById('wholesale-physician-license').value,
+      sign_name: document.getElementById('wholesale-sign-name').value,
+      sign_title: document.getElementById('wholesale-sign-title').value
+    } : null;
+
     // Prepare cart data for batch submission
     const cartData = wholesaleState.cart.map(item => ({
       patient: item.patient,
@@ -466,7 +552,10 @@ async function submitAllOrders() {
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ cart: cartData })
+      body: JSON.stringify({
+        cart: cartData,
+        physician: physicianData
+      })
     });
 
     const data = await response.json();
