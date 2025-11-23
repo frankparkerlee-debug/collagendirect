@@ -97,6 +97,9 @@ try {
   echo json_encode([
     'ok' => false,
     'error' => 'Failed to fetch physicians',
-    'details' => $e->getMessage()
+    'details' => $e->getMessage(),
+    'line' => $e->getLine(),
+    'file' => basename($e->getFile()),
+    'userId' => $userId ?? 'unknown'
   ]);
 }
