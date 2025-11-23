@@ -341,6 +341,9 @@ $products = $productsStmt->fetchAll(PDO::FETCH_ASSOC);
     // Store location_id if provided
     if (isset($_POST['location_id'])) {
       $_SESSION['wholesale_location_id'] = $_POST['location_id'];
+      error_log("[wholesale-new.php] Step 1 submitted - location_id stored in session: " . $_POST['location_id']);
+    } else {
+      error_log("[wholesale-new.php] Step 1 submitted - NO location_id in POST data");
     }
 
     // Also store products if coming back from Step 3
@@ -353,6 +356,8 @@ $products = $productsStmt->fetchAll(PDO::FETCH_ASSOC);
   $patients = $_SESSION['wholesale_patients'] ?? [];
   $savedProducts = $_SESSION['wholesale_products'] ?? [];
   $locationId = $_SESSION['wholesale_location_id'] ?? null;
+
+  error_log("[wholesale-new.php] Step $step - Retrieved location_id from session: " . var_export($locationId, true));
   ?>
 
   <?php if ($step == '1'): ?>
@@ -1185,6 +1190,7 @@ $products = $productsStmt->fetchAll(PDO::FETCH_ASSOC);
     if (!empty($_SESSION['user_id'])) {
       // If a specific location was selected, use that location's address
       if (!empty($locationId)) {
+        error_log("[wholesale-new.php Step 3] Looking up location_id: $locationId for user_id: " . $_SESSION['user_id']);
         $locationStmt = $pdo->prepare("
           SELECT location_name as practice_name, address, city, state, zip, phone
           FROM practice_locations
@@ -1192,19 +1198,30 @@ $products = $productsStmt->fetchAll(PDO::FETCH_ASSOC);
         ");
         $locationStmt->execute([$locationId, $_SESSION['user_id']]);
         $practiceAddress = $locationStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+        if ($practiceAddress) {
+          error_log("[wholesale-new.php Step 3] Found location: " . $practiceAddress['practice_name'] . " - " . $practiceAddress['address']);
+        } else {
+          error_log("[wholesale-new.php Step 3] Location NOT found for id=$locationId");
+        }
+      } else {
+        error_log("[wholesale-new.php Step 3] No location_id provided, will use user address");
       }
 
       // Fallback to user's address if no location selected or not found
       if (empty($practiceAddress)) {
+        error_log("[wholesale-new.php Step 3] Using fallback - querying users table for user_id: " . $_SESSION['user_id']);
         // First get the current user's practice_name
         $userStmt = $pdo->prepare("SELECT practice_name, address, city, state, zip, phone, role FROM users WHERE id = ?");
         $userStmt->execute([$_SESSION['user_id']]);
         $currentUser = $userStmt->fetch(PDO::FETCH_ASSOC);
 
         if ($currentUser) {
+          error_log("[wholesale-new.php Step 3] Found user: " . ($currentUser['practice_name'] ?? 'no practice name') . " - " . ($currentUser['address'] ?? 'no address'));
           // If this user has an address, use it
           if (!empty($currentUser['address'])) {
             $practiceAddress = $currentUser;
+            error_log("[wholesale-new.php Step 3] Using current user address: " . $currentUser['address']);
           }
           // Otherwise, find the practice admin with the same practice_name
           else if (!empty($currentUser['practice_name'])) {
