@@ -8,9 +8,11 @@ const wholesaleState = {
   cart: [],
   currentPatient: null,
   currentDeliveryType: 'patient',
+  currentLocationId: null,
   selectedProducts: [],
   products: [],
-  patients: []
+  patients: [],
+  practiceLocations: []
 };
 
 // Initialize on DOM ready
@@ -19,9 +21,10 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initializeWholesaleForm() {
-  // Load products and patients
+  // Load products, patients, and practice locations
   loadProducts();
   loadPatients();
+  loadPracticeLocations();
 
   // Initialize Google Places Autocomplete
   initializeAddressAutocomplete();
@@ -76,6 +79,32 @@ async function loadPatients() {
   }
 }
 
+// Load practice locations from API
+async function loadPracticeLocations() {
+  try {
+    const response = await fetch('/portal/index.php?action=practice.locations');
+    const data = await response.json();
+    if (data.ok && data.locations) {
+      wholesaleState.practiceLocations = data.locations;
+      const select = document.getElementById('practice-location-select');
+      select.innerHTML = '<option value="">-- Choose location --</option>';
+      data.locations.forEach(loc => {
+        const option = document.createElement('option');
+        option.value = loc.id;
+        option.textContent = `${loc.location_name} - ${loc.address}, ${loc.city}, ${loc.state}`;
+        option.dataset.location = JSON.stringify(loc);
+        if (loc.is_primary) {
+          option.selected = true;
+          wholesaleState.currentLocationId = loc.id;
+        }
+        select.appendChild(option);
+      });
+    }
+  } catch (error) {
+    console.error('Failed to load practice locations:', error);
+  }
+}
+
 // Toggle new patient form
 function toggleNewPatientForm(e) {
   e.preventDefault();
@@ -116,7 +145,34 @@ function selectDelivery(type) {
     el.classList.remove('selected');
   });
   document.getElementById(`delivery-${type}`).classList.add('selected');
+
+  // Show/hide practice location selector
+  const locationSelector = document.getElementById('practice-location-selector');
+  if (type === 'office') {
+    locationSelector.style.display = 'block';
+    // Set to primary location if not already set
+    if (!wholesaleState.currentLocationId && wholesaleState.practiceLocations.length > 0) {
+      const primaryLoc = wholesaleState.practiceLocations.find(loc => loc.is_primary);
+      if (primaryLoc) {
+        wholesaleState.currentLocationId = primaryLoc.id;
+        document.getElementById('practice-location-select').value = primaryLoc.id;
+      }
+    }
+  } else {
+    locationSelector.style.display = 'none';
+    wholesaleState.currentLocationId = null;
+  }
 }
+
+// Handle location selection
+document.addEventListener('DOMContentLoaded', function() {
+  const locationSelect = document.getElementById('practice-location-select');
+  if (locationSelect) {
+    locationSelect.addEventListener('change', function() {
+      wholesaleState.currentLocationId = this.value || null;
+    });
+  }
+});
 
 // Continue to products step
 function continueToProducts() {
@@ -155,6 +211,12 @@ function continueToProducts() {
     };
   } else if (!existingSelect.value) {
     alert('Please select a patient or create a new one');
+    return;
+  }
+
+  // Validate location if shipping to office
+  if (wholesaleState.currentDeliveryType === 'office' && !wholesaleState.currentLocationId) {
+    alert('Please select a practice location for office delivery');
     return;
   }
 
@@ -256,7 +318,8 @@ function addToCart() {
   wholesaleState.cart.push({
     patient: { ...wholesaleState.currentPatient },
     products: [...wholesaleState.selectedProducts],
-    deliveryType: wholesaleState.currentDeliveryType
+    deliveryType: wholesaleState.currentDeliveryType,
+    locationId: wholesaleState.currentLocationId
   });
 
   // Reset for next patient
@@ -393,7 +456,8 @@ async function submitAllOrders() {
         productId: p.id,
         boxes: p.boxes
       })),
-      deliveryType: item.deliveryType
+      deliveryType: item.deliveryType,
+      locationId: item.locationId
     }));
 
     // Submit all orders in a single batch request

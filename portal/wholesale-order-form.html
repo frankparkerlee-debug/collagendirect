@@ -100,6 +100,19 @@
         <input type="hidden" id="delivery-type" value="patient">
       </div>
 
+      <!-- Practice Location Selection (shown only when Office is selected) -->
+      <div id="practice-location-selector" style="display: none; margin-bottom: 1.5rem;">
+        <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #374151;">
+          Select Practice Location <span style="color: #ef4444;">*</span>
+        </label>
+        <select id="practice-location-select" class="form-select form-select-lg" style="border-radius: 12px; padding: 0.75rem 1rem;">
+          <option value="">-- Choose location --</option>
+        </select>
+        <p style="margin-top: 0.5rem; font-size: 0.875rem; color: #64748b;">
+          Select which office location should receive this shipment. You can <a href="?page=practice-locations" style="color: #3b82f6; font-weight: 600; text-decoration: none;">manage locations</a> in settings.
+        </p>
+      </div>
+
       <button type="button" class="btn btn-lg" id="btn-continue-to-products" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border: none; padding: 0.875rem 2rem; border-radius: 12px; font-weight: 600; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); width: 100%;">
         Continue to Products
         <svg style="width: 18px; height: 18px; display: inline-block; margin-left: 0.5rem; vertical-align: middle;" fill="none" stroke="currentColor" viewBox="0 0 24 24">

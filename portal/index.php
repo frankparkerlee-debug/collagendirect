@@ -3862,14 +3862,19 @@ if ($action) {
 
     if (!$info) jerr('Practice information not found', 404);
 
-    // Fill in missing fields with null
-    foreach ($optionalFields as $field) {
-      if (!isset($info[$field])) {
-        $info[$field] = null;
-      }
-    }
-
     jok(['practice' => $info]);
+  }
+
+  if ($action==='practice.locations'){
+    $stmt = $pdo->prepare("
+      SELECT id, location_name, address, city, state, zip, phone, is_primary, is_active
+      FROM practice_locations
+      WHERE user_id = ? AND is_active = TRUE
+      ORDER BY is_primary DESC, location_name ASC
+    ");
+    $stmt->execute([$userId]);
+    $locations = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    jok(['locations' => $locations]);
   }
 
   if ($action==='practice.update_info'){

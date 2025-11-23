@@ -72,6 +72,10 @@ try {
   $notes = safe($data['notes'] ?? null);
   $locationId = isset($data['location_id']) && !empty($data['location_id']) ? (int)$data['location_id'] : null;
 
+  // Debug logging
+  error_log("[wholesale-order.create] Received location_id: " . var_export($locationId, true));
+  error_log("[wholesale-order.create] Full data location_id: " . var_export($data['location_id'] ?? 'NOT_SET', true));
+
   if (empty($items)) {
     http_response_code(400);
     echo json_encode(['ok' => false, 'error' => 'no_items']);
@@ -230,8 +234,12 @@ try {
 
     // Determine shipping details - check if shipping to office
     if ($shipToOffice) {
+      error_log("[wholesale-order.create] Ship to office detected. locationId=" . var_export($locationId, true));
+
       // Check if a specific location was selected
       if ($locationId) {
+        error_log("[wholesale-order.create] Using location_id: $locationId");
+
         // Use the selected practice location
         $locationStmt = $pdo->prepare("
           SELECT location_name, address, city, state, zip, phone
@@ -242,6 +250,7 @@ try {
         $location = $locationStmt->fetch(PDO::FETCH_ASSOC);
 
         if ($location) {
+          error_log("[wholesale-order.create] Found location: " . $location['location_name']);
           $shippingName = $location['location_name'];
           $shippingAddress = $location['address'];
           $shippingCity = $location['city'];
@@ -249,6 +258,7 @@ try {
           $shippingZip = $location['zip'];
           $shippingPhone = $location['phone'] ?? null;
         } else {
+          error_log("[wholesale-order.create] Location not found, falling back to user address");
           // Location not found, fall back to user address
           $userStmt = $pdo->prepare("SELECT practice_name, address, city, state, zip FROM users WHERE id = ?");
           $userStmt->execute([$uid]);
@@ -262,6 +272,7 @@ try {
           $shippingPhone = null;
         }
       } else {
+        error_log("[wholesale-order.create] No location_id provided, using user address");
         // No location selected - use practice address from users table
         $userStmt = $pdo->prepare("SELECT practice_name, address, city, state, zip, role FROM users WHERE id = ?");
         $userStmt->execute([$uid]);
