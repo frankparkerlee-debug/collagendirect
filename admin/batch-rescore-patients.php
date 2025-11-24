@@ -131,8 +131,50 @@ try {
         ];
       }
 
-      // Generate score
-      $result = $aiService->generateApprovalScore($fullPatient, $documents);
+      // Get the most recent order with visit notes for this patient
+      $orderStmt = $pdo->prepare("
+        SELECT
+          o.id,
+          o.rx_note_path,
+          o.rx_note_name,
+          o.rx_note_mime,
+          o.frequency_per_week,
+          o.duration_days,
+          o.qty_per_change,
+          o.icd10_primary,
+          o.icd10_secondary,
+          o.wound_type,
+          o.wound_stage,
+          o.wound_location,
+          o.wound_laterality,
+          o.wound_length_cm,
+          o.wound_width_cm,
+          o.wound_depth_cm,
+          o.wound_notes,
+          o.wounds_data,
+          pr.name AS product_name,
+          pr.hcpcs_code
+        FROM orders o
+        LEFT JOIN products pr ON pr.id = o.product_id
+        WHERE o.patient_id = ?
+        ORDER BY o.created_at DESC
+        LIMIT 1
+      ");
+      $orderStmt->execute([$patientId]);
+      $order = $orderStmt->fetch(PDO::FETCH_ASSOC);
+
+      // Include visit notes from order if available
+      if ($order && !empty($order['rx_note_path'])) {
+        $documents[] = [
+          'type' => 'Order Visit Notes',
+          'filename' => $order['rx_note_name'] ?? basename($order['rx_note_path']),
+          'path' => $order['rx_note_path'],
+          'mime' => $order['rx_note_mime'] ?? 'unknown'
+        ];
+      }
+
+      // Generate score with order data
+      $result = $aiService->generateApprovalScore($fullPatient, $documents, $order);
 
       if (isset($result['error'])) {
         echo " [ERROR: " . $result['error'] . "]\n";

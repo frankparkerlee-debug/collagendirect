@@ -97,6 +97,17 @@ try {
       o.frequency_per_week,
       o.duration_days,
       o.qty_per_change,
+      o.icd10_primary,
+      o.icd10_secondary,
+      o.wound_type,
+      o.wound_stage,
+      o.wound_location,
+      o.wound_laterality,
+      o.wound_length_cm,
+      o.wound_width_cm,
+      o.wound_depth_cm,
+      o.wound_notes,
+      o.wounds_data,
       pr.name AS product_name,
       pr.hcpcs_code
     FROM orders o

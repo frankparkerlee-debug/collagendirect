@@ -175,7 +175,7 @@ try {
     ];
   }
 
-  // Add clinical notes document
+  // Add clinical notes document from patient profile
   if (!empty($patient['notes_path'])) {
     $notesAbsPath = $getAbsolutePath($patient['notes_path']);
 
@@ -192,8 +192,74 @@ try {
   // Initialize AI service
   $aiService = new AIService();
 
-  // Generate approval score
-  $result = $aiService->generateApprovalScore($patient, $documents);
+  // Get the most recent order with visit notes for this patient
+  $orderStmt = $pdo->prepare("
+    SELECT
+      o.id,
+      o.rx_note_path,
+      o.rx_note_name,
+      o.rx_note_mime,
+      o.frequency_per_week,
+      o.duration_days,
+      o.qty_per_change,
+      o.icd10_primary,
+      o.icd10_secondary,
+      o.wound_type,
+      o.wound_stage,
+      o.wound_location,
+      o.wound_laterality,
+      o.wound_length_cm,
+      o.wound_width_cm,
+      o.wound_depth_cm,
+      o.wound_notes,
+      o.wounds_data,
+      pr.name AS product_name,
+      pr.hcpcs_code
+    FROM orders o
+    LEFT JOIN products pr ON pr.id = o.product_id
+    WHERE o.patient_id = ?
+    ORDER BY o.created_at DESC
+    LIMIT 1
+  ");
+  $orderStmt->execute([$patientId]);
+  $order = $orderStmt->fetch(PDO::FETCH_ASSOC);
+
+  // Extract text from order visit notes (rx_note_path) if available
+  if ($order && !empty($order['rx_note_path'])) {
+    $rxNotePath = $getAbsolutePath($order['rx_note_path']);
+    $rxNoteExtracted = '';
+
+    if ($rxNotePath && file_exists($rxNotePath)) {
+      $mime = $order['rx_note_mime'] ?? 'unknown';
+
+      // Use AI service to extract text from the document
+      if (strpos($mime, 'image/') === 0) {
+        $extractResult = $aiService->extractTextFromImage($rxNotePath, $mime);
+        $rxNoteExtracted = $extractResult['text'] ?? '';
+      } elseif ($mime === 'application/pdf' || pathinfo($rxNotePath, PATHINFO_EXTENSION) === 'pdf') {
+        $extractResult = $aiService->extractTextFromPDF($rxNotePath);
+        $rxNoteExtracted = $extractResult['text'] ?? '';
+      } elseif (strpos($mime, 'text/') === 0) {
+        $rxNoteExtracted = @file_get_contents($rxNotePath) ?: '';
+      } else {
+        // Fallback: try pdftotext for unknown mime types
+        $rxNoteExtracted = $extractPdfText($rxNotePath);
+      }
+
+      // Add visit notes from order to documents array
+      $documents[] = [
+        'type' => 'Order Visit Notes',
+        'filename' => $order['rx_note_name'] ?? basename($order['rx_note_path']),
+        'path' => $order['rx_note_path'],
+        'mime' => $mime,
+        'extracted_text' => $rxNoteExtracted,
+        'exists' => true
+      ];
+    }
+  }
+
+  // Generate approval score with order data
+  $result = $aiService->generateApprovalScore($patient, $documents, $order);
 
   if (isset($result['error'])) {
     http_response_code(500);

@@ -489,9 +489,15 @@ PROMPT;
 
     $notesStatus = 'MISSING';
     if (!empty($patient['notes_path'])) {
-      $notesStatus = 'Uploaded';
+      $notesStatus = 'Uploaded (patient profile)';
     } elseif (!empty($notes) && $notes !== 'No clinical notes provided') {
       $notesStatus = 'Entered manually';
+    }
+
+    // Check for visit notes from order (rx_note_path)
+    $visitNotesStatus = 'MISSING';
+    if (!empty($order['rx_note_path'])) {
+      $visitNotesStatus = 'Uploaded (from order)';
     }
 
     // Build safe patient info strings
@@ -518,12 +524,53 @@ PROMPT;
       $duration = $order['duration_days'] ?? 'Not specified';
       $qtyPerChange = $order['qty_per_change'] ?? 'Not specified';
 
+      // Wound/Clinical information from order
+      $icd10Primary = $order['icd10_primary'] ?? 'Not specified';
+      $icd10Secondary = $order['icd10_secondary'] ?? '';
+      $woundType = $order['wound_type'] ?? 'Not specified';
+      $woundStage = $order['wound_stage'] ?? 'Not specified';
+      $woundLocation = $order['wound_location'] ?? 'Not specified';
+      $woundLaterality = $order['wound_laterality'] ?? '';
+      $woundLength = $order['wound_length_cm'] ?? '';
+      $woundWidth = $order['wound_width_cm'] ?? '';
+      $woundDepth = $order['wound_depth_cm'] ?? '';
+      $woundNotes = $order['wound_notes'] ?? '';
+      $hasVisitNotes = !empty($order['rx_note_path']) ? 'Yes - uploaded' : 'No';
+
       $orderInfo = "\n\nORDER INFORMATION (Most Recent):\n";
       $orderInfo .= "- Product: {$productName}\n";
       $orderInfo .= "- HCPCS Code: {$hcpcsCode}\n";
       $orderInfo .= "- Frequency: {$frequency} times per week\n";
       $orderInfo .= "- Duration: {$duration} days\n";
       $orderInfo .= "- Quantity per change: {$qtyPerChange}\n";
+      $orderInfo .= "- Visit Notes Uploaded: {$hasVisitNotes}\n";
+
+      $orderInfo .= "\nWOUND/CLINICAL DETAILS FROM ORDER:\n";
+      $orderInfo .= "- ICD-10 Primary: {$icd10Primary}\n";
+      if (!empty($icd10Secondary)) {
+        $orderInfo .= "- ICD-10 Secondary: {$icd10Secondary}\n";
+      }
+      $orderInfo .= "- Wound Type: {$woundType}\n";
+      $orderInfo .= "- Wound Stage: {$woundStage}\n";
+      $orderInfo .= "- Wound Location: {$woundLocation}";
+      if (!empty($woundLaterality)) {
+        $orderInfo .= " ({$woundLaterality})";
+      }
+      $orderInfo .= "\n";
+
+      // Dimensions
+      if (!empty($woundLength) || !empty($woundWidth) || !empty($woundDepth)) {
+        $orderInfo .= "- Wound Dimensions: ";
+        $dims = [];
+        if (!empty($woundLength)) $dims[] = "L: {$woundLength}cm";
+        if (!empty($woundWidth)) $dims[] = "W: {$woundWidth}cm";
+        if (!empty($woundDepth)) $dims[] = "D: {$woundDepth}cm";
+        $orderInfo .= implode(' x ', $dims) . "\n";
+      }
+
+      if (!empty($woundNotes)) {
+        $orderInfo .= "- Order Wound Notes: " . mb_substr(str_replace("\0", '', $woundNotes), 0, 1000) . "\n";
+      }
     } else {
       $orderInfo = "\n\nORDER INFORMATION: No orders found for this patient yet";
     }
@@ -551,7 +598,8 @@ INSURANCE INFORMATION:
 DOCUMENTATION STATUS:
 - Photo ID: {$idCardStatus}
 - Insurance Card: {$insCardStatus}
-- Clinical Notes: {$notesStatus}
+- Clinical Notes (Patient Profile): {$notesStatus}
+- Visit Notes (Order): {$visitNotesStatus}
 {$documentInfo}
 
 CLINICAL NOTES/INFORMATION:
@@ -563,6 +611,7 @@ CRITICAL ANALYSIS REQUIREMENTS:
    - Photo ID uploaded?
    - Insurance card uploaded (both front and back)?
    - Clinical notes present (uploaded or typed)?
+   - Visit notes uploaded with order (rx_note_path)?
    - Are notes detailed enough?
 
 2. **Patient Demographics** (15 points):
@@ -624,7 +673,8 @@ REQUIRED OUTPUT FORMAT (JSON ONLY):
   "document_analysis": {
     "id_card": "Present/Missing - specific feedback",
     "insurance_card": "Present/Missing - specific feedback",
-    "clinical_notes": "Present/Missing - quality assessment"
+    "clinical_notes": "Present/Missing - quality assessment",
+    "visit_notes": "Present/Missing - quality assessment of order visit notes"
   }
 }
 

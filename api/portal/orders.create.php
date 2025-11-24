@@ -636,6 +636,28 @@ try {
 
   /* -------------------- POST-RESPONSE: Additional processing -------------------- */
   // Everything after this point runs after the response is sent to the client
+
+  // Trigger AI approval score generation if order has visit notes or is a submitted order
+  // This ensures the approval score is based on the order data and visit notes
+  if (!$save_as_draft && ($rx_path || $created_new_patient)) {
+    try {
+      require_once __DIR__ . '/../lib/auto_score.php';
+      $patientData = [
+        'first_name' => safe($_POST['first_name'] ?? null),
+        'last_name' => safe($_POST['last_name'] ?? null),
+        'dob' => safe($_POST['dob'] ?? null),
+        'insurance_provider' => safe($_POST['insurance_provider'] ?? null),
+        'ins_card_path' => $ins_path
+      ];
+      if (shouldAutoScore($patientData)) {
+        queueApprovalScore($patient_id, $pdo, true); // async
+        error_log("[orders.create] Queued approval score generation for patient $patient_id (order $order_id)");
+      }
+    } catch (Throwable $scoreErr) {
+      error_log('[orders.create auto_score] ' . $scoreErr->getMessage());
+    }
+  }
+
   // Send email notifications
   try {
     require_once __DIR__ . '/../lib/email_notifications.php';
