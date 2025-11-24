@@ -186,8 +186,13 @@ foreach ($grouped_orders as $group) {
         $calculationSteps[] = "Pieces per box: {$pieces_per_box}";
         $calculationSteps[] = "Price per box: $" . number_format($price_per_box, 2);
       } else {
-        $price_per_box = (float)($order['price_wholesale'] ?? 150.0);
-        $calculationSteps[] = "Using wholesale price: $" . number_format($price_per_box, 2) . "/box";
+        // Use wholesale price from products table (already fetched in query)
+        $price_per_box = (float)($order['price_wholesale'] ?? 0);
+        if ($price_per_box > 0) {
+          $calculationSteps[] = "Using wholesale price: $" . number_format($price_per_box, 2) . "/box (from product table)";
+        } else {
+          $calculationSteps[] = "No pricing available - revenue = $0";
+        }
       }
 
       $revenue = $totalBoxes * $price_per_box;
@@ -246,13 +251,21 @@ foreach ($grouped_orders as $group) {
         $cpt_rate_per_piece = $rates[$cpt];
         $calculationSteps[] = "Medicare rate ({$cpt}): $" . number_format($cpt_rate_per_piece, 2) . "/piece";
       } else {
+        // Try order's stored price first
         $price_per_box = (float)($order['product_price'] ?? 0);
-        if ($price_per_box > 0) {
-          $cpt_rate_per_piece = $price_per_box / $pieces_per_box;
-        } else {
-          $cpt_rate_per_piece = 150.0 / $pieces_per_box;
+
+        // Fall back to product's current wholesale price
+        if ($price_per_box <= 0) {
+          $price_per_box = (float)($order['price_wholesale'] ?? 0);
         }
-        $calculationSteps[] = "Estimated rate: $" . number_format($cpt_rate_per_piece, 2) . "/piece";
+
+        if ($price_per_box > 0 && $pieces_per_box > 0) {
+          $cpt_rate_per_piece = $price_per_box / $pieces_per_box;
+          $calculationSteps[] = "Estimated rate: $" . number_format($cpt_rate_per_piece, 2) . "/piece (from " . ($order['product_price'] > 0 ? 'order' : 'product table') . ")";
+        } else {
+          $cpt_rate_per_piece = 0.0;
+          $calculationSteps[] = "No pricing available - revenue = $0";
+        }
       }
 
       $revenue = $billable_pieces * $cpt_rate_per_piece;

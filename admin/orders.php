@@ -61,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         SELECT o.id, o.product, o.quantity, o.frequency, o.duration_days, o.created_at,
                p.first_name AS patient_first, p.last_name AS patient_last,
                u.first_name AS phys_first, u.last_name AS phys_last, u.email AS phys_email,
-               pr.name AS product_name, pr.size AS product_size
+               pr.name AS product_name, pr.size AS product_size, pr.hcpcs_code
         FROM orders o
         LEFT JOIN patients p ON p.id = o.patient_id
         LEFT JOIN users u ON u.id = o.user_id
@@ -72,13 +72,19 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
       $order = $orderData->fetch(PDO::FETCH_ASSOC);
 
       if ($order && !empty($order['phys_email'])) {
+        // Build product display name with HCPCS code
+        $productDisplay = trim(($order['product_name'] ?? $order['product'] ?? '') . ' ' . ($order['product_size'] ?? ''));
+        if (!empty($order['hcpcs_code'])) {
+          $productDisplay .= ' (' . $order['hcpcs_code'] . ')';
+        }
+
         send_order_approved_email([
           'physician_email' => $order['phys_email'],
           'physician_name' => trim(($order['phys_first'] ?? '') . ' ' . ($order['phys_last'] ?? '')),
           'patient_name' => trim(($order['patient_first'] ?? '') . ' ' . ($order['patient_last'] ?? '')),
           'order_id' => $order['id'],
           'approved_datetime' => date('m/d/Y g:i A T'),
-          'product_name' => trim(($order['product_name'] ?? $order['product'] ?? '') . ' ' . ($order['product_size'] ?? '')),
+          'product_name' => $productDisplay,
           'quantity' => $order['quantity'] ?? '1',
           'frequency' => $order['frequency'] ?? '',
           'duration_days' => $order['duration_days'] ?? ''
@@ -239,7 +245,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
       $shipData = $pdo->prepare("
         SELECT o.id, o.product, o.quantity, o.tracking_number, o.carrier,
                p.first_name AS patient_first, p.last_name AS patient_last, p.email AS patient_email,
-               pr.name AS product_name, pr.size AS product_size
+               pr.name AS product_name, pr.size AS product_size, pr.hcpcs_code
         FROM orders o
         LEFT JOIN patients p ON p.id = o.patient_id
         LEFT JOIN products pr ON pr.id = o.product_id
@@ -249,6 +255,12 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
       $ship = $shipData->fetch(PDO::FETCH_ASSOC);
 
       if ($ship && !empty($ship['patient_email']) && !empty($ship['tracking_number'])) {
+        // Build product display name with HCPCS code
+        $productDisplay = trim(($ship['product_name'] ?? $ship['product'] ?? '') . ' ' . ($ship['product_size'] ?? ''));
+        if (!empty($ship['hcpcs_code'])) {
+          $productDisplay .= ' (' . $ship['hcpcs_code'] . ')';
+        }
+
         send_order_shipped_email([
           'patient_email' => $ship['patient_email'],
           'patient_name' => trim(($ship['patient_first'] ?? '') . ' ' . ($ship['patient_last'] ?? '')),
@@ -256,7 +268,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
           'shipped_date' => date('m/d/Y'),
           'carrier' => $ship['carrier'] ?? $carrier,
           'tracking_number' => $ship['tracking_number'],
-          'product_name' => trim(($ship['product_name'] ?? $ship['product'] ?? '') . ' ' . ($ship['product_size'] ?? '')),
+          'product_name' => $productDisplay,
           'quantity' => $ship['quantity'] ?? '1'
         ]);
       }

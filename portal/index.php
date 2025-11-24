@@ -10753,64 +10753,159 @@ function initWoundsManager() {
   console.log('Wounds manager initialized successfully');
 }
 
+// Store products globally for size filtering
+let allProducts = [];
+
 // Populate product dropdown for a wound
 async function populateWoundProductDropdown(woundEl) {
-  const primarySelect = woundEl.querySelector('.wound-primary-dressing');
-  const secondarySelect = woundEl.querySelector('.wound-secondary-dressing');
-  const additionalSelect = woundEl.querySelector('.wound-additional-materials');
+  const primaryProductSelect = woundEl.querySelector('.wound-primary-dressing');
+  const primarySizeSelect = woundEl.querySelector('.wound-primary-size');
+  const secondaryProductSelect = woundEl.querySelector('.wound-secondary-dressing');
+  const secondarySizeSelect = woundEl.querySelector('.wound-secondary-size');
+  const additionalProductSelect = woundEl.querySelector('.wound-additional-materials');
+  const additionalSizeSelect = woundEl.querySelector('.wound-additional-size');
 
-  if (!primarySelect) return;
+  if (!primaryProductSelect) return;
 
   try {
     const res = await api('action=products');
-    const products = res.rows || [];
+    allProducts = res.rows || [];
 
     // Clear existing options
-    primarySelect.innerHTML = '<option value="">Select primary dressing...</option>';
-    secondarySelect.innerHTML = '<option value="">None</option>';
-    additionalSelect.innerHTML = '<option value="">None</option>';
+    primaryProductSelect.innerHTML = '<option value="">Select product type...</option>';
+    primarySizeSelect.innerHTML = '<option value="">Size...</option>';
+    secondaryProductSelect.innerHTML = '<option value="">None</option>';
+    secondarySizeSelect.innerHTML = '<option value="">Size...</option>';
+    additionalProductSelect.innerHTML = '<option value="">None</option>';
+    additionalSizeSelect.innerHTML = '<option value="">Size...</option>';
 
-    // Filter and populate each dropdown based on category flags
-    products.forEach(p => {
-      // Primary dressings (can_be_primary = true)
+    // Extract unique product types (base product name without size/HCPCS)
+    const extractProductType = (name) => {
+      // Remove size pattern (e.g., "2x2", "4x4.13")
+      let baseName = name.replace(/\s*\d+\.?\d*\s*[xX×]\s*\d+\.?\d*\s*/g, ' ');
+      // Remove HCPCS code pattern (e.g., "(A6196)")
+      baseName = baseName.replace(/\s*\([A-Z]\d{4}\)\s*/g, '');
+      return baseName.trim();
+    };
+
+    // Group products by base product type and category
+    const primaryProducts = new Map();
+    const secondaryProducts = new Map();
+    const additionalProducts = new Map();
+
+    allProducts.forEach(p => {
+      const productType = extractProductType(p.name);
+
       if (p.can_be_primary) {
-        const option = document.createElement('option');
-        option.value = p.id;
-        option.textContent = p.name; // Now includes HCPCS code
-        option.dataset.productName = p.name;
-        option.dataset.cpt = p.hcpcs_code || '';
-        option.dataset.price = p.price || '0';
-        option.dataset.piecesPerBox = p.pieces_per_box || '10';
-        primarySelect.appendChild(option);
+        if (!primaryProducts.has(productType)) {
+          primaryProducts.set(productType, []);
+        }
+        primaryProducts.get(productType).push(p);
       }
 
-      // Secondary dressings (can_be_secondary = true)
       if (p.can_be_secondary) {
-        const option = document.createElement('option');
-        option.value = p.id;
-        option.textContent = p.name;
-        option.dataset.productName = p.name;
-        option.dataset.cpt = p.hcpcs_code || '';
-        option.dataset.price = p.price || '0';
-        option.dataset.piecesPerBox = p.pieces_per_box || '10';
-        secondarySelect.appendChild(option);
+        if (!secondaryProducts.has(productType)) {
+          secondaryProducts.set(productType, []);
+        }
+        secondaryProducts.get(productType).push(p);
       }
 
-      // Additional materials (can_be_additional = true)
       if (p.can_be_additional) {
-        const option = document.createElement('option');
-        option.value = p.id;
-        option.textContent = p.name;
-        option.dataset.productName = p.name;
-        option.dataset.cpt = p.hcpcs_code || '';
-        option.dataset.price = p.price || '0';
-        option.dataset.piecesPerBox = p.pieces_per_box || '10';
-        additionalSelect.appendChild(option);
+        if (!additionalProducts.has(productType)) {
+          additionalProducts.set(productType, []);
+        }
+        additionalProducts.get(productType).push(p);
       }
     });
+
+    // Populate primary product types
+    primaryProducts.forEach((products, productType) => {
+      const option = document.createElement('option');
+      option.value = productType;
+      option.textContent = productType;
+      option.dataset.category = 'primary';
+      primaryProductSelect.appendChild(option);
+    });
+
+    // Populate secondary product types
+    secondaryProducts.forEach((products, productType) => {
+      const option = document.createElement('option');
+      option.value = productType;
+      option.textContent = productType;
+      option.dataset.category = 'secondary';
+      secondaryProductSelect.appendChild(option);
+    });
+
+    // Populate additional product types
+    additionalProducts.forEach((products, productType) => {
+      const option = document.createElement('option');
+      option.value = productType;
+      option.textContent = productType;
+      option.dataset.category = 'additional';
+      additionalProductSelect.appendChild(option);
+    });
+
+    // Add change listeners to populate size dropdowns
+    primaryProductSelect.addEventListener('change', () => {
+      populateSizeDropdown(primaryProductSelect, primarySizeSelect, 'primary');
+    });
+    secondaryProductSelect.addEventListener('change', () => {
+      populateSizeDropdown(secondaryProductSelect, secondarySizeSelect, 'secondary');
+    });
+    additionalProductSelect.addEventListener('change', () => {
+      populateSizeDropdown(additionalProductSelect, additionalSizeSelect, 'additional');
+    });
+
   } catch (e) {
     console.error('Failed to load products for wound:', e);
   }
+}
+
+// Populate size dropdown based on selected product type
+function populateSizeDropdown(productSelect, sizeSelect, category) {
+  const selectedProductType = productSelect.value;
+
+  if (!selectedProductType) {
+    sizeSelect.innerHTML = '<option value="">Size...</option>';
+    sizeSelect.disabled = true;
+    return;
+  }
+
+  sizeSelect.disabled = false;
+  sizeSelect.innerHTML = '<option value="">Select size...</option>';
+
+  // Extract product type from name
+  const extractProductType = (name) => {
+    let baseName = name.replace(/\s*\d+\.?\d*\s*[xX×]\s*\d+\.?\d*\s*/g, ' ');
+    baseName = baseName.replace(/\s*\([A-Z]\d{4}\)\s*/g, '');
+    return baseName.trim();
+  };
+
+  // Filter products matching the selected product type and category
+  const matchingProducts = allProducts.filter(p => {
+    const productType = extractProductType(p.name);
+    const matchesCategory = (category === 'primary' && p.can_be_primary) ||
+                           (category === 'secondary' && p.can_be_secondary) ||
+                           (category === 'additional' && p.can_be_additional);
+    return productType === selectedProductType && matchesCategory;
+  });
+
+  // Populate size dropdown with matching products
+  matchingProducts.forEach(p => {
+    const option = document.createElement('option');
+    option.value = p.id;
+    // Display: "2x2 (A6196)" or just "2x2" if no HCPCS
+    const sizeText = p.size || 'Standard';
+    const hcpcsText = p.hcpcs_code ? ` (${p.hcpcs_code})` : '';
+    option.textContent = sizeText + hcpcsText;
+    option.dataset.productName = p.name;
+    option.dataset.cpt = p.hcpcs_code || '';
+    option.dataset.price = p.price || '0';
+    option.dataset.piecesPerBox = p.pieces_per_box || '10';
+    option.dataset.fullName = p.name; // Store full product name with HCPCS
+    option.dataset.size = p.size || '';
+    sizeSelect.appendChild(option);
+  });
 }
 
 function addWound() {
@@ -10838,23 +10933,41 @@ function addWound() {
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <!-- Primary Dressing: Product Type (70%) + Size (30%) -->
       <div class="md:col-span-2">
         <label class="text-sm">Primary Dressing <span class="text-red-600">*</span></label>
-        <select class="wound-product wound-primary-dressing w-full">
-          <option value="">Select primary dressing...</option>
-        </select>
+        <div class="flex gap-2">
+          <select class="wound-product wound-primary-dressing" style="width: 70%;">
+            <option value="">Select product type...</option>
+          </select>
+          <select class="wound-size wound-primary-size" style="width: 30%;">
+            <option value="">Size...</option>
+          </select>
+        </div>
       </div>
+      <!-- Secondary Dressing: Product Type (70%) + Size (30%) -->
       <div class="md:col-span-2">
         <label class="text-sm">Secondary Dressing (Optional)</label>
-        <select class="wound-secondary-dressing w-full">
-          <option value="">None</option>
-        </select>
+        <div class="flex gap-2">
+          <select class="wound-secondary-dressing" style="width: 70%;">
+            <option value="">None</option>
+          </select>
+          <select class="wound-size wound-secondary-size" style="width: 30%;">
+            <option value="">Size...</option>
+          </select>
+        </div>
       </div>
+      <!-- Additional Materials: Product Type (70%) + Size (30%) -->
       <div class="md:col-span-2">
         <label class="text-sm">Additional Materials (Optional)</label>
-        <select class="wound-additional-materials w-full">
-          <option value="">None</option>
-        </select>
+        <div class="flex gap-2">
+          <select class="wound-additional-materials" style="width: 70%;">
+            <option value="">None</option>
+          </select>
+          <select class="wound-size wound-additional-size" style="width: 30%;">
+            <option value="">Size...</option>
+          </select>
+        </div>
       </div>
       <div>
         <label class="text-sm">Change Frequency <span class="text-red-600">*</span></label>
@@ -11018,39 +11131,39 @@ function collectWoundsData() {
   const woundEls = document.querySelectorAll('[data-wound-index]');
 
   woundEls.forEach((el) => {
-    // Get primary product (required)
-    const primarySelect = el.querySelector('.wound-primary-dressing');
-    const primaryOption = primarySelect?.options[primarySelect.selectedIndex];
+    // Get primary product (required) - now from SIZE dropdown which has the actual product ID
+    const primarySizeSelect = el.querySelector('.wound-primary-size');
+    const primarySizeOption = primarySizeSelect?.options[primarySizeSelect.selectedIndex];
 
-    // Get secondary product (optional)
-    const secondarySelect = el.querySelector('.wound-secondary-dressing');
-    const secondaryOption = secondarySelect?.options[secondarySelect.selectedIndex];
+    // Get secondary product (optional) - from SIZE dropdown
+    const secondarySizeSelect = el.querySelector('.wound-secondary-size');
+    const secondarySizeOption = secondarySizeSelect?.options[secondarySizeSelect.selectedIndex];
 
-    // Get additional materials (optional)
-    const additionalSelect = el.querySelector('.wound-additional-materials');
-    const additionalOption = additionalSelect?.options[additionalSelect.selectedIndex];
+    // Get additional materials (optional) - from SIZE dropdown
+    const additionalSizeSelect = el.querySelector('.wound-additional-size');
+    const additionalSizeOption = additionalSizeSelect?.options[additionalSizeSelect.selectedIndex];
 
     const wound = {
-      // Primary product details (required) - backward compatibility: product_id is primary
-      product_id: primarySelect?.value || '',
-      product_name: primaryOption?.dataset.productName || '',
-      product_cpt: primaryOption?.dataset.cpt || '',
-      product_price: parseFloat(primaryOption?.dataset.price) || 0,
-      pieces_per_box: parseInt(primaryOption?.dataset.piecesPerBox) || 10,
+      // Primary product details (required) - product_id comes from size dropdown
+      product_id: primarySizeSelect?.value || '',
+      product_name: primarySizeOption?.dataset.productName || '',
+      product_cpt: primarySizeOption?.dataset.cpt || '',
+      product_price: parseFloat(primarySizeOption?.dataset.price) || 0,
+      pieces_per_box: parseInt(primarySizeOption?.dataset.piecesPerBox) || 10,
 
-      // Secondary product (optional)
-      secondary_product_id: (secondarySelect?.value && secondarySelect?.value !== '') ? secondarySelect.value : null,
-      secondary_product_name: secondaryOption?.dataset.productName || '',
-      secondary_product_cpt: secondaryOption?.dataset.cpt || '',
-      secondary_product_price: parseFloat(secondaryOption?.dataset.price) || 0,
-      secondary_pieces_per_box: parseInt(secondaryOption?.dataset.piecesPerBox) || 10,
+      // Secondary product (optional) - product_id from size dropdown
+      secondary_product_id: (secondarySizeSelect?.value && secondarySizeSelect?.value !== '') ? secondarySizeSelect.value : null,
+      secondary_product_name: secondarySizeOption?.dataset.productName || '',
+      secondary_product_cpt: secondarySizeOption?.dataset.cpt || '',
+      secondary_product_price: parseFloat(secondarySizeOption?.dataset.price) || 0,
+      secondary_pieces_per_box: parseInt(secondarySizeOption?.dataset.piecesPerBox) || 10,
 
-      // Additional materials (optional)
-      additional_product_id: (additionalSelect?.value && additionalSelect?.value !== '') ? additionalSelect.value : null,
-      additional_product_name: additionalOption?.dataset.productName || '',
-      additional_product_cpt: additionalOption?.dataset.cpt || '',
-      additional_product_price: parseFloat(additionalOption?.dataset.price) || 0,
-      additional_pieces_per_box: parseInt(additionalOption?.dataset.piecesPerBox) || 10,
+      // Additional materials (optional) - product_id from size dropdown
+      additional_product_id: (additionalSizeSelect?.value && additionalSizeSelect?.value !== '') ? additionalSizeSelect.value : null,
+      additional_product_name: additionalSizeOption?.dataset.productName || '',
+      additional_product_cpt: additionalSizeOption?.dataset.cpt || '',
+      additional_product_price: parseFloat(additionalSizeOption?.dataset.price) || 0,
+      additional_pieces_per_box: parseInt(additionalSizeOption?.dataset.piecesPerBox) || 10,
 
       // Order details (apply to all products for this wound)
       frequency_per_week: parseInt(el.querySelector('.wound-frequency')?.value) || 0,

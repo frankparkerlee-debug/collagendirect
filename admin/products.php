@@ -143,6 +143,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $_SESSION['success_msg'] = 'Product deactivated successfully';
       header('Location: /admin/products.php');
       exit;
+
+    } elseif ($action === 'bulk_deactivate') {
+      // Bulk deactivate multiple products (for removing duplicates)
+      $productIds = explode(',', $_POST['product_ids']);
+      $productIds = array_map('intval', array_filter($productIds));
+
+      if (!empty($productIds)) {
+        $placeholders = implode(',', array_fill(0, count($productIds), '?'));
+        $stmt = $pdo->prepare("UPDATE products SET active = FALSE WHERE id IN ($placeholders)");
+        $stmt->execute($productIds);
+
+        $_SESSION['success_msg'] = 'Successfully deactivated ' . count($productIds) . ' products';
+      } else {
+        $_SESSION['error_msg'] = 'No products specified for deactivation';
+      }
+
+      header('Location: /admin/products.php');
+      exit;
     }
 
   } catch (Exception $e) {
