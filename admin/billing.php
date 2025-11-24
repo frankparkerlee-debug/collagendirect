@@ -249,7 +249,7 @@ try {
         p.first_name,
         p.last_name,
         p.dob
-        ".($hasProducts?", pr.name AS prod_name, pr.size AS prod_size, pr.sku, pr.$hcpcsCol AS cpt_code, pr.price_admin, pr.pieces_per_box, o.product":"")."
+        ".($hasProducts?", pr.name AS prod_name, pr.size AS prod_size, pr.sku, COALESCE(pr.$hcpcsCol, o.cpt) AS cpt_code, pr.price_admin, pr.pieces_per_box, o.product":"")."
       FROM orders o
       LEFT JOIN patients p ON p.id = o.patient_id
       ".($hasProducts?"LEFT JOIN products pr ON pr.id = o.product_id":"")."

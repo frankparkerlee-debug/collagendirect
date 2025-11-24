@@ -124,7 +124,7 @@ try {
       " . ($hasShipRem ? "o.shipments_remaining," : "0 AS shipments_remaining,") . "
       u.practice_name,
       pp.custom_price AS practice_custom_price,
-      " . ($hasProducts ? "pr.name AS product_name, pr.hcpcs_code AS cpt_code, pr.pieces_per_box, pr.price_wholesale, pr.price_admin, COALESCE(pp.cost_per_box, pr.cost_per_box, 0) AS cost_per_box" : "'Unknown' AS product_name, '' AS cpt_code, 10 AS pieces_per_box, 0 AS price_wholesale, 0 AS price_admin, 0 AS cost_per_box") . "
+      " . ($hasProducts ? "pr.name AS product_name, COALESCE(pr.hcpcs_code, o.cpt) AS cpt_code, pr.pieces_per_box, pr.price_wholesale, pr.price_admin, COALESCE(pp.cost_per_box, pr.cost_per_box, 0) AS cost_per_box" : "COALESCE(o.product, 'Unknown') AS product_name, o.cpt AS cpt_code, 10 AS pieces_per_box, 0 AS price_wholesale, 0 AS price_admin, 0 AS cost_per_box") . "
     FROM orders o
     LEFT JOIN users u ON u.id = o.user_id
     " . ($hasProducts ? "LEFT JOIN products pr ON pr.id = o.product_id" : "") . "
