@@ -8,7 +8,14 @@
       "Bash(find:*)",
       "Bash(php:*)",
       "Bash(/opt/homebrew/bin/brew:*)",
-      "Bash(/opt/homebrew/bin/php:*)"
+      "Bash(/opt/homebrew/bin/php:*)",
+      "Bash(mysql:*)",
+      "Bash(psql:*)",
+      "Bash(git restore:*)",
+      "Bash(curl:*)",
+      "Bash(scp:*)",
+      "Bash(git rm:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []

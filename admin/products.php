@@ -55,9 +55,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         (float)$_POST['price_wholesale'],
         (float)$_POST['price_referral'],
         (int)$_POST['pieces_per_box'],
-        isset($_POST['can_be_primary']),
-        isset($_POST['can_be_secondary']),
-        isset($_POST['can_be_additional'])
+        isset($_POST['can_be_primary']) ? 'true' : 'false',
+        isset($_POST['can_be_secondary']) ? 'true' : 'false',
+        isset($_POST['can_be_additional']) ? 'true' : 'false'
       ]);
 
       $_SESSION['success_msg'] = 'Product created successfully';
@@ -91,10 +91,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         (float)$_POST['price_wholesale'],
         (float)$_POST['price_referral'],
         (int)$_POST['pieces_per_box'],
-        isset($_POST['can_be_primary']),
-        isset($_POST['can_be_secondary']),
-        isset($_POST['can_be_additional']),
-        isset($_POST['active']),
+        isset($_POST['can_be_primary']) ? 'true' : 'false',
+        isset($_POST['can_be_secondary']) ? 'true' : 'false',
+        isset($_POST['can_be_additional']) ? 'true' : 'false',
+        isset($_POST['active']) ? 'true' : 'false',
         (int)$_POST['product_id']
       ]);
 
@@ -122,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           (float)$update['price_wholesale'],
           (float)$update['price_referral'],
           (int)$update['pieces_per_box'],
-          (bool)$update['active'],
+          $update['active'] ? 'true' : 'false',
           (int)$update['id']
         ]);
       }

@@ -377,36 +377,66 @@ Important: Return ONLY the JSON object, no additional text or explanation.'
 
     /**
      * Save OCR results to patient record
+     *
+     * @param PDO $pdo Database connection
+     * @param string $patientId Patient ID
+     * @param array $insuranceData Extracted insurance data
+     * @param bool $forceOverwrite If true, overwrite existing data. If false, only fill empty fields.
      */
-    public function saveToPatient($pdo, $patientId, $insuranceData) {
+    public function saveToPatient($pdo, $patientId, $insuranceData, $forceOverwrite = false) {
         if (!$insuranceData) {
             return false;
         }
 
         try {
-            // Only update fields that are empty (don't overwrite manual entries)
-            $pdo->prepare("
-                UPDATE patients
-                SET insurance_provider = COALESCE(NULLIF(insurance_provider, ''), ?),
-                    insurance_member_id = COALESCE(NULLIF(insurance_member_id, ''), ?),
-                    insurance_group_id = COALESCE(NULLIF(insurance_group_id, ''), ?),
-                    insurance_payer_phone = COALESCE(NULLIF(insurance_payer_phone, ''), ?),
-                    insurance_ocr_processed = TRUE,
-                    insurance_ocr_date = NOW(),
-                    insurance_ocr_data = ?,
-                    insurance_ocr_confidence = ?
-                WHERE id = ?
-            ")->execute([
-                $insuranceData['provider'],
-                $insuranceData['member_id'],
-                $insuranceData['group_id'],
-                $insuranceData['payer_phone'],
-                json_encode($insuranceData),
-                $insuranceData['confidence'],
-                $patientId
-            ]);
+            if ($forceOverwrite) {
+                // Force overwrite - replace all fields regardless of existing data
+                $pdo->prepare("
+                    UPDATE patients
+                    SET insurance_provider = ?,
+                        insurance_member_id = ?,
+                        insurance_group_id = ?,
+                        insurance_payer_phone = ?,
+                        insurance_ocr_processed = TRUE,
+                        insurance_ocr_date = NOW(),
+                        insurance_ocr_data = ?,
+                        insurance_ocr_confidence = ?
+                    WHERE id = ?
+                ")->execute([
+                    $insuranceData['provider'] ?? $insuranceData['insurance_provider'] ?? null,
+                    $insuranceData['member_id'] ?? null,
+                    $insuranceData['group_id'] ?? null,
+                    $insuranceData['payer_phone'] ?? null,
+                    json_encode($insuranceData),
+                    $insuranceData['confidence'],
+                    $patientId
+                ]);
+                error_log("[InsuranceOCR] Force-saved OCR data for patient: $patientId (overwrite mode)");
+            } else {
+                // Only update fields that are empty (don't overwrite manual entries)
+                $pdo->prepare("
+                    UPDATE patients
+                    SET insurance_provider = COALESCE(NULLIF(insurance_provider, ''), ?),
+                        insurance_member_id = COALESCE(NULLIF(insurance_member_id, ''), ?),
+                        insurance_group_id = COALESCE(NULLIF(insurance_group_id, ''), ?),
+                        insurance_payer_phone = COALESCE(NULLIF(insurance_payer_phone, ''), ?),
+                        insurance_ocr_processed = TRUE,
+                        insurance_ocr_date = NOW(),
+                        insurance_ocr_data = ?,
+                        insurance_ocr_confidence = ?
+                    WHERE id = ?
+                ")->execute([
+                    $insuranceData['provider'] ?? $insuranceData['insurance_provider'] ?? null,
+                    $insuranceData['member_id'] ?? null,
+                    $insuranceData['group_id'] ?? null,
+                    $insuranceData['payer_phone'] ?? null,
+                    json_encode($insuranceData),
+                    $insuranceData['confidence'],
+                    $patientId
+                ]);
+                error_log("[InsuranceOCR] Saved OCR data for patient: $patientId (preserve existing mode)");
+            }
 
-            error_log("[InsuranceOCR] Saved OCR data for patient: $patientId");
             return true;
         } catch (PDOException $e) {
             error_log("[InsuranceOCR] Database error: " . $e->getMessage());

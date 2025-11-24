@@ -324,8 +324,8 @@ try {
 $rates = [];
 if ($hasRates) {
   try {
-    foreach($pdo->query("SELECT cpt_code, COALESCE(rate_non_rural,0) rate FROM reimbursement_rates") as $r){
-      $rates[$r['cpt_code']] = (float)$r['rate'];
+    foreach($pdo->query("SELECT hcpcs_code, medicare_allowable FROM reimbursement_rates") as $r){
+      $rates[$r['hcpcs_code']] = (float)$r['medicare_allowable'];
     }
   } catch (Throwable $e) { error_log("[rates] ".$e->getMessage()); }
 }

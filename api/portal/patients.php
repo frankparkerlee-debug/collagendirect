@@ -2,6 +2,7 @@
 // /public/api/portal/patients.php
 declare(strict_types=1);
 require __DIR__ . '/../db.php';
+require __DIR__ . '/../lib/file_utils.php';
 header('Content-Type: application/json');
 
 if (empty($_SESSION['user_id'])) {
@@ -162,8 +163,7 @@ try {
       if (!empty($_FILES[$key]['tmp_name'])) {
         $tmp  = $_FILES[$key]['tmp_name'];
         $name = bin2hex(random_bytes(8)) . '-' . preg_replace('/[^A-Za-z0-9\.\-_]/','_', $_FILES[$key]['name']);
-        $abs  = $_SERVER['DOCUMENT_ROOT'] . $dir;
-        if (!is_dir($abs)) { mkdir($abs, 0775, true); }
+        $abs  = getUploadBaseDir($dir);
         $dest = $abs . '/' . $name;
         if (!move_uploaded_file($tmp, $dest)) {
           http_response_code(500);
@@ -184,6 +184,95 @@ try {
     }
 
     echo json_encode(['ok'=>true]); exit;
+  }
+
+  if ($method === 'POST' && $action === 'process_insurance_ocr') {
+    // Manually trigger insurance card OCR processing
+    $id = $_POST['id'] ?? '';
+    if (!$id) {
+      http_response_code(400);
+      echo json_encode(['ok'=>false,'error'=>'missing_id']);
+      exit;
+    }
+
+    // Verify patient exists and belongs to this user
+    $stmt = $pdo->prepare("SELECT id, ins_card_path FROM patients WHERE id=? AND user_id=?");
+    $stmt->execute([$id, $uid]);
+    $patient = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$patient) {
+      http_response_code(404);
+      echo json_encode(['ok'=>false,'error'=>'not_found']);
+      exit;
+    }
+
+    // Check if insurance card exists
+    if (empty($patient['ins_card_path'])) {
+      http_response_code(400);
+      echo json_encode(['ok'=>false,'error'=>'no_insurance_card']);
+      exit;
+    }
+
+    // Process insurance card with OCR
+    require_once __DIR__ . '/../insurance-ocr.php';
+    $insuranceOCR = new InsuranceOCR();
+
+    if (!$insuranceOCR->isEnabled()) {
+      http_response_code(400);
+      echo json_encode(['ok'=>false,'error'=>'ocr_not_enabled']);
+      exit;
+    }
+
+    // Build full path to insurance card
+    $fullPath = $_SERVER['DOCUMENT_ROOT'] . $patient['ins_card_path'];
+
+    // Fallback to Render persistent disk path
+    if (!file_exists($fullPath)) {
+      $fullPath = '/opt/render/project/src' . $patient['ins_card_path'];
+    }
+
+    if (!file_exists($fullPath)) {
+      http_response_code(400);
+      echo json_encode(['ok'=>false,'error'=>'insurance_card_file_not_found', 'path' => $patient['ins_card_path']]);
+      exit;
+    }
+
+    try {
+      // Process the insurance card
+      $insuranceData = $insuranceOCR->processInsuranceCard($fullPath);
+
+      if (!$insuranceData || $insuranceData['confidence'] < 0.5) {
+        echo json_encode([
+          'ok'=>false,
+          'error'=>'ocr_failed',
+          'message'=>'OCR processing failed or confidence too low',
+          'confidence' => $insuranceData['confidence'] ?? 0
+        ]);
+        exit;
+      }
+
+      // Save extracted data to patient record (will overwrite existing data)
+      $insuranceOCR->saveToPatient($pdo, $id, $insuranceData, true); // Force overwrite
+
+      echo json_encode([
+        'ok'=>true,
+        'data'=>[
+          'insurance_provider' => $insuranceData['insurance_provider'] ?? null,
+          'member_id' => $insuranceData['member_id'] ?? null,
+          'group_id' => $insuranceData['group_id'] ?? null,
+          'payer_phone' => $insuranceData['payer_phone'] ?? null,
+          'confidence' => $insuranceData['confidence']
+        ],
+        'message'=>'Insurance card processed successfully'
+      ]);
+      exit;
+
+    } catch (Throwable $e) {
+      error_log('[patients.php] OCR processing error: ' . $e->getMessage());
+      http_response_code(500);
+      echo json_encode(['ok'=>false,'error'=>'ocr_processing_failed', 'message' => $e->getMessage()]);
+      exit;
+    }
   }
 
   http_response_code(405);

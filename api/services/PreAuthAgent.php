@@ -23,14 +23,14 @@
  */
 
 require_once __DIR__ . '/../db.php';
-require_once __DIR__ . '/ClaudeService.php';
+require_once __DIR__ . '/../lib/ai_service.php';
 require_once __DIR__ . '/PreAuthEligibilityChecker.php';
 require_once __DIR__ . '/PreAuthCarrierIntegration.php';
 
 class PreAuthAgent {
 
     private $db;
-    private $claudeService;
+    private $aiService;
     private $eligibilityChecker;
     private $carrierIntegration;
 
@@ -42,7 +42,7 @@ class PreAuthAgent {
     public function __construct($pdo = null) {
         global $pdo as $globalPdo;
         $this->db = $pdo ?? $globalPdo;
-        $this->claudeService = new ClaudeService();
+        $this->aiService = new AIService();
         $this->eligibilityChecker = new PreAuthEligibilityChecker($this->db);
         $this->carrierIntegration = new PreAuthCarrierIntegration($this->db);
     }
@@ -257,6 +257,9 @@ class PreAuthAgent {
      * Generate medical necessity letter using Claude AI
      */
     private function generateMedicalNecessityLetter($order, $patient) {
+        // Extract physician notes from uploaded visit note file
+        $physicianNotes = $this->extractPhysicianNotes($order);
+
         $prompt = "Generate a professional medical necessity letter for insurance preauthorization.
 
 Patient Information:
@@ -272,24 +275,98 @@ Product Information:
 Clinical Information:
 - Wound Type: {$order['wound_type']}
 - Wound Size: {$order['wound_length']}cm x {$order['wound_width']}cm x {$order['wound_depth']}cm
-" . ($order['physician_notes'] ? "- Physician Notes: {$order['physician_notes']}" : "") . "
+" . ($physicianNotes ? "- Physician Visit Notes:\n{$physicianNotes}" : "") . "
 
-Please write a compelling medical necessity letter that:
+Please write a compelling medical necessity letter for insurance preauthorization that:
 1. Explains the patient's condition and diagnosis
 2. Justifies why this specific collagen wound dressing is medically necessary
 3. Cites relevant clinical evidence and FDA clearance
 4. Explains why alternative treatments are insufficient
 5. Includes specific wound measurements and clinical details
 6. Uses professional medical terminology appropriate for insurance review
+7. Incorporates relevant information from the physician's visit notes
 
 The letter should be persuasive, evidence-based, and formatted professionally.";
 
         try {
-            $response = $this->claudeService->sendPrompt($prompt);
-            return $response['response'] ?? 'Medical necessity letter generation failed';
+            // Use AIService's callClaudeAPI method
+            $response = $this->aiService->callClaudeAPI($prompt);
+            return $response ?? 'Medical necessity letter generation failed';
         } catch (Exception $e) {
             error_log("Failed to generate medical necessity letter: " . $e->getMessage());
             return $this->generateFallbackLetter($order, $patient);
+        }
+    }
+
+    /**
+     * Extract physician notes from uploaded visit note file
+     * Supports PDF, image (via OCR), and text files
+     */
+    private function extractPhysicianNotes($order) {
+        // Check if visit note path exists
+        if (empty($order['rx_note_path'])) {
+            error_log("[PreAuthAgent] No visit note file found for order: {$order['id']}");
+            return null;
+        }
+
+        $filePath = $_SERVER['DOCUMENT_ROOT'] . $order['rx_note_path'];
+
+        // Fallback to Render persistent disk path if not found
+        if (!file_exists($filePath)) {
+            $filePath = '/opt/render/project/src' . $order['rx_note_path'];
+        }
+
+        if (!file_exists($filePath)) {
+            error_log("[PreAuthAgent] Visit note file not found at path: {$order['rx_note_path']}");
+            return null;
+        }
+
+        $mimeType = $order['rx_note_mime'] ?? mime_content_type($filePath);
+
+        try {
+            // Handle different file types
+            if (strpos($mimeType, 'image/') === 0) {
+                // Image file - use OCR via Claude
+                return $this->extractTextFromImage($filePath, $mimeType);
+            } elseif ($mimeType === 'application/pdf') {
+                // PDF file - use Claude's PDF reading capability
+                return $this->extractTextFromPDF($filePath);
+            } elseif (strpos($mimeType, 'text/') === 0) {
+                // Plain text file
+                return file_get_contents($filePath);
+            } else {
+                error_log("[PreAuthAgent] Unsupported visit note file type: {$mimeType}");
+                return null;
+            }
+        } catch (Exception $e) {
+            error_log("[PreAuthAgent] Error extracting physician notes: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Extract text from image using Claude's vision capabilities
+     */
+    private function extractTextFromImage($imagePath, $mimeType) {
+        try {
+            $result = $this->aiService->extractTextFromImage($imagePath, $mimeType);
+            return $result['text'] ?? null;
+        } catch (Exception $e) {
+            error_log("[PreAuthAgent] Error extracting text from image: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Extract text from PDF using Claude
+     */
+    private function extractTextFromPDF($pdfPath) {
+        try {
+            $result = $this->aiService->extractTextFromPDF($pdfPath);
+            return $result['text'] ?? null;
+        } catch (Exception $e) {
+            error_log("[PreAuthAgent] Error extracting text from PDF: " . $e->getMessage());
+            return null;
         }
     }
 

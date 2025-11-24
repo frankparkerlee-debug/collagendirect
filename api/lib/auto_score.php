@@ -31,6 +31,7 @@ function queueApprovalScore($patientId, $pdo, $async = true) {
     } else {
       // Synchronous generation - wait for completion
       require_once __DIR__ . '/ai_service.php';
+      require_once __DIR__ . '/file_utils.php';
 
       // Fetch patient data
       $stmt = $pdo->prepare("SELECT * FROM patients WHERE id = ?");
@@ -42,60 +43,93 @@ function queueApprovalScore($patientId, $pdo, $async = true) {
         return false;
       }
 
-      // Prepare documents array
+      // Create AI service for document extraction
+      $aiService = new AIService();
+
+      // Prepare documents array and extract text from each
       $documents = [];
 
+      // Helper function to extract text from document
+      $extractDocumentText = function($path, $mime) use ($aiService) {
+        if (empty($path)) return null;
+
+        $fullPath = getUploadAbsolutePath($path);
+        if (!file_exists($fullPath)) {
+          error_log("[auto_score] File not found: $fullPath");
+          return null;
+        }
+
+        // Extract text based on file type
+        if (strpos($mime, 'image/') === 0) {
+          $result = $aiService->extractTextFromImage($fullPath, $mime);
+          return $result['text'] ?? null;
+        } elseif ($mime === 'application/pdf') {
+          $result = $aiService->extractTextFromPDF($fullPath);
+          return $result['text'] ?? null;
+        } elseif (strpos($mime, 'text/') === 0) {
+          return file_get_contents($fullPath);
+        }
+
+        return null;
+      };
+
       if (!empty($patient['id_card_path'])) {
+        $extractedText = $extractDocumentText($patient['id_card_path'], $patient['id_card_mime'] ?? 'unknown');
         $documents[] = [
           'type' => 'Photo ID',
           'filename' => basename($patient['id_card_path']),
           'path' => $patient['id_card_path'],
-          'mime' => $patient['id_card_mime'] ?? 'unknown'
+          'mime' => $patient['id_card_mime'] ?? 'unknown',
+          'extracted_text' => $extractedText
         ];
       }
 
       if (!empty($patient['ins_card_path'])) {
+        $extractedText = $extractDocumentText($patient['ins_card_path'], $patient['ins_card_mime'] ?? 'unknown');
         $documents[] = [
           'type' => 'Insurance Card',
           'filename' => basename($patient['ins_card_path']),
           'path' => $patient['ins_card_path'],
-          'mime' => $patient['ins_card_mime'] ?? 'unknown'
+          'mime' => $patient['ins_card_mime'] ?? 'unknown',
+          'extracted_text' => $extractedText
         ];
       }
 
-      // Check for clinical notes in patients table (legacy location)
-      if (!empty($patient['notes_path'])) {
-        $documents[] = [
-          'type' => 'Clinical Notes',
-          'filename' => basename($patient['notes_path']),
-          'path' => $patient['notes_path'],
-          'mime' => $patient['notes_mime'] ?? 'unknown'
-        ];
-      }
-
-      // Check for visit notes in orders table (current location)
+      // Get the most recent order with visit notes for this patient
       $orderStmt = $pdo->prepare("
-        SELECT rx_note_path, rx_note_mime, rx_note_name
-        FROM orders
-        WHERE patient_id = ?
-        ORDER BY created_at DESC
+        SELECT
+          o.id,
+          o.rx_note_path,
+          o.rx_note_name,
+          o.rx_note_mime,
+          o.frequency_per_week,
+          o.duration_days,
+          o.qty_per_change,
+          pr.name AS product_name,
+          pr.hcpcs_code
+        FROM orders o
+        LEFT JOIN products pr ON pr.id = o.product_id
+        WHERE o.patient_id = ?
+        ORDER BY o.created_at DESC
         LIMIT 1
       ");
       $orderStmt->execute([$patientId]);
       $order = $orderStmt->fetch(PDO::FETCH_ASSOC);
 
+      // Include visit notes if available
       if ($order && !empty($order['rx_note_path'])) {
+        $extractedText = $extractDocumentText($order['rx_note_path'], $order['rx_note_mime'] ?? 'unknown');
         $documents[] = [
-          'type' => 'Visit Notes',
+          'type' => 'Clinical Notes',
           'filename' => $order['rx_note_name'] ?? basename($order['rx_note_path']),
           'path' => $order['rx_note_path'],
-          'mime' => $order['rx_note_mime'] ?? 'unknown'
+          'mime' => $order['rx_note_mime'] ?? 'unknown',
+          'extracted_text' => $extractedText
         ];
       }
 
-      // Generate score
-      $aiService = new AIService();
-      $result = $aiService->generateApprovalScore($patient, $documents);
+      // Generate score with order data
+      $result = $aiService->generateApprovalScore($patient, $documents, $order ?? null);
 
       if (isset($result['error'])) {
         error_log("[auto_score] AI service error: " . $result['error']);

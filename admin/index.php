@@ -74,8 +74,8 @@ $hasShipRem  = has_column($pdo,'orders','shipments_remaining');
 $rates = [];
 if ($hasRates) {
   try {
-    foreach ($pdo->query("SELECT cpt_code, COALESCE(rate_non_rural,0) rate FROM reimbursement_rates") as $r) {
-      $rates[$r['cpt_code']] = (float)$r['rate'];
+    foreach ($pdo->query("SELECT hcpcs_code, medicare_allowable FROM reimbursement_rates") as $r) {
+      $rates[$r['hcpcs_code']] = (float)$r['medicare_allowable'];
     }
   } catch (Throwable $e) {
     error_log("[rates] ".$e->getMessage());
@@ -89,6 +89,14 @@ $referralRevenue = 0.0;  // Revenue from insurance/referral orders (billed_by = 
 $wholesaleRevenue = 0.0; // Revenue from wholesale/DME orders (billed_by = 'practice_dme')
 $practiceRevenue = [];
 $productRevenue = [];
+
+// New: Cost and profit tracking
+$totalBoxes = 0;
+$wholesaleBoxes = 0;
+$referralBoxes = 0;
+$totalCost = 0.0;
+$wholesaleCost = 0.0;
+$referralCost = 0.0;
 
 try {
   // Build revenue query with role-based access control
@@ -116,7 +124,7 @@ try {
       " . ($hasShipRem ? "o.shipments_remaining," : "0 AS shipments_remaining,") . "
       u.practice_name,
       pp.custom_price AS practice_custom_price,
-      " . ($hasProducts ? "pr.name AS product_name, pr.hcpcs_code AS cpt_code, pr.pieces_per_box" : "'Unknown' AS product_name, '' AS cpt_code, 10 AS pieces_per_box") . "
+      " . ($hasProducts ? "pr.name AS product_name, pr.hcpcs_code AS cpt_code, pr.pieces_per_box, pr.price_wholesale, COALESCE(pp.cost_per_box, pr.cost_per_box, 0) AS cost_per_box" : "'Unknown' AS product_name, '' AS cpt_code, 10 AS pieces_per_box, 0 AS price_wholesale, 0 AS cost_per_box") . "
     FROM orders o
     LEFT JOIN users u ON u.id = o.user_id
     " . ($hasProducts ? "LEFT JOIN products pr ON pr.id = o.product_id" : "") . "
@@ -132,67 +140,96 @@ try {
     $billedBy = $order['billed_by'] ?? 'collagen_direct';
     $isWholesale = ($billedBy === 'practice_dme');
 
-    // Get frequency and quantity
-    $fpw = (int)($order['frequency_per_week'] ?? 0);
-
-    // Fallback: parse legacy frequency text field if frequency_per_week is 0
-    if ($fpw === 0 && !empty($order['frequency'])) {
-      $fpw = patches_per_week($order['frequency']);
-    }
-
-    // Fallback: if still 0, assume daily (7x/week) for older orders
-    if ($fpw === 0) {
-      $fpw = 7; // Conservative default: daily changes
-    }
-
-    $qty = max(1, (int)($order['qty_per_change'] ?? 1));
-    $days = max(0, (int)($order['duration_days'] ?? 0));
-
-    // Fallback: default to 30 days if missing
-    if ($days === 0) {
-      $days = 30;
-    }
-
-    $refills = max(0, (int)($order['refills_allowed'] ?? 0));
     $pieces_per_box = max(1, (int)($order['pieces_per_box'] ?? 10));
+    $cost_per_box = (float)($order['cost_per_box'] ?? 0);
 
-    // UNIVERSAL CALCULATION (same for both wholesale and referral):
-    // Step 1: Calculate total pieces needed
-    // Formula: (duration_days / 7) × frequency_per_week × qty_per_change
-    $weeks = $days / 7.0;
-    $total_pieces = $weeks * $fpw * $qty * (1 + $refills);
-
-    // Step 2: Calculate boxes needed (round up)
-    // Formula: ceil(total_pieces / pieces_per_box)
-    $total_boxes = (int)ceil($total_pieces / $pieces_per_box);
-
-    // Step 3: Calculate revenue based on order type
+    // Calculate boxes and revenue differently for wholesale vs referral orders
     if ($isWholesale) {
-      // WHOLESALE: Revenue = Total Boxes × Price Per Box
-      // Check for practice-specific custom pricing first
-      $practice_custom_price = (float)($order['practice_custom_price'] ?? 0);
+      // WHOLESALE ORDERS:
+      // - qty_per_change contains number of BOXES (not pieces)
+      // - product_price contains PRACTICE-SPECIFIC price per PIECE (includes custom pricing/discounts)
+      // - Orders are one-time, not subscription-based
 
-      if ($practice_custom_price > 0) {
-        // Practice has custom pricing (stored as price per piece)
-        // Convert to price per box: custom_price × pieces_per_box
-        $price_per_box = $practice_custom_price * $pieces_per_box;
+      $total_boxes = max(1, (int)($order['qty_per_change'] ?? 1));
+
+      // Calculate price per box using practice-specific pricing
+      // The product_price field already contains the practice-specific per-piece price
+      // (includes custom pricing or discount percentages applied during order creation)
+      $product_price_per_piece = (float)($order['product_price'] ?? 0);
+
+      if ($product_price_per_piece > 0) {
+        // Use the practice-specific price stored in the order
+        // This is the actual amount the practice is paying per piece
+        $price_per_box = $product_price_per_piece * $pieces_per_box;
       } else {
-        // Use default product_price from order
-        $price_per_box = (float)($order['product_price'] ?? 0);
-        if ($price_per_box <= 0) $price_per_box = 150.0; // Fallback
+        // Fallback: Use default wholesale price from products table
+        $price_per_box = (float)($order['price_wholesale'] ?? 0);
+
+        // Ultimate fallback
+        if ($price_per_box <= 0) {
+          $price_per_box = 150.0;
+        }
       }
+
+      // Calculate revenue: boxes × practice-specific price per box
+      // This ensures we're tracking what the practice actually pays, not base prices
+      $order_total = $total_boxes * $price_per_box;
 
       // Wholesale orders are one-time, so all revenue is "earned" (no projected)
       $boxes_remaining = 0;
       $boxes_delivered = $total_boxes;
-      $order_total = $total_boxes * $price_per_box;
+
+      // Track wholesale costs and boxes
+      $order_cost = $total_boxes * $cost_per_box;
+      $wholesaleBoxes += $total_boxes;
+      $wholesaleCost += $order_cost;
     } else {
-      // REFERRAL: Revenue = Total Pieces × CPT Rate Per Piece
-      // Get CPT rate (this is typically per piece for billing)
+      // REFERRAL ORDERS:
+      // - qty_per_change contains pieces per application/change
+      // - Uses frequency and duration to calculate total pieces needed
+      // - Billed at Medicare allowable rate per piece
+
+      // Get frequency and quantity
+      $fpw = (int)($order['frequency_per_week'] ?? 0);
+
+      // Fallback: parse legacy frequency text field if frequency_per_week is 0
+      if ($fpw === 0 && !empty($order['frequency'])) {
+        $fpw = patches_per_week($order['frequency']);
+      }
+
+      // Fallback: if still 0, assume daily (7x/week) for older orders
+      if ($fpw === 0) {
+        $fpw = 7; // Conservative default: daily changes
+      }
+
+      $qty = max(1, (int)($order['qty_per_change'] ?? 1));
+      $days = max(0, (int)($order['duration_days'] ?? 0));
+
+      // Fallback: default to 30 days if missing
+      if ($days === 0) {
+        $days = 30;
+      }
+
+      $refills = max(0, (int)($order['refills_allowed'] ?? 0));
+
+      // Step 1: Calculate total pieces needed
+      // Formula: (duration_days / 7) × frequency_per_week × qty_per_change
+      $weeks = $days / 7.0;
+      $total_pieces = $weeks * $fpw * $qty * (1 + $refills);
+
+      // Step 2: Calculate boxes needed (round up)
+      // Formula: ceil(total_pieces / pieces_per_box)
+      $total_boxes = (int)ceil($total_pieces / $pieces_per_box);
+
+      // Step 3: Calculate billable pieces (rounded to box increments)
+      // Example: Doctor orders 15 pieces, box has 10 → bill for 20 pieces (2 boxes × 10)
+      $billable_pieces = $total_boxes * $pieces_per_box;
+
+      // Get CPT rate (Medicare allowable per piece)
       $cpt_rate_per_piece = 0.0;
       $cpt = $order['cpt_code'] ?? '';
       if ($hasRates && $cpt && isset($rates[$cpt]) && $rates[$cpt] > 0) {
-        // CPT rates are per piece
+        // Use Medicare allowable rate from reimbursement_rates table
         $cpt_rate_per_piece = $rates[$cpt];
       } else {
         // Fallback: use product_price (which is price per box on orders) ÷ pieces_per_box
@@ -208,13 +245,22 @@ try {
         }
       }
 
-      // Total revenue based on pieces
-      $order_total = $total_pieces * $cpt_rate_per_piece;
+      // Total revenue based on billable pieces (rounded up to box increments)
+      $order_total = $billable_pieces * $cpt_rate_per_piece;
 
       // Split between delivered and remaining based on shipments_remaining
       $boxes_remaining = (int)($order['shipments_remaining'] ?? 0);
       $boxes_delivered = max(0, $total_boxes - $boxes_remaining);
+
+      // Track referral costs and boxes
+      $order_cost = $total_boxes * $cost_per_box;
+      $referralBoxes += $total_boxes;
+      $referralCost += $order_cost;
     }
+
+    // Track total boxes and costs
+    $totalBoxes += $total_boxes;
+    $totalCost += ($order_cost ?? 0);
 
     // Calculate earned (delivered) and projected (remaining) revenue
     // For both types: split revenue proportionally based on boxes delivered/remaining
@@ -569,6 +615,57 @@ include __DIR__.'/_header.php';
         </div>
       </div>
 
+      <!-- Cost and Profit Metrics -->
+      <div class="grid grid-cols-4 gap-4 mb-6 pb-6 border-b">
+        <div class="bg-slate-50 rounded-lg p-4">
+          <div class="text-xs text-slate-500 mb-1">Avg Revenue/Box</div>
+          <div class="text-xl font-bold text-slate-900">
+            $<?php echo $totalBoxes > 0 ? number_format($totalRevenue / $totalBoxes, 2) : '0.00'; ?>
+          </div>
+          <div class="text-[10px] text-slate-400 mt-1">
+            Wholesale: $<?php echo $wholesaleBoxes > 0 ? number_format($wholesaleRevenue / $wholesaleBoxes, 2) : '0.00'; ?> |
+            Referral: $<?php echo $referralBoxes > 0 ? number_format($referralRevenue / $referralBoxes, 2) : '0.00'; ?>
+          </div>
+        </div>
+
+        <div class="bg-slate-50 rounded-lg p-4">
+          <div class="text-xs text-slate-500 mb-1">Avg Cost/Box</div>
+          <div class="text-xl font-bold text-orange-600">
+            $<?php echo $totalBoxes > 0 ? number_format($totalCost / $totalBoxes, 2) : '0.00'; ?>
+          </div>
+          <div class="text-[10px] text-slate-400 mt-1">
+            Total Cost: $<?php echo number_format($totalCost, 2); ?>
+          </div>
+        </div>
+
+        <div class="bg-slate-50 rounded-lg p-4">
+          <div class="text-xs text-slate-500 mb-1">Gross Profit/Box</div>
+          <div class="text-xl font-bold text-green-600">
+            $<?php
+              $avgRevenue = $totalBoxes > 0 ? $totalRevenue / $totalBoxes : 0;
+              $avgCost = $totalBoxes > 0 ? $totalCost / $totalBoxes : 0;
+              echo number_format($avgRevenue - $avgCost, 2);
+            ?>
+          </div>
+          <div class="text-[10px] text-slate-400 mt-1">
+            <?php
+              $margin = $totalRevenue > 0 ? (($totalRevenue - $totalCost) / $totalRevenue * 100) : 0;
+              echo number_format($margin, 1);
+            ?>% Margin
+          </div>
+        </div>
+
+        <div class="bg-slate-50 rounded-lg p-4">
+          <div class="text-xs text-slate-500 mb-1">Total Gross Profit</div>
+          <div class="text-xl font-bold text-green-700">
+            $<?php echo number_format($totalRevenue - $totalCost, 2); ?>
+          </div>
+          <div class="text-[10px] text-slate-400 mt-1">
+            <?php echo number_format($totalBoxes); ?> total boxes
+          </div>
+        </div>
+      </div>
+
       <!-- Interactive Revenue Line Graph -->
       <div class="mb-6">
         <div class="flex items-center justify-between mb-4">
@@ -637,8 +734,12 @@ include __DIR__.'/_header.php';
       </div>
 
       <div class="mt-4 pt-4 border-t text-xs text-slate-500">
-        <p><strong>Calculation:</strong> Revenue = Total product count × Reimbursement rate (or product price as fallback)</p>
-        <p class="mt-1">Based on active orders (excluding rejected and cancelled orders)</p>
+        <p><strong>Calculation:</strong></p>
+        <ul class="list-disc list-inside mt-1 space-y-1">
+          <li><strong>Referral:</strong> Billable pieces (rounded to box increments) × Medicare allowable rate per piece</li>
+          <li><strong>Wholesale:</strong> Total boxes × Wholesale price per box</li>
+        </ul>
+        <p class="mt-2">Based on active orders (excluding rejected and cancelled orders)</p>
       </div>
     </section>
   </div>

@@ -112,12 +112,12 @@ class AIService {
    * Analyzes patient demographics, diagnosis, wound details, notes, and uploaded documents
    * Returns color-coded score (Red/Yellow/Green) with detailed feedback
    */
-  public function generateApprovalScore(array $patientData, array $documents = []): array {
+  public function generateApprovalScore(array $patientData, array $documents = [], ?array $orderData = null): array {
     if (empty($this->apiKey)) {
       return ['error' => 'AI service not configured. Please set ANTHROPIC_API_KEY.'];
     }
 
-    $prompt = $this->buildApprovalScorePrompt($patientData, $documents);
+    $prompt = $this->buildApprovalScorePrompt($patientData, $documents, $orderData);
 
     try {
       $response = $this->callClaudeAPI($prompt, 3072);
@@ -451,7 +451,7 @@ PROMPT;
   /**
    * Build prompt for approval score generation
    */
-  private function buildApprovalScorePrompt(array $patient, array $documents): string {
+  private function buildApprovalScorePrompt(array $patient, array $documents, ?array $order = null): string {
     $patientAge = !empty($patient['dob']) ? date_diff(date_create($patient['dob']), date_create('today'))->y : 'Unknown';
 
     // Helper to safely get and truncate patient data
@@ -509,6 +509,25 @@ PROMPT;
     $insGroupId = $safe('insurance_group_id');
     $insPayerPhone = $safe('insurance_payer_phone', 'Not provided', 20);
 
+    // Format order information if available
+    $orderInfo = '';
+    if (!empty($order)) {
+      $productName = $order['product_name'] ?? 'Not specified';
+      $hcpcsCode = $order['hcpcs_code'] ?? 'Not specified';
+      $frequency = $order['frequency_per_week'] ?? 'Not specified';
+      $duration = $order['duration_days'] ?? 'Not specified';
+      $qtyPerChange = $order['qty_per_change'] ?? 'Not specified';
+
+      $orderInfo = "\n\nORDER INFORMATION (Most Recent):\n";
+      $orderInfo .= "- Product: {$productName}\n";
+      $orderInfo .= "- HCPCS Code: {$hcpcsCode}\n";
+      $orderInfo .= "- Frequency: {$frequency} times per week\n";
+      $orderInfo .= "- Duration: {$duration} days\n";
+      $orderInfo .= "- Quantity per change: {$qtyPerChange}\n";
+    } else {
+      $orderInfo = "\n\nORDER INFORMATION: No orders found for this patient yet";
+    }
+
     return <<<PROMPT
 You are an expert medical billing and insurance authorization specialist reviewing a patient profile for wound care product authorization.
 
@@ -527,6 +546,7 @@ INSURANCE INFORMATION:
 - Member ID: {$insMemberId}
 - Group ID: {$insGroupId}
 - Payer Phone: {$insPayerPhone}
+{$orderInfo}
 
 DOCUMENTATION STATUS:
 - Photo ID: {$idCardStatus}
@@ -648,7 +668,7 @@ PROMPT;
   /**
    * Call Claude API with the given prompt
    */
-  private function callClaudeAPI(string $prompt, int $maxTokens = 2048): string {
+  public function callClaudeAPI(string $prompt, int $maxTokens = 2048): string {
     // Validate prompt is not empty
     if (empty($prompt) || trim($prompt) === '') {
       throw new Exception("Prompt cannot be empty");
@@ -717,5 +737,174 @@ PROMPT;
     }
 
     return $result['content'][0]['text'];
+  }
+
+  /**
+   * Extract text from image using Claude's vision capabilities
+   *
+   * @param string $imagePath Path to the image file
+   * @param string $mimeType MIME type of the image
+   * @return array ['text' => extracted text] or ['error' => error message]
+   */
+  public function extractTextFromImage(string $imagePath, string $mimeType): array {
+    if (empty($this->apiKey)) {
+      return ['error' => 'AI service not configured. Please set ANTHROPIC_API_KEY.'];
+    }
+
+    if (!file_exists($imagePath)) {
+      return ['error' => "Image file not found: $imagePath"];
+    }
+
+    try {
+      $imageData = base64_encode(file_get_contents($imagePath));
+
+      $data = [
+        'model' => $this->model,
+        'max_tokens' => 4096,
+        'messages' => [
+          [
+            'role' => 'user',
+            'content' => [
+              [
+                'type' => 'image',
+                'source' => [
+                  'type' => 'base64',
+                  'media_type' => $mimeType,
+                  'data' => $imageData
+                ]
+              ],
+              [
+                'type' => 'text',
+                'text' => 'Please extract all text from this medical document image. Return only the extracted text without any additional commentary or formatting.'
+              ]
+            ]
+          ]
+        ]
+      ];
+
+      $jsonData = json_encode($data);
+
+      $ch = curl_init($this->apiUrl);
+      curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => $jsonData,
+        CURLOPT_HTTPHEADER => [
+          'Content-Type: application/json',
+          'x-api-key: ' . $this->apiKey,
+          'anthropic-version: 2023-06-01'
+        ],
+        CURLOPT_TIMEOUT => 120
+      ]);
+
+      $response = curl_exec($ch);
+      $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+      $error = curl_error($ch);
+      curl_close($ch);
+
+      if ($error) {
+        return ['error' => "cURL error: $error"];
+      }
+
+      if ($httpCode !== 200) {
+        error_log("[AIService] Image extraction error (HTTP $httpCode): $response");
+        return ['error' => "API returned HTTP $httpCode"];
+      }
+
+      $result = json_decode($response, true);
+
+      if (!isset($result['content'][0]['text'])) {
+        return ['error' => "Unexpected API response format"];
+      }
+
+      return ['text' => $result['content'][0]['text']];
+    } catch (Exception $e) {
+      error_log("[AIService] Error extracting text from image: " . $e->getMessage());
+      return ['error' => $e->getMessage()];
+    }
+  }
+
+  /**
+   * Extract text from PDF using Claude
+   *
+   * @param string $pdfPath Path to the PDF file
+   * @return array ['text' => extracted text] or ['error' => error message]
+   */
+  public function extractTextFromPDF(string $pdfPath): array {
+    if (empty($this->apiKey)) {
+      return ['error' => 'AI service not configured. Please set ANTHROPIC_API_KEY.'];
+    }
+
+    if (!file_exists($pdfPath)) {
+      return ['error' => "PDF file not found: $pdfPath"];
+    }
+
+    try {
+      $pdfData = base64_encode(file_get_contents($pdfPath));
+
+      $data = [
+        'model' => $this->model,
+        'max_tokens' => 4096,
+        'messages' => [
+          [
+            'role' => 'user',
+            'content' => [
+              [
+                'type' => 'document',
+                'source' => [
+                  'type' => 'base64',
+                  'media_type' => 'application/pdf',
+                  'data' => $pdfData
+                ]
+              ],
+              [
+                'type' => 'text',
+                'text' => 'Please extract all text from this medical document PDF. Return only the extracted text without any additional commentary or formatting.'
+              ]
+            ]
+          ]
+        ]
+      ];
+
+      $jsonData = json_encode($data);
+
+      $ch = curl_init($this->apiUrl);
+      curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => $jsonData,
+        CURLOPT_HTTPHEADER => [
+          'Content-Type: application/json',
+          'x-api-key: ' . $this->apiKey,
+          'anthropic-version: 2023-06-01'
+        ],
+        CURLOPT_TIMEOUT => 120
+      ]);
+
+      $response = curl_exec($ch);
+      $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+      $error = curl_error($ch);
+      curl_close($ch);
+
+      if ($error) {
+        return ['error' => "cURL error: $error"];
+      }
+
+      if ($httpCode !== 200) {
+        error_log("[AIService] PDF extraction error (HTTP $httpCode): $response");
+        return ['error' => "API returned HTTP $httpCode"];
+      }
+
+      $result = json_decode($response, true);
+
+      if (!isset($result['content'][0]['text'])) {
+        return ['error' => "Unexpected API response format"];
+      }
+
+      return ['text' => $result['content'][0]['text']];
+    } catch (Exception $e) {
+      error_log("[AIService] Error extracting text from PDF: " . $e->getMessage());
+      return ['error' => $e->getMessage()];
+    }
   }
 }

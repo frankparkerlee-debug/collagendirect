@@ -240,20 +240,27 @@ try {
     SELECT
       p.id, p.user_id, p.first_name, p.last_name, p.email, p.phone, p.dob,
       p.state, p.created_at,
-      p.notes_path, p.ins_card_path, p.id_card_path,
+      p.ins_card_path, p.id_card_path,
       p.insurance_provider, p.insurance_member_id, p.insurance_group_id, p.insurance_payer_phone,
       p.status_comment, p.status_updated_at, p.approval_score_color, p.approval_score_at,
       $providerResponseCols $readTrackingCol
       u.first_name AS phys_first, u.last_name AS phys_last, u.practice_name,
       COUNT(DISTINCT o.id) AS order_count,
       MAX(o.created_at) AS last_order_date,
+      (
+        SELECT ord.rx_note_path
+        FROM orders ord
+        WHERE ord.patient_id = p.id AND ord.rx_note_path IS NOT NULL
+        ORDER BY ord.created_at DESC
+        LIMIT 1
+      ) AS notes_path,
       $hasUnreadCalc as has_unread_response
     FROM patients p
     LEFT JOIN users u ON u.id = p.user_id
     LEFT JOIN orders o ON o.patient_id = p.id AND o.status NOT IN ('rejected','cancelled')
     WHERE $where
     GROUP BY p.id, p.user_id, p.first_name, p.last_name, p.email, p.phone, p.dob,
-             p.state, p.created_at, p.notes_path, p.ins_card_path, p.id_card_path,
+             p.state, p.created_at, p.ins_card_path, p.id_card_path,
              p.insurance_provider, p.insurance_member_id, p.insurance_group_id, p.insurance_payer_phone,
              p.status_comment, p.status_updated_at, p.approval_score_color, p.approval_score_at,
              $providerResponseGroup $readTrackingGroup
