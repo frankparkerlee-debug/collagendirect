@@ -124,7 +124,7 @@ try {
       " . ($hasShipRem ? "o.shipments_remaining," : "0 AS shipments_remaining,") . "
       u.practice_name,
       pp.custom_price AS practice_custom_price,
-      " . ($hasProducts ? "pr.name AS product_name, pr.hcpcs_code AS cpt_code, pr.pieces_per_box, pr.price_wholesale, COALESCE(pp.cost_per_box, pr.cost_per_box, 0) AS cost_per_box" : "'Unknown' AS product_name, '' AS cpt_code, 10 AS pieces_per_box, 0 AS price_wholesale, 0 AS cost_per_box") . "
+      " . ($hasProducts ? "pr.name AS product_name, pr.hcpcs_code AS cpt_code, pr.pieces_per_box, pr.price_wholesale, pr.price_admin, COALESCE(pp.cost_per_box, pr.cost_per_box, 0) AS cost_per_box" : "'Unknown' AS product_name, '' AS cpt_code, 10 AS pieces_per_box, 0 AS price_wholesale, 0 AS price_admin, 0 AS cost_per_box") . "
     FROM orders o
     LEFT JOIN users u ON u.id = o.user_id
     " . ($hasProducts ? "LEFT JOIN products pr ON pr.id = o.product_id" : "") . "
@@ -164,11 +164,7 @@ try {
       } else {
         // Fallback: Use default wholesale price from products table
         $price_per_box = (float)($order['price_wholesale'] ?? 0);
-
-        // Ultimate fallback
-        if ($price_per_box <= 0) {
-          $price_per_box = 150.0;
-        }
+        // If no price available, revenue = 0 (no hardcoded fallback)
       }
 
       // Calculate revenue: boxes × practice-specific price per box
@@ -231,18 +227,19 @@ try {
       if ($hasRates && $cpt && isset($rates[$cpt]) && $rates[$cpt] > 0) {
         // Use Medicare allowable rate from reimbursement_rates table
         $cpt_rate_per_piece = $rates[$cpt];
+      } elseif ($hasProducts && !empty($order['price_admin']) && $order['price_admin'] > 0) {
+        // Fallback 1: Use price_admin from products table (Medicare allowable per piece)
+        $cpt_rate_per_piece = (float)$order['price_admin'];
       } else {
-        // Fallback: use product_price (which is price per box on orders) ÷ pieces_per_box
+        // Fallback 2: use product_price (which is price per box on orders) ÷ pieces_per_box
         // This gives us price per piece
         $price_per_box = (float)($order['product_price'] ?? 0);
 
-        if ($price_per_box > 0) {
+        if ($price_per_box > 0 && $pieces_per_box > 0) {
           // We have a price per box, divide by pieces to get per-piece rate
           $cpt_rate_per_piece = $price_per_box / $pieces_per_box;
-        } else {
-          // Ultimate fallback: $150/box ÷ pieces_per_box = ~$15/piece for 10pc box
-          $cpt_rate_per_piece = 150.0 / $pieces_per_box;
         }
+        // If still no price, revenue = 0 (no hardcoded fallback)
       }
 
       // Total revenue based on billable pieces (rounded up to box increments)

@@ -378,25 +378,27 @@ function projected_rev($row, $rates, $hasProducts, $hasShipRem) {
       // Convert to price per box: custom_price × pieces_per_box
       $price_per_box = $practice_custom_price * $pieces_per_box;
     } else {
-      // Use default product_price from order
+      // Use product_price from order
       $price_per_box = (float)($row['product_price'] ?? 0);
-      if ($price_per_box <= 0) $price_per_box = 150.0; // Fallback
+      // No fallback to zero - if no price available, revenue = 0
     }
     return $boxes_remaining * $price_per_box;
   } else {
     // REFERRAL: Revenue = Pieces × CPT Rate Per Piece
     $cpt_rate_per_piece = 0.0;
     if ($hasProducts && !empty($row['cpt_code']) && isset($rates[$row['cpt_code']]) && $rates[$row['cpt_code']] > 0) {
-      // CPT rates are per piece
+      // CPT rates are per piece from reimbursement_rates table
       $cpt_rate_per_piece = (float)$rates[$row['cpt_code']];
+    } elseif ($hasProducts && !empty($row['price_admin']) && $row['price_admin'] > 0) {
+      // Fallback 1: Use price_admin from products table (Medicare allowable per piece)
+      $cpt_rate_per_piece = (float)$row['price_admin'];
     } else {
-      // Fallback: estimate from product_price or default
+      // Fallback 2: Estimate from product_price (wholesale price per box)
       $product_price = (float)($row['product_price'] ?? 0);
-      if ($product_price > 0) {
+      if ($product_price > 0 && $pieces_per_box > 0) {
         $cpt_rate_per_piece = $product_price / $pieces_per_box;
-      } else {
-        $cpt_rate_per_piece = 150.0 / $pieces_per_box; // ~$15/piece for 10pc box
       }
+      // If still no price, revenue = 0 (no hardcoded fallback)
     }
     return $pieces_remaining * $cpt_rate_per_piece;
   }

@@ -52,12 +52,15 @@ try {
   $order_group_id = $o['order_group_id'];
 
   if (!empty($order_group_id)) {
-    // Multi-product order: fetch all orders in the group
-    $sql_group = "SELECT product, product_type, wound_index, cpt, frequency_per_week, qty_per_change, duration_days
-                  FROM orders
-                  WHERE order_group_id = ? AND user_id = ?
-                  ORDER BY wound_index,
-                    CASE product_type
+    // Multi-product order: fetch all orders in the group with product details
+    $sql_group = "SELECT o.product, o.product_type, o.wound_index, o.cpt,
+                         o.frequency_per_week, o.qty_per_change, o.duration_days,
+                         pr.name AS product_name, pr.size AS product_size, pr.hcpcs_code
+                  FROM orders o
+                  LEFT JOIN products pr ON pr.id = o.product_id
+                  WHERE o.order_group_id = ? AND o.user_id = ?
+                  ORDER BY o.wound_index,
+                    CASE o.product_type
                       WHEN 'primary' THEN 1
                       WHEN 'secondary' THEN 2
                       WHEN 'additional' THEN 3
@@ -67,7 +70,14 @@ try {
     $st_group->execute([$order_group_id, $userId]);
     $all_products = $st_group->fetchAll();
   } else {
-    // Single-product order: just use the current order's product
+    // Single-product order: get product details from products table
+    $product_details = [];
+    if (!empty($o['product_id'])) {
+      $prod_stmt = $pdo->prepare("SELECT name, size, hcpcs_code FROM products WHERE id = ?");
+      $prod_stmt->execute([$o['product_id']]);
+      $product_details = $prod_stmt->fetch() ?: [];
+    }
+
     $all_products = [[
       'product' => $o['product'] ?? '',
       'product_type' => $o['product_type'] ?? 'primary',
@@ -75,7 +85,10 @@ try {
       'cpt' => $o['cpt'] ?? '',
       'frequency_per_week' => $o['frequency_per_week'] ?? 0,
       'qty_per_change' => $o['qty_per_change'] ?? 1,
-      'duration_days' => $o['duration_days'] ?? 0
+      'duration_days' => $o['duration_days'] ?? 0,
+      'product_name' => $product_details['name'] ?? ($o['product'] ?? ''),
+      'product_size' => $product_details['size'] ?? '',
+      'hcpcs_code' => $product_details['hcpcs_code'] ?? ($o['cpt'] ?? '')
     ]];
   }
 
@@ -224,9 +237,18 @@ foreach ($wounds as $wound_idx => $wound) {
     $total_pieces = $prod_freq * $prod_qty * $prod_weeks;
     $boxes = $total_pieces > 0 ? (int)ceil($total_pieces / 10) : 0; // 10 items per box
 
-    $products_html .= $type_label . ' ' . h($prod['product']);
+    // Build product name with size and HCPCS
+    $product_display = h($prod['product_name'] ?? $prod['product'] ?? '');
+    if (!empty($prod['product_size'])) {
+      $product_display .= ' ' . h($prod['product_size']);
+    }
+    if (!empty($prod['hcpcs_code'])) {
+      $product_display .= ' (' . h($prod['hcpcs_code']) . ')';
+    }
+
+    $products_html .= $type_label . ' ' . $product_display;
     if ($boxes > 0) {
-      $products_html .= ' <span style="color:#64748b">(' . $boxes . ' boxes)</span>';
+      $products_html .= ' <span style="color:#64748b">— ' . $boxes . ' boxes</span>';
     }
     $products_html .= '<br>';
   }

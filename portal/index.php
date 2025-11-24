@@ -11093,7 +11093,7 @@ function addWound() {
   }
 
   // Add listeners to clear error styling when fields are filled
-  const requiredFields = woundEl.querySelectorAll('.wound-product, .wound-frequency, .wound-duration, .wound-location, .wound-length, .wound-width, .wound-exudate, .wound-icd10-primary');
+  const requiredFields = woundEl.querySelectorAll('.wound-product, .wound-size, .wound-frequency, .wound-duration, .wound-location, .wound-length, .wound-width, .wound-exudate, .wound-icd10-primary');
   requiredFields.forEach(field => {
     const clearError = () => {
       if (field.value && field.value.trim() !== '') {
@@ -11584,16 +11584,25 @@ async function openOrderDialog(preselectId=null){
         const woundEl = woundEls[i];
 
         // Clear previous error styles
-        woundEl.querySelectorAll('.wound-product, .wound-frequency, .wound-duration, .wound-location, .wound-length, .wound-width, .wound-exudate, .wound-icd10-primary').forEach(field => {
+        woundEl.querySelectorAll('.wound-product, .wound-size, .wound-frequency, .wound-duration, .wound-location, .wound-length, .wound-width, .wound-exudate, .wound-icd10-primary').forEach(field => {
           field.style.borderColor = '';
           field.style.backgroundColor = '';
         });
 
         // Validate and highlight missing fields
         if (!w.product_id) {
-          const field = woundEl.querySelector('.wound-product');
-          field.style.borderColor = '#dc2626';
-          field.style.backgroundColor = '#fee2e2';
+          // Highlight size dropdown (which contains product_id) since that's where the actual selection happens
+          const sizeField = woundEl.querySelector('.wound-primary-size');
+          if (sizeField) {
+            sizeField.style.borderColor = '#dc2626';
+            sizeField.style.backgroundColor = '#fee2e2';
+          }
+          // Also highlight product type dropdown
+          const productField = woundEl.querySelector('.wound-product');
+          if (productField) {
+            productField.style.borderColor = '#dc2626';
+            productField.style.backgroundColor = '#fee2e2';
+          }
           hasErrors = true;
         }
         if (!w.frequency_per_week) {

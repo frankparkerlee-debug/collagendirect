@@ -391,7 +391,9 @@ if ($dateTo !== '') {
 $whereClause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
 
 $sql = "
-  SELECT o.*, p.first_name, p.last_name, p.id AS pid, p.dob, p.phone,
+  SELECT o.*,
+         COALESCE(o.order_group_id, o.id) AS display_order_id,
+         p.first_name, p.last_name, p.id AS pid, p.dob, p.phone,
          p.insurance_provider, p.insurance_member_id, p.insurance_group_id, p.insurance_payer_phone,
          $carrierSelect,
          $trackingSelect,
@@ -519,7 +521,7 @@ if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"
       <?php foreach ($rows as $r): ?>
       <tr class="border-b hover:bg-slate-50">
         <td class="py-3"><?=e(trim(($r['first_name']??'').' '.($r['last_name']??'')) ?: '—')?></td>
-        <td class="py-3">#<?=e($r['id'])?></td>
+        <td class="py-3">#<?=e($r['display_order_id'])?></td>
         <td class="py-3">
           <?php
             $label = $r['product'] ?? '';
