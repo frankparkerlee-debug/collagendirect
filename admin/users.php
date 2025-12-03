@@ -22,16 +22,16 @@ $physQuery = "
   SELECT u.id, u.first_name, u.last_name, u.email, u.account_type, u.status, u.created_at, u.role, u.practice_name
   FROM users u
 ";
-if (!$isOwner && !$isSales) {
+if (!$isOwner && !$isSales && !$isManufacturer) {
   // Regular employees see only assigned physicians
   $physQuery .= " JOIN admin_physicians ap ON ap.physician_user_id = u.id WHERE ap.admin_id = :aid AND (u.role IS NULL OR u.role IN ('physician', 'practice_admin'))";
 } else {
-  // Owner, superadmin, admin, and Sales see all physicians
+  // Owner, superadmin, admin, Sales, and Manufacturer see all physicians
   $physQuery .= " WHERE (u.role IS NULL OR u.role IN ('physician', 'practice_admin'))";
 }
 $physQuery .= " ORDER BY u.created_at DESC LIMIT 300";
 $physStmt = $pdo->prepare($physQuery);
-if (!$isOwner && !$isSales) $physStmt->execute(['aid'=>$admin['id']]);
+if (!$isOwner && !$isSales && !$isManufacturer) $physStmt->execute(['aid'=>$admin['id']]);
 else $physStmt->execute();
 $phys = $physStmt->fetchAll();
 
@@ -300,11 +300,11 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $msg = 'User details updated successfully';
   }
 
-  if ($act==='reset_phys_pw') {
+  if ($act==='reset_phys_pw' && !$isManufacturer) {
     $pdo->prepare("UPDATE users SET password_hash=?, updated_at=NOW() WHERE id=?")->execute([password_hash($_POST['newpw'], PASSWORD_DEFAULT), $_POST['phys_id']]);
     $msg='Physician password updated';
   }
-  if ($act==='delete_phys') {
+  if ($act==='delete_phys' && !$isManufacturer) {
     $pdo->prepare("DELETE FROM users WHERE id=?")->execute([$_POST['phys_id']]);
     $pdo->prepare("DELETE FROM admin_physicians WHERE physician_user_id=?")->execute([$_POST['phys_id']]);
     $msg='Physician deleted';
@@ -656,7 +656,6 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         </tbody>
       </table>
     </div>
-    <?php if (!$isManufacturer): ?>
     <div>
       <div class="font-semibold mb-2">Add Provider</div>
       <form method="post" class="bg-slate-50 border rounded p-3 text-sm" id="provider-form">
@@ -810,7 +809,6 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
       }
       </script>
     </div>
-    <?php endif; ?>
   </div>
 <?php elseif ($tab==='employees'): ?>
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -918,7 +916,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         </tbody>
       </table>
     </div>
-    <?php if ($isAdmin): ?>
+    <?php if ($isAdmin || $isManufacturer): ?>
     <div>
       <div class="font-semibold mb-2">Add Manufacturer Representative</div>
       <form method="post" class="bg-slate-50 border rounded p-3">
