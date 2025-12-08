@@ -82,6 +82,8 @@ function send_email_smtp(string $toEmail, string $toName, string $subject, strin
         $mail->SMTPAuth   = true;
         $mail->Username   = env('SMTP_USER');
         $mail->Password   = env('SMTP_PASS');
+        $mail->Timeout    = 10; // 10 second timeout
+        $mail->SMTPDebug  = 0;  // Set to 2 for verbose debug output
 
         // TLS/SSL
         $secure = strtolower(env('SMTP_SECURE', 'tls'));
@@ -90,6 +92,15 @@ function send_email_smtp(string $toEmail, string $toName, string $subject, strin
         } elseif ($secure === 'ssl') {
             $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS;
         }
+
+        // SSL options for cPanel hosts
+        $mail->SMTPOptions = [
+            'ssl' => [
+                'verify_peer' => false,
+                'verify_peer_name' => false,
+                'allow_self_signed' => true
+            ]
+        ];
 
         // Sender
         $mail->setFrom(
