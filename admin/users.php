@@ -214,7 +214,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
     // Map to this admin if not owner/superadmin (for regular admins with limited scope)
     if (!$isOwner && ($admin['role'] ?? '') !== 'practice_admin') {
-      $pdo->prepare("INSERT IGNORE INTO admin_physicians(admin_id, physician_user_id) VALUES(?,?)")->execute([$admin['id'], $userId]);
+      $pdo->prepare("INSERT INTO admin_physicians(admin_id, physician_user_id) VALUES(?,?) ON CONFLICT DO NOTHING")->execute([$admin['id'], $userId]);
     }
 
     // Send welcome email via SendGrid template
@@ -310,7 +310,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $msg='Physician deleted';
   }
   if ($act==='map_phys' && !$isOwner && ($admin['role'] ?? '') !== 'practice_admin') {
-    $pdo->prepare("INSERT IGNORE INTO admin_physicians(admin_id, physician_user_id) VALUES(?,?)")->execute([$admin['id'], $_POST['phys_id']]);
+    $pdo->prepare("INSERT INTO admin_physicians(admin_id, physician_user_id) VALUES(?,?) ON CONFLICT DO NOTHING")->execute([$admin['id'], $_POST['phys_id']]);
     $msg='Physician assigned to you';
   }
   if ($act==='assign_physicians' && $isOwner) {

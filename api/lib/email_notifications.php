@@ -3,22 +3,65 @@ declare(strict_types=1);
 
 /**
  * Centralized Email Notification System
- * Handles all 7 SendGrid template-based emails for CollagenDirect
+ * Supports both SMTP (Namecheap cPanel) and SendGrid
+ *
+ * Priority: SMTP first (if configured), then SendGrid templates
  */
 
 require_once __DIR__ . '/env.php';
 require_once __DIR__ . '/sg_curl.php';
+require_once __DIR__ . '/email_sender.php';
 
 /**
  * 1. Password Reset Email
- * Template: SG_TMPL_PASSWORD_RESET (optional, falls back to plain text)
+ * Template: SG_TMPL_PASSWORD_RESET (optional, falls back to SMTP or plain text)
  * Audience: All users
  * Trigger: User clicks "Forgot Password"
+ *
+ * Supports: SMTP (Namecheap) or SendGrid
  */
 function send_password_reset_email(string $email, string $firstName, string $resetUrl): bool {
-  $templateId = env('SG_TMPL_PASSWORD_RESET');
+  // Try SMTP first if configured (Namecheap cPanel, etc.)
+  $smtpHost = env('SMTP_HOST');
+  if ($smtpHost) {
+    error_log("[email] Using SMTP for password reset email to $email");
 
-  // If template is configured, use it
+    $subject = 'Reset Your CollagenDirect Password';
+    $bodyContent = <<<HTML
+      <h2 style="color: #1e293b; margin: 0 0 20px 0;">Password Reset Request</h2>
+      <p style="color: #475569; line-height: 1.6; margin: 0 0 15px 0;">
+        Hello <strong>$firstName</strong>,
+      </p>
+      <p style="color: #475569; line-height: 1.6; margin: 0 0 15px 0;">
+        We received a request to reset your password for your CollagenDirect account.
+      </p>
+
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="$resetUrl" style="display: inline-block; background: linear-gradient(135deg, #0d9488, #14b8a6); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600;">
+          Reset Password
+        </a>
+      </div>
+
+      <p style="color: #64748b; font-size: 14px; margin: 20px 0;">
+        This link will expire in <strong>15 minutes</strong> for security reasons.
+      </p>
+
+      <div style="background-color: #fef3c7; border: 1px solid #fcd34d; border-radius: 8px; padding: 15px; margin: 20px 0;">
+        <p style="margin: 0; color: #92400e; font-size: 14px;">
+          <strong>Didn't request this?</strong><br>
+          If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.
+        </p>
+      </div>
+HTML;
+
+    $html = email_template($subject, $bodyContent);
+    $result = send_email($email, $firstName, $subject, $html);
+    if ($result) return true;
+    error_log("[email] SMTP failed, trying SendGrid fallback");
+  }
+
+  // Try SendGrid template
+  $templateId = env('SG_TMPL_PASSWORD_RESET');
   if ($templateId) {
     error_log('[email] Using SendGrid template for password reset: ' . $templateId);
     return sg_send(
@@ -39,51 +82,36 @@ function send_password_reset_email(string $email, string $firstName, string $res
     );
   }
 
-  // Fallback to plain-text email if template not configured
-  error_log('[email] SendGrid template not configured, using plain-text password reset email');
-
-  $apiKey = getenv('SENDGRID_API_KEY');
+  // Final fallback: plain SendGrid email
+  error_log('[email] Using plain SendGrid email for password reset');
+  $apiKey = env('SENDGRID_API_KEY');
   if (!$apiKey) {
-    error_log('SendGrid API key not configured');
+    error_log('[email] ERROR: No email provider configured');
     return false;
   }
 
-  $fromEmail = getenv('SMTP_FROM') ?: 'no-reply@collagendirect.health';
-  $fromName = getenv('SMTP_FROM_NAME') ?: 'CollagenDirect';
-
+  $fromEmail = env('SMTP_FROM', 'no-reply@collagendirect.health');
+  $fromName = env('SMTP_FROM_NAME', 'CollagenDirect');
   $subject = 'Reset Your CollagenDirect Password';
 
   $emailBody = "Hello $firstName,
 
 We received a request to reset your password for your CollagenDirect account.
 
-**Reset Your Password:**
-Click the link below to create a new password:
+Reset Your Password:
 $resetUrl
 
 This link will expire in 15 minutes for security reasons.
 
-**Didn't request this?**
-If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.
+Didn't request this?
+If you didn't request a password reset, you can safely ignore this email.
 
-**Need Help?**
-- Support Email: support@collagendirect.health
-- Phone: (888) 415-6880
-- Portal: https://collagendirect.health/portal
-
-**Training Resources:**
-Once you're logged in, check out our training materials:
-- Getting Started Guide: https://docs.collagendirect.health/getting-started
-- Video Tutorials: https://docs.collagendirect.health/videos
-- FAQs: https://docs.collagendirect.health/faq
+Need Help?
+Email: support@collagendirect.health
+Phone: (888) 415-6880
 
 Best regards,
 The CollagenDirect Team
-
----
-CollagenDirect
-Advanced Wound Care Solutions
-https://collagendirect.health
 ";
 
   $data = [
@@ -156,8 +184,49 @@ function send_account_confirmation_email(string $email, string $fullName, string
  * Template: SG_TMPL_PHYSACCOUNT_CONFIRM
  * Audience: Physicians & Practice Managers (admin-created)
  * Trigger: Admin creates their account
+ *
+ * Supports: SMTP (Namecheap) or SendGrid
  */
 function send_physician_account_created_email(string $email, string $fullName, string $tempPassword): bool {
+  // Try SMTP first if configured (Namecheap cPanel, etc.)
+  $smtpHost = env('SMTP_HOST');
+  if ($smtpHost) {
+    error_log("[email] Using SMTP for physician account email to $email");
+
+    $subject = 'Welcome to CollagenDirect - Your Account is Ready';
+    $bodyContent = <<<HTML
+      <h2 style="color: #1e293b; margin: 0 0 20px 0;">Welcome to CollagenDirect!</h2>
+      <p style="color: #475569; line-height: 1.6; margin: 0 0 15px 0;">
+        Hello <strong>$fullName</strong>,
+      </p>
+      <p style="color: #475569; line-height: 1.6; margin: 0 0 15px 0;">
+        Your CollagenDirect account has been created. You can now access the portal to manage orders and patients.
+      </p>
+
+      <div style="background-color: #f0fdfa; border: 1px solid #99f6e4; border-radius: 8px; padding: 20px; margin: 25px 0;">
+        <p style="margin: 0 0 10px 0; font-weight: 600; color: #0f766e;">Your Login Credentials:</p>
+        <p style="margin: 0 0 5px 0; color: #475569;"><strong>Email:</strong> $email</p>
+        <p style="margin: 0; color: #475569;"><strong>Temporary Password:</strong> $tempPassword</p>
+      </div>
+
+      <p style="color: #475569; line-height: 1.6; margin: 0 0 20px 0;">
+        For security, please change your password after your first login.
+      </p>
+
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="https://collagendirect.health/portal" style="display: inline-block; background: linear-gradient(135deg, #0d9488, #14b8a6); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600;">
+          Login to Portal
+        </a>
+      </div>
+HTML;
+
+    $html = email_template($subject, $bodyContent);
+    $result = send_email($email, $fullName, $subject, $html);
+    if ($result) return true;
+    error_log("[email] SMTP failed, trying SendGrid fallback");
+  }
+
+  // Fallback to SendGrid template
   $templateId = env('SG_TMPL_PHYSACCOUNT_CONFIRM');
   if (!$templateId) {
     error_log('[email] Physician account confirmation template ID not configured');
