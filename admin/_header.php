@@ -419,12 +419,15 @@ function isActive($pageName) {
           <span>Referrals</span>
           <svg class="nav-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px; margin-left: auto; transition: transform 0.2s;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
         </a>
-        <div id="referrals-submenu" class="nav-submenu" style="display: <?php echo (isActive('patients') || isActive('orders')) ? 'flex' : 'none'; ?>;">
+        <div id="referrals-submenu" class="nav-submenu" style="display: <?php echo (isActive('patients') || isActive('orders') || isActive('delivery-audit')) ? 'flex' : 'none'; ?>;">
           <a class="<?=isActive('patients')?>" href="/admin/patients.php">
             <span>Patients</span>
           </a>
           <a class="<?=isActive('orders')?>" href="/admin/orders.php">
             <span>Orders</span>
+          </a>
+          <a class="<?=isActive('delivery-audit')?>" href="/admin/delivery-audit.php">
+            <span>Delivery Audit</span>
           </a>
         </div>
       </div>

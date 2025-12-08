@@ -466,7 +466,17 @@ $sql = "
          dc.sms_sent_at AS delivery_sms_sent_at,
          dc.sms_sid AS delivery_sms_sid,
          dc.sms_status AS delivery_sms_status,
-         dc.patient_phone AS delivery_patient_phone
+         dc.patient_phone AS delivery_patient_phone,
+         dc.aob_viewed_at AS delivery_aob_viewed_at,
+         dc.aob_signed_at AS delivery_aob_signed_at,
+         dc.aob_signature_ip AS delivery_aob_signature_ip,
+         dc.patient_name_snapshot AS delivery_patient_name_snapshot,
+         dc.patient_dob_snapshot AS delivery_patient_dob_snapshot,
+         dc.patient_address_snapshot AS delivery_patient_address_snapshot,
+         dc.order_product_snapshot AS delivery_order_product_snapshot,
+         dc.order_physician_snapshot AS delivery_order_physician_snapshot,
+         dc.order_physician_npi_snapshot AS delivery_order_physician_npi_snapshot,
+         dc.order_date_snapshot AS delivery_order_date_snapshot
   FROM orders o
   LEFT JOIN patients p ON p.id=o.patient_id
   LEFT JOIN delivery_confirmations dc ON dc.order_id=o.id
@@ -621,7 +631,19 @@ if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"
               'confirmed_user_agent' => $r['delivery_confirmed_user_agent'] ?: 'N/A',
               'sms_sent_at' => $r['delivery_sms_sent_at'] ? date('m/d/Y g:i A', strtotime($r['delivery_sms_sent_at'])) : 'N/A',
               'sms_sid' => $r['delivery_sms_sid'] ?: 'N/A',
-              'patient_phone' => $r['delivery_patient_phone'] ?: 'N/A'
+              'patient_phone' => $r['delivery_patient_phone'] ?: 'N/A',
+              // AOB & Compliance data
+              'aob_viewed_at' => $r['delivery_aob_viewed_at'] ? date('m/d/Y g:i A', strtotime($r['delivery_aob_viewed_at'])) : 'N/A',
+              'aob_signed_at' => $r['delivery_aob_signed_at'] ? date('m/d/Y g:i A', strtotime($r['delivery_aob_signed_at'])) : 'N/A',
+              'aob_signature_ip' => $r['delivery_aob_signature_ip'] ?: 'N/A',
+              // Snapshot data (captured at time of signing)
+              'patient_name_snapshot' => $r['delivery_patient_name_snapshot'] ?: 'N/A',
+              'patient_dob_snapshot' => $r['delivery_patient_dob_snapshot'] ? date('m/d/Y', strtotime($r['delivery_patient_dob_snapshot'])) : 'N/A',
+              'patient_address_snapshot' => $r['delivery_patient_address_snapshot'] ?: 'N/A',
+              'order_product_snapshot' => $r['delivery_order_product_snapshot'] ?: 'N/A',
+              'order_physician_snapshot' => $r['delivery_order_physician_snapshot'] ?: 'N/A',
+              'order_physician_npi_snapshot' => $r['delivery_order_physician_npi_snapshot'] ?: 'N/A',
+              'order_date_snapshot' => $r['delivery_order_date_snapshot'] ? date('m/d/Y', strtotime($r['delivery_order_date_snapshot'])) : 'N/A'
             ], JSON_HEX_APOS | JSON_HEX_QUOT);
             echo '<button onclick="showDeliveryDetails(' . htmlspecialchars($dcData, ENT_QUOTES) . ')" class="inline-block w-3 h-3 rounded-full bg-green-500 cursor-pointer hover:ring-2 hover:ring-green-300" title="Click for audit details"></button>';
           } elseif (!empty($r['delivery_sms_sent_at'])) {
@@ -738,15 +760,16 @@ if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"
 </div>
 
 <!-- Delivery Confirmation Details Modal -->
-<dialog id="deliveryDetailsModal" class="rounded-lg shadow-2xl p-0 backdrop:bg-black backdrop:bg-opacity-50" style="max-width: 600px; width: 90%;">
-  <div class="bg-white rounded-lg">
-    <div class="bg-gradient-to-r from-teal-600 to-teal-700 text-white px-6 py-4 flex justify-between items-center rounded-t-lg">
-      <h2 class="text-xl font-semibold">📋 Delivery Confirmation Details</h2>
+<dialog id="deliveryDetailsModal" class="rounded-lg shadow-2xl p-0 backdrop:bg-black backdrop:bg-opacity-50" style="max-width: 700px; width: 95%;">
+  <div class="bg-white rounded-lg max-h-[90vh] overflow-y-auto">
+    <div class="bg-gradient-to-r from-teal-600 to-teal-700 text-white px-6 py-4 flex justify-between items-center rounded-t-lg sticky top-0">
+      <h2 class="text-xl font-semibold">📋 Delivery Confirmation & AOB Details</h2>
       <button onclick="document.getElementById('deliveryDetailsModal').close()" class="text-white hover:text-gray-200 text-2xl">&times;</button>
     </div>
 
     <div class="p-6">
       <div class="space-y-4">
+        <!-- Order Information -->
         <div class="bg-gray-50 rounded-lg p-4">
           <h3 class="font-semibold text-gray-700 mb-3 flex items-center">
             <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -767,12 +790,77 @@ if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"
           </div>
         </div>
 
+        <!-- AOB Signing Details - NEW -->
+        <div class="bg-amber-50 rounded-lg p-4 border border-amber-300">
+          <h3 class="font-semibold text-amber-800 mb-3 flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
+            </svg>
+            Assignment of Benefits (AOB) Signature
+          </h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between">
+              <span class="text-gray-600">AOB Viewed At:</span>
+              <span class="font-semibold" id="dc_aob_viewed_at"></span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">AOB Signed At:</span>
+              <span class="font-semibold text-amber-800" id="dc_aob_signed_at"></span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Signature IP Address:</span>
+              <span class="font-mono text-xs" id="dc_aob_signature_ip"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Snapshot Data at Time of Signing - NEW -->
+        <div class="bg-purple-50 rounded-lg p-4 border border-purple-200">
+          <h3 class="font-semibold text-purple-800 mb-3 flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path>
+            </svg>
+            Snapshot at Time of Signing (Audit Record)
+          </h3>
+          <div class="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <span class="text-gray-500 block text-xs">Patient Name:</span>
+              <span class="font-semibold" id="dc_patient_name_snapshot"></span>
+            </div>
+            <div>
+              <span class="text-gray-500 block text-xs">Patient DOB:</span>
+              <span class="font-semibold" id="dc_patient_dob_snapshot"></span>
+            </div>
+            <div class="col-span-2">
+              <span class="text-gray-500 block text-xs">Patient Address:</span>
+              <span class="font-semibold" id="dc_patient_address_snapshot"></span>
+            </div>
+            <div>
+              <span class="text-gray-500 block text-xs">Product:</span>
+              <span class="font-semibold" id="dc_order_product_snapshot"></span>
+            </div>
+            <div>
+              <span class="text-gray-500 block text-xs">Order Date:</span>
+              <span class="font-semibold" id="dc_order_date_snapshot"></span>
+            </div>
+            <div>
+              <span class="text-gray-500 block text-xs">Physician:</span>
+              <span class="font-semibold" id="dc_order_physician_snapshot"></span>
+            </div>
+            <div>
+              <span class="text-gray-500 block text-xs">Physician NPI:</span>
+              <span class="font-mono" id="dc_order_physician_npi_snapshot"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Delivery Confirmation Details -->
         <div class="bg-green-50 rounded-lg p-4 border border-green-200">
           <h3 class="font-semibold text-green-800 mb-3 flex items-center">
             <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
             </svg>
-            Confirmation Details (Insurance Audit)
+            Delivery Confirmation Details
           </h3>
           <div class="space-y-2 text-sm">
             <div class="flex justify-between">
@@ -784,27 +872,28 @@ if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"
               <span class="font-semibold" id="dc_confirmation_method"></span>
             </div>
             <div class="flex justify-between">
-              <span class="text-gray-600">Patient IP Address:</span>
+              <span class="text-gray-600">Confirmation IP Address:</span>
               <span class="font-mono text-xs" id="dc_confirmed_ip"></span>
             </div>
             <div class="flex flex-col">
               <span class="text-gray-600 mb-1">User Agent (Device/Browser):</span>
-              <span class="font-mono text-xs bg-white p-2 rounded border" id="dc_confirmed_user_agent"></span>
+              <span class="font-mono text-xs bg-white p-2 rounded border break-all" id="dc_confirmed_user_agent"></span>
             </div>
           </div>
         </div>
 
+        <!-- SMS Details -->
         <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
           <h3 class="font-semibold text-blue-800 mb-3 flex items-center">
             <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
               <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path>
               <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path>
             </svg>
-            SMS Details
+            Notification Details
           </h3>
           <div class="space-y-2 text-sm">
             <div class="flex justify-between">
-              <span class="text-gray-600">SMS Sent At:</span>
+              <span class="text-gray-600">SMS/Email Sent At:</span>
               <span class="font-semibold" id="dc_sms_sent_at"></span>
             </div>
             <div class="flex justify-between">
@@ -819,7 +908,7 @@ if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"
         </div>
 
         <div class="text-xs text-gray-500 bg-gray-50 p-3 rounded border">
-          <strong>For Insurance Compliance:</strong> This record shows when the patient confirmed delivery of wound care supplies by clicking the confirmation link in the SMS. The IP address and user agent verify the confirmation came from the patient's device.
+          <strong>For Insurance Compliance:</strong> This record includes the patient's electronic signature on the Assignment of Benefits (AOB), delivery confirmation, and all data captured at the time of signing. The IP addresses and user agent verify the actions came from the patient's device.
         </div>
       </div>
 
@@ -832,15 +921,36 @@ if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"
 
 <script>
 function showDeliveryDetails(data) {
+  // Order info
   document.getElementById('dc_order_id').textContent = data.order_id;
   document.getElementById('dc_patient_name').textContent = data.patient_name;
+
+  // Delivery confirmation
   document.getElementById('dc_confirmed_at').textContent = data.confirmed_at;
-  document.getElementById('dc_confirmation_method').textContent = data.confirmation_method === 'web_link' ? '🔗 Web Link' : '💬 SMS Reply';
+  document.getElementById('dc_confirmation_method').textContent =
+    data.confirmation_method === 'web_approval' ? '📝 Web Approval + AOB' :
+    data.confirmation_method === 'web_link' ? '🔗 Web Link' : '💬 SMS Reply';
   document.getElementById('dc_confirmed_ip').textContent = data.confirmed_ip;
   document.getElementById('dc_confirmed_user_agent').textContent = data.confirmed_user_agent;
+
+  // SMS/Email notification details
   document.getElementById('dc_sms_sent_at').textContent = data.sms_sent_at;
   document.getElementById('dc_patient_phone').textContent = data.patient_phone;
   document.getElementById('dc_sms_sid').textContent = data.sms_sid;
+
+  // AOB signature details
+  document.getElementById('dc_aob_viewed_at').textContent = data.aob_viewed_at || 'N/A';
+  document.getElementById('dc_aob_signed_at').textContent = data.aob_signed_at || 'N/A';
+  document.getElementById('dc_aob_signature_ip').textContent = data.aob_signature_ip || 'N/A';
+
+  // Snapshot data (captured at time of signing)
+  document.getElementById('dc_patient_name_snapshot').textContent = data.patient_name_snapshot || 'N/A';
+  document.getElementById('dc_patient_dob_snapshot').textContent = data.patient_dob_snapshot || 'N/A';
+  document.getElementById('dc_patient_address_snapshot').textContent = data.patient_address_snapshot || 'N/A';
+  document.getElementById('dc_order_product_snapshot').textContent = data.order_product_snapshot || 'N/A';
+  document.getElementById('dc_order_date_snapshot').textContent = data.order_date_snapshot || 'N/A';
+  document.getElementById('dc_order_physician_snapshot').textContent = data.order_physician_snapshot || 'N/A';
+  document.getElementById('dc_order_physician_npi_snapshot').textContent = data.order_physician_npi_snapshot || 'N/A';
 
   document.getElementById('deliveryDetailsModal').showModal();
 }
