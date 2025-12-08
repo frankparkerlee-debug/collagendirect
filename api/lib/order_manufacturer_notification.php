@@ -2,10 +2,12 @@
 // api/lib/order_manufacturer_notification.php - Email manufacturer on order submission
 declare(strict_types=1);
 
+require_once __DIR__ . '/email_sender.php';
+
 if (!function_exists('notify_manufacturer_of_order')) {
   /**
-   * Send email notification to manufacturer when order is submitted
-   * Includes all relevant documents (ID, Insurance Card, Notes, Order PDF)
+   * Send email notification to ALL manufacturer reps AND superadmins when order is submitted
+   * Uses SMTP (Gmail/Google Workspace)
    *
    * @param PDO $pdo Database connection
    * @param int $orderId Order ID
@@ -13,14 +15,29 @@ if (!function_exists('notify_manufacturer_of_order')) {
    */
   function notify_manufacturer_of_order(PDO $pdo, int $orderId): bool {
     try {
-      // Get manufacturer email(s)
-      $mfgStmt = $pdo->query("SELECT email, name FROM admin_users WHERE role = 'manufacturer' LIMIT 1");
-      $manufacturer = $mfgStmt->fetch(PDO::FETCH_ASSOC);
+      // Get ALL manufacturer reps
+      $mfgStmt = $pdo->query("SELECT email, name FROM admin_users WHERE role = 'manufacturer'");
+      $manufacturers = $mfgStmt->fetchAll(PDO::FETCH_ASSOC);
 
-      if (!$manufacturer) {
-        error_log("[order-notification] No manufacturer found");
+      // Get ALL superadmins from users table
+      $adminStmt = $pdo->query("SELECT email, first_name, last_name FROM users WHERE role = 'superadmin'");
+      $superadmins = $adminStmt->fetchAll(PDO::FETCH_ASSOC);
+
+      // Combine recipients
+      $recipients = [];
+      foreach ($manufacturers as $mfg) {
+        $recipients[] = ['email' => $mfg['email'], 'name' => $mfg['name']];
+      }
+      foreach ($superadmins as $admin) {
+        $recipients[] = ['email' => $admin['email'], 'name' => trim(($admin['first_name'] ?? '') . ' ' . ($admin['last_name'] ?? ''))];
+      }
+
+      if (empty($recipients)) {
+        error_log("[order-notification] No manufacturer reps or superadmins found");
         return false;
       }
+
+      error_log("[order-notification] Found " . count($recipients) . " recipients for order #$orderId");
 
       // Get order details with document paths
       $orderStmt = $pdo->prepare("
@@ -151,47 +168,69 @@ if (!function_exists('notify_manufacturer_of_order')) {
       $emailBody .= "Login: $baseUrl/admin/\n\n";
       $emailBody .= "Thank you,\nCollagenDirect System";
 
-      // Send via SendGrid
-      require_once __DIR__ . '/sg_curl.php';
+      // Build HTML version for SMTP
+      $htmlBody = email_template($subject, "
+        <h2 style='color: #1e293b; margin: 0 0 20px 0;'>New Order Submitted</h2>
+        <p style='color: #475569; line-height: 1.6;'>A new order has been submitted and is ready for processing.</p>
 
-      $apiKey = getenv('SENDGRID_API_KEY');
-      if (!$apiKey) {
-        error_log("[order-notification] SendGrid API key not configured");
-        return false;
+        <div style='background-color: #f0fdfa; border: 1px solid #99f6e4; border-radius: 8px; padding: 20px; margin: 20px 0;'>
+          <h3 style='margin: 0 0 15px 0; color: #0f766e;'>Order Details</h3>
+          <p style='margin: 5px 0; color: #475569;'><strong>Order ID:</strong> #$orderId</p>
+          <p style='margin: 5px 0; color: #475569;'><strong>Patient:</strong> $patientName</p>
+          <p style='margin: 5px 0; color: #475569;'><strong>DOB:</strong> " . ($order['dob'] ?? 'N/A') . "</p>
+          <p style='margin: 5px 0; color: #475569;'><strong>Phone:</strong> " . ($order['phone'] ?? 'N/A') . "</p>
+        </div>
+
+        <div style='background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 20px 0;'>
+          <h3 style='margin: 0 0 15px 0; color: #334155;'>Provider Information</h3>
+          <p style='margin: 5px 0; color: #475569;'><strong>Physician:</strong> $physicianName</p>
+          <p style='margin: 5px 0; color: #475569;'><strong>Practice:</strong> $practiceName</p>
+        </div>
+
+        <div style='background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 20px 0;'>
+          <h3 style='margin: 0 0 15px 0; color: #334155;'>Product Information</h3>
+          <p style='margin: 5px 0; color: #475569;'><strong>Product:</strong> $productLabel</p>
+          <p style='margin: 5px 0; color: #475569;'><strong>Frequency:</strong> " . ($order['frequency'] ?? 'N/A') . "</p>
+          <p style='margin: 5px 0; color: #475569;'><strong>Duration:</strong> " . ($order['duration_days'] ?? 'N/A') . " days</p>
+        </div>
+
+        <div style='background-color: #fef3c7; border: 1px solid #fcd34d; border-radius: 8px; padding: 20px; margin: 20px 0;'>
+          <h3 style='margin: 0 0 15px 0; color: #92400e;'>Insurance Information</h3>
+          <p style='margin: 5px 0; color: #78350f;'><strong>Insurer:</strong> " . ($order['insurer_name'] ?? 'N/A') . "</p>
+          <p style='margin: 5px 0; color: #78350f;'><strong>Member ID:</strong> " . ($order['member_id'] ?? 'N/A') . "</p>
+          <p style='margin: 5px 0; color: #78350f;'><strong>Group ID:</strong> " . ($order['group_id'] ?? 'N/A') . "</p>
+        </div>
+
+        <div style='text-align: center; margin: 30px 0;'>
+          <a href='$baseUrl/admin/orders.php?id=$orderId' style='display: inline-block; background: linear-gradient(135deg, #0d9488, #14b8a6); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600;'>
+            View Order in Admin Portal
+          </a>
+        </div>
+
+        <p style='color: #64748b; font-size: 14px; text-align: center;'>
+          <a href='$orderPdfUrl' style='color: #0d9488;'>Download Order PDF</a>
+        </p>
+      ");
+
+      // Send to ALL recipients via SMTP
+      $successCount = 0;
+      foreach ($recipients as $recipient) {
+        $result = send_email($recipient['email'], $recipient['name'], $subject, $htmlBody, $emailBody);
+        if ($result) {
+          $successCount++;
+          error_log("[order-notification] Email sent to {$recipient['email']} for order #$orderId");
+        } else {
+          error_log("[order-notification] Failed to send email to {$recipient['email']} for order #$orderId");
+        }
       }
 
-      $data = [
-        'personalizations' => [[
-          'to' => [['email' => $manufacturer['email'], 'name' => $manufacturer['name']]],
-          'subject' => $subject
-        ]],
-        'from' => [
-          'email' => 'noreply@collagendirect.health',
-          'name' => 'CollagenDirect'
-        ],
-        'content' => [[
-          'type' => 'text/plain',
-          'value' => $emailBody
-        ]]
-      ];
-
-      // Add attachments if any
-      if (count($attachments) > 0) {
-        $data['attachments'] = $attachments;
-      }
-
-      $result = sg_curl_send($apiKey, $data);
-
-      if ($result) {
-        error_log("[order-notification] Email sent to manufacturer for order #$orderId");
-
-        // Create portal notification
+      // Create portal notifications
+      if ($successCount > 0) {
         create_manufacturer_notification($pdo, $orderId, $patientName, $physicianName);
-      } else {
-        error_log("[order-notification] Failed to send email for order #$orderId");
+        error_log("[order-notification] Sent $successCount/" . count($recipients) . " emails for order #$orderId");
       }
 
-      return $result;
+      return $successCount > 0;
 
     } catch (Throwable $e) {
       error_log("[order-notification] Error: " . $e->getMessage());
