@@ -103,11 +103,25 @@ if ($hash === false) json_out(500, ['ok'=>false, 'error'=>'Failed to hash passwo
 try {
   $pdo->beginTransaction();
 
-  $pdo->prepare("
-    UPDATE users
-       SET password_hash = ?, password_updated_at = NOW(), updated_at = NOW()
-     WHERE id = ?
-  ")->execute([$hash, $user['id']]);
+  // Check if password_updated_at column exists (may not exist in all DB versions)
+  $colCheck = $pdo->query("
+    SELECT column_name FROM information_schema.columns
+    WHERE table_name = 'users' AND column_name = 'password_updated_at'
+  ")->fetch();
+
+  if ($colCheck) {
+    $pdo->prepare("
+      UPDATE users
+         SET password_hash = ?, password_updated_at = NOW(), updated_at = NOW()
+       WHERE id = ?
+    ")->execute([$hash, $user['id']]);
+  } else {
+    $pdo->prepare("
+      UPDATE users
+         SET password_hash = ?, updated_at = NOW()
+       WHERE id = ?
+    ")->execute([$hash, $user['id']]);
+  }
 
   $pdo->prepare("UPDATE password_resets SET consumed_at = NOW() WHERE id = ?")
       ->execute([$row['id']]);
