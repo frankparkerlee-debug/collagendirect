@@ -59,22 +59,23 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 try {
   $pdo->exec("
     CREATE TABLE IF NOT EXISTS password_resets (
-      id            INT AUTO_INCREMENT PRIMARY KEY,
-      user_id       VARCHAR(64) NULL,              -- matches users.id (varchar)
+      id            SERIAL PRIMARY KEY,
+      user_id       VARCHAR(64) NULL,
       email         VARCHAR(255) NOT NULL,
       selector      VARCHAR(32)  NOT NULL,
-      token_hash    VARBINARY(64) NOT NULL,        -- sha256 binary
-      requested_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      expires_at    DATETIME NOT NULL,
-      consumed_at   DATETIME NULL,
+      token_hash    BYTEA NOT NULL,
+      requested_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      expires_at    TIMESTAMP NOT NULL,
+      consumed_at   TIMESTAMP NULL,
       ip            VARCHAR(64)  NULL,
-      ua            VARCHAR(255) NULL,
-      INDEX (email),
-      INDEX (selector),
-      INDEX (user_id),
-      INDEX (expires_at)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+      ua            VARCHAR(255) NULL
+    )
   ");
+  // Create indexes if they don't exist
+  $pdo->exec("CREATE INDEX IF NOT EXISTS idx_password_resets_email ON password_resets(email)");
+  $pdo->exec("CREATE INDEX IF NOT EXISTS idx_password_resets_selector ON password_resets(selector)");
+  $pdo->exec("CREATE INDEX IF NOT EXISTS idx_password_resets_user_id ON password_resets(user_id)");
+  $pdo->exec("CREATE INDEX IF NOT EXISTS idx_password_resets_expires_at ON password_resets(expires_at)");
 } catch (Throwable $e) {
   error_log('password_resets create failed: '.$e->getMessage());
   $GENERIC();
@@ -97,7 +98,7 @@ try {
     SELECT COUNT(*) AS c
       FROM password_resets
      WHERE email = ?
-       AND requested_at >= (NOW() - INTERVAL 1 HOUR)
+       AND requested_at >= (NOW() - INTERVAL '1 hour')
   ");
   $st->execute([$email]);
   $count = (int)($st->fetch()['c'] ?? 0);
@@ -133,7 +134,7 @@ try {
 
   $pdo->prepare("
     INSERT INTO password_resets (user_id, email, selector, token_hash, expires_at, ip, ua)
-    VALUES (?, ?, ?, ?, (NOW() + INTERVAL {$ttlMinutes} MINUTE), ?, ?)
+    VALUES (?, ?, ?, ?, (NOW() + INTERVAL '{$ttlMinutes} minutes'), ?, ?)
   ")->execute([
     $user['id'] ?? null,
     $email,
