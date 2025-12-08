@@ -68,7 +68,7 @@ if (!$row) {
 }
 
 // --- Verify token (constant-time compare)
-$calc = hash('sha256', $tokenRaw, true);
+$calc = hash('sha256', $tokenRaw, false); // hex string for PostgreSQL compatibility
 if (!hash_equals($row['token_hash'], $calc)) {
   json_out(400, ['ok'=>false, 'error'=>'Invalid token. Please request a new reset email.']);
 }

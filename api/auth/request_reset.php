@@ -55,27 +55,36 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
   $GENERIC();
 }
 
-// ---------- Ensure table exists (safe to run repeatedly) ----------
+// ---------- Ensure table exists with correct schema ----------
 try {
-  $pdo->exec("
-    CREATE TABLE IF NOT EXISTS password_resets (
-      id            SERIAL PRIMARY KEY,
-      user_id       VARCHAR(64) NULL,
-      email         VARCHAR(255) NOT NULL,
-      selector      VARCHAR(32)  NOT NULL,
-      token_hash    BYTEA NOT NULL,
-      requested_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      expires_at    TIMESTAMP NOT NULL,
-      consumed_at   TIMESTAMP NULL,
-      ip            VARCHAR(64)  NULL,
-      ua            VARCHAR(255) NULL
-    )
-  ");
-  // Create indexes if they don't exist
-  $pdo->exec("CREATE INDEX IF NOT EXISTS idx_password_resets_email ON password_resets(email)");
-  $pdo->exec("CREATE INDEX IF NOT EXISTS idx_password_resets_selector ON password_resets(selector)");
-  $pdo->exec("CREATE INDEX IF NOT EXISTS idx_password_resets_user_id ON password_resets(user_id)");
-  $pdo->exec("CREATE INDEX IF NOT EXISTS idx_password_resets_expires_at ON password_resets(expires_at)");
+  // Check if table exists and has correct column type
+  $tableCheck = $pdo->query("
+    SELECT data_type FROM information_schema.columns
+    WHERE table_name = 'password_resets' AND column_name = 'token_hash'
+  ")->fetch();
+
+  if (!$tableCheck || $tableCheck['data_type'] === 'bytea') {
+    // Table doesn't exist or has wrong column type - recreate it
+    $pdo->exec("DROP TABLE IF EXISTS password_resets");
+    $pdo->exec("
+      CREATE TABLE password_resets (
+        id            SERIAL PRIMARY KEY,
+        user_id       VARCHAR(64) NULL,
+        email         VARCHAR(255) NOT NULL,
+        selector      VARCHAR(32)  NOT NULL,
+        token_hash    VARCHAR(64) NOT NULL,
+        requested_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        expires_at    TIMESTAMP NOT NULL,
+        consumed_at   TIMESTAMP NULL,
+        ip            VARCHAR(64)  NULL,
+        ua            VARCHAR(255) NULL
+      )
+    ");
+    $pdo->exec("CREATE INDEX idx_password_resets_email ON password_resets(email)");
+    $pdo->exec("CREATE INDEX idx_password_resets_selector ON password_resets(selector)");
+    $pdo->exec("CREATE INDEX idx_password_resets_user_id ON password_resets(user_id)");
+    $pdo->exec("CREATE INDEX idx_password_resets_expires_at ON password_resets(expires_at)");
+  }
 } catch (Throwable $e) {
   error_log('password_resets create failed: '.$e->getMessage());
   $GENERIC();
@@ -114,7 +123,7 @@ try {
 // ---------- Create selector + verifier ----------
 $selector  = bin2hex(random_bytes(8));       // 16 hex chars
 $verifier  = random_bytes(32);               // 32 bytes
-$tokenHash = hash('sha256', $verifier, true);
+$tokenHash = hash('sha256', $verifier, false); // hex string for PostgreSQL compatibility
 $tokenB64  = b64url($verifier);
 
 $ip = client_ip();

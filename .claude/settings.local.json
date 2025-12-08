@@ -16,7 +16,10 @@
       "Bash(scp:*)",
       "Bash(git rm:*)",
       "Bash(git checkout:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(grep:*)",
+      "Bash(brew services list:*)",
+      "Bash(composer install:*)"
     ],
     "deny": [],
     "ask": []
