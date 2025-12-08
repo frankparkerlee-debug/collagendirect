@@ -468,10 +468,10 @@ function send_manufacturer_order_email(array $orderData): bool {
   // Build email content
   $orderId = $orderData['order_id'] ?? '';
   $orderDate = $orderData['order_date'] ?? date('m/d/Y');
-  $patientName = $orderData['patient_name'] ?? '';
+  // Privacy-safe patient info: First initial + Last name, DOB, City/State only
+  $patientName = $orderData['patient_name'] ?? '';  // Expected: "J. Smith" format
   $patientDob = $orderData['patient_dob'] ?? 'N/A';
-  $patientAddress = $orderData['patient_address'] ?? 'N/A';
-  $insuranceProvider = $orderData['insurance_provider'] ?? 'N/A';
+  $patientCityState = $orderData['patient_city_state'] ?? 'N/A';
   $physicianName = $orderData['physician_name'] ?? '';
   $physicianNpi = $orderData['physician_npi'] ?? 'N/A';
   $practiceName = $orderData['practice_name'] ?? '';
@@ -482,7 +482,7 @@ function send_manufacturer_order_email(array $orderData): bool {
   $adminPortalUrl = "https://collagendirect.health/admin/orders.php?id={$orderId}";
   $subject = "New Order Submitted - Order #$orderId";
 
-  // HTML email body
+  // HTML email body - shows privacy-safe patient info only
   $htmlBody = email_template($subject, "
     <h2 style='color: #1e293b; margin: 0 0 20px 0;'>New Order Submitted</h2>
     <p style='color: #475569; line-height: 1.6;'>A new order has been submitted and is ready for processing.</p>
@@ -491,9 +491,13 @@ function send_manufacturer_order_email(array $orderData): bool {
       <h3 style='margin: 0 0 15px 0; color: #0f766e;'>Order Details</h3>
       <p style='margin: 5px 0; color: #475569;'><strong>Order ID:</strong> #$orderId</p>
       <p style='margin: 5px 0; color: #475569;'><strong>Order Date:</strong> $orderDate</p>
+    </div>
+
+    <div style='background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 20px 0;'>
+      <h3 style='margin: 0 0 15px 0; color: #334155;'>Patient Information</h3>
       <p style='margin: 5px 0; color: #475569;'><strong>Patient:</strong> $patientName</p>
       <p style='margin: 5px 0; color: #475569;'><strong>DOB:</strong> $patientDob</p>
-      <p style='margin: 5px 0; color: #475569;'><strong>Address:</strong> $patientAddress</p>
+      <p style='margin: 5px 0; color: #475569;'><strong>Location:</strong> $patientCityState</p>
     </div>
 
     <div style='background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 20px 0;'>
@@ -510,11 +514,6 @@ function send_manufacturer_order_email(array $orderData): bool {
       <p style='margin: 5px 0; color: #475569;'><strong>Duration:</strong> $durationDays days</p>
     </div>
 
-    <div style='background-color: #fef3c7; border: 1px solid #fcd34d; border-radius: 8px; padding: 20px; margin: 20px 0;'>
-      <h3 style='margin: 0 0 15px 0; color: #92400e;'>Insurance Information</h3>
-      <p style='margin: 5px 0; color: #78350f;'><strong>Provider:</strong> $insuranceProvider</p>
-    </div>
-
     <div style='text-align: center; margin: 30px 0;'>
       <a href='$adminPortalUrl' style='display: inline-block; background: linear-gradient(135deg, #0d9488, #14b8a6); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600;'>
         View Order in Admin Portal
@@ -522,14 +521,15 @@ function send_manufacturer_order_email(array $orderData): bool {
     </div>
   ");
 
-  // Plain text version
+  // Plain text version - privacy-safe patient info
   $textBody = "New Order Submitted - Order #$orderId\n\n";
   $textBody .= "ORDER DETAILS\n";
   $textBody .= "Order ID: #$orderId\n";
-  $textBody .= "Order Date: $orderDate\n";
+  $textBody .= "Order Date: $orderDate\n\n";
+  $textBody .= "PATIENT\n";
   $textBody .= "Patient: $patientName\n";
   $textBody .= "DOB: $patientDob\n";
-  $textBody .= "Address: $patientAddress\n\n";
+  $textBody .= "Location: $patientCityState\n\n";
   $textBody .= "PROVIDER\n";
   $textBody .= "Physician: $physicianName\n";
   $textBody .= "NPI: $physicianNpi\n";
@@ -538,7 +538,6 @@ function send_manufacturer_order_email(array $orderData): bool {
   $textBody .= "Product: $productName\n";
   $textBody .= "Frequency: $frequency\n";
   $textBody .= "Duration: $durationDays days\n\n";
-  $textBody .= "INSURANCE: $insuranceProvider\n\n";
   $textBody .= "View order: $adminPortalUrl\n";
 
   // Send to ALL recipients via SMTP

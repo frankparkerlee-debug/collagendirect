@@ -662,22 +662,23 @@ try {
   try {
     require_once __DIR__ . '/../lib/email_notifications.php';
 
-    // Get physician and practice info for emails
+    // Get physician info - use physician_id if set (multi-physician practices), else use logged-in user
+    $actualPhysicianId = !empty($physician_id) ? $physician_id : $uid;
     $physicianStmt = $pdo->prepare("
       SELECT first_name, last_name, email, practice_name, npi
       FROM users
       WHERE id = ?
     ");
-    $physicianStmt->execute([$uid]);
+    $physicianStmt->execute([$actualPhysicianId]);
     $physician = $physicianStmt->fetch(PDO::FETCH_ASSOC) ?: [];
 
     // Get patient info
     $patientStmt = $pdo->prepare("
       SELECT first_name, last_name, email, dob, address, city, state, zip, insurance_provider
       FROM patients
-      WHERE id = ? AND user_id = ?
+      WHERE id = ?
     ");
-    $patientStmt->execute([$patient_id, $uid]);
+    $patientStmt->execute([$patient_id]);
     $patient = $patientStmt->fetch(PDO::FETCH_ASSOC) ?: [];
 
     // Get product info
@@ -688,15 +689,20 @@ try {
     $product = $productStmt->fetch(PDO::FETCH_ASSOC) ?: [];
 
     $physicianName = trim(($physician['first_name'] ?? '') . ' ' . ($physician['last_name'] ?? ''));
-    $patientName = trim(($patient['first_name'] ?? '') . ' ' . ($patient['last_name'] ?? ''));
+    $patientFullName = trim(($patient['first_name'] ?? '') . ' ' . ($patient['last_name'] ?? ''));
+    // Privacy-safe patient name: First initial + Last name (e.g., "J. Smith")
+    $patientFirstInitial = !empty($patient['first_name']) ? strtoupper(substr($patient['first_name'], 0, 1)) . '.' : '';
+    $patientPrivacyName = trim($patientFirstInitial . ' ' . ($patient['last_name'] ?? ''));
+    // Privacy-safe location: City, State only (no full address)
+    $patientCityState = trim(($patient['city'] ?? '') . ', ' . ($patient['state'] ?? ''));
     $patientAddress = trim(($patient['address'] ?? '') . ', ' . ($patient['city'] ?? '') . ' ' . ($patient['state'] ?? '') . ' ' . ($patient['zip'] ?? ''));
     $productName = trim(($product['name'] ?? '') . ' ' . ($product['size'] ?? ''));
 
-    // 1. Send order received email to patient
+    // 1. Send order received email to patient (use full name for patient's own email)
     if (!empty($patient['email'])) {
       send_order_received_email([
         'patient_email' => $patient['email'],
-        'patient_name' => $patientName,
+        'patient_name' => $patientFullName,
         'order_id' => $order_id,
         'order_date' => date('m/d/Y'),
         'physician_name' => $physicianName,
@@ -706,14 +712,14 @@ try {
       ]);
     }
 
-    // 2. Send new order notification to manufacturer
+    // 2. Send new order notification to manufacturer (use privacy-safe patient info)
     send_manufacturer_order_email([
       'manufacturer_email' => 'orders@collagendirect.health', // Configure as needed
       'order_id' => $order_id,
       'order_date' => date('m/d/Y'),
-      'patient_name' => $patientName,
+      'patient_name' => $patientPrivacyName,
       'patient_dob' => $patient['dob'] ?? '',
-      'patient_address' => $patientAddress,
+      'patient_city_state' => $patientCityState,
       'insurance_provider' => $patient['insurance_provider'] ?? '',
       'physician_name' => $physicianName,
       'physician_npi' => $physician['npi'] ?? '',

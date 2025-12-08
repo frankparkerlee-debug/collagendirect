@@ -162,13 +162,14 @@ function send_delivery_confirmation_sms(
   string $confirmationToken,
   string $physicianName = ''
 ): array {
-  $confirmUrl = "https://collagendirect.health/api/confirm-delivery.php?token=" . urlencode($confirmationToken);
+  // New approval page: shows order details, AOB, and requires patient to confirm & sign
+  $confirmUrl = "https://collagendirect.health/api/delivery-approval.php?token=" . urlencode($confirmationToken);
 
   // Reference physician if available, otherwise use generic message
   if (!empty($physicianName)) {
-    $message = "Hi {$patientName}, your wound care supplies from Dr. {$physicianName} were delivered. Please confirm receipt: {$confirmUrl}";
+    $message = "Hi {$patientName}, your wound care supplies from Dr. {$physicianName} were delivered. Please review and confirm: {$confirmUrl}";
   } else {
-    $message = "Hi {$patientName}, your wound care supplies were delivered. Please confirm receipt: {$confirmUrl}";
+    $message = "Hi {$patientName}, your wound care supplies were delivered. Please review and confirm: {$confirmUrl}";
   }
 
   return twilio_send_sms($patientPhone, $message);

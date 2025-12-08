@@ -118,10 +118,11 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
       $order = $orderData->fetch(PDO::FETCH_ASSOC);
 
       if (!$order) {
-        error_log("[orders.php] Cannot send delivery SMS - order {$id} not found");
-      } elseif (empty($order['phone'])) {
-        error_log("[orders.php] Cannot send delivery SMS for order {$id} - patient has no phone number");
+        error_log("[orders.php] Cannot send delivery notification - order {$id} not found");
       } else {
+        // Patient may have phone, email, or both
+        $hasPhone = !empty($order['phone']);
+        $hasEmail = !empty($order['email']);
         $patientName = trim(($order['first_name'] ?? '') . ' ' . ($order['last_name'] ?? ''));
         $physicianName = trim(($order['phys_last'] ?? '') . ($order['phys_first'] ? ', ' . $order['phys_first'] : ''));
         if (empty($physicianName) && !empty($order['practice_name'])) {
@@ -132,7 +133,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $existingConfirmation = $pdo->prepare("SELECT id FROM delivery_confirmations WHERE order_id = ?");
         $existingConfirmation->execute([$id]);
 
-        if (!$existingConfirmation->fetch()) {
+        if (!$existingConfirmation->fetch() && ($hasPhone || $hasEmail)) {
           // Generate unique confirmation token
           $token = bin2hex(random_bytes(32));
 
@@ -151,56 +152,116 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
           $insertStmt->execute([
             $id,
-            $order['phone'],
+            $order['phone'] ?? null,
             $order['email'] ?? null,
             $token
           ]);
 
           $confirmationId = $insertStmt->fetchColumn();
+          $smsSent = false;
+          $emailSent = false;
 
-          // Send SMS
-          $smsResult = send_delivery_confirmation_sms(
-            $order['phone'],
-            $patientName,
-            $id,
-            $token,
-            $physicianName
-          );
+          // Try SMS first if patient has phone
+          if ($hasPhone) {
+            $smsResult = send_delivery_confirmation_sms(
+              $order['phone'],
+              $patientName,
+              $id,
+              $token,
+              $physicianName
+            );
 
-          if ($smsResult['success']) {
-            // Update with SMS details
-            $updateStmt = $pdo->prepare("
-              UPDATE delivery_confirmations
-              SET sms_sent_at = NOW(),
-                  sms_sid = ?,
-                  sms_status = ?,
-                  updated_at = NOW()
-              WHERE id = ?
-            ");
+            if ($smsResult['success']) {
+              $smsSent = true;
+              // Update with SMS details
+              $updateStmt = $pdo->prepare("
+                UPDATE delivery_confirmations
+                SET sms_sent_at = NOW(),
+                    sms_sid = ?,
+                    sms_status = ?,
+                    updated_at = NOW()
+                WHERE id = ?
+              ");
 
-            $updateStmt->execute([
-              $smsResult['sid'],
-              $smsResult['status'],
-              $confirmationId
-            ]);
+              $updateStmt->execute([
+                $smsResult['sid'],
+                $smsResult['status'],
+                $confirmationId
+              ]);
 
-            error_log("[orders.php] Delivery confirmation SMS sent for order {$id} (SID: {$smsResult['sid']})");
-          } else {
-            // Update with error
-            $updateStmt = $pdo->prepare("
-              UPDATE delivery_confirmations
-              SET notes = ?,
-                  updated_at = NOW()
-              WHERE id = ?
-            ");
-
-            $updateStmt->execute([
-              "SMS send failed: " . ($smsResult['error'] ?? 'Unknown error'),
-              $confirmationId
-            ]);
-
-            error_log("[orders.php] Delivery confirmation SMS failed for order {$id}: " . ($smsResult['error'] ?? 'Unknown error'));
+              error_log("[orders.php] Delivery confirmation SMS sent for order {$id} (SID: {$smsResult['sid']})");
+            } else {
+              error_log("[orders.php] Delivery confirmation SMS failed for order {$id}: " . ($smsResult['error'] ?? 'Unknown error'));
+            }
           }
+
+          // Send email if: (1) no phone, OR (2) SMS failed
+          if ($hasEmail && (!$hasPhone || !$smsSent)) {
+            require_once __DIR__ . '/../api/lib/email_sender.php';
+
+            $confirmUrl = "https://collagendirect.health/api/delivery-approval.php?token=" . urlencode($token);
+            $productName = $order['product'] ?? 'wound care supplies';
+
+            $emailSubject = "Confirm Receipt of Your Wound Care Supplies";
+            $emailBody = email_template($emailSubject, "
+              <h2 style='color: #1e293b; margin: 0 0 20px 0;'>Delivery Confirmation</h2>
+              <p style='color: #475569; line-height: 1.6;'>Hi {$patientName},</p>
+              <p style='color: #475569; line-height: 1.6;'>Your wound care supplies" . ($physicianName ? " from Dr. {$physicianName}" : "") . " have been delivered.</p>
+              <p style='color: #475569; line-height: 1.6;'>Please confirm receipt by clicking the button below:</p>
+
+              <div style='text-align: center; margin: 30px 0;'>
+                <a href='{$confirmUrl}' style='display: inline-block; background: linear-gradient(135deg, #10b981, #059669); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 12px; font-weight: 600; font-size: 16px;'>
+                  Confirm & Sign
+                </a>
+              </div>
+
+              <div style='background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 20px 0;'>
+                <h3 style='margin: 0 0 15px 0; color: #334155;'>Order Details</h3>
+                <p style='margin: 5px 0; color: #475569;'><strong>Product:</strong> {$productName}</p>
+                <p style='margin: 5px 0; color: #475569;'><strong>Order ID:</strong> #" . substr($id, 0, 8) . "</p>
+              </div>
+
+              <p style='color: #64748b; font-size: 14px;'>
+                By confirming, you acknowledge receipt of your supplies and authorize CollagenDirect to bill your insurance directly.
+              </p>
+            ");
+
+            $textBody = "Delivery Confirmation\n\n";
+            $textBody .= "Hi {$patientName},\n\n";
+            $textBody .= "Your wound care supplies" . ($physicianName ? " from Dr. {$physicianName}" : "") . " have been delivered.\n\n";
+            $textBody .= "Please confirm receipt by visiting:\n{$confirmUrl}\n\n";
+            $textBody .= "Product: {$productName}\n";
+            $textBody .= "Order ID: #" . substr($id, 0, 8) . "\n\n";
+            $textBody .= "By confirming, you acknowledge receipt of your supplies and authorize CollagenDirect to bill your insurance directly.";
+
+            $emailResult = send_email($order['email'], $patientName, $emailSubject, $emailBody, $textBody);
+
+            if ($emailResult) {
+              $emailSent = true;
+              $pdo->prepare("
+                UPDATE delivery_confirmations
+                SET notes = COALESCE(notes, '') || 'Email sent: ' || NOW()::text,
+                    updated_at = NOW()
+                WHERE id = ?
+              ")->execute([$confirmationId]);
+
+              error_log("[orders.php] Delivery confirmation email sent for order {$id} to {$order['email']}");
+            } else {
+              error_log("[orders.php] Delivery confirmation email failed for order {$id} to {$order['email']}");
+            }
+          }
+
+          // Update notes if both methods failed
+          if (!$smsSent && !$emailSent) {
+            $pdo->prepare("
+              UPDATE delivery_confirmations
+              SET notes = 'All notification methods failed',
+                  updated_at = NOW()
+              WHERE id = ?
+            ")->execute([$confirmationId]);
+          }
+        } elseif (!$hasPhone && !$hasEmail) {
+          error_log("[orders.php] Cannot send delivery notification for order {$id} - patient has no phone or email");
         }
 
         // Create photo prompt schedule for wound photo updates
@@ -215,8 +276,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
           $deliveryDate
         );
       }
-    } catch (Throwable $smsErr) {
-      error_log('[orders.php] Delivery confirmation SMS error: ' . $smsErr->getMessage());
+    } catch (Throwable $notifyErr) {
+      error_log('[orders.php] Delivery confirmation error: ' . $notifyErr->getMessage());
     }
   } elseif ($id && $action==='ship') {
     $tracking = trim((string)($_POST['tracking']??'')); $carrier = $_POST['carrier'] ?: detect_carrier($tracking);
