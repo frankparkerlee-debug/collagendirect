@@ -31,26 +31,21 @@ require_once __DIR__ . '/env.php';
  * @return bool Success status
  */
 function send_email(string $toEmail, string $toName, string $subject, string $html, string $text = ''): bool {
-    // Try SMTP first (Namecheap, Gmail, etc.)
+    // SMTP only (no SendGrid fallback)
     $smtpHost = env('SMTP_HOST');
-    if ($smtpHost) {
-        error_log("[email] Attempting SMTP send to $toEmail via $smtpHost");
-        $result = send_email_smtp($toEmail, $toName, $subject, $html, $text);
-        if ($result) {
-            error_log("[email] SMTP send successful to $toEmail");
-            return true;
-        }
-        error_log("[email] SMTP send failed, trying SendGrid fallback");
+    if (!$smtpHost) {
+        error_log("[email] ERROR: SMTP_HOST not configured");
+        return false;
     }
 
-    // Fallback to SendGrid
-    $sendgridKey = env('SENDGRID_API_KEY');
-    if ($sendgridKey) {
-        error_log("[email] Attempting SendGrid send to $toEmail");
-        return send_email_sendgrid($toEmail, $toName, $subject, $html, $text);
+    error_log("[email] Attempting SMTP send to $toEmail via $smtpHost");
+    $result = send_email_smtp($toEmail, $toName, $subject, $html, $text);
+    if ($result) {
+        error_log("[email] SMTP send successful to $toEmail");
+        return true;
     }
 
-    error_log("[email] ERROR: No email provider configured (SMTP_HOST or SENDGRID_API_KEY required)");
+    error_log("[email] SMTP send failed to $toEmail");
     return false;
 }
 
