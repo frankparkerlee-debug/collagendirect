@@ -29,12 +29,13 @@ if (!function_exists('e')) {
 $dateFrom = $_GET['date_from'] ?? date('Y-m-01');
 $dateTo = $_GET['date_to'] ?? date('Y-m-d');
 $physicianId = $_GET['physician'] ?? '';
+$salesRepId = isset($_GET['sales_rep']) && $_GET['sales_rep'] !== '' ? (int)$_GET['sales_rep'] : null;
 $orderType = $_GET['order_type'] ?? 'all';
 $exportFormat = $_GET['export'] ?? '';
 $viewMode = $_GET['view'] ?? 'summary'; // summary, detailed, export
 
 /* ================= Get Metrics ================= */
-$metrics = get_revenue_metrics($pdo, $dateFrom, $dateTo, $physicianId ?: null);
+$metrics = get_revenue_metrics($pdo, $dateFrom, $dateTo, $physicianId ?: null, $salesRepId);
 
 // Filter by order type if specified
 if ($orderType === 'wholesale') {
@@ -116,6 +117,21 @@ if ($exportFormat === 'csv') {
     }
     fputcsv($output, []);
 
+    // Sales Rep Performance
+    fputcsv($output, ['SALES REP PERFORMANCE']);
+    fputcsv($output, ['Sales Rep', 'Orders', 'Physicians', 'Total Revenue', 'Wholesale', 'Referral']);
+    foreach ($metrics['sales_rep_revenue'] as $data) {
+        fputcsv($output, [
+            $data['name'],
+            $data['orders'],
+            count($data['physicians']),
+            '$' . number_format($data['revenue'], 2),
+            '$' . number_format($data['wholesale_revenue'], 2),
+            '$' . number_format($data['referral_revenue'], 2)
+        ]);
+    }
+    fputcsv($output, []);
+
     // Detailed Orders
     fputcsv($output, ['DETAILED ORDERS']);
     fputcsv($output, ['Order ID', 'Date', 'Patient', 'Practice', 'Product', 'Type', 'Boxes', 'Cost', 'Revenue', 'Profit', 'Insurance', 'ICD-10', 'Status']);
@@ -151,6 +167,15 @@ try {
     error_log("[revenue-report] " . $e->getMessage());
 }
 
+/* ================= Get Sales Reps for Filter ================= */
+$salesReps = [];
+try {
+    $stmt = $pdo->query("SELECT id, name, email FROM admin_users WHERE role IN ('sales', 'admin', 'employee') ORDER BY name");
+    $salesReps = $stmt->fetchAll();
+} catch (Throwable $e) {
+    error_log("[revenue-report] " . $e->getMessage());
+}
+
 /* ================= View ================= */
 include __DIR__ . '/_header.php';
 ?>
@@ -180,7 +205,7 @@ include __DIR__ . '/_header.php';
 
     <!-- Filters -->
     <div class="bg-white border rounded-xl p-4 mb-6 shadow-sm">
-        <form method="get" class="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-6 gap-3">
             <div>
                 <label class="text-xs text-slate-500 mb-1 block">Date From</label>
                 <input type="date" name="date_from" value="<?=e($dateFrom)?>" class="w-full border rounded-lg px-3 py-2 text-sm">
@@ -196,6 +221,17 @@ include __DIR__ . '/_header.php';
                     <?php foreach ($physicians as $p): ?>
                         <option value="<?=e($p['id'])?>" <?=$physicianId===$p['id']?'selected':''?>>
                             <?=e($p['practice_name'] ?: ($p['first_name'] . ' ' . $p['last_name']))?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div>
+                <label class="text-xs text-slate-500 mb-1 block">Sales Rep</label>
+                <select name="sales_rep" class="w-full border rounded-lg px-3 py-2 text-sm">
+                    <option value="">All Sales Reps</option>
+                    <?php foreach ($salesReps as $rep): ?>
+                        <option value="<?=e($rep['id'])?>" <?=$salesRepId===(int)$rep['id']?'selected':''?>>
+                            <?=e($rep['name'])?>
                         </option>
                     <?php endforeach; ?>
                 </select>
@@ -412,6 +448,65 @@ include __DIR__ . '/_header.php';
                     </table>
                 <?php endif; ?>
             </div>
+        </div>
+    </div>
+
+    <!-- Sales Rep Performance -->
+    <div class="bg-white border rounded-xl shadow-sm mb-6">
+        <div class="p-4 border-b">
+            <h3 class="font-semibold text-slate-900">Sales Rep Performance</h3>
+            <p class="text-xs text-slate-500 mt-0.5">Revenue breakdown by sales representative</p>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-slate-50">
+                    <tr class="text-left text-xs text-slate-500">
+                        <th class="py-3 px-4 font-medium">Sales Rep</th>
+                        <th class="py-3 px-4 font-medium text-right">Orders</th>
+                        <th class="py-3 px-4 font-medium text-right">Physicians</th>
+                        <th class="py-3 px-4 font-medium text-right">Total Revenue</th>
+                        <th class="py-3 px-4 font-medium text-right">Wholesale</th>
+                        <th class="py-3 px-4 font-medium text-right">Referral</th>
+                        <th class="py-3 px-4 font-medium text-right">% of Total</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    <?php if (empty($metrics['sales_rep_revenue'])): ?>
+                        <tr><td colspan="7" class="py-8 text-center text-slate-500">No sales rep data available</td></tr>
+                    <?php else: ?>
+                        <?php foreach ($metrics['sales_rep_revenue'] as $repId => $data):
+                            $pct = $metrics['total_revenue'] > 0 ? ($data['revenue'] / $metrics['total_revenue']) * 100 : 0;
+                            $isUnassigned = $repId === 'unassigned';
+                        ?>
+                        <tr class="hover:bg-slate-50 <?=$isUnassigned ? 'bg-amber-50' : ''?>">
+                            <td class="py-3 px-4 font-medium <?=$isUnassigned ? 'text-amber-700' : ''?>">
+                                <?php if (!$isUnassigned): ?>
+                                    <a href="?<?=http_build_query(array_merge($_GET, ['sales_rep' => $repId]))?>" class="text-brand hover:underline">
+                                        <?=e($data['name'])?>
+                                    </a>
+                                <?php else: ?>
+                                    <?=e($data['name'])?>
+                                    <span class="text-xs text-amber-600 ml-1">(not assigned to a rep)</span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="py-3 px-4 text-right"><?=$data['orders']?></td>
+                            <td class="py-3 px-4 text-right"><?=count($data['physicians'])?></td>
+                            <td class="py-3 px-4 text-right font-semibold">$<?=number_format($data['revenue'], 0)?></td>
+                            <td class="py-3 px-4 text-right text-blue-600">$<?=number_format($data['wholesale_revenue'], 0)?></td>
+                            <td class="py-3 px-4 text-right text-purple-600">$<?=number_format($data['referral_revenue'], 0)?></td>
+                            <td class="py-3 px-4 text-right">
+                                <div class="inline-flex items-center gap-2">
+                                    <div class="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                        <div class="h-full <?=$isUnassigned ? 'bg-amber-400' : 'bg-orange-500'?> rounded-full" style="width: <?=min($pct, 100)?>%"></div>
+                                    </div>
+                                    <span class="text-slate-600"><?=number_format($pct, 1)?>%</span>
+                                </div>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
         </div>
     </div>
 

@@ -168,9 +168,10 @@ function load_reimbursement_rates(PDO $pdo): array {
  * @param string $dateFrom Start date (Y-m-d)
  * @param string $dateTo End date (Y-m-d)
  * @param string|null $physicianId Filter by physician
+ * @param int|null $salesRepId Filter by sales rep (admin_users.id)
  * @return array Comprehensive metrics
  */
-function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '', ?string $physicianId = null): array {
+function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '', ?string $physicianId = null, ?int $salesRepId = null): array {
     $rates = load_reimbursement_rates($pdo);
 
     // Build query
@@ -188,6 +189,10 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
     if ($physicianId !== null && $physicianId !== '') {
         $where .= " AND o.user_id = :physician_id";
         $params['physician_id'] = $physicianId;
+    }
+    if ($salesRepId !== null) {
+        $where .= " AND o.user_id IN (SELECT physician_user_id FROM admin_physicians WHERE admin_id = :sales_rep_id)";
+        $params['sales_rep_id'] = $salesRepId;
     }
 
     // Fetch orders with all needed fields
@@ -217,11 +222,15 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
             pp.custom_price AS practice_custom_price,
             u.practice_name,
             u.first_name AS phys_first,
-            u.last_name AS phys_last
+            u.last_name AS phys_last,
+            ap.admin_id AS sales_rep_id,
+            au.name AS sales_rep_name
         FROM orders o
         LEFT JOIN products pr ON pr.id = o.product_id
         LEFT JOIN practice_pricing pp ON pp.user_id = o.user_id AND pp.product_id = o.product_id
         LEFT JOIN users u ON u.id = o.user_id
+        LEFT JOIN admin_physicians ap ON ap.physician_user_id = o.user_id
+        LEFT JOIN admin_users au ON au.id = ap.admin_id AND au.role IN ('sales', 'admin', 'employee')
         WHERE {$where}
         ORDER BY o.created_at DESC
     ";
@@ -259,6 +268,7 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
         'icd_codes' => [],       // ICD-10 usage
         'cpt_codes' => [],       // CPT/HCPCS codes
         'physician_revenue' => [], // Revenue by physician
+        'sales_rep_revenue' => [], // Revenue by sales rep
         'monthly_trend' => [],   // Monthly revenue trend
         'status_breakdown' => [], // Orders by status
 
@@ -338,6 +348,52 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
             $metrics['physician_revenue'][$physKey]['referral_revenue'] += $calc['revenue'];
         }
 
+        // Sales rep revenue
+        $repId = $order['sales_rep_id'] ?? null;
+        $repName = $order['sales_rep_name'] ?: 'Unassigned';
+        if ($repId) {
+            if (!isset($metrics['sales_rep_revenue'][$repId])) {
+                $metrics['sales_rep_revenue'][$repId] = [
+                    'name' => $repName,
+                    'orders' => 0,
+                    'revenue' => 0,
+                    'wholesale_revenue' => 0,
+                    'referral_revenue' => 0,
+                    'physicians' => []
+                ];
+            }
+            $metrics['sales_rep_revenue'][$repId]['orders']++;
+            $metrics['sales_rep_revenue'][$repId]['revenue'] += $calc['revenue'];
+            if ($calc['is_wholesale']) {
+                $metrics['sales_rep_revenue'][$repId]['wholesale_revenue'] += $calc['revenue'];
+            } else {
+                $metrics['sales_rep_revenue'][$repId]['referral_revenue'] += $calc['revenue'];
+            }
+            // Track unique physicians for this rep
+            if (!in_array($order['user_id'], $metrics['sales_rep_revenue'][$repId]['physicians'])) {
+                $metrics['sales_rep_revenue'][$repId]['physicians'][] = $order['user_id'];
+            }
+        } else {
+            // Track unassigned revenue
+            if (!isset($metrics['sales_rep_revenue']['unassigned'])) {
+                $metrics['sales_rep_revenue']['unassigned'] = [
+                    'name' => 'Unassigned',
+                    'orders' => 0,
+                    'revenue' => 0,
+                    'wholesale_revenue' => 0,
+                    'referral_revenue' => 0,
+                    'physicians' => []
+                ];
+            }
+            $metrics['sales_rep_revenue']['unassigned']['orders']++;
+            $metrics['sales_rep_revenue']['unassigned']['revenue'] += $calc['revenue'];
+            if ($calc['is_wholesale']) {
+                $metrics['sales_rep_revenue']['unassigned']['wholesale_revenue'] += $calc['revenue'];
+            } else {
+                $metrics['sales_rep_revenue']['unassigned']['referral_revenue'] += $calc['revenue'];
+            }
+        }
+
         // Monthly trend
         $month = date('Y-m', strtotime($order['created_at']));
         if (!isset($metrics['monthly_trend'][$month])) {
@@ -377,6 +433,7 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
     uasort($metrics['icd_codes'], fn($a, $b) => $b['revenue'] <=> $a['revenue']);
     uasort($metrics['cpt_codes'], fn($a, $b) => $b['revenue'] <=> $a['revenue']);
     uasort($metrics['physician_revenue'], fn($a, $b) => $b['revenue'] <=> $a['revenue']);
+    uasort($metrics['sales_rep_revenue'], fn($a, $b) => $b['revenue'] <=> $a['revenue']);
     ksort($metrics['monthly_trend']); // Sort by month
 
     return $metrics;
