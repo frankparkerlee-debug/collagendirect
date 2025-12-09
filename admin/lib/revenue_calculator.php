@@ -292,8 +292,12 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
         $metrics[$type]['profit'] += $calc['profit'];
         $metrics[$type]['boxes'] += $calc['boxes'];
 
-        // Payor mix
-        $payor = $order['insurer_name'] ?: 'Unknown';
+        // Payor mix - Wholesale orders are always "Cash" (practice pays directly)
+        if ($calc['is_wholesale']) {
+            $payor = 'Cash (Wholesale)';
+        } else {
+            $payor = $order['insurer_name'] ?: 'Unknown';
+        }
         if (!isset($metrics['payor_mix'][$payor])) {
             $metrics['payor_mix'][$payor] = ['orders' => 0, 'revenue' => 0, 'boxes' => 0];
         }
@@ -310,13 +314,56 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
         $metrics['product_mix'][$product]['revenue'] += $calc['revenue'];
         $metrics['product_mix'][$product]['boxes'] += $calc['boxes'];
 
-        // ICD codes
-        $icd = $order['icd10_primary'] ?: 'Not specified';
-        if (!isset($metrics['icd_codes'][$icd])) {
-            $metrics['icd_codes'][$icd] = ['orders' => 0, 'revenue' => 0];
+        // ICD codes - Extract from wounds_data for per-wound diagnosis tracking
+        $woundIcds = [];
+        $woundCount = 1;
+
+        // Try to get ICD codes from wounds_data first (contains per-wound diagnoses)
+        if (!empty($order['wounds_data'])) {
+            $wounds = json_decode($order['wounds_data'], true);
+            if (is_array($wounds)) {
+                $woundCount = count($wounds);
+                foreach ($wounds as $wound) {
+                    if (!empty($wound['icd10_primary'])) {
+                        $woundIcds[] = $wound['icd10_primary'];
+                    }
+                    if (!empty($wound['icd10_secondary'])) {
+                        $woundIcds[] = $wound['icd10_secondary'];
+                    }
+                }
+            }
         }
-        $metrics['icd_codes'][$icd]['orders']++;
-        $metrics['icd_codes'][$icd]['revenue'] += $calc['revenue'];
+
+        // Fallback to order-level ICD codes if wounds_data doesn't have them
+        if (empty($woundIcds)) {
+            if (!empty($order['icd10_primary'])) {
+                $woundIcds[] = $order['icd10_primary'];
+            }
+            if (!empty($order['icd10_secondary'])) {
+                $woundIcds[] = $order['icd10_secondary'];
+            }
+        }
+
+        // If still no ICD codes, mark as not specified
+        if (empty($woundIcds)) {
+            $woundIcds[] = 'Not specified';
+        }
+
+        // Calculate per-wound revenue share
+        $revenuePerWound = $woundCount > 0 ? $calc['revenue'] / $woundCount : $calc['revenue'];
+        $boxesPerWound = $woundCount > 0 ? $calc['boxes'] / $woundCount : $calc['boxes'];
+
+        // Track each ICD code (unique per order to avoid double counting)
+        $uniqueIcds = array_unique($woundIcds);
+        foreach ($uniqueIcds as $icd) {
+            if (!isset($metrics['icd_codes'][$icd])) {
+                $metrics['icd_codes'][$icd] = ['orders' => 0, 'wounds' => 0, 'revenue' => 0, 'boxes' => 0];
+            }
+            $metrics['icd_codes'][$icd]['orders']++;
+            $metrics['icd_codes'][$icd]['wounds'] += count(array_keys($woundIcds, $icd));
+            $metrics['icd_codes'][$icd]['revenue'] += $revenuePerWound * count(array_keys($woundIcds, $icd));
+            $metrics['icd_codes'][$icd]['boxes'] += $boxesPerWound * count(array_keys($woundIcds, $icd));
+        }
 
         // CPT/HCPCS codes
         $cpt = $order['cpt_code'] ?: 'Unknown';

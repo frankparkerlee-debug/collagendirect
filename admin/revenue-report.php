@@ -96,9 +96,15 @@ if ($exportFormat === 'csv') {
 
     // ICD-10 Distribution
     fputcsv($output, ['ICD-10 DISTRIBUTION']);
-    fputcsv($output, ['Code', 'Orders', 'Revenue']);
+    fputcsv($output, ['Code', 'Orders', 'Wounds', 'Boxes', 'Revenue']);
     foreach ($metrics['icd_codes'] as $icd => $data) {
-        fputcsv($output, [$icd, $data['orders'], '$' . number_format($data['revenue'], 2)]);
+        fputcsv($output, [
+            $icd,
+            $data['orders'],
+            $data['wounds'] ?? $data['orders'],
+            number_format($data['boxes'] ?? 0, 0),
+            '$' . number_format($data['revenue'], 2)
+        ]);
     }
     fputcsv($output, []);
 
@@ -418,7 +424,7 @@ include __DIR__ . '/_header.php';
         <div class="bg-white border rounded-xl shadow-sm">
             <div class="p-4 border-b">
                 <h3 class="font-semibold text-slate-900">ICD-10 Distribution</h3>
-                <p class="text-xs text-slate-500 mt-0.5">Orders by diagnosis code</p>
+                <p class="text-xs text-slate-500 mt-0.5">Wound diagnoses - tracks primary ICD per wound</p>
             </div>
             <div class="p-4 overflow-x-auto">
                 <?php if (empty($metrics['icd_codes'])): ?>
@@ -429,17 +435,21 @@ include __DIR__ . '/_header.php';
                             <tr class="text-left text-xs text-slate-500 border-b">
                                 <th class="pb-2 font-medium">ICD-10</th>
                                 <th class="pb-2 font-medium text-right">Orders</th>
+                                <th class="pb-2 font-medium text-right">Wounds</th>
+                                <th class="pb-2 font-medium text-right">Boxes</th>
                                 <th class="pb-2 font-medium text-right">Revenue</th>
                                 <th class="pb-2 font-medium text-right">% of Total</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
-                            <?php foreach (array_slice($metrics['icd_codes'], 0, 10, true) as $icd => $data):
+                            <?php foreach (array_slice($metrics['icd_codes'], 0, 15, true) as $icd => $data):
                                 $pct = $metrics['total_revenue'] > 0 ? ($data['revenue'] / $metrics['total_revenue']) * 100 : 0;
                             ?>
                             <tr>
                                 <td class="py-2 font-mono text-xs font-medium"><?=e($icd)?></td>
                                 <td class="py-2 text-right"><?=$data['orders']?></td>
+                                <td class="py-2 text-right text-purple-600"><?=$data['wounds'] ?? $data['orders']?></td>
+                                <td class="py-2 text-right"><?=number_format($data['boxes'] ?? 0, 0)?></td>
                                 <td class="py-2 text-right font-medium">$<?=number_format($data['revenue'], 0)?></td>
                                 <td class="py-2 text-right text-slate-600"><?=number_format($pct, 1)?>%</td>
                             </tr>
