@@ -487,6 +487,140 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
 }
 
 /**
+ * Get Practice Value Metrics (Photo Reviews / E/M Billing)
+ *
+ * This tracks value delivered to practices through photo reviews.
+ * This revenue goes to the PRACTICE, not CollagenDirect.
+ * It's tracked separately to show value delivered without inflating our revenue.
+ *
+ * @param PDO $pdo Database connection
+ * @param string $dateFrom Start date (Y-m-d)
+ * @param string $dateTo End date (Y-m-d)
+ * @param string|null $physicianId Filter by physician
+ * @return array Practice value metrics
+ */
+function get_practice_value_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '', ?string $physicianId = null): array {
+    $where = "be.status != 'cancelled'";
+    $params = [];
+
+    if ($dateFrom !== '') {
+        $where .= " AND be.encounter_date >= :date_from";
+        $params['date_from'] = $dateFrom . ' 00:00:00';
+    }
+    if ($dateTo !== '') {
+        $where .= " AND be.encounter_date <= :date_to";
+        $params['date_to'] = $dateTo . ' 23:59:59';
+    }
+    if ($physicianId !== null && $physicianId !== '') {
+        $where .= " AND be.physician_id = :physician_id";
+        $params['physician_id'] = $physicianId;
+    }
+
+    $metrics = [
+        'total_encounters' => 0,
+        'total_charges' => 0,
+        'encounters_by_cpt' => [],
+        'encounters_by_assessment' => [],
+        'encounters_by_physician' => [],
+        'monthly_trend' => [],
+        'exported_count' => 0,
+        'pending_count' => 0
+    ];
+
+    try {
+        // Check if billable_encounters table exists
+        $tableCheck = $pdo->query("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'billable_encounters')");
+        if (!$tableCheck->fetchColumn()) {
+            return $metrics;
+        }
+
+        $sql = "
+            SELECT
+                be.id,
+                be.encounter_date,
+                be.cpt_code,
+                be.charge_amount,
+                be.assessment,
+                be.status,
+                be.exported,
+                be.physician_id,
+                u.first_name AS phys_first,
+                u.last_name AS phys_last,
+                u.practice_name
+            FROM billable_encounters be
+            LEFT JOIN users u ON u.id = be.physician_id
+            WHERE {$where}
+            ORDER BY be.encounter_date DESC
+        ";
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $encounters = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($encounters as $enc) {
+            $metrics['total_encounters']++;
+            $metrics['total_charges'] += (float)($enc['charge_amount'] ?? 0);
+
+            if ($enc['exported']) {
+                $metrics['exported_count']++;
+            }
+            if ($enc['status'] === 'pending') {
+                $metrics['pending_count']++;
+            }
+
+            // By CPT code
+            $cpt = $enc['cpt_code'] ?: 'Unknown';
+            if (!isset($metrics['encounters_by_cpt'][$cpt])) {
+                $metrics['encounters_by_cpt'][$cpt] = ['count' => 0, 'charges' => 0];
+            }
+            $metrics['encounters_by_cpt'][$cpt]['count']++;
+            $metrics['encounters_by_cpt'][$cpt]['charges'] += (float)($enc['charge_amount'] ?? 0);
+
+            // By assessment
+            $assessment = $enc['assessment'] ?: 'Unknown';
+            if (!isset($metrics['encounters_by_assessment'][$assessment])) {
+                $metrics['encounters_by_assessment'][$assessment] = ['count' => 0, 'charges' => 0];
+            }
+            $metrics['encounters_by_assessment'][$assessment]['count']++;
+            $metrics['encounters_by_assessment'][$assessment]['charges'] += (float)($enc['charge_amount'] ?? 0);
+
+            // By physician
+            $physId = $enc['physician_id'];
+            $physName = trim(($enc['phys_first'] ?? '') . ' ' . ($enc['phys_last'] ?? '')) ?: 'Unknown';
+            if (!isset($metrics['encounters_by_physician'][$physId])) {
+                $metrics['encounters_by_physician'][$physId] = [
+                    'name' => $physName,
+                    'practice' => $enc['practice_name'] ?: $physName,
+                    'count' => 0,
+                    'charges' => 0
+                ];
+            }
+            $metrics['encounters_by_physician'][$physId]['count']++;
+            $metrics['encounters_by_physician'][$physId]['charges'] += (float)($enc['charge_amount'] ?? 0);
+
+            // Monthly trend
+            $month = date('Y-m', strtotime($enc['encounter_date']));
+            if (!isset($metrics['monthly_trend'][$month])) {
+                $metrics['monthly_trend'][$month] = ['count' => 0, 'charges' => 0];
+            }
+            $metrics['monthly_trend'][$month]['count']++;
+            $metrics['monthly_trend'][$month]['charges'] += (float)($enc['charge_amount'] ?? 0);
+        }
+
+        // Sort
+        uasort($metrics['encounters_by_cpt'], fn($a, $b) => $b['charges'] <=> $a['charges']);
+        uasort($metrics['encounters_by_assessment'], fn($a, $b) => $b['charges'] <=> $a['charges']);
+        uasort($metrics['encounters_by_physician'], fn($a, $b) => $b['charges'] <=> $a['charges']);
+        ksort($metrics['monthly_trend']);
+
+    } catch (Throwable $e) {
+        error_log("[revenue_calculator] Practice value query error: " . $e->getMessage());
+    }
+
+    return $metrics;
+}
+
+/**
  * Get quick dashboard metrics (optimized for speed)
  */
 function get_dashboard_metrics(PDO $pdo): array {

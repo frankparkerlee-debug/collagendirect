@@ -16,9 +16,13 @@ require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/../api/lib/timezone.php';
 
+// Require admin login
+if (function_exists('require_admin')) require_admin();
+$admin = current_admin();
+$userRole = $admin['role'] ?? '';
+
 // Only superadmin and manufacturer can access audit reports
-$userRole = $_SESSION['role'] ?? '';
-if (!in_array($userRole, ['superadmin', 'manufacturer'])) {
+if (!in_array($userRole, ['superadmin', 'manufacturer', 'admin', 'employee'])) {
     header('Location: /admin/');
     exit;
 }

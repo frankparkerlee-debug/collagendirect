@@ -33,9 +33,104 @@ $salesRepId = isset($_GET['sales_rep']) && $_GET['sales_rep'] !== '' ? (int)$_GE
 $orderType = $_GET['order_type'] ?? 'all';
 $exportFormat = $_GET['export'] ?? '';
 $viewMode = $_GET['view'] ?? 'summary'; // summary, detailed, export
+$payorFilter = $_GET['payor'] ?? '';
+$productFilter = $_GET['product'] ?? '';
 
 /* ================= Get Metrics ================= */
 $metrics = get_revenue_metrics($pdo, $dateFrom, $dateTo, $physicianId ?: null, $salesRepId);
+
+// Apply payor filter to orders if specified
+if ($payorFilter !== '') {
+    $metrics['orders'] = array_filter($metrics['orders'], function($o) use ($payorFilter) {
+        return ($o['insurer_name'] ?? '') === $payorFilter ||
+               ($o['order_type'] === 'Wholesale' && $payorFilter === 'Cash (Wholesale)');
+    });
+    // Recalculate totals from filtered orders
+    $metrics['total_orders'] = count($metrics['orders']);
+    $metrics['total_revenue'] = array_sum(array_column($metrics['orders'], 'calculated_revenue'));
+    $metrics['total_cost'] = array_sum(array_column($metrics['orders'], 'calculated_cost'));
+    $metrics['total_profit'] = array_sum(array_column($metrics['orders'], 'calculated_profit'));
+}
+
+// Apply product filter to orders if specified
+if ($productFilter !== '') {
+    $metrics['orders'] = array_filter($metrics['orders'], fn($o) => ($o['product_name'] ?? '') === $productFilter);
+    // Recalculate totals from filtered orders
+    $metrics['total_orders'] = count($metrics['orders']);
+    $metrics['total_revenue'] = array_sum(array_column($metrics['orders'], 'calculated_revenue'));
+    $metrics['total_cost'] = array_sum(array_column($metrics['orders'], 'calculated_cost'));
+    $metrics['total_profit'] = array_sum(array_column($metrics['orders'], 'calculated_profit'));
+}
+
+// Get Practice Value metrics (photo reviews - revenue goes to practice, not CollagenDirect)
+try {
+    $practiceValue = get_practice_value_metrics($pdo, $dateFrom, $dateTo, $physicianId ?: null);
+} catch (Throwable $e) {
+    error_log("[revenue-report] Practice value error: " . $e->getMessage());
+    $practiceValue = ['total_encounters' => 0, 'total_charges' => 0, 'encounters_by_cpt' => [], 'exported_count' => 0, 'pending_count' => 0];
+}
+
+// Debug: Also get comparison data to help diagnose discrepancies
+$debugData = [];
+if (isset($_GET['debug'])) {
+    try {
+        // Count all orders by year/month
+        $stmt = $pdo->query("
+            SELECT
+                TO_CHAR(created_at, 'YYYY-MM') as month,
+                COUNT(*) as order_count,
+                status
+            FROM orders
+            WHERE status NOT IN ('rejected', 'cancelled', 'draft')
+            GROUP BY TO_CHAR(created_at, 'YYYY-MM'), status
+            ORDER BY month DESC
+        ");
+        $debugData['order_distribution'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Check orders that may have $0 revenue
+        $stmt = $pdo->query("
+            SELECT
+                billed_by,
+                COUNT(*) as count,
+                SUM(CASE WHEN product_price IS NULL OR product_price = 0 THEN 1 ELSE 0 END) as missing_price,
+                SUM(CASE WHEN frequency_per_week IS NULL OR frequency_per_week = 0 THEN 1 ELSE 0 END) as missing_freq,
+                SUM(CASE WHEN product_id IS NULL THEN 1 ELSE 0 END) as missing_product
+            FROM orders
+            WHERE status NOT IN ('rejected', 'cancelled', 'draft')
+            GROUP BY billed_by
+        ");
+        $debugData['data_quality'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Get sample orders with full pricing data
+        $stmt = $pdo->query("
+            SELECT
+                o.id,
+                o.billed_by,
+                o.product_price,
+                o.product_id,
+                pr.price_wholesale,
+                pr.hcpcs_code,
+                pp.custom_price as practice_custom_price,
+                o.qty_per_change,
+                o.frequency_per_week,
+                o.duration_days
+            FROM orders o
+            LEFT JOIN products pr ON pr.id = o.product_id
+            LEFT JOIN practice_pricing pp ON pp.user_id = o.user_id AND pp.product_id = o.product_id
+            WHERE o.status NOT IN ('rejected', 'cancelled', 'draft')
+            ORDER BY o.created_at DESC
+            LIMIT 10
+        ");
+        $debugData['sample_orders'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Check reimbursement rates
+        $stmt = $pdo->query("SELECT hcpcs_code, medicare_allowable FROM reimbursement_rates WHERE medicare_allowable > 0 ORDER BY hcpcs_code");
+        $debugData['reimbursement_rates'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Throwable $e) {
+        error_log("[revenue-report] Debug query error: " . $e->getMessage());
+        $debugData['error'] = $e->getMessage();
+    }
+}
 
 // Filter by order type if specified
 if ($orderType === 'wholesale') {
@@ -138,6 +233,21 @@ if ($exportFormat === 'csv') {
     }
     fputcsv($output, []);
 
+    // Practice Value (Photo Reviews - NOT CD revenue)
+    fputcsv($output, ['PRACTICE VALUE DELIVERED (Photo Reviews - Revenue goes to Practice, NOT CollagenDirect)']);
+    fputcsv($output, ['Total Encounters', $practiceValue['total_encounters']]);
+    fputcsv($output, ['Total Practice Charges', '$' . number_format($practiceValue['total_charges'], 2)]);
+    fputcsv($output, ['Exported/Billed', $practiceValue['exported_count']]);
+    fputcsv($output, ['Pending Review', $practiceValue['pending_count']]);
+    fputcsv($output, []);
+    if (!empty($practiceValue['encounters_by_cpt'])) {
+        fputcsv($output, ['E/M Code', 'Encounters', 'Charges']);
+        foreach ($practiceValue['encounters_by_cpt'] as $cpt => $data) {
+            fputcsv($output, [$cpt, $data['count'], '$' . number_format($data['charges'], 2)]);
+        }
+        fputcsv($output, []);
+    }
+
     // Detailed Orders
     fputcsv($output, ['DETAILED ORDERS']);
     fputcsv($output, ['Order ID', 'Date', 'Patient', 'Practice', 'Product', 'Type', 'Boxes', 'Cost', 'Revenue', 'Profit', 'Insurance', 'ICD-10', 'Status']);
@@ -194,6 +304,101 @@ include __DIR__ . '/_header.php';
 </style>
 
 <div class="max-w-7xl">
+    <!-- Debug Info (add ?debug to URL) -->
+    <?php if (!empty($debugData)): ?>
+    <div class="bg-yellow-50 border border-yellow-300 rounded-xl p-4 mb-6">
+        <h3 class="font-bold text-yellow-900 mb-3">Debug Information</h3>
+        <div class="grid grid-cols-2 gap-4 text-xs">
+            <div>
+                <strong>Date Range:</strong> <?=e($dateFrom)?> to <?=e($dateTo)?><br>
+                <strong>Total Orders Found:</strong> <?=$metrics['total_orders']?><br>
+                <strong>Total Revenue:</strong> $<?=number_format($metrics['total_revenue'], 2)?><br>
+            </div>
+            <div>
+                <strong>Data Quality Check:</strong><br>
+                <?php foreach ($debugData['data_quality'] as $row): ?>
+                    <?=e($row['billed_by'] ?: 'null')?>: <?=$row['count']?> orders
+                    (<?=$row['missing_price']?> missing price, <?=$row['missing_freq']?> missing freq, <?=$row['missing_product']?> missing product)<br>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <div class="mt-3">
+            <strong>Order Distribution by Month:</strong>
+            <div class="grid grid-cols-4 gap-2 mt-2 text-xs font-mono">
+                <?php
+                $byMonth = [];
+                foreach ($debugData['order_distribution'] as $row) {
+                    if (!isset($byMonth[$row['month']])) {
+                        $byMonth[$row['month']] = [];
+                    }
+                    $byMonth[$row['month']][$row['status']] = $row['order_count'];
+                }
+                foreach ($byMonth as $month => $statuses): ?>
+                    <div class="bg-white p-2 rounded border">
+                        <strong><?=e($month)?></strong><br>
+                        <?php foreach ($statuses as $status => $count): ?>
+                            <?=e($status)?>: <?=$count?><br>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php if (!empty($debugData['reimbursement_rates'])): ?>
+        <div class="mt-3">
+            <strong>Reimbursement Rates:</strong>
+            <span class="text-green-700"><?=count($debugData['reimbursement_rates'])?> HCPCS codes configured</span>
+            <span class="ml-4"><?php
+                $rates = array_map(fn($r) => $r['hcpcs_code'] . '=$' . $r['medicare_allowable'], $debugData['reimbursement_rates']);
+                echo implode(', ', array_slice($rates, 0, 10));
+                if (count($rates) > 10) echo '...';
+            ?></span>
+        </div>
+        <?php else: ?>
+        <div class="mt-3 text-red-700 font-bold">
+            <strong>WARNING:</strong> No reimbursement rates found in database! Referral orders will have $0 revenue.
+        </div>
+        <?php endif; ?>
+
+        <?php if (!empty($debugData['sample_orders'])): ?>
+        <div class="mt-3">
+            <strong>Sample Orders (Latest 10):</strong>
+            <div class="overflow-x-auto mt-2">
+                <table class="w-full text-xs font-mono border-collapse">
+                    <thead class="bg-white">
+                        <tr>
+                            <th class="border p-1">ID</th>
+                            <th class="border p-1">Type</th>
+                            <th class="border p-1">product_price</th>
+                            <th class="border p-1">price_wholesale</th>
+                            <th class="border p-1">practice_custom</th>
+                            <th class="border p-1">qty</th>
+                            <th class="border p-1">freq</th>
+                            <th class="border p-1">days</th>
+                            <th class="border p-1">hcpcs</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($debugData['sample_orders'] as $o): ?>
+                        <tr>
+                            <td class="border p-1"><?=substr($o['id'], 0, 8)?></td>
+                            <td class="border p-1"><?=e($o['billed_by'])?></td>
+                            <td class="border p-1 <?=empty($o['product_price'])?'bg-red-100':''?>"><?=$o['product_price'] ?? 'NULL'?></td>
+                            <td class="border p-1 <?=empty($o['price_wholesale'])?'bg-red-100':''?>"><?=$o['price_wholesale'] ?? 'NULL'?></td>
+                            <td class="border p-1"><?=$o['practice_custom_price'] ?? 'NULL'?></td>
+                            <td class="border p-1"><?=$o['qty_per_change'] ?? 'NULL'?></td>
+                            <td class="border p-1 <?=empty($o['frequency_per_week'])?'bg-red-100':''?>"><?=$o['frequency_per_week'] ?? 'NULL'?></td>
+                            <td class="border p-1 <?=empty($o['duration_days'])?'bg-red-100':''?>"><?=$o['duration_days'] ?? 'NULL'?></td>
+                            <td class="border p-1 <?=empty($o['hcpcs_code'])?'bg-red-100':''?>"><?=$o['hcpcs_code'] ?? 'NULL'?></td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <?php endif; ?>
+    </div>
+    <?php endif; ?>
+
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
         <div>
@@ -258,6 +463,42 @@ include __DIR__ . '/_header.php';
         </form>
     </div>
 
+    <!-- Active Filter Indicators -->
+    <?php if ($payorFilter !== '' || $productFilter !== '' || $physicianId !== ''): ?>
+    <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-6 flex items-center justify-between">
+        <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-sm text-blue-800 font-medium">Active Filters:</span>
+            <?php if ($payorFilter !== ''): ?>
+                <span class="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                    <strong>Payor:</strong> <?=e($payorFilter)?>
+                </span>
+            <?php endif; ?>
+            <?php if ($productFilter !== ''): ?>
+                <span class="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                    <strong>Product:</strong> <?=e($productFilter)?>
+                </span>
+            <?php endif; ?>
+            <?php if ($physicianId !== ''): ?>
+                <?php
+                $physName = 'Unknown';
+                foreach ($physicians as $p) {
+                    if ($p['id'] === $physicianId) {
+                        $physName = $p['practice_name'] ?: ($p['first_name'] . ' ' . $p['last_name']);
+                        break;
+                    }
+                }
+                ?>
+                <span class="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                    <strong>Practice:</strong> <?=e($physName)?>
+                </span>
+            <?php endif; ?>
+        </div>
+        <a href="?date_from=<?=e($dateFrom)?>&date_to=<?=e($dateTo)?>" class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+            Clear Filters
+        </a>
+    </div>
+    <?php endif; ?>
+
     <!-- KPI Cards Row 1 -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div class="metric-card bg-white border rounded-xl p-5 shadow-sm">
@@ -313,6 +554,55 @@ include __DIR__ . '/_header.php';
             <div class="text-xs text-slate-500 mt-1"><?=$metrics['referral']['orders']?> orders, <?=$metrics['referral']['boxes']?> boxes</div>
         </div>
     </div>
+
+    <!-- Practice Value Section (Photo Reviews - Revenue goes to PRACTICE, not CollagenDirect) -->
+    <?php if ($practiceValue['total_encounters'] > 0): ?>
+    <div class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-5 mb-6">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h3 class="font-semibold text-amber-900 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    Practice Value Delivered
+                </h3>
+                <p class="text-xs text-amber-700 mt-1">Photo review E/M billing - Revenue goes to practices, not CollagenDirect</p>
+            </div>
+            <span class="text-xs bg-amber-200 text-amber-800 px-2 py-1 rounded-full font-medium">Not included in CD revenue</span>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="bg-white/80 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-amber-700">$<?=number_format($practiceValue['total_charges'], 0)?></div>
+                <div class="text-xs text-amber-600 mt-1">Total Practice Charges</div>
+            </div>
+            <div class="bg-white/80 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-amber-700"><?=$practiceValue['total_encounters']?></div>
+                <div class="text-xs text-amber-600 mt-1">Photo Reviews</div>
+            </div>
+            <div class="bg-white/80 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-green-600"><?=$practiceValue['exported_count']?></div>
+                <div class="text-xs text-amber-600 mt-1">Exported/Billed</div>
+            </div>
+            <div class="bg-white/80 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold <?=$practiceValue['pending_count'] > 0 ? 'text-red-500' : 'text-slate-400'?>"><?=$practiceValue['pending_count']?></div>
+                <div class="text-xs text-amber-600 mt-1">Pending Review</div>
+            </div>
+        </div>
+        <?php if (!empty($practiceValue['encounters_by_cpt'])): ?>
+        <div class="mt-4 pt-4 border-t border-amber-200">
+            <div class="text-xs font-medium text-amber-800 mb-2">Breakdown by E/M Code:</div>
+            <div class="flex flex-wrap gap-2">
+                <?php foreach ($practiceValue['encounters_by_cpt'] as $cpt => $data): ?>
+                <span class="text-xs bg-white px-3 py-1 rounded-full border border-amber-200">
+                    <span class="font-mono font-medium"><?=e($cpt)?></span>: <?=$data['count']?> ($<?=number_format($data['charges'], 0)?>)
+                </span>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+    </div>
+    <?php endif; ?>
 
     <!-- Analytics Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">

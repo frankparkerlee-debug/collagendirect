@@ -284,10 +284,14 @@ include __DIR__ . '/../_header.php';
                 <?php else: ?>
                     <div class="space-y-3">
                         <?php foreach ($dashboardMetrics['top_payors'] as $payor => $data): ?>
-                        <div class="flex items-center justify-between">
+                        <a href="/admin/revenue-report.php?date_from=<?=date('Y-01-01')?>&date_to=<?=date('Y-m-d')?>&payor=<?=urlencode($payor)?>"
+                           class="flex items-center justify-between hover:bg-slate-50 p-2 -mx-2 rounded-lg transition cursor-pointer">
                             <span class="text-sm text-slate-700 truncate flex-1" title="<?=htmlspecialchars($payor)?>"><?=htmlspecialchars(strlen($payor) > 20 ? substr($payor, 0, 20) . '...' : $payor)?></span>
-                            <span class="text-sm font-semibold text-slate-900 ml-2">$<?=number_format($data['revenue'], 0)?></span>
-                        </div>
+                            <div class="flex items-center gap-2 ml-2">
+                                <span class="text-sm font-semibold text-slate-900">$<?=number_format($data['revenue'], 0)?></span>
+                                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                            </div>
+                        </a>
                         <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
@@ -306,10 +310,14 @@ include __DIR__ . '/../_header.php';
                 <?php else: ?>
                     <div class="space-y-3">
                         <?php foreach ($dashboardMetrics['top_products'] as $product => $data): ?>
-                        <div class="flex items-center justify-between">
+                        <a href="/admin/revenue-report.php?date_from=<?=date('Y-01-01')?>&date_to=<?=date('Y-m-d')?>&product=<?=urlencode($product)?>"
+                           class="flex items-center justify-between hover:bg-slate-50 p-2 -mx-2 rounded-lg transition cursor-pointer">
                             <span class="text-sm text-slate-700 truncate flex-1" title="<?=htmlspecialchars($product)?>"><?=htmlspecialchars(strlen($product) > 20 ? substr($product, 0, 20) . '...' : $product)?></span>
-                            <span class="text-sm font-semibold text-slate-900 ml-2">$<?=number_format($data['revenue'], 0)?></span>
-                        </div>
+                            <div class="flex items-center gap-2 ml-2">
+                                <span class="text-sm font-semibold text-slate-900">$<?=number_format($data['revenue'], 0)?></span>
+                                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                            </div>
+                        </a>
                         <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
@@ -327,11 +335,15 @@ include __DIR__ . '/../_header.php';
                     <p class="text-slate-500 text-sm text-center py-4">No data yet</p>
                 <?php else: ?>
                     <div class="space-y-3">
-                        <?php foreach ($dashboardMetrics['top_physicians'] as $data): ?>
-                        <div class="flex items-center justify-between">
+                        <?php foreach ($dashboardMetrics['top_physicians'] as $physId => $data): ?>
+                        <a href="/admin/revenue-report.php?date_from=<?=date('Y-01-01')?>&date_to=<?=date('Y-m-d')?>&physician=<?=urlencode($physId)?>"
+                           class="flex items-center justify-between hover:bg-slate-50 p-2 -mx-2 rounded-lg transition cursor-pointer">
                             <span class="text-sm text-slate-700 truncate flex-1" title="<?=htmlspecialchars($data['practice'])?>"><?=htmlspecialchars(strlen($data['practice']) > 20 ? substr($data['practice'], 0, 20) . '...' : $data['practice'])?></span>
-                            <span class="text-sm font-semibold text-slate-900 ml-2">$<?=number_format($data['revenue'], 0)?></span>
-                        </div>
+                            <div class="flex items-center gap-2 ml-2">
+                                <span class="text-sm font-semibold text-slate-900">$<?=number_format($data['revenue'], 0)?></span>
+                                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                            </div>
+                        </a>
                         <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
