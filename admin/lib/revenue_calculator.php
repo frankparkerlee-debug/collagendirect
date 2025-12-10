@@ -89,16 +89,17 @@ function calculate_order_revenue(array $order, array $rates = [], bool $includeS
         $weeks = $days / 7.0;
         $total_pieces = $weeks * $fpw * $qty * (1 + $refills);
         $totalBoxes = (int)ceil($total_pieces / $pieces_per_box);
-        $billable_pieces = $totalBoxes * $pieces_per_box;
+        // Billable pieces = actual pieces needed, NOT boxes × pieces_per_box
+        // Insurance reimburses for actual pieces used, not full boxes
+        $billable_pieces = (int)ceil($total_pieces);
         $totalPieces = $billable_pieces;
 
         if ($includeSteps) {
             $steps[] = "Type: Referral";
-            $steps[] = "Duration: {$days} days ({$weeks} weeks)";
+            $steps[] = "Duration: {$days} days (" . number_format($weeks, 2) . " weeks)";
             $steps[] = "Frequency: {$fpw}x/week, Qty: {$qty}, Refills: {$refills}";
-            $steps[] = "Total pieces needed: " . number_format($total_pieces, 1);
-            $steps[] = "Boxes needed: {$totalBoxes} (rounded up)";
-            $steps[] = "Billable pieces: {$billable_pieces}";
+            $steps[] = "Pieces needed: " . number_format($total_pieces, 1) . " → {$billable_pieces} billable";
+            $steps[] = "Boxes to ship: {$totalBoxes} (rounded up from " . number_format($total_pieces, 1) . " pieces)";
         }
 
         // Get CPT rate - prioritize reimbursement_rates table
@@ -183,11 +184,30 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
         // Ignore - assume column doesn't exist
     }
 
+    // Check if soft delete columns exist
+    $hasOrderDeletedAt = false;
+    $hasPatientDeletedAt = false;
+    try {
+        $checkCol = $pdo->query("SELECT COUNT(*) c FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name='orders' AND column_name='deleted_at'");
+        $hasOrderDeletedAt = (int)($checkCol->fetch()['c'] ?? 0) > 0;
+        $checkCol = $pdo->query("SELECT COUNT(*) c FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name='patients' AND column_name='deleted_at'");
+        $hasPatientDeletedAt = (int)($checkCol->fetch()['c'] ?? 0) > 0;
+    } catch (Throwable $e) {
+        // Ignore - assume columns don't exist
+    }
+
     // Build query - match dashboard's logic: exclude rejected, cancelled, draft status
     // Also exclude orders where review_status is 'draft' (same as dashboard) - if column exists
     $where = "o.status NOT IN ('rejected', 'cancelled', 'draft')";
     if ($hasReviewStatus) {
         $where .= " AND (o.review_status IS NULL OR o.review_status != 'draft')";
+    }
+    // Exclude soft-deleted orders and patients (only show billable orders)
+    if ($hasOrderDeletedAt) {
+        $where .= " AND o.deleted_at IS NULL";
+    }
+    if ($hasPatientDeletedAt) {
+        $where .= " AND pt.deleted_at IS NULL";
     }
     $params = [];
 
@@ -244,6 +264,8 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
             o.icd10_secondary,
             o.user_id,
             o.patient_id,
+            pt.first_name AS patient_first,
+            pt.last_name AS patient_last,
             o.product_id,
             " . ($hasProducts
                 ? "COALESCE(pr.hcpcs_code, o.cpt) AS cpt_code,
@@ -263,6 +285,7 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
             ap.admin_id AS sales_rep_id,
             au.name AS sales_rep_name
         FROM orders o
+        LEFT JOIN patients pt ON pt.id = o.patient_id
         " . ($hasProducts ? "LEFT JOIN products pr ON pr.id = o.product_id" : "") . "
         LEFT JOIN practice_pricing pp ON pp.user_id = o.user_id AND pp.product_id = o.product_id
         LEFT JOIN users u ON u.id = o.user_id

@@ -38,10 +38,32 @@ $payorFilter = $_GET['payor'] ?? '';
 $productFilter = $_GET['product'] ?? '';
 
 /* ================= Get Metrics ================= */
-$metrics = get_revenue_metrics($pdo, $dateFrom, $dateTo, $physicianId ?: null, $salesRepId);
-
-// Log for debugging
-error_log("[revenue-report] Date range: $dateFrom to $dateTo, Found " . count($metrics['orders']) . " orders, Revenue: $" . number_format($metrics['total_revenue'], 2));
+try {
+    $metrics = get_revenue_metrics($pdo, $dateFrom, $dateTo, $physicianId ?: null, $salesRepId);
+    error_log("[revenue-report] Date range: $dateFrom to $dateTo, Found " . count($metrics['orders']) . " orders, Revenue: $" . number_format($metrics['total_revenue'], 2));
+} catch (Throwable $e) {
+    error_log("[revenue-report] FATAL ERROR in get_revenue_metrics: " . $e->getMessage());
+    error_log("[revenue-report] Stack trace: " . $e->getTraceAsString());
+    // Initialize empty metrics so page can still render
+    $metrics = [
+        'total_orders' => 0,
+        'total_revenue' => 0,
+        'total_cost' => 0,
+        'total_profit' => 0,
+        'total_boxes' => 0,
+        'wholesale' => ['orders' => 0, 'revenue' => 0, 'cost' => 0, 'profit' => 0, 'boxes' => 0],
+        'referral' => ['orders' => 0, 'revenue' => 0, 'cost' => 0, 'profit' => 0, 'boxes' => 0],
+        'payor_mix' => [],
+        'product_mix' => [],
+        'icd_codes' => [],
+        'cpt_codes' => [],
+        'physician_revenue' => [],
+        'sales_rep_revenue' => [],
+        'monthly_trend' => [],
+        'status_breakdown' => [],
+        'orders' => []
+    ];
+}
 
 // Apply payor filter to orders if specified
 if ($payorFilter !== '') {
@@ -975,9 +997,10 @@ include __DIR__ . '/_header.php';
             <div>
                 <strong>Referral Orders:</strong>
                 <ul class="list-disc list-inside ml-2 mt-1 text-xs space-y-1">
-                    <li>Pieces = (Days / 7) x Frequency x Qty x (1 + Refills)</li>
-                    <li>Boxes = ceil(Pieces / Pieces Per Box)</li>
-                    <li>Revenue = Billable Pieces x Medicare Allowable Rate</li>
+                    <li>Pieces Needed = (Days / 7) x Frequency x Qty x (1 + Refills)</li>
+                    <li>Boxes to Ship = ceil(Pieces Needed / Pieces Per Box)</li>
+                    <li>Revenue = Pieces Needed x Medicare Allowable Rate</li>
+                    <li class="text-blue-600 font-medium">Note: Revenue is based on actual pieces needed, not rounded-up box quantities</li>
                 </ul>
             </div>
         </div>

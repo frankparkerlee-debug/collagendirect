@@ -118,9 +118,38 @@ $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $productFilter = isset($_GET['product_id']) ? trim($_GET['product_id']) : '';
 $cptFilter = isset($_GET['cpt_code']) ? trim($_GET['cpt_code']) : '';
 $statusFilter = isset($_GET['status']) ? trim($_GET['status']) : '';
+$archiveFilter = isset($_GET['archive']) ? trim($_GET['archive']) : 'billable'; // billable (default), archived, all
+
+// Check if soft delete columns exist
+$hasOrderDeletedAt = has_column($pdo, 'orders', 'deleted_at');
+$hasPatientDeletedAt = has_column($pdo, 'patients', 'deleted_at');
 
 $where  = "o.created_at BETWEEN :from AND (:to::date + INTERVAL '1 day') AND o.status NOT IN ('rejected','cancelled')";
 $params = ['from'=>$from, 'to'=>$to];
+
+// Archive filter - exclude soft-deleted orders and patients by default
+if ($archiveFilter === 'billable') {
+  // Show only non-deleted orders with non-deleted patients (default)
+  if ($hasOrderDeletedAt) {
+    $where .= " AND o.deleted_at IS NULL";
+  }
+  if ($hasPatientDeletedAt) {
+    $where .= " AND p.deleted_at IS NULL";
+  }
+} elseif ($archiveFilter === 'archived') {
+  // Show only deleted orders OR orders with deleted patients
+  $archiveConditions = [];
+  if ($hasOrderDeletedAt) {
+    $archiveConditions[] = "o.deleted_at IS NOT NULL";
+  }
+  if ($hasPatientDeletedAt) {
+    $archiveConditions[] = "p.deleted_at IS NOT NULL";
+  }
+  if (!empty($archiveConditions)) {
+    $where .= " AND (" . implode(" OR ", $archiveConditions) . ")";
+  }
+}
+// 'all' shows everything without archive filtering
 
 if ($phys !== '') {
   $where .= " AND o.user_id = :phys";
@@ -243,6 +272,7 @@ try {
         o.product_type,
         o.order_group_id,
         o.billed_by,
+        o.wounds_data,
         pp.custom_price AS practice_custom_price,
         p.ins_card_path,
         p.id_card_path,
@@ -281,6 +311,7 @@ try {
       MAX(id_card_path) as id_card_path,
       MAX(notes_path) as notes_path,
       MAX(billed_by) as billed_by,
+      MAX(wounds_data) as wounds_data,
       MAX(practice_custom_price) as practice_custom_price,
       first_name,
       last_name,
@@ -332,8 +363,8 @@ if ($hasRates) {
 }
 
 /**
- * Calculate total product count (boxes) for an order
- * Returns array with box count and formatted product description
+ * Calculate total product count (boxes and pieces) for an order
+ * Returns array with box count, actual pieces needed, and formatted product description
  */
 function get_product_count($row, $hasProducts) {
   $billedBy = $row['billed_by'] ?? 'collagen_direct';
@@ -343,11 +374,23 @@ function get_product_count($row, $hasProducts) {
   if ($isWholesale) {
     // WHOLESALE: qty_per_change = number of boxes ordered
     $total_boxes = max(1, (int)($row['qty_per_change'] ?? 1));
+    // For wholesale, billable pieces = boxes × pieces_per_box (they're buying full boxes)
+    $actual_pieces = $total_boxes * $pieces_per_box;
   } else {
-    // REFERRAL: Calculate boxes from treatment parameters
+    // REFERRAL: Calculate pieces from treatment parameters
     $fpw = (int)($row['frequency_per_week'] ?? 0);
+
+    // Try wounds_data JSON if frequency_per_week is 0
+    if ($fpw <= 0 && !empty($row['wounds_data'])) {
+      $wounds_data = json_decode($row['wounds_data'], true);
+      if (is_array($wounds_data) && isset($wounds_data[0]['frequency_per_week'])) {
+        $fpw = (int)$wounds_data[0]['frequency_per_week'];
+      }
+    }
+
+    // Fallback to text frequency field
     if ($fpw <= 0) $fpw = patches_per_week_text(isset($row['frequency'])?$row['frequency']:null);
-    if ($fpw === 0) $fpw = 7;
+    if ($fpw === 0) $fpw = 1;
 
     $qty  = max(1, (int)($row['qty_per_change'] ?? 1));
     $days = max(0, (int)($row['duration_days'] ?? 0));
@@ -356,8 +399,10 @@ function get_product_count($row, $hasProducts) {
     $ref = max(0, (int)($row['refills_allowed'] ?? 0));
 
     $weeks = $days / 7.0;
-    $total_pieces = $weeks * $fpw * $qty * (1 + $ref);
-    $total_boxes = (int)ceil($total_pieces / $pieces_per_box);
+    // Actual pieces needed based on treatment plan
+    $actual_pieces = (int)ceil($weeks * $fpw * $qty * (1 + $ref));
+    // Boxes needed to ship (rounded up)
+    $total_boxes = (int)ceil($actual_pieces / $pieces_per_box);
   }
 
   // Get product name for display
@@ -365,29 +410,32 @@ function get_product_count($row, $hasProducts) {
 
   return [
     'boxes' => $total_boxes,
+    'actual_pieces' => $actual_pieces,
+    'is_wholesale' => $isWholesale,
     'product_name' => $prodName,
     'formatted' => $total_boxes . ' box' . ($total_boxes !== 1 ? 'es' : '') . ' of ' . $prodName
   ];
 }
 
 /**
- * Calculate revenue based on product count and pricing
- * Revenue = Product Count × Rate
- * - Referral: Product Count × CPT Bill Rate (per piece × pieces per box)
- * - Wholesale: Product Count × Practice Wholesale Rate (per box)
+ * Calculate revenue based on actual pieces needed and pricing
+ * Revenue = Actual Pieces × Rate per Piece
+ * - Referral: Actual pieces needed × CPT/Medicare rate per piece
+ * - Wholesale: Boxes × Practice wholesale rate per box
  */
 function calculate_revenue($row, $rates, $hasProducts) {
   $billedBy = $row['billed_by'] ?? 'collagen_direct';
   $isWholesale = ($billedBy === 'practice_dme');
   $pieces_per_box = max(1, (int)($row['pieces_per_box'] ?? 10));
 
-  // Get product count
+  // Get product count (includes actual_pieces for referral orders)
   $productCount = get_product_count($row, $hasProducts);
   $total_boxes = $productCount['boxes'];
+  $actual_pieces = $productCount['actual_pieces'];
 
   if ($isWholesale) {
     // WHOLESALE: Revenue = Boxes × Practice Wholesale Rate (per box)
-    // Priority: practice_custom_price (per piece) > product_price (per box from order)
+    // Practice pays for full boxes they order
     $practice_custom_price = (float)($row['practice_custom_price'] ?? 0);
 
     if ($practice_custom_price > 0) {
@@ -400,7 +448,8 @@ function calculate_revenue($row, $rates, $hasProducts) {
 
     return $total_boxes * $price_per_box;
   } else {
-    // REFERRAL: Revenue = Boxes × (CPT Rate per piece × pieces per box)
+    // REFERRAL: Revenue = Actual pieces needed × CPT rate per piece
+    // Insurance reimburses based on actual pieces used, not rounded-up box quantities
     $cpt_rate_per_piece = 0.0;
 
     // Try to get rate from reimbursement_rates table first
@@ -425,9 +474,8 @@ function calculate_revenue($row, $rates, $hasProducts) {
       }
     }
 
-    // Revenue = total boxes × pieces per box × rate per piece
-    $billable_pieces = $total_boxes * $pieces_per_box;
-    return $billable_pieces * $cpt_rate_per_piece;
+    // Revenue = actual pieces needed × rate per piece
+    return $actual_pieces * $cpt_rate_per_piece;
   }
 }
 
@@ -497,11 +545,20 @@ include __DIR__.'/_header.php';
         </select>
       </div>
 
+      <div>
+        <label class="text-xs text-slate-500 mb-1 block">View</label>
+        <select name="archive" class="w-full border rounded px-3 py-1.5 text-sm">
+          <option value="billable" <?=$archiveFilter==='billable'?'selected':''?>>Billable Only</option>
+          <option value="archived" <?=$archiveFilter==='archived'?'selected':''?>>Archived Only</option>
+          <option value="all" <?=$archiveFilter==='all'?'selected':''?>>All Orders</option>
+        </select>
+      </div>
+
       <div class="flex items-end gap-2 <?=$hasProducts?'':'md:col-span-3 lg:col-span-2'?>">
         <button type="submit" class="px-4 py-1.5 bg-brand text-white rounded text-sm hover:bg-brand/90 transition-colors">
           Apply Filters
         </button>
-        <?php if ($search || $phys || $productFilter || $cptFilter || $statusFilter || $from !== date('Y-m-d', strtotime('-6 months')) || $to !== date('Y-m-d')): ?>
+        <?php if ($search || $phys || $productFilter || $cptFilter || $statusFilter || $archiveFilter !== 'billable' || $from !== date('Y-m-d', strtotime('-6 months')) || $to !== date('Y-m-d')): ?>
           <a href="/admin/billing.php" class="px-4 py-1.5 bg-slate-100 text-slate-700 rounded text-sm hover:bg-slate-200 transition-colors">
             Clear
           </a>
@@ -564,7 +621,16 @@ include __DIR__.'/_header.php';
           <td class="py-2">
             <?php
               $fpwDisp = (int)($row['frequency_per_week'] ?? 0);
+              // Try wounds_data JSON if frequency_per_week is 0
+              if ($fpwDisp <= 0 && !empty($row['wounds_data'])) {
+                $wd = json_decode($row['wounds_data'], true);
+                if (is_array($wd) && isset($wd[0]['frequency_per_week'])) {
+                  $fpwDisp = (int)$wd[0]['frequency_per_week'];
+                }
+              }
+              // Fallback to text frequency field
               if ($fpwDisp <= 0) $fpwDisp = patches_per_week_text(isset($row['frequency'])?$row['frequency']:null);
+              if ($fpwDisp === 0) $fpwDisp = 1;
               echo e($fpwDisp.'×/week');
             ?>
           </td>
