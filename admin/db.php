@@ -40,7 +40,7 @@ try {
 
 /* ===== Helpers (guarded to prevent redeclare fatals) ===== */
 if (!function_exists('e')) {
-  function e(string $s): string { return htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
+  function e(mixed $s): string { return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
 }
 
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
