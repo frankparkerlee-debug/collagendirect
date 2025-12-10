@@ -28,12 +28,35 @@ $currentMonth = $dashboardMetrics['current_month'];
 $lastMonth = $dashboardMetrics['last_month'];
 $ytd = $dashboardMetrics['ytd'];
 
+// Check for soft delete columns (match revenue_calculator logic)
+$hasOrderDeletedAt = false;
+$hasPatientDeletedAt = false;
+$hasReviewStatus = false;
+try {
+    $hasOrderDeletedAt = (int)$pdo->query("SELECT COUNT(*) FROM information_schema.columns WHERE table_name='orders' AND column_name='deleted_at'")->fetchColumn() > 0;
+    $hasPatientDeletedAt = (int)$pdo->query("SELECT COUNT(*) FROM information_schema.columns WHERE table_name='patients' AND column_name='deleted_at'")->fetchColumn() > 0;
+    $hasReviewStatus = (int)$pdo->query("SELECT COUNT(*) FROM information_schema.columns WHERE table_name='orders' AND column_name='review_status'")->fetchColumn() > 0;
+} catch (Throwable $e) {}
+
+// Build common WHERE clause to match revenue_calculator logic
+$orderWhere = "o.status NOT IN ('rejected', 'cancelled', 'draft')";
+if ($hasReviewStatus) {
+    $orderWhere .= " AND (o.review_status IS NULL OR o.review_status != 'draft')";
+}
+if ($hasOrderDeletedAt) {
+    $orderWhere .= " AND o.deleted_at IS NULL";
+}
+$orderWhereWithPatient = $orderWhere;
+if ($hasPatientDeletedAt) {
+    $orderWhereWithPatient .= " AND p.deleted_at IS NULL";
+}
+
 // Calculate pipeline metrics
 try {
     $pipelineStmt = $pdo->query("
         SELECT status, COUNT(*) as count
-        FROM orders
-        WHERE status NOT IN ('rejected', 'cancelled')
+        FROM orders o
+        WHERE $orderWhere
           AND created_at >= NOW() - INTERVAL '90 days'
         GROUP BY status
     ");
@@ -54,7 +77,7 @@ try {
         FROM orders o
         LEFT JOIN patients p ON p.id = o.patient_id
         LEFT JOIN users u ON u.id = o.user_id
-        WHERE o.status NOT IN ('rejected', 'cancelled')
+        WHERE $orderWhereWithPatient
         ORDER BY o.created_at DESC
         LIMIT 5
     ");
@@ -63,11 +86,13 @@ try {
     $recentOrders = [];
 }
 
-// Platform counts
+// Platform counts (exclude soft-deleted)
 try {
-    $totalPhysicians = (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role IN ('physician', 'practice_admin')")->fetchColumn();
-    $totalPatients = (int)$pdo->query("SELECT COUNT(*) FROM patients")->fetchColumn();
-    $activeOrders = (int)$pdo->query("SELECT COUNT(*) FROM orders WHERE status NOT IN ('rejected', 'cancelled', 'delivered')")->fetchColumn();
+    $physWhere = $hasOrderDeletedAt ? " AND deleted_at IS NULL" : "";
+    $patientWhere = $hasPatientDeletedAt ? " WHERE deleted_at IS NULL" : "";
+    $totalPhysicians = (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role IN ('physician', 'practice_admin')$physWhere")->fetchColumn();
+    $totalPatients = (int)$pdo->query("SELECT COUNT(*) FROM patients$patientWhere")->fetchColumn();
+    $activeOrders = (int)$pdo->query("SELECT COUNT(*) FROM orders o WHERE $orderWhere AND o.status NOT IN ('delivered')")->fetchColumn();
 } catch (Throwable $e) {
     $totalPhysicians = $totalPatients = $activeOrders = 0;
 }

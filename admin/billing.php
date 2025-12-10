@@ -124,8 +124,16 @@ $archiveFilter = isset($_GET['archive']) ? trim($_GET['archive']) : 'billable'; 
 $hasOrderDeletedAt = has_column($pdo, 'orders', 'deleted_at');
 $hasPatientDeletedAt = has_column($pdo, 'patients', 'deleted_at');
 
-$where  = "o.created_at BETWEEN :from AND (:to::date + INTERVAL '1 day') AND o.status NOT IN ('rejected','cancelled')";
+// Check if review_status column exists (match revenue_calculator logic)
+$hasReviewStatus = has_column($pdo, 'orders', 'review_status');
+
+$where  = "o.created_at BETWEEN :from AND (:to::date + INTERVAL '1 day') AND o.status NOT IN ('rejected','cancelled','draft')";
 $params = ['from'=>$from, 'to'=>$to];
+
+// Also exclude draft review_status if column exists (match revenue_calculator logic)
+if ($hasReviewStatus) {
+  $where .= " AND (o.review_status IS NULL OR o.review_status != 'draft')";
+}
 
 // Archive filter - exclude soft-deleted orders and patients by default
 if ($archiveFilter === 'billable') {
@@ -280,7 +288,7 @@ try {
         p.first_name,
         p.last_name,
         p.dob
-        ".($hasProducts?", pr.name AS prod_name, pr.size AS prod_size, pr.sku, COALESCE(pr.$hcpcsCol, o.cpt) AS cpt_code, pr.price_admin, pr.pieces_per_box, o.product":"")."
+        ".($hasProducts?", pr.name AS prod_name, pr.size AS prod_size, pr.sku, COALESCE(pr.$hcpcsCol, o.cpt) AS cpt_code, pr.price_admin, pr.pieces_per_box, pr.price_wholesale, o.product":"")."
       FROM orders o
       LEFT JOIN patients p ON p.id = o.patient_id
       ".($hasProducts?"LEFT JOIN products pr ON pr.id = o.product_id":"")."
@@ -322,7 +330,8 @@ try {
       STRING_AGG(DISTINCT cpt_code, ', ' ORDER BY cpt_code) as cpt_code,
       AVG(price_admin) as price_admin,
       AVG(pieces_per_box) as pieces_per_box,
-      STRING_AGG(DISTINCT product, ', ' ORDER BY product) as product":"'1' as prod_name, '' as sku, '' as cpt_code, 0 as price_admin, 10 as pieces_per_box, '' as product")."
+      AVG(price_wholesale) as price_wholesale,
+      STRING_AGG(DISTINCT product, ', ' ORDER BY product) as product":"'1' as prod_name, '' as sku, '' as cpt_code, 0 as price_admin, 10 as pieces_per_box, 0 as price_wholesale, '' as product")."
     FROM grouped_orders
     GROUP BY
       COALESCE(order_group_id, id::text),
@@ -434,16 +443,21 @@ function calculate_revenue($row, $rates, $hasProducts) {
   $actual_pieces = $productCount['actual_pieces'];
 
   if ($isWholesale) {
-    // WHOLESALE: Revenue = Boxes × Practice Wholesale Rate (per box)
+    // WHOLESALE: Revenue = Boxes × Price per Box
     // Practice pays for full boxes they order
     $practice_custom_price = (float)($row['practice_custom_price'] ?? 0);
+    $product_price_per_piece = (float)($row['product_price'] ?? 0);
+    $price_wholesale = (float)($row['price_wholesale'] ?? 0);
 
     if ($practice_custom_price > 0) {
       // Practice has custom pricing per piece, convert to per box
       $price_per_box = $practice_custom_price * $pieces_per_box;
+    } elseif ($product_price_per_piece > 0) {
+      // product_price is stored as per-piece for wholesale orders
+      $price_per_box = $product_price_per_piece * $pieces_per_box;
     } else {
-      // Use product_price from order (already per box for wholesale)
-      $price_per_box = (float)($row['product_price'] ?? 0);
+      // Fallback to price_wholesale from products table (already per box)
+      $price_per_box = $price_wholesale;
     }
 
     return $total_boxes * $price_per_box;
