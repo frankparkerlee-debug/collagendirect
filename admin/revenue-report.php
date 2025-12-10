@@ -26,7 +26,8 @@ if (!function_exists('e')) {
 }
 
 /* ================= Filters ================= */
-$dateFrom = $_GET['date_from'] ?? date('Y-m-01');
+// Default to YTD instead of current month to show historical data
+$dateFrom = $_GET['date_from'] ?? date('Y-01-01');
 $dateTo = $_GET['date_to'] ?? date('Y-m-d');
 $physicianId = $_GET['physician'] ?? '';
 $salesRepId = isset($_GET['sales_rep']) && $_GET['sales_rep'] !== '' ? (int)$_GET['sales_rep'] : null;

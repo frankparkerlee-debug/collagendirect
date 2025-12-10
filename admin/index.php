@@ -697,14 +697,27 @@ include __DIR__.'/_header.php';
       <div class="grid grid-cols-2 gap-6">
         <!-- Practice Revenue Breakdown -->
         <div>
-          <h4 class="font-semibold mb-3 text-sm">Practice Revenue (Top 5)</h4>
+          <div class="flex items-center justify-between mb-3">
+            <h4 class="font-semibold text-sm">Practice Revenue (Top 5)</h4>
+            <a href="/admin/revenue-report.php" class="text-xs text-brand hover:underline">View All</a>
+          </div>
           <?php if (!empty($practiceRevenue)): ?>
             <div class="space-y-2">
-              <?php foreach ($practiceRevenue as $practice => $revenue): ?>
-                <div class="flex items-center justify-between text-sm pb-2 border-b">
-                  <span class="text-slate-700 truncate max-w-[250px]" title="<?=e($practice)?>"><?=e($practice)?></span>
-                  <span class="font-medium text-brand">$<?=number_format($revenue * $revenueMultiplier, 0)?></span>
-                </div>
+              <?php foreach ($practiceRevenue as $practice => $revenue):
+                // Find physician ID for this practice
+                $practicePhysId = '';
+                foreach ($pdo->query("SELECT id FROM users WHERE practice_name = " . $pdo->quote($practice) . " LIMIT 1") as $row) {
+                  $practicePhysId = $row['id'];
+                }
+              ?>
+                <a href="/admin/revenue-report.php?date_from=<?=date('Y-01-01')?>&date_to=<?=date('Y-m-d')?>&physician=<?=urlencode($practicePhysId)?>"
+                   class="flex items-center justify-between text-sm pb-2 border-b hover:bg-slate-50 -mx-1 px-1 rounded transition cursor-pointer">
+                  <span class="text-slate-700 truncate max-w-[200px]" title="<?=e($practice)?>"><?=e($practice)?></span>
+                  <div class="flex items-center gap-2">
+                    <span class="font-medium text-brand">$<?=number_format($revenue * $revenueMultiplier, 0)?></span>
+                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                  </div>
+                </a>
               <?php endforeach; ?>
             </div>
           <?php else: ?>
@@ -714,14 +727,21 @@ include __DIR__.'/_header.php';
 
         <!-- Product Revenue Breakdown -->
         <div>
-          <h4 class="font-semibold mb-3 text-sm">Product Revenue (Top 5)</h4>
+          <div class="flex items-center justify-between mb-3">
+            <h4 class="font-semibold text-sm">Product Revenue (Top 5)</h4>
+            <a href="/admin/revenue-report.php" class="text-xs text-brand hover:underline">View All</a>
+          </div>
           <?php if (!empty($productRevenue)): ?>
             <div class="space-y-2">
               <?php foreach ($productRevenue as $product => $revenue): ?>
-                <div class="flex items-center justify-between text-sm pb-2 border-b">
-                  <span class="text-slate-700 truncate max-w-[250px]" title="<?=e($product)?>"><?=e($product)?></span>
-                  <span class="font-medium text-blue-600">$<?=number_format($revenue * $revenueMultiplier, 0)?></span>
-                </div>
+                <a href="/admin/revenue-report.php?date_from=<?=date('Y-01-01')?>&date_to=<?=date('Y-m-d')?>&product=<?=urlencode($product)?>"
+                   class="flex items-center justify-between text-sm pb-2 border-b hover:bg-slate-50 -mx-1 px-1 rounded transition cursor-pointer">
+                  <span class="text-slate-700 truncate max-w-[200px]" title="<?=e($product)?>"><?=e($product)?></span>
+                  <div class="flex items-center gap-2">
+                    <span class="font-medium text-blue-600">$<?=number_format($revenue * $revenueMultiplier, 0)?></span>
+                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                  </div>
+                </a>
               <?php endforeach; ?>
             </div>
           <?php else: ?>
