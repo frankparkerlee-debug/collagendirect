@@ -40,6 +40,9 @@ $productFilter = $_GET['product'] ?? '';
 /* ================= Get Metrics ================= */
 $metrics = get_revenue_metrics($pdo, $dateFrom, $dateTo, $physicianId ?: null, $salesRepId);
 
+// Log for debugging
+error_log("[revenue-report] Date range: $dateFrom to $dateTo, Found " . count($metrics['orders']) . " orders, Revenue: $" . number_format($metrics['total_revenue'], 2));
+
 // Apply payor filter to orders if specified
 if ($payorFilter !== '') {
     $metrics['orders'] = array_filter($metrics['orders'], function($o) use ($payorFilter) {
@@ -497,6 +500,22 @@ include __DIR__ . '/_header.php';
         <a href="?date_from=<?=e($dateFrom)?>&date_to=<?=e($dateTo)?>" class="text-sm text-blue-600 hover:text-blue-800 font-medium">
             Clear Filters
         </a>
+    </div>
+    <?php endif; ?>
+
+    <!-- No Data Message -->
+    <?php if (empty($metrics['orders'])): ?>
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-6 mb-6 text-center">
+        <svg class="w-12 h-12 mx-auto text-amber-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+        </svg>
+        <h3 class="text-lg font-semibold text-amber-900 mb-2">No Orders Found</h3>
+        <p class="text-sm text-amber-700 mb-3">
+            No orders match your current filters for <?=e($dateFrom)?> to <?=e($dateTo)?>.
+        </p>
+        <p class="text-xs text-amber-600">
+            Try expanding your date range or removing filters to see more data.
+        </p>
     </div>
     <?php endif; ?>
 

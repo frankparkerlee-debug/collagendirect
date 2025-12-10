@@ -174,8 +174,21 @@ function load_reimbursement_rates(PDO $pdo): array {
 function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '', ?string $physicianId = null, ?int $salesRepId = null): array {
     $rates = load_reimbursement_rates($pdo);
 
-    // Build query
+    // Check if review_status column exists
+    $hasReviewStatus = false;
+    try {
+        $checkCol = $pdo->query("SELECT COUNT(*) c FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name='orders' AND column_name='review_status'");
+        $hasReviewStatus = (int)($checkCol->fetch()['c'] ?? 0) > 0;
+    } catch (Throwable $e) {
+        // Ignore - assume column doesn't exist
+    }
+
+    // Build query - match dashboard's logic: exclude rejected, cancelled, draft status
+    // Also exclude orders where review_status is 'draft' (same as dashboard) - if column exists
     $where = "o.status NOT IN ('rejected', 'cancelled', 'draft')";
+    if ($hasReviewStatus) {
+        $where .= " AND (o.review_status IS NULL OR o.review_status != 'draft')";
+    }
     $params = [];
 
     if ($dateFrom !== '') {
@@ -195,7 +208,25 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
         $params['sales_rep_id'] = $salesRepId;
     }
 
-    // Fetch orders with all needed fields
+    // Check if products table exists (match dashboard pattern)
+    $hasProducts = false;
+    try {
+        $checkProducts = $pdo->query("SELECT COUNT(*) c FROM INFORMATION_SCHEMA.TABLES WHERE table_name='products'");
+        $hasProducts = (int)($checkProducts->fetch()['c'] ?? 0) > 0;
+    } catch (Throwable $e) {
+        // Ignore
+    }
+
+    // Check if wounds_data column exists
+    $hasWoundsData = false;
+    try {
+        $checkWounds = $pdo->query("SELECT COUNT(*) c FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name='orders' AND column_name='wounds_data'");
+        $hasWoundsData = (int)($checkWounds->fetch()['c'] ?? 0) > 0;
+    } catch (Throwable $e) {
+        // Ignore
+    }
+
+    // Fetch orders with all needed fields - use conditional column selection like dashboard
     $sql = "
         SELECT
             o.id,
@@ -207,18 +238,24 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
             o.duration_days,
             o.refills_allowed,
             o.qty_per_change,
-            o.wounds_data,
+            " . ($hasWoundsData ? "o.wounds_data," : "NULL AS wounds_data,") . "
             o.insurer_name,
             o.icd10_primary,
             o.icd10_secondary,
             o.user_id,
             o.patient_id,
             o.product_id,
-            COALESCE(pr.hcpcs_code, o.cpt) AS cpt_code,
-            pr.name AS product_name,
-            pr.pieces_per_box,
-            pr.price_wholesale,
-            COALESCE(pp.cost_per_box, pr.cost_per_box, 0) AS cost_per_box,
+            " . ($hasProducts
+                ? "COALESCE(pr.hcpcs_code, o.cpt) AS cpt_code,
+                   pr.name AS product_name,
+                   COALESCE(pr.pieces_per_box, 10) AS pieces_per_box,
+                   pr.price_wholesale,
+                   COALESCE(pp.cost_per_box, pr.cost_per_box, 0) AS cost_per_box,"
+                : "o.cpt AS cpt_code,
+                   COALESCE(o.product, 'Unknown') AS product_name,
+                   10 AS pieces_per_box,
+                   0 AS price_wholesale,
+                   0 AS cost_per_box,") . "
             pp.custom_price AS practice_custom_price,
             u.practice_name,
             u.first_name AS phys_first,
@@ -226,7 +263,7 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
             ap.admin_id AS sales_rep_id,
             au.name AS sales_rep_name
         FROM orders o
-        LEFT JOIN products pr ON pr.id = o.product_id
+        " . ($hasProducts ? "LEFT JOIN products pr ON pr.id = o.product_id" : "") . "
         LEFT JOIN practice_pricing pp ON pp.user_id = o.user_id AND pp.product_id = o.product_id
         LEFT JOIN users u ON u.id = o.user_id
         LEFT JOIN admin_physicians ap ON ap.physician_user_id = o.user_id
@@ -235,9 +272,16 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
         ORDER BY o.created_at DESC
     ";
 
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
-    $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    try {
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        error_log("[revenue_calculator] Query returned " . count($orders) . " orders for date range: $dateFrom to $dateTo");
+    } catch (Throwable $e) {
+        error_log("[revenue_calculator] SQL Error: " . $e->getMessage());
+        error_log("[revenue_calculator] SQL Query: " . $sql);
+        $orders = [];
+    }
 
     // Initialize metrics
     $metrics = [

@@ -331,77 +331,103 @@ if ($hasRates) {
   } catch (Throwable $e) { error_log("[rates] ".$e->getMessage()); }
 }
 
-/* Projected revenue with box-based quantity model */
-function projected_rev($row, $rates, $hasProducts, $hasShipRem) {
-  // Get order parameters
-  $fpw = (int)($row['frequency_per_week'] ?? 0);
-  if ($fpw <= 0) $fpw = patches_per_week_text(isset($row['frequency'])?$row['frequency']:null);
-
-  // Fallback: if still 0, assume daily (7x/week)
-  if ($fpw === 0) {
-    $fpw = 7; // Conservative default: daily changes
-  }
-
-  $qty  = max(1, (int)($row['qty_per_change'] ?? 1));
-  $days = max(0, (int)($row['duration_days'] ?? 0));
-
-  // Fallback: default to 30 days if missing
-  if ($days === 0) {
-    $days = 30;
-  }
-
-  $ref  = max(0, (int)($row['refills_allowed'] ?? 0));
-  $pieces_per_box = max(1, (int)($row['pieces_per_box'] ?? 10));
-
-  // Calculate total pieces needed
-  // Formula: (duration_days / 7) × frequency_per_week × qty_per_change × (1 + refills)
-  $weeks = $days / 7.0;
-  $total_pieces = $weeks * $fpw * $qty * (1 + $ref);
-
-  // Calculate total boxes needed (round up)
-  $total_boxes = (int)ceil($total_pieces / $pieces_per_box);
-
-  // Get boxes remaining to calculate what's left to bill
-  $boxes_remaining = $hasShipRem ? (int)($row['shipments_remaining'] ?? 0) : $total_boxes;
-  $pieces_remaining = ($boxes_remaining / $total_boxes) * $total_pieces;
-
-  // Determine if this is wholesale or referral
+/**
+ * Calculate total product count (boxes) for an order
+ * Returns array with box count and formatted product description
+ */
+function get_product_count($row, $hasProducts) {
   $billedBy = $row['billed_by'] ?? 'collagen_direct';
   $isWholesale = ($billedBy === 'practice_dme');
+  $pieces_per_box = max(1, (int)($row['pieces_per_box'] ?? 10));
 
   if ($isWholesale) {
-    // WHOLESALE: Revenue = Boxes × Price Per Box
-    // Check for practice-specific custom pricing first
+    // WHOLESALE: qty_per_change = number of boxes ordered
+    $total_boxes = max(1, (int)($row['qty_per_change'] ?? 1));
+  } else {
+    // REFERRAL: Calculate boxes from treatment parameters
+    $fpw = (int)($row['frequency_per_week'] ?? 0);
+    if ($fpw <= 0) $fpw = patches_per_week_text(isset($row['frequency'])?$row['frequency']:null);
+    if ($fpw === 0) $fpw = 7;
+
+    $qty  = max(1, (int)($row['qty_per_change'] ?? 1));
+    $days = max(0, (int)($row['duration_days'] ?? 0));
+    if ($days === 0) $days = 30;
+
+    $ref = max(0, (int)($row['refills_allowed'] ?? 0));
+
+    $weeks = $days / 7.0;
+    $total_pieces = $weeks * $fpw * $qty * (1 + $ref);
+    $total_boxes = (int)ceil($total_pieces / $pieces_per_box);
+  }
+
+  // Get product name for display
+  $prodName = ($hasProducts && !empty($row['prod_name'])) ? $row['prod_name'] : ($row['product'] ?? 'collagen');
+
+  return [
+    'boxes' => $total_boxes,
+    'product_name' => $prodName,
+    'formatted' => $total_boxes . ' box' . ($total_boxes !== 1 ? 'es' : '') . ' of ' . $prodName
+  ];
+}
+
+/**
+ * Calculate revenue based on product count and pricing
+ * Revenue = Product Count × Rate
+ * - Referral: Product Count × CPT Bill Rate (per piece × pieces per box)
+ * - Wholesale: Product Count × Practice Wholesale Rate (per box)
+ */
+function calculate_revenue($row, $rates, $hasProducts) {
+  $billedBy = $row['billed_by'] ?? 'collagen_direct';
+  $isWholesale = ($billedBy === 'practice_dme');
+  $pieces_per_box = max(1, (int)($row['pieces_per_box'] ?? 10));
+
+  // Get product count
+  $productCount = get_product_count($row, $hasProducts);
+  $total_boxes = $productCount['boxes'];
+
+  if ($isWholesale) {
+    // WHOLESALE: Revenue = Boxes × Practice Wholesale Rate (per box)
+    // Priority: practice_custom_price (per piece) > product_price (per box from order)
     $practice_custom_price = (float)($row['practice_custom_price'] ?? 0);
 
     if ($practice_custom_price > 0) {
-      // Practice has custom pricing (stored as price per piece)
-      // Convert to price per box: custom_price × pieces_per_box
+      // Practice has custom pricing per piece, convert to per box
       $price_per_box = $practice_custom_price * $pieces_per_box;
     } else {
-      // Use product_price from order
+      // Use product_price from order (already per box for wholesale)
       $price_per_box = (float)($row['product_price'] ?? 0);
-      // No fallback to zero - if no price available, revenue = 0
     }
-    return $boxes_remaining * $price_per_box;
+
+    return $total_boxes * $price_per_box;
   } else {
-    // REFERRAL: Revenue = Pieces × CPT Rate Per Piece
+    // REFERRAL: Revenue = Boxes × (CPT Rate per piece × pieces per box)
     $cpt_rate_per_piece = 0.0;
-    if ($hasProducts && !empty($row['cpt_code']) && isset($rates[$row['cpt_code']]) && $rates[$row['cpt_code']] > 0) {
-      // CPT rates are per piece from reimbursement_rates table
-      $cpt_rate_per_piece = (float)$rates[$row['cpt_code']];
-    } elseif ($hasProducts && !empty($row['price_admin']) && $row['price_admin'] > 0) {
-      // Fallback 1: Use price_admin from products table (Medicare allowable per piece)
+
+    // Try to get rate from reimbursement_rates table first
+    if ($hasProducts && !empty($row['cpt_code'])) {
+      // Handle multiple CPT codes (comma-separated) - use first one
+      $cptCode = trim(explode(',', $row['cpt_code'])[0]);
+      if (isset($rates[$cptCode]) && $rates[$cptCode] > 0) {
+        $cpt_rate_per_piece = (float)$rates[$cptCode];
+      }
+    }
+
+    // Fallback to price_admin from products table
+    if ($cpt_rate_per_piece <= 0 && $hasProducts && !empty($row['price_admin']) && $row['price_admin'] > 0) {
       $cpt_rate_per_piece = (float)$row['price_admin'];
-    } else {
-      // Fallback 2: Estimate from product_price (wholesale price per box)
+    }
+
+    // Final fallback: derive from product_price
+    if ($cpt_rate_per_piece <= 0) {
       $product_price = (float)($row['product_price'] ?? 0);
       if ($product_price > 0 && $pieces_per_box > 0) {
         $cpt_rate_per_piece = $product_price / $pieces_per_box;
       }
-      // If still no price, revenue = 0 (no hardcoded fallback)
     }
-    return $pieces_remaining * $cpt_rate_per_piece;
+
+    // Revenue = total boxes × pieces per box × rate per piece
+    $billable_pieces = $total_boxes * $pieces_per_box;
+    return $billable_pieces * $cpt_rate_per_piece;
   }
 }
 
@@ -493,9 +519,9 @@ include __DIR__.'/_header.php';
             <th class="py-2">Order</th>
             <th class="py-2">Product</th>
             <th class="py-2">Freq</th>
-            <th class="py-2">Shipments Remaining</th>
+            <th class="py-2">Product Count</th>
             <th class="py-2">CPT</th>
-            <th class="py-2">Projected Revenue</th>
+            <th class="py-2">Revenue</th>
             <th class="py-2">Notes</th>
             <th class="py-2">ID</th>
             <th class="py-2">Insurance Card</th>
@@ -510,7 +536,11 @@ include __DIR__.'/_header.php';
           $prodLabel = ($hasProducts && !empty($row['prod_name']))
                         ? ($row['prod_name'].(!empty($row['prod_size'])?(" ".$row['prod_size']):""))
                         : ($row['product'] ?? '');
-          $rev = projected_rev($row, $rates, $hasProducts, $hasShipRem); $total += $rev;
+
+          // Get product count (boxes) and revenue using new functions
+          $productCount = get_product_count($row, $hasProducts);
+          $rev = calculate_revenue($row, $rates, $hasProducts);
+          $total += $rev;
 
           $pid      = (string)($row['patient_id'] ?? '');
           $oid      = (string)($row['id'] ?? '');
@@ -538,7 +568,10 @@ include __DIR__.'/_header.php';
               echo e($fpwDisp.'×/week');
             ?>
           </td>
-          <td class="py-2"><?= $hasShipRem ? e((string)($row['shipments_remaining'] ?? 0)) : '—' ?></td>
+          <td class="py-2">
+            <span class="font-medium"><?= e($productCount['boxes']) ?> box<?= $productCount['boxes'] !== 1 ? 'es' : '' ?></span>
+            <br><span class="text-[11px] text-slate-500"><?= e($productCount['product_name']) ?></span>
+          </td>
           <td class="py-2"><?=e($row['cpt_code'] ?? '—')?></td>
           <td class="py-2 font-semibold">$<?=number_format($rev,2)?></td>
           <td class="py-2"><?=render_view_link($noteLinks)?></td>
