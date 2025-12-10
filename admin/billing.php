@@ -569,8 +569,8 @@ include __DIR__.'/_header.php';
             ?>
           </td>
           <td class="py-2">
-            <span class="font-medium"><?= e($productCount['boxes']) ?> box<?= $productCount['boxes'] !== 1 ? 'es' : '' ?></span>
-            <br><span class="text-[11px] text-slate-500"><?= e($productCount['product_name']) ?></span>
+            <span class="font-medium"><?= e((string)$productCount['boxes']) ?> box<?= $productCount['boxes'] !== 1 ? 'es' : '' ?></span>
+            <br><span class="text-[11px] text-slate-500"><?= e((string)$productCount['product_name']) ?></span>
           </td>
           <td class="py-2"><?=e($row['cpt_code'] ?? '—')?></td>
           <td class="py-2 font-semibold">$<?=number_format($rev,2)?></td>
