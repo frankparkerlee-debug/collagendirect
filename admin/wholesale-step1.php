@@ -222,12 +222,28 @@ function toggleOrderType() {
   const patientSection = document.getElementById('patient-orders-section');
   const officeSection = document.getElementById('office-stock-section');
 
+  // Get shipping type selects
+  const patientShippingType = document.getElementById('shipping-type');
+  const officeShippingType = document.getElementById('office-shipping-type');
+
   if (orderType === 'patient_orders') {
     patientSection.style.display = 'block';
     officeSection.style.display = 'none';
+    // Enable patient shipping, disable office shipping required attribute
+    if (patientShippingType) patientShippingType.required = true;
+    if (officeShippingType) officeShippingType.required = false;
+    // Disable all required fields in office section
+    officeSection.querySelectorAll('[required]').forEach(el => el.required = false);
   } else if (orderType === 'office_stock') {
     patientSection.style.display = 'none';
     officeSection.style.display = 'block';
+    // Disable patient shipping, enable office shipping required attribute
+    if (patientShippingType) patientShippingType.required = false;
+    if (officeShippingType) officeShippingType.required = true;
+    // Disable all required fields in patient section
+    patientSection.querySelectorAll('[required]').forEach(el => el.required = false);
+    // Enable required fields in office section
+    officeSection.querySelectorAll('select[name="shipping[location_id]"]').forEach(el => el.required = true);
   } else {
     patientSection.style.display = 'none';
     officeSection.style.display = 'none';
@@ -394,6 +410,9 @@ document.addEventListener('DOMContentLoaded', function() {
   addressInputs.forEach(input => {
     initAutocompleteForField(input);
   });
+
+  // Initialize form state based on current order type selection
+  toggleOrderType();
 });
 
 // Modified addPatient to initialize autocomplete for new fields
