@@ -810,6 +810,27 @@ $products = $productsStmt->fetchAll(PDO::FETCH_ASSOC);
 
       // Sort product names alphabetically
       ksort($productGroups);
+
+      // Sort sizes within each product group (smallest to largest)
+      foreach ($productGroups as $baseName => &$products) {
+        usort($products, function($a, $b) {
+          $sizeA = trim($a['size'] ?? '');
+          $sizeB = trim($b['size'] ?? '');
+
+          // Extract numeric value from size (e.g., "2x2" -> 2, "4.33x4.33" -> 4.33)
+          $numA = 0;
+          $numB = 0;
+          if (preg_match('/^([\d.]+)/', $sizeA, $m)) $numA = (float)$m[1];
+          if (preg_match('/^([\d.]+)/', $sizeB, $m)) $numB = (float)$m[1];
+
+          // Sort by numeric value, then alphabetically if equal
+          if ($numA !== $numB) {
+            return $numA <=> $numB;
+          }
+          return strcasecmp($sizeA, $sizeB);
+        });
+      }
+      unset($products); // Break reference
     ?>
 
     <div style="margin-bottom: 1.5rem;">
