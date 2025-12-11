@@ -778,35 +778,24 @@ $products = $productsStmt->fetchAll(PDO::FETCH_ASSOC);
         <a href="?page=wholesale&step=1" class="btn btn-primary">← Back to Patient Entry</a>
       </div>
     <?php else:
-      // Group products by class (brand + product name, without size or HCPCS)
-      // e.g., "AlgiHeal AG Silver Alginate Dressing 2x2 (A6196)" -> "AlgiHeal AG Silver Alginate Dressing"
+      // Group products by category (from admin/products.php - the source of truth)
+      // Each product has: name, size, category, hcpcs_code, price_wholesale, pieces_per_box
       $productGroups = [];
 
       foreach ($products as $product) {
-        $fullName = $product['name'];
-
-        // Remove HCPCS code in parentheses (e.g., "(A6196)")
-        $nameWithoutHCPCS = preg_replace('/\s*\([A-Z0-9\/]+\)\s*$/i', '', $fullName);
-
-        // Remove size dimensions (e.g., "2x2", "4.33x4.33", "6x6", "9"x9"", "8oz Bottle", "1.0g", "Medium", "100ML", "250ML")
-        $coreName = preg_replace('/\s+\d+(?:\.\d+)?\s*x\s*\d+(?:\.\d+)?$/i', '', $nameWithoutHCPCS); // "2x2", "4.33x4.33"
-        $coreName = preg_replace('/\s+\d+"x\d+"$/i', '', $coreName); // 9"x9"
-        $coreName = preg_replace('/\s+\d+(?:\.\d+)?[a-z]+\s+Bottle$/i', '', $coreName); // "8oz Bottle"
-        $coreName = preg_replace('/\s+\d+(?:\.\d+)?g\s+Rope$/i', ' Rope', $coreName); // "2g Rope" -> "Rope"
-        $coreName = preg_replace('/\s+\d+(?:\.\d+)?g$/i', '', $coreName); // "1.0g"
-        $coreName = preg_replace('/\s+\d+ML$/i', '', $coreName); // "100ML", "250ML"
-        $coreName = preg_replace('/\s+Medium$/i', '', $coreName); // "Medium"
-        $coreName = preg_replace('/\s+\d+"x\d+"\(\d+(?:\.\d+)?"x\d+(?:\.\d+)?"\)$/i', '', $coreName); // 4"x4"(2"x2")
-
-        $coreName = trim($coreName);
-
-        if (!isset($productGroups[$coreName])) {
-          $productGroups[$coreName] = [];
+        // Use category field from products table as the grouping key
+        $category = trim($product['category'] ?? 'Other');
+        if (empty($category)) {
+          $category = 'Other';
         }
-        $productGroups[$coreName][] = $product;
+
+        if (!isset($productGroups[$category])) {
+          $productGroups[$category] = [];
+        }
+        $productGroups[$category][] = $product;
       }
 
-      // Sort core product names alphabetically
+      // Sort categories alphabetically
       ksort($productGroups);
     ?>
 
@@ -901,9 +890,9 @@ $products = $productsStmt->fetchAll(PDO::FETCH_ASSOC);
 
       row.innerHTML = `
         <div>
-          <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem; color: var(--ink);">Product</label>
+          <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem; color: var(--ink);">Category</label>
           <select class="form-control product-selector" onchange="updateSizeOptions(${patientIndex}, ${rowIndex})" required style="font-size: 0.875rem;">
-            <option value="">Select...</option>
+            <option value="">Select category...</option>
             ${Object.keys(productCatalog).map(category =>
               `<option value="${category}">${category}</option>`
             ).join('')}
@@ -911,9 +900,9 @@ $products = $productsStmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
 
         <div class="size-selector-container" style="display: none;">
-          <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem; color: var(--ink);">Size</label>
+          <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem; color: var(--ink);">Product / Size</label>
           <select class="form-control size-selector" onchange="updateProductSelection(${patientIndex}, ${rowIndex})" required style="font-size: 0.875rem;">
-            <option value="">Select...</option>
+            <option value="">Select product...</option>
           </select>
         </div>
 
@@ -950,61 +939,24 @@ $products = $productsStmt->fetchAll(PDO::FETCH_ASSOC);
       }
 
       const products = productCatalog[selectedCategory];
-      sizeSelect.innerHTML = '<option value="">Select size...</option>';
+      sizeSelect.innerHTML = '<option value="">Select product...</option>';
 
       products.forEach(product => {
         const option = document.createElement('option');
         option.value = product.id;
 
-        // Extract size from product name
-        let sizeText = '';
-        let fullName = product.name;
+        // Use product name and size field from product data (from admin/products.php)
+        // This is the authoritative source of truth
+        const productName = product.name || 'Unknown';
+        const size = product.size || '';
 
-        // Remove HCPCS code first (e.g., "(A6196)")
-        fullName = fullName.replace(/\s*\([A-Z0-9\/]+\)\s*$/i, '');
-
-        // Extract different size patterns
-        let sizeMatch;
-
-        // Pattern 1: Dimensions like "2x2", "4.33x4.33", "6x6"
-        sizeMatch = fullName.match(/(\d+(?:\.\d+)?)\s*x\s*(\d+(?:\.\d+)?)$/i);
-        if (sizeMatch) {
-          sizeText = sizeMatch[0];
-        }
-        // Pattern 2: Quoted dimensions like 9"x9"
-        else if ((sizeMatch = fullName.match(/(\d+"x\d+")$/i))) {
-          sizeText = sizeMatch[0];
-        }
-        // Pattern 3: Gauze sizes like 4"x4"(2"x2")
-        else if ((sizeMatch = fullName.match(/(\d+"x\d+"\(\d+(?:\.\d+)?"x\d+(?:\.\d+)?"\))$/i))) {
-          sizeText = sizeMatch[0];
-        }
-        // Pattern 4: Volume like "8oz Bottle"
-        else if ((sizeMatch = fullName.match(/(\d+(?:\.\d+)?[a-z]+\s+Bottle)$/i))) {
-          sizeText = sizeMatch[0];
-        }
-        // Pattern 5: Weight with rope like "2g Rope"
-        else if ((sizeMatch = fullName.match(/(\d+(?:\.\d+)?g\s+Rope)$/i))) {
-          sizeText = sizeMatch[0];
-        }
-        // Pattern 6: Weight like "1.0g"
-        else if ((sizeMatch = fullName.match(/(\d+(?:\.\d+)?g)$/i))) {
-          sizeText = sizeMatch[0];
-        }
-        // Pattern 7: Volume like "100ML", "250ML"
-        else if ((sizeMatch = fullName.match(/(\d+ML)$/i))) {
-          sizeText = sizeMatch[0];
-        }
-        // Pattern 8: Size like "Medium"
-        else if ((sizeMatch = fullName.match(/(Medium|Large|Small)$/i))) {
-          sizeText = sizeMatch[0];
-        }
-        // Fallback: Show what's after the category name
-        else {
-          sizeText = fullName.replace(selectedCategory, '').trim() || 'Standard';
+        // Show "Product Name - Size" or just "Product Name" if no size
+        let displayText = productName;
+        if (size && !productName.toLowerCase().includes(size.toLowerCase())) {
+          displayText = `${productName} - ${size}`;
         }
 
-        option.textContent = sizeText;
+        option.textContent = displayText;
         sizeSelect.appendChild(option);
       });
 
