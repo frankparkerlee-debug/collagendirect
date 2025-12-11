@@ -102,8 +102,8 @@ function render_view_link($paths, $empty='—') {
 }
 
 /* ================= Filters ================= */
-// Default to last 6 months instead of just current month
-$from = isset($_GET['from']) ? trim($_GET['from']) : date('Y-m-d', strtotime('-6 months'));
+// Default to YTD to match revenue report
+$from = isset($_GET['from']) ? trim($_GET['from']) : date('Y-01-01');
 $to   = isset($_GET['to'])   ? trim($_GET['to'])   : date('Y-m-d');
 $phys = isset($_GET['phys']) ? trim($_GET['phys']) : '';
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
@@ -112,78 +112,7 @@ $cptFilter = isset($_GET['cpt_code']) ? trim($_GET['cpt_code']) : '';
 $statusFilter = isset($_GET['status']) ? trim($_GET['status']) : '';
 $archiveFilter = isset($_GET['archive']) ? trim($_GET['archive']) : 'billable'; // billable (default), archived, all
 
-// Check if soft delete columns exist
-$hasOrderDeletedAt = has_column($pdo, 'orders', 'deleted_at');
-$hasPatientDeletedAt = has_column($pdo, 'patients', 'deleted_at');
-
-// Check if review_status column exists (match revenue_calculator logic)
-$hasReviewStatus = has_column($pdo, 'orders', 'review_status');
-
-$where  = "o.created_at BETWEEN :from AND (:to::date + INTERVAL '1 day') AND o.status NOT IN ('rejected','cancelled','draft')";
-$params = ['from'=>$from, 'to'=>$to];
-
-// Also exclude draft review_status if column exists (match revenue_calculator logic)
-if ($hasReviewStatus) {
-  $where .= " AND (o.review_status IS NULL OR o.review_status != 'draft')";
-}
-
-// Archive filter - exclude soft-deleted orders and patients by default
-if ($archiveFilter === 'billable') {
-  // Show only non-deleted orders with non-deleted patients (default)
-  if ($hasOrderDeletedAt) {
-    $where .= " AND o.deleted_at IS NULL";
-  }
-  if ($hasPatientDeletedAt) {
-    $where .= " AND p.deleted_at IS NULL";
-  }
-} elseif ($archiveFilter === 'archived') {
-  // Show only deleted orders OR orders with deleted patients
-  $archiveConditions = [];
-  if ($hasOrderDeletedAt) {
-    $archiveConditions[] = "o.deleted_at IS NOT NULL";
-  }
-  if ($hasPatientDeletedAt) {
-    $archiveConditions[] = "p.deleted_at IS NOT NULL";
-  }
-  if (!empty($archiveConditions)) {
-    $where .= " AND (" . implode(" OR ", $archiveConditions) . ")";
-  }
-}
-// 'all' shows everything without archive filtering
-
-if ($phys !== '') {
-  $where .= " AND o.user_id = :phys";
-  $params['phys'] = $phys;
-}
-
-if ($search !== '') {
-  $where .= " AND (p.first_name ILIKE :search OR p.last_name ILIKE :search OR o.id ILIKE :search_id)";
-  $params['search'] = '%' . $search . '%';
-  $params['search_id'] = '%' . $search . '%';
-}
-
-if ($productFilter !== '') {
-  $where .= " AND o.product_id = :product_id";
-  $params['product_id'] = $productFilter;
-}
-
-if ($statusFilter !== '') {
-  $where .= " AND o.status = :status";
-  $params['status'] = $statusFilter;
-}
-
-// Role-based access control
-if ($adminRole === 'superadmin' || $adminRole === 'manufacturer') {
-  // Superadmin and manufacturer see all orders - no additional filter
-} else {
-  // Employees only see orders from assigned physicians
-  $where .= " AND EXISTS (SELECT 1 FROM admin_physicians ap WHERE ap.admin_id = :admin_id AND ap.physician_user_id = o.user_id)";
-  $params['admin_id'] = $adminId;
-}
-
 $hasProducts = has_table($pdo,'products');
-$hasRates    = has_table($pdo,'reimbursement_rates');
-$hasShipRem  = has_column($pdo,'orders','shipments_remaining');
 
 // Get products list for filter dropdown
 $products = [];
@@ -216,188 +145,51 @@ try {
   error_log("[physicians-list] " . $e->getMessage());
 }
 
-/* ================= Data ================= */
+/* ================= Data - Use SHARED get_revenue_metrics() ================= */
+// This ensures billing uses the EXACT same data source as dashboard and revenue report
 try {
-  // Debug logging
-  error_log("[billing-debug] Admin Role: " . ($adminRole ?: 'NONE'));
-  error_log("[billing-debug] Admin ID: " . ($adminId ?: 'NONE'));
-  error_log("[billing-debug] WHERE clause: " . $where);
-  error_log("[billing-debug] Params: " . json_encode($params));
+  error_log("[billing] Using get_revenue_metrics() with date range: $from to $to, physician: " . ($phys ?: 'ALL'));
+  $metrics = get_revenue_metrics($pdo, $from, $to, $phys ?: null, null);
+  $rows = $metrics['orders']; // Get the detailed orders array
+  error_log("[billing] get_revenue_metrics returned " . count($rows) . " orders");
 
-  // Check total orders in database
-  $totalCheck = $pdo->query("SELECT COUNT(*) as cnt FROM orders")->fetch();
-  error_log("[billing-debug] Total orders in database: " . ($totalCheck['cnt'] ?? 0));
-
-  // Check orders NOT rejected/cancelled
-  $activeCheck = $pdo->query("SELECT COUNT(*) as cnt FROM orders WHERE status NOT IN ('rejected','cancelled')")->fetch();
-  error_log("[billing-debug] Active orders (not rejected/cancelled): " . ($activeCheck['cnt'] ?? 0));
-
-  // Check which HCPCS/CPT column exists in products table
-  $hcpcsCol = 'cpt_code'; // default
-  if ($hasProducts) {
-    $prodCols = $pdo->query("SELECT column_name FROM information_schema.columns WHERE table_name = 'products'")->fetchAll(PDO::FETCH_COLUMN);
-    $hcpcsCol = in_array('hcpcs_code', $prodCols) ? 'hcpcs_code' : 'cpt_code';
+  // Apply client-side filters that get_revenue_metrics doesn't support
+  if ($search !== '') {
+    $searchLower = strtolower($search);
+    $rows = array_filter($rows, function($row) use ($searchLower) {
+      $patientName = strtolower(trim(($row['patient_first'] ?? '') . ' ' . ($row['patient_last'] ?? '')));
+      $orderId = strtolower($row['id'] ?? '');
+      return strpos($patientName, $searchLower) !== false || strpos($orderId, $searchLower) !== false;
+    });
   }
 
-  // Add CPT code filter if products table exists
-  if ($cptFilter !== '' && $hasProducts) {
-    $where .= " AND pr.$hcpcsCol ILIKE :cpt_code";
-    $params['cpt_code'] = '%' . $cptFilter . '%';
+  if ($productFilter !== '') {
+    $rows = array_filter($rows, fn($row) => ($row['product_id'] ?? '') === $productFilter);
   }
 
-  // Group multi-product orders together by order_group_id
-  // For orders without a group, treat each as its own group
-  $sql = "
-    WITH grouped_orders AS (
-      SELECT
-        o.id,
-        o.user_id,
-        o.product_id,
-        o.patient_id,
-        o.created_at,
-        o.frequency,
-        o.frequency_per_week,
-        o.qty_per_change,
-        o.duration_days,
-        o.refills_allowed,
-        ".($hasShipRem?"o.shipments_remaining,":"")."
-        o.product_price,
-        o.rx_note_name AS tracking,
-        o.rx_note_mime AS carrier,
-        o.insurer_name,
-        o.member_id,
-        o.group_id,
-        o.payer_phone,
-        o.rx_note_path,
-        o.product_type,
-        o.order_group_id,
-        o.billed_by,
-        o.wounds_data,
-        pp.custom_price AS practice_custom_price,
-        p.ins_card_path,
-        p.id_card_path,
-        p.notes_path,
-        p.first_name,
-        p.last_name,
-        p.dob
-        ".($hasProducts?", pr.name AS prod_name, pr.size AS prod_size, pr.sku, COALESCE(pr.$hcpcsCol, o.cpt) AS cpt_code, pr.price_admin, pr.pieces_per_box, pr.price_wholesale, o.product":"")."
-      FROM orders o
-      LEFT JOIN patients p ON p.id = o.patient_id
-      ".($hasProducts?"LEFT JOIN products pr ON pr.id = o.product_id":"")."
-      LEFT JOIN practice_pricing pp ON pp.user_id = o.user_id AND pp.product_id = o.product_id
-      WHERE $where
-    )
-    SELECT
-      -- Use the primary order ID as the main ID (or first order in group)
-      MIN(id) as id,
-      user_id,
-      patient_id,
-      created_at,
-      frequency,
-      frequency_per_week,
-      qty_per_change,
-      duration_days,
-      refills_allowed,
-      ".($hasShipRem?"MAX(shipments_remaining) as shipments_remaining,":"")."
-      SUM(product_price) as product_price,
-      MAX(tracking) as tracking,
-      MAX(carrier) as carrier,
-      insurer_name,
-      member_id,
-      group_id,
-      payer_phone,
-      MAX(rx_note_path) as rx_note_path,
-      MAX(ins_card_path) as ins_card_path,
-      MAX(id_card_path) as id_card_path,
-      MAX(notes_path) as notes_path,
-      MAX(billed_by) as billed_by,
-      MAX(wounds_data) as wounds_data,
-      MAX(practice_custom_price) as practice_custom_price,
-      first_name,
-      last_name,
-      dob,
-      -- Aggregate product information
-      ".($hasProducts?"STRING_AGG(DISTINCT prod_name || COALESCE(' ' || prod_size, ''), ', ' ORDER BY prod_name || COALESCE(' ' || prod_size, '')) as prod_name,
-      STRING_AGG(DISTINCT sku, ', ' ORDER BY sku) as sku,
-      STRING_AGG(DISTINCT cpt_code, ', ' ORDER BY cpt_code) as cpt_code,
-      AVG(price_admin) as price_admin,
-      AVG(pieces_per_box) as pieces_per_box,
-      AVG(price_wholesale) as price_wholesale,
-      STRING_AGG(DISTINCT product, ', ' ORDER BY product) as product":"'1' as prod_name, '' as sku, '' as cpt_code, 0 as price_admin, 10 as pieces_per_box, 0 as price_wholesale, '' as product")."
-    FROM grouped_orders
-    GROUP BY
-      COALESCE(order_group_id, id::text),
-      user_id,
-      patient_id,
-      created_at,
-      frequency,
-      frequency_per_week,
-      qty_per_change,
-      duration_days,
-      refills_allowed,
-      insurer_name,
-      member_id,
-      group_id,
-      payer_phone,
-      first_name,
-      last_name,
-      dob
-    ORDER BY created_at DESC
-  ";
-  error_log("[billing-debug] Full SQL: " . $sql);
-  $st=$pdo->prepare($sql); $st->execute($params); $rows=$st->fetchAll();
-  error_log("[billing-debug] Found " . count($rows) . " rows after query");
+  if ($cptFilter !== '') {
+    $cptFilterLower = strtolower($cptFilter);
+    $rows = array_filter($rows, function($row) use ($cptFilterLower) {
+      $cpt = strtolower($row['cpt_code'] ?? '');
+      return strpos($cpt, $cptFilterLower) !== false;
+    });
+  }
+
+  if ($statusFilter !== '') {
+    $rows = array_filter($rows, fn($row) => ($row['status'] ?? '') === $statusFilter);
+  }
+
+  // Re-index array after filtering
+  $rows = array_values($rows);
+
 } catch (Throwable $e) {
-  error_log("[billing-data] ERROR: ".$e->getMessage());
-  error_log("[billing-data] Stack trace: ".$e->getTraceAsString());
+  error_log("[billing] ERROR: " . $e->getMessage());
+  error_log("[billing] Stack trace: " . $e->getTraceAsString());
   $rows = [];
 }
 
 /* CPT rate map - use SHARED function from revenue_calculator.php */
 $rates = load_reimbursement_rates($pdo);
-
-/**
- * Get product count and revenue using the SHARED revenue calculator
- * This ensures billing page uses the exact same calculation as dashboard and revenue report
- */
-function get_billing_calculation($row, $rates, $hasProducts) {
-  // Map billing row fields to the format expected by calculate_order_revenue
-  $order = [
-    'billed_by' => $row['billed_by'] ?? 'collagen_direct',
-    'pieces_per_box' => $row['pieces_per_box'] ?? 10,
-    'cost_per_box' => $row['cost_per_box'] ?? 0,
-    'qty_per_change' => $row['qty_per_change'] ?? 1,
-    'product_price' => $row['product_price'] ?? 0,
-    'practice_custom_price' => $row['practice_custom_price'] ?? 0,
-    'price_wholesale' => $row['price_wholesale'] ?? 0,
-    'frequency_per_week' => $row['frequency_per_week'] ?? 0,
-    'frequency' => $row['frequency'] ?? '',
-    'duration_days' => $row['duration_days'] ?? 0,
-    'refills_allowed' => $row['refills_allowed'] ?? 0,
-    'wounds_data' => $row['wounds_data'] ?? '',
-    'cpt_code' => $row['cpt_code'] ?? '',
-    'cpt' => $row['cpt'] ?? '',
-    'hcpcs_code' => $row['hcpcs_code'] ?? '',
-  ];
-
-  // Use the SHARED calculate_order_revenue function from revenue_calculator.php
-  $calc = calculate_order_revenue($order, $rates, false);
-
-  // Get product name for display
-  $prodName = ($hasProducts && !empty($row['prod_name'])) ? $row['prod_name'] : ($row['product'] ?? 'collagen');
-
-  return [
-    'boxes' => $calc['boxes'],
-    'actual_pieces' => $calc['pieces'],
-    'is_wholesale' => $calc['is_wholesale'],
-    'product_name' => $prodName,
-    'formatted' => $calc['boxes'] . ' box' . ($calc['boxes'] !== 1 ? 'es' : '') . ' of ' . $prodName,
-    'revenue' => $calc['revenue'],
-    'cost' => $calc['cost'],
-    'profit' => $calc['profit'],
-    'cpt_rate' => $calc['cpt_rate']
-  ];
-}
 
 /* ================= View ================= */
 include __DIR__.'/_header.php';
@@ -490,45 +282,37 @@ include __DIR__.'/_header.php';
   <section class="card p-5">
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
-        <thead class="border-b">
-          <tr class="text-left">
-            <th class="py-2">Patient</th>
-            <th class="py-2">Order</th>
-            <th class="py-2">Product</th>
-            <th class="py-2">Freq</th>
-            <th class="py-2">Product Count</th>
-            <th class="py-2">CPT</th>
-            <th class="py-2">Revenue</th>
-            <th class="py-2">Notes</th>
-            <th class="py-2">ID</th>
-            <th class="py-2">Insurance Card</th>
-            <th class="py-2">Order PDF</th>
+        <thead class="border-b bg-slate-50">
+          <tr class="text-left text-xs text-slate-600">
+            <th class="py-2 px-2">Patient</th>
+            <th class="py-2 px-2">Order</th>
+            <th class="py-2 px-2">Product</th>
+            <th class="py-2 px-2">Freq</th>
+            <th class="py-2 px-2">Boxes</th>
+            <th class="py-2 px-2">CPT</th>
+            <th class="py-2 px-2">Revenue</th>
+            <th class="py-2 px-2">Practice</th>
+            <th class="py-2 px-2">Insurance</th>
+            <th class="py-2 px-2">Status</th>
+            <th class="py-2 px-2">Order PDF</th>
             <?php if ($adminRole === 'manufacturer'): ?>
-            <th class="py-2">Actions</th>
+            <th class="py-2 px-2">Actions</th>
             <?php endif; ?>
           </tr>
         </thead>
       <tbody>
         <?php $total=0.0; foreach($rows as $row):
-          $prodLabel = ($hasProducts && !empty($row['prod_name']))
-                        ? ($row['prod_name'].(!empty($row['prod_size'])?(" ".$row['prod_size']):""))
-                        : ($row['product'] ?? '');
-
-          // Get product count (boxes) and revenue using SHARED calculator
-          // This ensures billing uses the EXACT same calculation as dashboard and revenue report
-          $billingCalc = get_billing_calculation($row, $rates, $hasProducts);
-          $productCount = $billingCalc; // backwards compatible - has 'boxes', 'actual_pieces', etc.
-          $rev = $billingCalc['revenue'];
+          // get_revenue_metrics() already calculates and stores revenue in each order row
+          // Fields available: calculated_revenue, calculated_cost, calculated_profit, calculated_boxes, order_type, product_name
+          $rev = (float)($row['calculated_revenue'] ?? 0);
+          $boxes = (int)($row['calculated_boxes'] ?? 1);
           $total += $rev;
 
+          $prodLabel = $row['product_name'] ?? 'Unknown Product';
           $pid      = (string)($row['patient_id'] ?? '');
           $oid      = (string)($row['id'] ?? '');
-          $fullname = trim(($row['first_name'] ?? '').' '.($row['last_name'] ?? ''));
-          // Use document paths from database instead of filesystem scan
-          // Use rx_note_path from orders table (visit note for this specific order)
-          $noteLinks = !empty($row['rx_note_path']) ? [$row['rx_note_path']] : [];
-          $idLinks   = !empty($row['id_card_path']) ? [$row['id_card_path']] : [];
-          $insLinks  = !empty($row['ins_card_path']) ? [$row['ins_card_path']] : [];
+          // get_revenue_metrics uses patient_first/patient_last
+          $fullname = trim(($row['patient_first'] ?? '').' '.($row['patient_last'] ?? ''));
 
           $orderUrl = '/admin/order.pdf.php?id=' . rawurlencode($row['id']) . '&csrf=' . rawurlencode($_SESSION['csrf'] ?? '');
           $downloadAllUrl = '/admin/download-all.php?id=' . rawurlencode($row['id']) . '&csrf=' . rawurlencode($_SESSION['csrf'] ?? '');
@@ -536,10 +320,10 @@ include __DIR__.'/_header.php';
         <tr class="border-t">
           <td class="py-2">
             <?=e($fullname ?: '—')?> <br>
-            <span class="text-[11px] text-slate-500">DOB: <?=e($row['dob'] ?? '—')?></span>
+            <span class="text-[11px] text-slate-500"><?=e($row['order_type'] ?? 'Referral')?></span>
           </td>
-          <td class="py-2">#<?=e($row['id'])?><br><span class="text-xs text-slate-500"><?=e(substr((string)$row['created_at'],0,10))?></span></td>
-          <td class="py-2"><?=e($prodLabel)?><br><span class="text-xs text-slate-500"><?=e(($row['sku'] ?? '') ?: '')?></span></td>
+          <td class="py-2">#<?=e(substr($row['id'], 0, 8))?><br><span class="text-xs text-slate-500"><?=e(date('Y-m-d', strtotime($row['created_at'])))?></span></td>
+          <td class="py-2"><?=e($prodLabel)?></td>
           <td class="py-2">
             <?php
               $fpwDisp = (int)($row['frequency_per_week'] ?? 0);
@@ -550,21 +334,18 @@ include __DIR__.'/_header.php';
                   $fpwDisp = (int)$wd[0]['frequency_per_week'];
                 }
               }
-              // Fallback to text frequency field
-              if ($fpwDisp <= 0) $fpwDisp = patches_per_week_text(isset($row['frequency'])?$row['frequency']:null);
               if ($fpwDisp === 0) $fpwDisp = 1;
               echo e($fpwDisp.'×/week');
             ?>
           </td>
           <td class="py-2">
-            <span class="font-medium"><?= e((string)$productCount['boxes']) ?> box<?= $productCount['boxes'] !== 1 ? 'es' : '' ?></span>
-            <br><span class="text-[11px] text-slate-500"><?= e((string)$productCount['product_name']) ?></span>
+            <span class="font-medium"><?= e((string)$boxes) ?> box<?= $boxes !== 1 ? 'es' : '' ?></span>
           </td>
           <td class="py-2"><?=e($row['cpt_code'] ?? '—')?></td>
           <td class="py-2 font-semibold">$<?=number_format($rev,2)?></td>
-          <td class="py-2"><?=render_view_link($noteLinks)?></td>
-          <td class="py-2"><?=render_view_link($idLinks)?></td>
-          <td class="py-2"><?=render_view_link($insLinks)?></td>
+          <td class="py-2"><?=e($row['practice_name'] ?? '—')?></td>
+          <td class="py-2"><?=e($row['insurer_name'] ?? '—')?></td>
+          <td class="py-2"><?=e($row['status'] ?? '—')?></td>
           <td class="py-2"><a class="text-brand underline" target="_blank" href="<?=e($orderUrl)?>">View</a></td>
           <?php if ($adminRole === 'manufacturer'): ?>
           <td class="py-2">
