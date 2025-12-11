@@ -295,40 +295,138 @@ function backToPatient() {
   document.getElementById('btn-add-to-cart').disabled = true;
 }
 
-// Render products grid
+// Render products grid - grouped by category for better UX
 function renderProductsGrid() {
   const grid = document.getElementById('products-grid');
   grid.innerHTML = '';
 
+  // Group products by category
+  const productsByCategory = {};
   wholesaleState.products.forEach(product => {
-    const div = document.createElement('div');
-    div.className = 'product-item';
-    div.dataset.productId = product.id;
-    div.onclick = () => toggleProductSelection(product.id);
+    const category = product.category || 'Other';
+    if (!productsByCategory[category]) {
+      productsByCategory[category] = [];
+    }
+    productsByCategory[category].push(product);
+  });
 
-    // price_wholesale is already per BOX, not per piece
-    const pricePerBox = parseFloat(product.price_wholesale || 0);
-    const piecesPerBox = parseInt(product.pieces_per_box || 10);
+  // Sort categories alphabetically
+  const sortedCategories = Object.keys(productsByCategory).sort();
 
-    div.innerHTML = `
-      <div style="font-weight: 600; color: #1e293b; margin-bottom: 0.5rem;">${product.name}</div>
-      <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.75rem;">${product.size || ''}</div>
-      <div style="font-size: 0.875rem; color: #10b981; font-weight: 600; margin-bottom: 0.25rem;">$${pricePerBox.toFixed(2)} per box</div>
-      <div style="font-size: 0.75rem; color: #64748b;">${piecesPerBox} pieces per box</div>
-      <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #e2e8f0;">
-        <input type="number"
-               class="form-control form-control-sm product-quantity"
-               data-product-id="${product.id}"
-               placeholder="Boxes"
-               min="1"
-               value="1"
-               onclick="event.stopPropagation();"
-               style="text-align: center; border-radius: 8px;">
-        <small style="font-size: 0.7rem; color: #94a3b8; display: block; margin-top: 0.25rem;">Number of boxes</small>
-      </div>
+  // Create search/filter input
+  const searchContainer = document.createElement('div');
+  searchContainer.style.cssText = 'margin-bottom: 1.5rem; position: sticky; top: 0; background: white; padding: 0.5rem 0; z-index: 10;';
+  searchContainer.innerHTML = `
+    <input type="text"
+           id="product-search"
+           class="form-control"
+           placeholder="Search products by name, size, or HCPCS code..."
+           style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.875rem;"
+           oninput="filterProducts(this.value)">
+  `;
+  grid.appendChild(searchContainer);
+
+  // Render each category
+  sortedCategories.forEach(category => {
+    const categorySection = document.createElement('div');
+    categorySection.className = 'product-category-section';
+    categorySection.dataset.category = category;
+    categorySection.style.cssText = 'margin-bottom: 1.5rem;';
+
+    // Category header
+    const header = document.createElement('div');
+    header.className = 'category-header';
+    header.style.cssText = 'background: #f8fafc; padding: 0.75rem 1rem; border-radius: 8px 8px 0 0; border: 1px solid #e2e8f0; border-bottom: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center;';
+    header.innerHTML = `
+      <span style="font-weight: 600; color: #1e293b; font-size: 0.9375rem;">${category}</span>
+      <span class="product-count" style="font-size: 0.75rem; color: #64748b; background: #e2e8f0; padding: 0.25rem 0.5rem; border-radius: 4px;">${productsByCategory[category].length} products</span>
     `;
+    header.onclick = () => toggleCategoryCollapse(category);
+    categorySection.appendChild(header);
 
-    grid.appendChild(div);
+    // Products grid within category
+    const productsGrid = document.createElement('div');
+    productsGrid.className = 'category-products';
+    productsGrid.dataset.category = category;
+    productsGrid.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.75rem; padding: 1rem; border: 1px solid #e2e8f0; border-radius: 0 0 8px 8px; background: white;';
+
+    productsByCategory[category].forEach(product => {
+      const div = document.createElement('div');
+      div.className = 'product-item';
+      div.dataset.productId = product.id;
+      div.dataset.searchText = `${product.name} ${product.size || ''} ${product.hcpcs_code || ''}`.toLowerCase();
+      div.onclick = () => toggleProductSelection(product.id);
+
+      // price_wholesale is already per BOX, not per piece
+      const pricePerBox = parseFloat(product.price_wholesale || 0);
+      const piecesPerBox = parseInt(product.pieces_per_box || 10);
+
+      div.innerHTML = `
+        <div style="font-weight: 600; color: #1e293b; margin-bottom: 0.25rem; font-size: 0.875rem; line-height: 1.3;">${product.name}</div>
+        ${product.hcpcs_code ? `<div style="font-size: 0.7rem; color: #94a3b8; margin-bottom: 0.5rem;">HCPCS: ${product.hcpcs_code}</div>` : ''}
+        <div style="font-size: 0.875rem; color: #10b981; font-weight: 600; margin-bottom: 0.25rem;">$${pricePerBox.toFixed(2)}/box</div>
+        <div style="font-size: 0.7rem; color: #64748b;">${piecesPerBox} pcs/box</div>
+        <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid #e2e8f0;">
+          <input type="number"
+                 class="form-control form-control-sm product-quantity"
+                 data-product-id="${product.id}"
+                 placeholder="Qty"
+                 min="1"
+                 value="1"
+                 onclick="event.stopPropagation();"
+                 style="text-align: center; border-radius: 6px; padding: 0.375rem; font-size: 0.875rem;">
+        </div>
+      `;
+
+      productsGrid.appendChild(div);
+    });
+
+    categorySection.appendChild(productsGrid);
+    grid.appendChild(categorySection);
+  });
+}
+
+// Toggle category collapse
+function toggleCategoryCollapse(category) {
+  const productsGrid = document.querySelector(`.category-products[data-category="${category}"]`);
+  if (productsGrid) {
+    productsGrid.style.display = productsGrid.style.display === 'none' ? 'grid' : 'none';
+  }
+}
+
+// Filter products by search term
+function filterProducts(searchTerm) {
+  const term = searchTerm.toLowerCase().trim();
+  const allProducts = document.querySelectorAll('.product-item');
+  const allSections = document.querySelectorAll('.product-category-section');
+
+  if (!term) {
+    // Show all products and sections
+    allProducts.forEach(p => p.style.display = '');
+    allSections.forEach(s => {
+      s.style.display = '';
+      const productsGrid = s.querySelector('.category-products');
+      if (productsGrid) productsGrid.style.display = 'grid';
+    });
+    return;
+  }
+
+  // Filter products
+  allProducts.forEach(product => {
+    const searchText = product.dataset.searchText || '';
+    product.style.display = searchText.includes(term) ? '' : 'none';
+  });
+
+  // Hide empty categories
+  allSections.forEach(section => {
+    const visibleProducts = section.querySelectorAll('.product-item:not([style*="display: none"])');
+    section.style.display = visibleProducts.length > 0 ? '' : 'none';
+
+    // Update product count
+    const countSpan = section.querySelector('.product-count');
+    if (countSpan) {
+      countSpan.textContent = `${visibleProducts.length} products`;
+    }
   });
 }
 

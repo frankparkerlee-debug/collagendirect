@@ -2375,14 +2375,10 @@ if ($action) {
     }
 
     if ($hasPracticePricing) {
-      // Get products with practice-specific pricing override
-      // NOW ALIGNED: Uses same deduplication and deprecated filters as wholesale (portal/wholesale-new.php)
-      $sql = "SELECT DISTINCT ON (
-                CASE
-                  WHEN p.hcpcs_code IS NOT NULL AND p.hcpcs_code != '' THEN p.hcpcs_code || '|' || LOWER(TRIM(COALESCE(p.size, '')))
-                  ELSE 'NO_HCPCS|' || LOWER(TRIM(p.name)) || '|' || LOWER(TRIM(COALESCE(p.size, '')))
-                END
-              )
+      // Get ALL products with practice-specific pricing override
+      // NO DISTINCT ON - show all products like admin/products.php does
+      // This matches wholesale-new.php behavior for consistency
+      $sql = "SELECT
               p.id, p.name, p.size, p.size AS uom, p.price_admin AS price, p.{$hcpcsCol} AS hcpcs_code{$categoryCol}{$wholesalePriceCol}{$piecesPerBoxCol}{$canBePrimaryCol}{$canBeSecondaryCol}{$canBeAdditionalCol},
               COALESCE(pp.custom_price, p.price_wholesale) AS effective_wholesale_price,
               pp.discount_percentage
@@ -2392,13 +2388,8 @@ if ($action) {
                 AND (p.name NOT ILIKE '%deprecated%' OR p.name IS NULL)
                 AND (p.category NOT ILIKE '%deprecated%' OR p.category IS NULL)
               ORDER BY
-                CASE
-                  WHEN p.hcpcs_code IS NOT NULL AND p.hcpcs_code != '' THEN p.hcpcs_code || '|' || LOWER(TRIM(COALESCE(p.size, '')))
-                  ELSE 'NO_HCPCS|' || LOWER(TRIM(p.name)) || '|' || LOWER(TRIM(COALESCE(p.size, '')))
-                END,
-                CASE WHEN p.hcpcs_code IS NOT NULL AND p.hcpcs_code != '' THEN 0 ELSE 1 END,
-                CASE WHEN p.price_wholesale > 0 THEN 0 ELSE 1 END,
-                LENGTH(p.name) DESC,
+                p.category ASC,
+                p.name ASC,
                 p.id ASC";
       $stmt = $pdo->prepare($sql);
       $stmt->execute([$userId]);
@@ -2412,26 +2403,16 @@ if ($action) {
         }
       }
     } else {
-      // Fallback to standard query (also with deduplication and deprecated filter)
-      $sql = "SELECT DISTINCT ON (
-                CASE
-                  WHEN hcpcs_code IS NOT NULL AND hcpcs_code != '' THEN hcpcs_code || '|' || LOWER(TRIM(COALESCE(size, '')))
-                  ELSE 'NO_HCPCS|' || LOWER(TRIM(name)) || '|' || LOWER(TRIM(COALESCE(size, '')))
-                END
-              )
+      // Fallback to standard query - NO DISTINCT ON, show all products
+      $sql = "SELECT
               id, name, size, size AS uom, price_admin AS price, {$hcpcsCol} AS hcpcs_code{$categoryCol}{$wholesalePriceCol}{$piecesPerBoxCol}{$canBePrimaryCol}{$canBeSecondaryCol}{$canBeAdditionalCol}
               FROM products
               WHERE active = TRUE
                 AND (name NOT ILIKE '%deprecated%' OR name IS NULL)
                 AND (category NOT ILIKE '%deprecated%' OR category IS NULL)
               ORDER BY
-                CASE
-                  WHEN hcpcs_code IS NOT NULL AND hcpcs_code != '' THEN hcpcs_code || '|' || LOWER(TRIM(COALESCE(size, '')))
-                  ELSE 'NO_HCPCS|' || LOWER(TRIM(name)) || '|' || LOWER(TRIM(COALESCE(size, '')))
-                END,
-                CASE WHEN hcpcs_code IS NOT NULL AND hcpcs_code != '' THEN 0 ELSE 1 END,
-                CASE WHEN price_wholesale > 0 THEN 0 ELSE 1 END,
-                LENGTH(name) DESC,
+                category ASC,
+                name ASC,
                 id ASC";
       $rows = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
