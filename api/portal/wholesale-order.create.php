@@ -144,7 +144,9 @@ try {
 
   $ordersCreated = 0;
   $patientIds = []; // Track created/reused patient IDs
-  $orderCounter = $startingNumber;
+
+  // Generate ONE order number for the entire batch (all products share the same order number)
+  $batchOrderNumber = sprintf('WS-%s-%03d', $datePrefix, $startingNumber);
 
   foreach ($items as $item) {
     $patientIndex = $item['patient_index'];
@@ -386,12 +388,8 @@ try {
     $totalPieces = $boxes * $piecesPerBox;
     $orderTotal = $boxes * $pricePerBox; // Total amount for this order
 
-    // Generate wholesale order number for this specific order
-    $wholesaleOrderNumber = sprintf('WS-%s-%03d', $datePrefix, $orderCounter);
-    $orderCounter++;
-
-    // Combine order number with user notes
-    $orderNotes = "Wholesale Order #$wholesaleOrderNumber";
+    // Combine order number with user notes (all items in batch share the same order number)
+    $orderNotes = "Wholesale Order #$batchOrderNumber";
     if (!empty($notes)) {
       $orderNotes .= "\n" . $notes;
     }
@@ -442,11 +440,11 @@ try {
       $pricePerPiece, // Store per-piece wholesale price
       $boxes, // Number of boxes ordered (stored in qty_per_change)
       'one-time', // Wholesale orders are typically one-time
-      'submitted', // Wholesale orders go straight to submitted
+      'pending', // All orders start as pending
       'approved', // Auto-approve wholesale orders (no insurance review needed)
       'wholesale', // Mark as wholesale payment type
       'practice_dme', // Practice bills their own DME license
-      $wholesaleOrderNumber, // Save the wholesale order number (WS-YYYYMMDD-XXX)
+      $batchOrderNumber, // Save the wholesale order number (WS-YYYYMMDD-XXX) - same for all items in batch
       $shippingName,
       $shippingPhone,
       $shippingAddress,

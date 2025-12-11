@@ -1554,9 +1554,9 @@ $products = $productsStmt->fetchAll(PDO::FETCH_ASSOC);
                 unset($_SESSION['wholesale_products']);
               ?>
 
-              // Redirect to orders page after 2 seconds
+              // Redirect to wholesale orders page after 2 seconds
               setTimeout(() => {
-                window.location.href = '?page=orders';
+                window.location.href = '?page=wholesale';
               }, 2000);
             } else {
               // Error - show detailed error message

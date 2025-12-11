@@ -432,12 +432,9 @@ if ($productFilter !== '') {
   $params['product_id'] = $productFilter;
 }
 
-// Filter by order type (wholesale vs referral)
-if ($orderTypeFilter === 'wholesale') {
-  $where[] = "o.billed_by = 'practice_dme'";
-} elseif ($orderTypeFilter === 'referral') {
-  $where[] = "(o.billed_by IS NULL OR o.billed_by != 'practice_dme')";
-}
+// This page is for Referral Orders only - exclude wholesale orders by default
+// Wholesale orders have their own dedicated page at /admin/wholesale-orders.php
+$where[] = "(o.payment_type IS NULL OR o.payment_type != 'wholesale')";
 
 if ($dateFrom !== '') {
   $where[] = "o.created_at >= :date_from";
@@ -518,15 +515,6 @@ if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"
         <option value="rejected" <?=$statusFilter==='rejected'?'selected':''?>>Rejected</option>
         <option value="in_transit" <?=$statusFilter==='in_transit'?'selected':''?>>In Transit</option>
         <option value="delivered" <?=$statusFilter==='delivered'?'selected':''?>>Delivered</option>
-      </select>
-    </div>
-
-    <div>
-      <label class="text-xs text-slate-500 mb-1 block">Order Type</label>
-      <select name="order_type" class="w-full border rounded px-3 py-1.5 text-sm">
-        <option value="">All Orders</option>
-        <option value="referral" <?=$orderTypeFilter==='referral'?'selected':''?>>Referral Orders</option>
-        <option value="wholesale" <?=$orderTypeFilter==='wholesale'?'selected':''?>>Wholesale Orders</option>
       </select>
     </div>
 

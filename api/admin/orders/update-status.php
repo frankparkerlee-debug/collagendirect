@@ -36,7 +36,7 @@ if (!$orderId || !$newStatus) {
 
 // Validate status
 $validStatuses = [
-    'draft', 'submitted', 'under_review', 'incomplete',
+    'draft', 'pending', 'submitted', 'under_review', 'incomplete',
     'verification_pending', 'cash_price_required', 'cash_price_approved',
     'approved', 'in_production', 'shipped', 'delivered',
     'terminated', 'cancelled'

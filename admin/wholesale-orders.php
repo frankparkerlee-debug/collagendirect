@@ -100,6 +100,15 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
   if ($id && $action==='approve') {
     $pdo->prepare("UPDATE orders SET status='approved', updated_at=NOW() WHERE id=?")->execute([$id]);
     $_SESSION['success_msg'] = 'Order approved successfully';
+  } elseif ($action==='approve_order_group') {
+    // Approve ALL items with the same order_number
+    $orderNumber = $_POST['order_number'] ?? '';
+    if ($orderNumber) {
+      $stmt = $pdo->prepare("UPDATE orders SET status='approved', updated_at=NOW() WHERE order_number=? AND billed_by='practice_dme'");
+      $stmt->execute([$orderNumber]);
+      $affected = $stmt->rowCount();
+      $_SESSION['success_msg'] = "Approved $affected item(s) in order $orderNumber";
+    }
   } elseif ($id && $action==='reject') {
     $reason = $_POST['reject_reason'] ?? '';
     $pdo->prepare("UPDATE orders SET status='rejected', notes=?, updated_at=NOW() WHERE id=?")->execute([$reason, $id]);
@@ -288,7 +297,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
   exit;
 }
 
-/* ---------- Fetch wholesale orders ---------- */
+/* ---------- Fetch wholesale orders grouped by order_number ---------- */
 // Check if billed_by column exists
 $hasBilledBy = false;
 try {
@@ -302,24 +311,29 @@ if (!$hasBilledBy) {
   // Column doesn't exist yet - show empty state with instructions
   error_log('[wholesale-orders] billed_by column does not exist - please run migration');
   $orders = [];
+  $groupedOrders = [];
 } else {
   try {
+    // Fetch all individual order items
     $sql = "
       SELECT
         o.id,
         o.created_at,
         o.product,
-        o.qty_per_change as shipments_remaining,
+        o.product_id,
+        o.qty_per_change as boxes,
         o.product_price as unit_price,
         o.status,
         o.paid_at,
         o.notes,
         o.billed_by,
-        o.order_number as invoice_number,
+        o.user_id,
+        COALESCE(o.order_number, o.id) as order_number,
         o.created_at as invoice_date,
         o.amount_due,
         o.amount_paid,
         o.balance_due,
+        o.patient_id,
         u.practice_name,
         u.first_name as phys_first,
         u.last_name as phys_last,
@@ -335,26 +349,104 @@ if (!$hasBilledBy) {
       LEFT JOIN products pr ON o.product_id = pr.id
       WHERE o.billed_by = 'practice_dme'
         AND (o.review_status IS NULL OR o.review_status != 'draft')
-      ORDER BY
-        CASE
-          WHEN o.status IN ('submitted', 'pending', 'awaiting_approval') THEN 1
-          WHEN o.status = 'approved' THEN 2
-          ELSE 3
-        END,
-        o.created_at DESC
+      ORDER BY o.order_number DESC, o.created_at DESC
     ";
 
     $orders = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
-    error_log('[wholesale-orders] Found ' . count($orders) . ' wholesale orders');
+    error_log('[wholesale-orders] Found ' . count($orders) . ' wholesale order items');
+
+    // Group orders by order_number for display
+    $groupedOrders = [];
+    foreach ($orders as $order) {
+      $orderNum = $order['order_number'];
+      if (!isset($groupedOrders[$orderNum])) {
+        $groupedOrders[$orderNum] = [
+          'order_number' => $orderNum,
+          'created_at' => $order['created_at'],
+          'invoice_date' => $order['invoice_date'],
+          'practice_name' => $order['practice_name'],
+          'phys_first' => $order['phys_first'],
+          'phys_last' => $order['phys_last'],
+          'phys_email' => $order['phys_email'],
+          'user_id' => $order['user_id'],
+          'status' => $order['status'],
+          'paid_at' => $order['paid_at'],
+          'shipping_address' => $order['shipping_address'],
+          'items' => [],
+          'total_boxes' => 0,
+          'total_value' => 0.0,
+          'amount_due' => 0.0,
+          'amount_paid' => 0.0,
+          'balance_due' => 0.0,
+          'patient_count' => 0,
+          'patients' => []
+        ];
+      }
+
+      // Add this item to the group
+      $boxes = (int)($order['boxes'] ?? 0);
+      $pieces_per_box = (int)($order['pieces_per_box'] ?? 10);
+      $unit_price = (float)($order['unit_price'] ?? $order['price_wholesale'] ?? 0);
+      $item_value = $boxes * ($unit_price * $pieces_per_box);
+
+      $groupedOrders[$orderNum]['items'][] = [
+        'id' => $order['id'],
+        'product' => $order['product'],
+        'product_id' => $order['product_id'],
+        'boxes' => $boxes,
+        'pieces_per_box' => $pieces_per_box,
+        'unit_price' => $unit_price,
+        'value' => $item_value,
+        'pat_first' => $order['pat_first'],
+        'pat_last' => $order['pat_last'],
+        'patient_id' => $order['patient_id'],
+        'status' => $order['status']
+      ];
+
+      $groupedOrders[$orderNum]['total_boxes'] += $boxes;
+      $groupedOrders[$orderNum]['total_value'] += $item_value;
+      $groupedOrders[$orderNum]['amount_due'] += (float)($order['amount_due'] ?? 0);
+      $groupedOrders[$orderNum]['amount_paid'] += (float)($order['amount_paid'] ?? 0);
+      $groupedOrders[$orderNum]['balance_due'] += (float)($order['balance_due'] ?? 0);
+
+      // Track unique patients
+      $patientKey = $order['patient_id'];
+      if ($patientKey && !isset($groupedOrders[$orderNum]['patients'][$patientKey])) {
+        $groupedOrders[$orderNum]['patients'][$patientKey] = trim($order['pat_first'] . ' ' . $order['pat_last']);
+        $groupedOrders[$orderNum]['patient_count']++;
+      }
+
+      // Use the most restrictive status (pending > approved > shipped > delivered)
+      $statusPriority = ['pending' => 1, 'submitted' => 1, 'awaiting_approval' => 1, 'approved' => 2, 'in_transit' => 3, 'shipped' => 3, 'delivered' => 4];
+      $currentPriority = $statusPriority[$groupedOrders[$orderNum]['status']] ?? 5;
+      $newPriority = $statusPriority[$order['status']] ?? 5;
+      if ($newPriority < $currentPriority) {
+        $groupedOrders[$orderNum]['status'] = $order['status'];
+      }
+    }
+
+    // Sort grouped orders: pending first, then by date
+    uasort($groupedOrders, function($a, $b) {
+      $statusPriority = ['pending' => 1, 'submitted' => 1, 'awaiting_approval' => 1, 'approved' => 2, 'in_transit' => 3, 'shipped' => 3, 'delivered' => 4];
+      $aPriority = $statusPriority[$a['status']] ?? 5;
+      $bPriority = $statusPriority[$b['status']] ?? 5;
+      if ($aPriority !== $bPriority) {
+        return $aPriority - $bPriority;
+      }
+      return strtotime($b['created_at']) - strtotime($a['created_at']);
+    });
+
   } catch (Throwable $e) {
     error_log('[wholesale-orders] Query error: ' . $e->getMessage());
     error_log('[wholesale-orders] SQL: ' . $sql);
     $orders = [];
+    $groupedOrders = [];
   }
 }
 
-/* ---------- Calculate totals and aging ---------- */
-$totalOrders = count($orders);
+/* ---------- Calculate totals and aging (from grouped orders) ---------- */
+$totalOrders = count($groupedOrders); // Count unique order numbers, not individual items
+$totalItems = count($orders); // Individual line items
 $totalRevenue = 0.0;
 $pendingOrders = 0;
 $unpaidOrders = 0;
@@ -368,47 +460,43 @@ $aging = [
   'over_90' => 0.0       // Over 90 days past due
 ];
 
-foreach ($orders as $order) {
-  // Calculate order value
-  $balanceDue = (float)($order['balance_due'] ?? 0);
+foreach ($groupedOrders as $orderNum => $group) {
+  // Use grouped total value
+  $orderValue = $group['total_value'];
+  $balanceDue = $group['balance_due'];
+
   if ($balanceDue > 0) {
     $totalRevenue += $balanceDue;
   } else {
-    // Fallback to old calculation if invoice fields don't exist yet
-    $boxes = (int)($order['shipments_remaining'] ?? 0);
-    $pieces_per_box = (int)($order['pieces_per_box'] ?? 10);
-    $unit_price = (float)($order['unit_price'] ?? $order['price_wholesale'] ?? 0);
-    $orderValue = $boxes * ($unit_price * $pieces_per_box);
     $totalRevenue += $orderValue;
   }
 
   // Count pending orders
-  if (in_array($order['status'], ['submitted', 'pending', 'awaiting_approval'])) {
+  if (in_array($group['status'], ['submitted', 'pending', 'awaiting_approval'])) {
     $pendingOrders++;
   }
 
   // Count unpaid orders and track aging
-  if ($balanceDue > 0 && !in_array($order['status'], ['rejected', 'cancelled'])) {
+  if ($balanceDue > 0 && !in_array($group['status'], ['rejected', 'cancelled'])) {
     $unpaidOrders++;
 
-    // Add to aging buckets
-    $agingBucket = $order['aging_bucket'] ?? null;
-    switch ($agingBucket) {
-      case 0:
-        $aging['current'] += $balanceDue;
-        break;
-      case 1:
-        $aging['0-30'] += $balanceDue;
-        break;
-      case 2:
-        $aging['31-60'] += $balanceDue;
-        break;
-      case 3:
-        $aging['61-90'] += $balanceDue;
-        break;
-      case 4:
-        $aging['over_90'] += $balanceDue;
-        break;
+    // Calculate days since order for aging
+    $orderDate = new DateTime($group['created_at']);
+    $now = new DateTime();
+    $daysSinceOrder = $now->diff($orderDate)->days;
+    $netTerms = 30; // Net 30 terms
+    $daysPastDue = max(0, $daysSinceOrder - $netTerms);
+
+    if ($daysPastDue === 0) {
+      $aging['current'] += $balanceDue;
+    } elseif ($daysPastDue <= 30) {
+      $aging['0-30'] += $balanceDue;
+    } elseif ($daysPastDue <= 60) {
+      $aging['31-60'] += $balanceDue;
+    } elseif ($daysPastDue <= 90) {
+      $aging['61-90'] += $balanceDue;
+    } else {
+      $aging['over_90'] += $balanceDue;
     }
   }
 }
@@ -636,27 +724,26 @@ require_once '_header.php';
   </div>
   <?php unset($_SESSION['error_msg']); endif; ?>
 
-  <!-- Orders Table -->
+  <!-- Orders Table - Grouped by Order Number -->
   <div class="card" style="padding: 0; overflow: hidden;">
     <div style="overflow-x: auto;">
       <table class="order-table">
         <thead>
           <tr>
-            <th>Invoice #</th>
+            <th>Order #</th>
             <th>Practice</th>
-            <th>Patient</th>
-            <th>Product</th>
-            <th style="text-align: right;">Qty</th>
-            <th style="text-align: right;">Amount</th>
+            <th>Products</th>
+            <th style="text-align: right;">Total Qty</th>
+            <th style="text-align: right;">Order Value</th>
             <th>Due Date</th>
-            <th>Aging</th>
+            <th>Status</th>
             <th style="text-align: center;">Actions</th>
           </tr>
         </thead>
         <tbody>
-          <?php if (empty($orders)): ?>
+          <?php if (empty($groupedOrders)): ?>
           <tr>
-            <td colspan="9" style="text-align: center; padding: 3rem; color: var(--muted);">
+            <td colspan="8" style="text-align: center; padding: 3rem; color: var(--muted);">
               <svg width="64" height="64" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin: 0 auto 1rem; opacity: 0.3;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
               <div style="font-size: 1.125rem; font-weight: 500; margin-bottom: 0.5rem;">No wholesale orders found</div>
               <div style="font-size: 0.875rem;">
@@ -664,35 +751,25 @@ require_once '_header.php';
                   The 'billed_by' column does not exist. Please run the migration to add it.
                 <?php else: ?>
                   Wholesale orders have billed_by='practice_dme'. No orders currently match this criteria.
-                  <br><a href="/admin/check-wholesale-data.php" style="color: var(--info); text-decoration: underline; margin-top: 0.5rem; display: inline-block;">Run diagnostic to check database</a>
                 <?php endif; ?>
               </div>
             </td>
           </tr>
           <?php else: ?>
-          <?php foreach ($orders as $order):
-            $boxes = (int)($order['shipments_remaining'] ?? 0);
-            $pieces_per_box = (int)($order['pieces_per_box'] ?? 10);
-            $unit_price = (float)($order['unit_price'] ?? $order['price_wholesale'] ?? 0);
+          <?php foreach ($groupedOrders as $orderNum => $group):
+            $orderValue = $group['total_value'];
+            $balanceDue = $group['balance_due'];
+            $amountPaid = $group['amount_paid'];
 
-            // Calculate total order value
-            $orderValue = $boxes * ($unit_price * $pieces_per_box);
-
-            // Use database payment tracking if available
-            $amountDue = (float)($order['amount_due'] ?? 0);
-            $amountPaid = (float)($order['amount_paid'] ?? 0);
-            $balanceDue = (float)($order['balance_due'] ?? 0);
-
-            // If no payment tracking set, initialize with order value
-            if ($amountDue == 0 && $amountPaid == 0 && $balanceDue == 0) {
-              $amountDue = $orderValue;
+            // If no payment tracking set, use order value
+            if ($balanceDue == 0 && $amountPaid == 0) {
               $balanceDue = $orderValue;
             }
 
-            $isPaid = !empty($order['paid_at']) && $balanceDue == 0;
+            $isPaid = !empty($group['paid_at']) && $balanceDue == 0;
 
-            // Calculate aging in PHP instead of SQL
-            $createdDate = new DateTime($order['created_at']);
+            // Calculate aging
+            $createdDate = new DateTime($group['created_at']);
             $dueDate = clone $createdDate;
             $dueDate->modify('+30 days');
             $today = new DateTime();
@@ -702,74 +779,69 @@ require_once '_header.php';
               $daysPastDue = 0;
             }
 
-            // Determine aging bucket
-            if ($isPaid) {
-              $agingBucket = -1;
-            } elseif ($daysOld <= 30) {
-              $agingBucket = 0;
-            } elseif ($daysOld <= 60) {
-              $agingBucket = 1;
-            } elseif ($daysOld <= 90) {
-              $agingBucket = 2;
-            } else {
-              $agingBucket = 3;
+            // Determine status badge color
+            $statusColor = '#64748b';
+            $statusBg = '#f1f5f9';
+            if (in_array($group['status'], ['pending', 'submitted', 'awaiting_approval'])) {
+              $statusColor = '#ca8a04';
+              $statusBg = '#fefce8';
+            } elseif ($group['status'] === 'approved') {
+              $statusColor = '#059669';
+              $statusBg = '#f0fdf4';
+            } elseif (in_array($group['status'], ['shipped', 'in_transit'])) {
+              $statusColor = '#4338ca';
+              $statusBg = '#eef2ff';
+            } elseif ($group['status'] === 'delivered') {
+              $statusColor = '#15803d';
+              $statusBg = '#f0fdf4';
             }
 
-            // Determine aging badge
-            $agingBadge = '';
-            $agingColor = '';
-            if ($isPaid) {
-              $agingBadge = 'Paid';
-              $agingColor = '#15803d';
-            } elseif ($agingBucket == -1) {
-              $agingBadge = 'Paid';
-              $agingColor = '#15803d';
-            } elseif ($agingBucket === 0) {
-              $agingBadge = '0-30 days';
-              $agingColor = '#15803d';
-            } elseif ($agingBucket === 1) {
-              $agingBadge = '31-60 days';
-              $agingColor = '#ca8a04';
-            } elseif ($agingBucket === 2) {
-              $agingBadge = '61-90 days';
-              $agingColor = '#ea580c';
-            } elseif ($agingBucket === 3) {
-              $agingBadge = '61-90 days';
-              $agingColor = '#dc2626';
-            } else {
-              $agingBadge = 'Over 90 days';
-              $agingColor = '#991b1b';
-            }
+            // Get first item ID for actions that need it
+            $firstItemId = $group['items'][0]['id'] ?? '';
 
-            $needsApproval = in_array($order['status'], ['submitted', 'pending', 'awaiting_approval']);
-            $canShip = $order['status'] === 'approved';
-            $canDeliver = $order['status'] === 'in_transit';
+            $needsApproval = in_array($group['status'], ['submitted', 'pending', 'awaiting_approval']);
+            $canShip = $group['status'] === 'approved';
+
+            // Product summary
+            $itemCount = count($group['items']);
+            $productNames = array_unique(array_column($group['items'], 'product'));
+            $productSummary = $itemCount === 1
+              ? $productNames[0]
+              : ($itemCount . ' products');
           ?>
-          <tr>
+          <tr class="order-group-row" data-order-number="<?= htmlspecialchars($orderNum) ?>">
             <td>
-              <div style="font-weight: 500;"><?= htmlspecialchars($order['invoice_number'] ?? 'N/A') ?></div>
-              <div style="font-size: 0.75rem; color: var(--muted);"><?= !empty($order['invoice_date']) ? date('M j, Y', strtotime($order['invoice_date'])) : date('M j, Y', strtotime($order['created_at'])) ?></div>
+              <div style="font-weight: 600; color: var(--ink);"><?= htmlspecialchars($orderNum) ?></div>
+              <div style="font-size: 0.75rem; color: var(--muted);"><?= date('M j, Y', strtotime($group['created_at'])) ?></div>
             </td>
             <td>
-              <div style="font-weight: 500;"><?= htmlspecialchars($order['practice_name'] ?? 'N/A') ?></div>
-              <div style="font-size: 0.75rem; color: var(--muted);"><?= htmlspecialchars(trim(($order['phys_first'] ?? '') . ' ' . ($order['phys_last'] ?? ''))) ?></div>
+              <div style="font-weight: 500;"><?= htmlspecialchars($group['practice_name'] ?? 'N/A') ?></div>
+              <div style="font-size: 0.75rem; color: var(--muted);"><?= htmlspecialchars(trim(($group['phys_first'] ?? '') . ' ' . ($group['phys_last'] ?? ''))) ?></div>
             </td>
-            <td><?= htmlspecialchars(trim(($order['pat_first'] ?? '') . ' ' . ($order['pat_last'] ?? ''))) ?></td>
             <td>
-              <div style="font-weight: 500; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="<?= htmlspecialchars($order['product'] ?? '') ?>">
-                <?= htmlspecialchars($order['product'] ?? '') ?>
+              <div style="font-weight: 500;">
+                <?php if ($itemCount === 1): ?>
+                  <?= htmlspecialchars($productNames[0] ?? '') ?>
+                <?php else: ?>
+                  <button class="expand-products-btn" onclick="toggleProductDetails('<?= htmlspecialchars($orderNum) ?>')" style="background: none; border: none; cursor: pointer; padding: 0; color: var(--primary); font-weight: 500;">
+                    <?= $itemCount ?> products <span class="expand-icon">▸</span>
+                  </button>
+                <?php endif; ?>
               </div>
+              <?php if ($group['patient_count'] > 0): ?>
+                <div style="font-size: 0.75rem; color: var(--muted);">
+                  <?= $group['patient_count'] ?> patient<?= $group['patient_count'] > 1 ? 's' : '' ?>
+                </div>
+              <?php endif; ?>
             </td>
             <td style="text-align: right;">
-              <div style="font-weight: 600;"><?= $boxes ?> boxes</div>
-              <div style="font-size: 0.75rem; color: var(--muted);"><?= $pieces_per_box ?> pcs/box</div>
+              <div style="font-weight: 600;"><?= $group['total_boxes'] ?> boxes</div>
+              <div style="font-size: 0.75rem; color: var(--muted);"><?= $itemCount ?> line item<?= $itemCount > 1 ? 's' : '' ?></div>
             </td>
             <td style="text-align: right;">
               <div style="font-weight: 600; color: var(--success);">$<?= number_format($orderValue, 2) ?></div>
               <?php if ($amountPaid > 0 && !$isPaid): ?>
                 <div style="font-size: 0.75rem; color: var(--muted);">Paid: $<?= number_format($amountPaid, 2) ?></div>
-              <?php else: ?>
-                <div style="font-size: 0.75rem; color: var(--muted);"><?= $boxes ?> boxes @ $<?= number_format($unit_price, 2) ?>/pc</div>
               <?php endif; ?>
             </td>
             <td>
@@ -781,23 +853,23 @@ require_once '_header.php';
               <?php endif; ?>
             </td>
             <td>
-              <span style="display: inline-block; padding: 0.25rem 0.625rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; background: <?= $isPaid ? '#f0fdf4' : ($agingBucket >= 3 ? '#fef2f2' : '#fefce8') ?>; color: <?= $agingColor ?>;">
-                <?= $agingBadge ?>
+              <span style="display: inline-block; padding: 0.25rem 0.625rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; background: <?= $statusBg ?>; color: <?= $statusColor ?>;">
+                <?= ucfirst($group['status'] ?? 'Unknown') ?>
               </span>
             </td>
             <td>
               <div style="display: flex; gap: 0.5rem; justify-content: center;">
                 <!-- View Details -->
-                <button class="btn-icon primary" onclick="viewOrderDetail('<?= $order['id'] ?>')" title="View Details">
+                <button class="btn-icon primary" onclick="viewOrderGroup('<?= htmlspecialchars($orderNum) ?>')" title="View Details">
                   <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                 </button>
 
-                <!-- Approve (if pending) -->
+                <!-- Approve all items (if pending) -->
                 <?php if ($needsApproval): ?>
-                <form method="POST" style="display: inline;" onsubmit="return confirm('Approve this order?');">
+                <form method="POST" style="display: inline;" onsubmit="return confirm('Approve all <?= $itemCount ?> item(s) in this order?');">
                   <?= csrf_field() ?>
-                  <input type="hidden" name="action" value="approve">
-                  <input type="hidden" name="id" value="<?= $order['id'] ?>">
+                  <input type="hidden" name="action" value="approve_order_group">
+                  <input type="hidden" name="order_number" value="<?= htmlspecialchars($orderNum) ?>">
                   <button type="submit" class="btn-icon success" title="Approve Order">
                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                   </button>
@@ -806,45 +878,66 @@ require_once '_header.php';
 
                 <!-- Ship (if approved) -->
                 <?php if ($canShip): ?>
-                <button class="btn-icon" onclick="openShipModal('<?= $order['id'] ?>')" title="Mark as Shipped" style="color: #4338ca; border-color: #4338ca;">
+                <button class="btn-icon" onclick="openShipModal('<?= $firstItemId ?>')" title="Mark as Shipped" style="color: #4338ca; border-color: #4338ca;">
                   <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"></path></svg>
                 </button>
                 <?php endif; ?>
 
                 <!-- Record Payment -->
                 <?php if (!$isPaid): ?>
-                <button class="btn-icon" onclick="openPaymentModal('<?= $order['id'] ?>', <?= $balanceDue ?>, '<?= htmlspecialchars($order['invoice_number'] ?? $order['id']) ?>')" title="Record Payment" style="color: #059669; border-color: #059669;">
+                <button class="btn-icon" onclick="openPaymentModal('<?= $firstItemId ?>', <?= $balanceDue ?>, '<?= htmlspecialchars($orderNum) ?>')" title="Record Payment" style="color: #059669; border-color: #059669;">
                   <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 </button>
                 <?php endif; ?>
 
-                <!-- View Invoice -->
-                <button class="btn-icon" onclick="viewInvoice('<?= $order['id'] ?>')" title="View Invoice" style="color: #0ea5e9; border-color: #0ea5e9;">
+                <!-- View/Print Invoice -->
+                <button class="btn-icon" onclick="viewInvoice('<?= $firstItemId ?>')" title="View Invoice" style="color: #0ea5e9; border-color: #0ea5e9;">
                   <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                 </button>
 
                 <!-- Send Invoice -->
-                <form method="POST" style="display: inline;" onsubmit="return confirm('Send invoice to <?= htmlspecialchars($order['phys_email']) ?>?');">
+                <form method="POST" style="display: inline;" onsubmit="return confirm('Send invoice to <?= htmlspecialchars($group['phys_email'] ?? '') ?>?');">
                   <?= csrf_field() ?>
                   <input type="hidden" name="action" value="send_invoice">
-                  <input type="hidden" name="id" value="<?= $order['id'] ?>">
+                  <input type="hidden" name="id" value="<?= $firstItemId ?>">
                   <button type="submit" class="btn-icon warning" title="Send Invoice">
                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                  </button>
-                </form>
-
-                <!-- Delete Order -->
-                <form method="POST" style="display: inline;" onsubmit="return confirm('⚠️ Are you sure you want to DELETE this order? This action cannot be undone!');">
-                  <?= csrf_field() ?>
-                  <input type="hidden" name="action" value="delete_order">
-                  <input type="hidden" name="id" value="<?= $order['id'] ?>">
-                  <button type="submit" class="btn-icon" title="Delete Order" style="color: #dc2626; border-color: #dc2626;">
-                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                   </button>
                 </form>
               </div>
             </td>
           </tr>
+          <!-- Expandable product details row -->
+          <?php if ($itemCount > 1): ?>
+          <tr class="product-details-row" data-order-number="<?= htmlspecialchars($orderNum) ?>" style="display: none;">
+            <td colspan="8" style="padding: 0; background: #f8fafc;">
+              <div style="padding: 1rem 1.5rem;">
+                <table style="width: 100%; border-collapse: collapse;">
+                  <thead>
+                    <tr style="border-bottom: 1px solid #e2e8f0;">
+                      <th style="text-align: left; padding: 0.5rem; font-size: 0.75rem; color: var(--muted); font-weight: 500;">Product</th>
+                      <th style="text-align: left; padding: 0.5rem; font-size: 0.75rem; color: var(--muted); font-weight: 500;">Patient</th>
+                      <th style="text-align: right; padding: 0.5rem; font-size: 0.75rem; color: var(--muted); font-weight: 500;">Boxes</th>
+                      <th style="text-align: right; padding: 0.5rem; font-size: 0.75rem; color: var(--muted); font-weight: 500;">Unit Price</th>
+                      <th style="text-align: right; padding: 0.5rem; font-size: 0.75rem; color: var(--muted); font-weight: 500;">Line Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <?php foreach ($group['items'] as $item): ?>
+                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                      <td style="padding: 0.5rem; font-size: 0.875rem;"><?= htmlspecialchars($item['product'] ?? '') ?></td>
+                      <td style="padding: 0.5rem; font-size: 0.875rem; color: var(--muted);"><?= htmlspecialchars(trim(($item['pat_first'] ?? '') . ' ' . ($item['pat_last'] ?? ''))) ?: 'Office Stock' ?></td>
+                      <td style="padding: 0.5rem; font-size: 0.875rem; text-align: right;"><?= $item['boxes'] ?></td>
+                      <td style="padding: 0.5rem; font-size: 0.875rem; text-align: right;">$<?= number_format($item['unit_price'], 2) ?>/pc</td>
+                      <td style="padding: 0.5rem; font-size: 0.875rem; text-align: right; font-weight: 500;">$<?= number_format($item['value'], 2) ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                  </tbody>
+                </table>
+              </div>
+            </td>
+          </tr>
+          <?php endif; ?>
           <?php endforeach; ?>
           <?php endif; ?>
         </tbody>
@@ -852,6 +945,28 @@ require_once '_header.php';
     </div>
   </div>
 </div>
+
+<script>
+function toggleProductDetails(orderNumber) {
+  const detailRow = document.querySelector(`.product-details-row[data-order-number="${orderNumber}"]`);
+  const expandIcon = document.querySelector(`.order-group-row[data-order-number="${orderNumber}"] .expand-icon`);
+
+  if (detailRow) {
+    if (detailRow.style.display === 'none') {
+      detailRow.style.display = 'table-row';
+      if (expandIcon) expandIcon.textContent = '▾';
+    } else {
+      detailRow.style.display = 'none';
+      if (expandIcon) expandIcon.textContent = '▸';
+    }
+  }
+}
+
+function viewOrderGroup(orderNumber) {
+  // Open order detail modal/page for the entire order group
+  window.location.href = `/admin/wholesale-order-detail.php?order_number=${encodeURIComponent(orderNumber)}`;
+}
+</script>
 
 <!-- Ship Order Modal -->
 <div id="shipModal" class="modal">

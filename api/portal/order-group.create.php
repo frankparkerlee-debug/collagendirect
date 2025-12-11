@@ -217,7 +217,7 @@ try {
       safe($_POST['insurance_payer_phone'] ?? null),
       safe($_POST['prior_auth'] ?? null),
       safe($_POST['payment_type'] ?? 'insurance'),
-      $is_draft ? 'draft' : 'submitted',
+      $is_draft ? 'draft' : 'pending',
       $sign_name, $sign_title,
       $is_draft ? null : date('Y-m-d H:i:s'),
       $is_draft ? null : ($_SERVER['REMOTE_ADDR'] ?? null),
@@ -228,8 +228,20 @@ try {
   // 6) Create individual order records for each product
   $order_ids = [];
   $delivery_mode = (safe($_POST['delivery_to'] ?? 'patient') === 'office') ? 'office' : 'patient';
-  $status = $is_draft ? 'draft' : 'submitted';
+  $status = $is_draft ? 'draft' : 'pending';
   $review_status = $is_draft ? 'draft' : 'pending_admin_review';
+
+  // Generate referral order number (RF-YYYYMMDD-NNN format) - same for all products in this group
+  $datePrefix = date('Ymd');
+  $countStmt = $pdo->prepare("
+    SELECT COUNT(*) as count
+    FROM orders
+    WHERE payment_type != 'wholesale'
+    AND DATE(created_at) = CURRENT_DATE
+  ");
+  $countStmt->execute();
+  $todayCount = (int)$countStmt->fetchColumn();
+  $referralOrderNumber = sprintf('RF-%s-%03d', $datePrefix, $todayCount + 1);
 
   foreach ($products as $prod_data) {
     $product_id = (int)$prod_data['product_id'];
@@ -241,20 +253,20 @@ try {
 
     $order_sql = "INSERT INTO orders
       (id, patient_id, user_id, product, product_id, product_price, cpt, status, frequency, delivery_mode,
-       order_group_id, shipments_remaining, created_at, updated_at,
+       order_group_id, order_number, shipments_remaining, created_at, updated_at,
        insurer_name, member_id, group_id, payer_phone, prior_auth, payment_type,
        wound_location, wound_laterality, wound_notes,
        last_eval_date, start_date, qty_per_change, duration_days,
        additional_instructions, shipping_name, shipping_phone, shipping_address, shipping_city, shipping_state, shipping_zip,
        e_sign_user_id, e_sign_name, e_sign_title, e_sign_at, e_sign_ip, review_status)
       VALUES
-      (?,?,?,?,?,?,?,?,?,?, ?,0,NOW(),NOW(), ?,?,?,?,?,?, ?,?,?, ?,?,?,?, ?, ?,?,?,?,?,?, ?,?,?,?,?, ?)";
+      (?,?,?,?,?,?,?,?,?,?, ?,?,0,NOW(),NOW(), ?,?,?,?,?,?, ?,?,?, ?,?,?,?, ?, ?,?,?,?,?,?, ?,?,?,?,?, ?)";
 
     $pdo->prepare($order_sql)->execute([
       $order_id, $patient_id, $uid,
       $prod['name'], $prod['id'], $prod['price_admin'], $prod['cpt_code'],
       $status, safe($_POST['frequency_per_week'] ?? null), $delivery_mode,
-      $order_group_id,
+      $order_group_id, $referralOrderNumber,
       // Insurance
       safe($_POST['insurance_provider'] ?? null),
       safe($_POST['insurance_member_id'] ?? null),

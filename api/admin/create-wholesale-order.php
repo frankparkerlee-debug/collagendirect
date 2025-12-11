@@ -256,7 +256,7 @@ try {
         $pricePerPiece, // Store per-piece wholesale price
         $boxes, // Number of boxes ordered
         'one-time', // Wholesale orders are typically one-time
-        'submitted', // Wholesale orders go straight to submitted
+        'pending', // All orders start as pending
         'approved', // Auto-approve wholesale orders
         'wholesale', // Mark as wholesale payment type
         'practice_dme', // Practice bills their own DME license
@@ -453,7 +453,7 @@ try {
           $pricePerPiece, // Store per-piece wholesale price
           $boxes, // Number of boxes ordered
           'one-time', // Wholesale orders are typically one-time
-          'submitted', // Wholesale orders go straight to submitted
+          'pending', // All orders start as pending
           'approved', // Auto-approve wholesale orders
           'wholesale', // Mark as wholesale payment type
           'practice_dme', // Practice bills their own DME license

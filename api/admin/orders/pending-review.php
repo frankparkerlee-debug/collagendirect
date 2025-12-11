@@ -44,7 +44,7 @@ try {
         JOIN patients p ON o.patient_id = p.id
         JOIN users u ON o.user_id = u.id
         WHERE o.review_status IN ('pending_admin_review', 'under_review')
-           OR (o.status IN ('submitted', 'under_review') AND o.review_status IS NULL)
+           OR (o.status IN ('pending', 'submitted', 'under_review') AND o.review_status IS NULL)
         ORDER BY o.created_at DESC
     ");
 

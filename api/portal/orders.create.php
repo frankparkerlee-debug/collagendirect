@@ -317,15 +317,27 @@ try {
 
   // 6) Determine status and review_status based on save_as_draft parameter
   $save_as_draft = isset($_POST['save_as_draft']) && $_POST['save_as_draft'] === '1';
-  $status = $save_as_draft ? 'draft' : 'submitted';
+  $status = $save_as_draft ? 'draft' : 'pending';
   $review_status = $save_as_draft ? 'draft' : 'pending_admin_review';
 
+  // 7) Generate referral order number (RF-YYYYMMDD-NNN format)
+  $datePrefix = date('Ymd');
+  $countStmt = $pdo->prepare("
+    SELECT COUNT(*) as count
+    FROM orders
+    WHERE payment_type != 'wholesale'
+    AND DATE(created_at) = CURRENT_DATE
+  ");
+  $countStmt->execute();
+  $todayCount = (int)$countStmt->fetchColumn();
+  $referralOrderNumber = sprintf('RF-%s-%03d', $datePrefix, $todayCount + 1);
+
   // Insert order FIRST (no file I/O yet)
-  // Note: Draft orders have status='draft', submitted orders have status='submitted'
+  // Note: Draft orders have status='draft', submitted orders have status='pending'
   // Force cache refresh - 2024-11-18
   $sql = "INSERT INTO orders
     (id, patient_id, user_id, product, product_id, product_price, cpt, status, frequency, delivery_mode,
-     shipments_remaining, created_at, updated_at,
+     shipments_remaining, created_at, updated_at, order_number,
      insurer_name, member_id, group_id, payer_phone, prior_auth, payment_type,
      wound_location, wound_laterality, wound_notes, exudate_level, wounds_data,
      last_eval_date, start_date, qty_per_change, duration_days,
@@ -336,7 +348,7 @@ try {
      physician_id, physician_npi, physician_license,
      review_status)
     VALUES
-    (?,?,?,?,?,?,?,?,?,?,0,NOW(),NOW(),
+    (?,?,?,?,?,?,?,?,?,?,0,NOW(),NOW(),?,
      ?,?,?,?,?,?,
      ?,?,?,?,?,
      ?,?,?,?,
@@ -351,6 +363,8 @@ try {
     $order_id, $patient_id, $uid,
     $prod['name'], $prod['id'], $prod['price_admin'], $prod['cpt_code'],
     $status, $frequency, $delivery_mode,
+    // order number (same for all products in this order)
+    $referralOrderNumber,
     // insurance & payment
     safe($_POST['insurance_provider'] ?? null),
     safe($_POST['insurance_member_id'] ?? null),
@@ -424,7 +438,7 @@ try {
 
           $pdo->prepare("INSERT INTO orders
             (id, patient_id, user_id, product, product_id, product_price, cpt, status, frequency, delivery_mode,
-             order_group_id, product_type, wound_index,
+             order_group_id, product_type, wound_index, order_number,
              shipments_remaining, created_at, updated_at,
              insurer_name, member_id, group_id, payer_phone, prior_auth, payment_type,
              wound_location, wound_laterality, wound_notes, exudate_level, wounds_data,
@@ -435,7 +449,7 @@ try {
              review_status)
             VALUES
             (?,?,?,?,?,?,?,?,?,?,
-             ?,?,?,
+             ?,?,?,?,
              0,NOW(),NOW(),
              ?,?,?,?,?,?,
              ?,?,?,?,?,
@@ -447,7 +461,7 @@ try {
             $new_order_id, $patient_id, $uid,
             $product_info['product_name'], $product_info['product_id'], $product_info['product_price'], $product_info['product_cpt'],
             $status, $frequency, $delivery_mode,
-            $order_group_id, $product_info['product_type'], $wound_index,
+            $order_group_id, $product_info['product_type'], $wound_index, $referralOrderNumber,
             // insurance & payment
             safe($_POST['insurance_provider'] ?? null),
             safe($_POST['insurance_member_id'] ?? null),
