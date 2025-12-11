@@ -196,6 +196,89 @@ The order workflow backend is **fully operational** and ready for use. UI integr
 
 ---
 
+## Revenue & Billing System Audit
+
+**Audit Date:** December 10, 2025
+**Status:** ✅ UNIFIED AND AUDITABLE
+
+### Data Flow Architecture
+
+All three pages now use unified filtering and calculation logic:
+
+| Page | Purpose | Data Scope |
+|------|---------|------------|
+| **Dashboard** | Business health snapshot | Active non-deleted orders only (wholesale & referral) |
+| **Revenue Report** | Auditable & exportable ledger | Full drill-down analytics with CSV export |
+| **Billing** | Order-to-CPT revenue breakdown | Per-order details with CPT codes and revenue |
+
+### Unified Filtering Logic
+
+All three pages apply the same filters:
+
+```
+Status Filter: NOT IN ('rejected', 'cancelled', 'draft')
+Review Status: IS NULL OR != 'draft' (if column exists)
+Soft Delete: deleted_at IS NULL (orders & patients)
+```
+
+### Revenue Calculation Methodology
+
+#### Referral Orders (Insurance Reimbursement)
+```
+Pieces Needed = (Days / 7) × Frequency × Qty × (1 + Refills)
+Boxes to Ship = ceil(Pieces Needed / Pieces Per Box)
+Revenue = Pieces Needed × Medicare Allowable Rate per Piece
+```
+**Key Insight:** Revenue is based on *actual pieces needed*, not rounded-up box quantities.
+
+#### Wholesale Orders (Practice Direct Purchase)
+```
+Boxes = qty_per_change
+Revenue = Boxes × Price Per Box
+```
+Price hierarchy: Practice custom price → product_price × pieces_per_box → price_wholesale
+
+### Files & Functions
+
+| File | Key Function | Purpose |
+|------|--------------|---------|
+| `admin/lib/revenue_calculator.php` | `calculate_order_revenue()` | Central revenue calculation |
+| `admin/lib/revenue_calculator.php` | `get_revenue_metrics()` | Aggregates all metrics |
+| `admin/lib/revenue_calculator.php` | `get_dashboard_metrics()` | Dashboard-specific metrics |
+| `admin/platform/dashboard.php` | Uses `get_dashboard_metrics()` | Business health snapshot |
+| `admin/revenue-report.php` | Uses `get_revenue_metrics()` | Full analytics & export |
+| `admin/billing.php` | `calculate_revenue()`, `get_product_count()` | Per-order breakdown |
+
+### Audit Trail Features
+
+1. **Dashboard** → Links to Revenue Report with pre-filled filters (payor, product, practice)
+2. **Revenue Report** → CSV export with full order details and calculation steps
+3. **Billing** → Shows CPT codes, frequency, box counts, and per-order revenue
+4. **Soft Delete Support** → Archive filter (billable/archived/all) on Billing page
+
+### Verification Checklist
+
+- [x] Dashboard shows only active, non-deleted orders
+- [x] Dashboard metrics match Revenue Report totals for same period
+- [x] Revenue Report provides full drill-down by payor, product, physician, sales rep
+- [x] Revenue Report CSV export includes all calculation details
+- [x] Billing page reads frequency from wounds_data JSON when needed
+- [x] Billing page uses same status/review_status filtering as revenue_calculator
+- [x] Wholesale revenue uses correct per-box pricing
+- [x] Referral revenue uses actual pieces × CPT rate
+
+### Recent Fixes Applied
+
+| Issue | Fix | Commit |
+|-------|-----|--------|
+| Revenue calculation inflated | Changed from boxes×pieces×rate to actual_pieces×rate | `ac9a0e2` |
+| Frequency showing 1×/week | Read from wounds_data JSON | `ac9a0e2` |
+| Archive filter missing | Added billable/archived/all filter | `ac9a0e2` |
+| Dashboard/Revenue mismatch | Unified status & review_status filtering | `41efa4f` |
+| Wholesale pricing wrong | Fixed product_price as per-piece | `41efa4f` |
+
+---
+
 **Verified by:** Claude Code
-**Verification Date:** January 4, 2025
+**Verification Date:** December 10, 2025
 **All Systems:** ✅ OPERATIONAL

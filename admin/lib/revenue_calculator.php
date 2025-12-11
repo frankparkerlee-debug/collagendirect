@@ -8,6 +8,20 @@
 declare(strict_types=1);
 
 /**
+ * Convert text frequency to patches per week
+ * Used by both billing.php and revenue calculations
+ */
+function patches_per_week_text($f): int {
+    $f = strtolower(trim((string)$f));
+    if ($f === 'daily') return 7;
+    if ($f === 'every other day') return 4;
+    if ($f === 'weekly') return 1;
+    if (preg_match('/(\d+)\s*x\s*\/?\s*week/', $f, $m)) return max(1, (int)$m[1]);
+    if (preg_match('/(\d+)\s*x\s*per\s*week/', $f, $m)) return max(1, (int)$m[1]);
+    return 1;
+}
+
+/**
  * Calculate revenue for a single order
  *
  * @param array $order Order data with all relevant fields

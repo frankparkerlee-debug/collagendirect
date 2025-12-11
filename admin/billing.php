@@ -36,15 +36,7 @@ function has_column(PDO $pdo, $tbl, $col) {
     $st->execute([$tbl,$col]); $r=$st->fetch(); return (int)($r['c']??0) > 0;
   } catch (Throwable $e) { error_log($e->getMessage()); return false; }
 }
-function patches_per_week_text($f) {
-  $f=strtolower(trim((string)$f));
-  if ($f==='daily') return 7;
-  if ($f==='every other day') return 4;
-  if ($f==='weekly') return 1;
-  if (preg_match('/(\d+)\s*x\s*\/?\s*week/', $f, $m)) return max(1,(int)$m[1]);
-  if (preg_match('/(\d+)\s*x\s*per\s*week/', $f, $m)) return max(1,(int)$m[1]);
-  return 1;
-}
+// NOTE: patches_per_week_text moved to revenue_calculator.php for unified calculations
 
 /* ---------- robust uploads root & linking ---------- */
 function uploads_root_abs() {
@@ -361,136 +353,50 @@ try {
   $rows = [];
 }
 
-/* CPT rate map */
-$rates = [];
-if ($hasRates) {
-  try {
-    foreach($pdo->query("SELECT hcpcs_code, medicare_allowable FROM reimbursement_rates") as $r){
-      $rates[$r['hcpcs_code']] = (float)$r['medicare_allowable'];
-    }
-  } catch (Throwable $e) { error_log("[rates] ".$e->getMessage()); }
-}
+/* CPT rate map - use SHARED function from revenue_calculator.php */
+$rates = load_reimbursement_rates($pdo);
 
 /**
- * Calculate total product count (boxes and pieces) for an order
- * Returns array with box count, actual pieces needed, and formatted product description
+ * Get product count and revenue using the SHARED revenue calculator
+ * This ensures billing page uses the exact same calculation as dashboard and revenue report
  */
-function get_product_count($row, $hasProducts) {
-  $billedBy = $row['billed_by'] ?? 'collagen_direct';
-  $isWholesale = ($billedBy === 'practice_dme');
-  $pieces_per_box = max(1, (int)($row['pieces_per_box'] ?? 10));
+function get_billing_calculation($row, $rates, $hasProducts) {
+  // Map billing row fields to the format expected by calculate_order_revenue
+  $order = [
+    'billed_by' => $row['billed_by'] ?? 'collagen_direct',
+    'pieces_per_box' => $row['pieces_per_box'] ?? 10,
+    'cost_per_box' => $row['cost_per_box'] ?? 0,
+    'qty_per_change' => $row['qty_per_change'] ?? 1,
+    'product_price' => $row['product_price'] ?? 0,
+    'practice_custom_price' => $row['practice_custom_price'] ?? 0,
+    'price_wholesale' => $row['price_wholesale'] ?? 0,
+    'frequency_per_week' => $row['frequency_per_week'] ?? 0,
+    'frequency' => $row['frequency'] ?? '',
+    'duration_days' => $row['duration_days'] ?? 0,
+    'refills_allowed' => $row['refills_allowed'] ?? 0,
+    'wounds_data' => $row['wounds_data'] ?? '',
+    'cpt_code' => $row['cpt_code'] ?? '',
+    'cpt' => $row['cpt'] ?? '',
+    'hcpcs_code' => $row['hcpcs_code'] ?? '',
+  ];
 
-  if ($isWholesale) {
-    // WHOLESALE: qty_per_change = number of boxes ordered
-    $total_boxes = max(1, (int)($row['qty_per_change'] ?? 1));
-    // For wholesale, billable pieces = boxes × pieces_per_box (they're buying full boxes)
-    $actual_pieces = $total_boxes * $pieces_per_box;
-  } else {
-    // REFERRAL: Calculate pieces from treatment parameters
-    $fpw = (int)($row['frequency_per_week'] ?? 0);
-
-    // Try wounds_data JSON if frequency_per_week is 0
-    if ($fpw <= 0 && !empty($row['wounds_data'])) {
-      $wounds_data = json_decode($row['wounds_data'], true);
-      if (is_array($wounds_data) && isset($wounds_data[0]['frequency_per_week'])) {
-        $fpw = (int)$wounds_data[0]['frequency_per_week'];
-      }
-    }
-
-    // Fallback to text frequency field
-    if ($fpw <= 0) $fpw = patches_per_week_text(isset($row['frequency'])?$row['frequency']:null);
-    if ($fpw === 0) $fpw = 1;
-
-    $qty  = max(1, (int)($row['qty_per_change'] ?? 1));
-    $days = max(0, (int)($row['duration_days'] ?? 0));
-    if ($days === 0) $days = 30;
-
-    $ref = max(0, (int)($row['refills_allowed'] ?? 0));
-
-    $weeks = $days / 7.0;
-    // Actual pieces needed based on treatment plan
-    $actual_pieces = (int)ceil($weeks * $fpw * $qty * (1 + $ref));
-    // Boxes needed to ship (rounded up)
-    $total_boxes = (int)ceil($actual_pieces / $pieces_per_box);
-  }
+  // Use the SHARED calculate_order_revenue function from revenue_calculator.php
+  $calc = calculate_order_revenue($order, $rates, false);
 
   // Get product name for display
   $prodName = ($hasProducts && !empty($row['prod_name'])) ? $row['prod_name'] : ($row['product'] ?? 'collagen');
 
   return [
-    'boxes' => $total_boxes,
-    'actual_pieces' => $actual_pieces,
-    'is_wholesale' => $isWholesale,
+    'boxes' => $calc['boxes'],
+    'actual_pieces' => $calc['pieces'],
+    'is_wholesale' => $calc['is_wholesale'],
     'product_name' => $prodName,
-    'formatted' => $total_boxes . ' box' . ($total_boxes !== 1 ? 'es' : '') . ' of ' . $prodName
+    'formatted' => $calc['boxes'] . ' box' . ($calc['boxes'] !== 1 ? 'es' : '') . ' of ' . $prodName,
+    'revenue' => $calc['revenue'],
+    'cost' => $calc['cost'],
+    'profit' => $calc['profit'],
+    'cpt_rate' => $calc['cpt_rate']
   ];
-}
-
-/**
- * Calculate revenue based on actual pieces needed and pricing
- * Revenue = Actual Pieces × Rate per Piece
- * - Referral: Actual pieces needed × CPT/Medicare rate per piece
- * - Wholesale: Boxes × Practice wholesale rate per box
- */
-function calculate_revenue($row, $rates, $hasProducts) {
-  $billedBy = $row['billed_by'] ?? 'collagen_direct';
-  $isWholesale = ($billedBy === 'practice_dme');
-  $pieces_per_box = max(1, (int)($row['pieces_per_box'] ?? 10));
-
-  // Get product count (includes actual_pieces for referral orders)
-  $productCount = get_product_count($row, $hasProducts);
-  $total_boxes = $productCount['boxes'];
-  $actual_pieces = $productCount['actual_pieces'];
-
-  if ($isWholesale) {
-    // WHOLESALE: Revenue = Boxes × Price per Box
-    // Practice pays for full boxes they order
-    $practice_custom_price = (float)($row['practice_custom_price'] ?? 0);
-    $product_price_per_piece = (float)($row['product_price'] ?? 0);
-    $price_wholesale = (float)($row['price_wholesale'] ?? 0);
-
-    if ($practice_custom_price > 0) {
-      // Practice has custom pricing per piece, convert to per box
-      $price_per_box = $practice_custom_price * $pieces_per_box;
-    } elseif ($product_price_per_piece > 0) {
-      // product_price is stored as per-piece for wholesale orders
-      $price_per_box = $product_price_per_piece * $pieces_per_box;
-    } else {
-      // Fallback to price_wholesale from products table (already per box)
-      $price_per_box = $price_wholesale;
-    }
-
-    return $total_boxes * $price_per_box;
-  } else {
-    // REFERRAL: Revenue = Actual pieces needed × CPT rate per piece
-    // Insurance reimburses based on actual pieces used, not rounded-up box quantities
-    $cpt_rate_per_piece = 0.0;
-
-    // Try to get rate from reimbursement_rates table first
-    if ($hasProducts && !empty($row['cpt_code'])) {
-      // Handle multiple CPT codes (comma-separated) - use first one
-      $cptCode = trim(explode(',', $row['cpt_code'])[0]);
-      if (isset($rates[$cptCode]) && $rates[$cptCode] > 0) {
-        $cpt_rate_per_piece = (float)$rates[$cptCode];
-      }
-    }
-
-    // Fallback to price_admin from products table
-    if ($cpt_rate_per_piece <= 0 && $hasProducts && !empty($row['price_admin']) && $row['price_admin'] > 0) {
-      $cpt_rate_per_piece = (float)$row['price_admin'];
-    }
-
-    // Final fallback: derive from product_price
-    if ($cpt_rate_per_piece <= 0) {
-      $product_price = (float)($row['product_price'] ?? 0);
-      if ($product_price > 0 && $pieces_per_box > 0) {
-        $cpt_rate_per_piece = $product_price / $pieces_per_box;
-      }
-    }
-
-    // Revenue = actual pieces needed × rate per piece
-    return $actual_pieces * $cpt_rate_per_piece;
-  }
 }
 
 /* ================= View ================= */
@@ -608,9 +514,11 @@ include __DIR__.'/_header.php';
                         ? ($row['prod_name'].(!empty($row['prod_size'])?(" ".$row['prod_size']):""))
                         : ($row['product'] ?? '');
 
-          // Get product count (boxes) and revenue using new functions
-          $productCount = get_product_count($row, $hasProducts);
-          $rev = calculate_revenue($row, $rates, $hasProducts);
+          // Get product count (boxes) and revenue using SHARED calculator
+          // This ensures billing uses the EXACT same calculation as dashboard and revenue report
+          $billingCalc = get_billing_calculation($row, $rates, $hasProducts);
+          $productCount = $billingCalc; // backwards compatible - has 'boxes', 'actual_pieces', etc.
+          $rev = $billingCalc['revenue'];
           $total += $rev;
 
           $pid      = (string)($row['patient_id'] ?? '');
