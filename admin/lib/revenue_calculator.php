@@ -162,16 +162,26 @@ function calculate_order_revenue(array $order, array $rates = [], bool $includeS
 
 /**
  * Load reimbursement rates from database
+ * Rates are stored on the products table in the medicare_allowable column
  */
 function load_reimbursement_rates(PDO $pdo): array {
     $rates = [];
     try {
-        $stmt = $pdo->query("SELECT hcpcs_code, medicare_allowable FROM reimbursement_rates WHERE medicare_allowable > 0");
+        // Medicare allowable rates are stored per-product in the products table
+        // We key by HCPCS code (which is hcpcs_code on products)
+        $stmt = $pdo->query("
+            SELECT DISTINCT hcpcs_code, medicare_allowable
+            FROM products
+            WHERE hcpcs_code IS NOT NULL
+              AND hcpcs_code != ''
+              AND medicare_allowable IS NOT NULL
+              AND medicare_allowable > 0
+        ");
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $rates[$row['hcpcs_code']] = (float)$row['medicare_allowable'];
         }
     } catch (Throwable $e) {
-        error_log("[revenue_calculator] Could not load rates: " . $e->getMessage());
+        error_log("[revenue_calculator] Could not load rates from products table: " . $e->getMessage());
     }
     return $rates;
 }

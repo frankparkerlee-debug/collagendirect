@@ -150,20 +150,35 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $newAmountPaid = $currentAmountPaid + $paymentAmount;
         $newBalance = $currentAmountDue - $newAmountPaid;
 
-        // Update order
-        $updateStmt = $pdo->prepare("
-          UPDATE orders
-          SET amount_due = ?,
-              amount_paid = ?,
-              balance_due = ?,
-              paid_at = CASE WHEN ? <= 0 THEN NOW() ELSE paid_at END,
-              notes = CONCAT(COALESCE(notes, ''), '\n', ?),
-              updated_at = NOW()
-          WHERE id = ?
-        ");
-
         $paymentNote = date('Y-m-d H:i') . " - Payment recorded: $" . number_format($paymentAmount, 2) . " via " . $paymentMethod . ($paymentNotes ? " - " . $paymentNotes : "");
-        $updateStmt->execute([$currentAmountDue, $newAmountPaid, $newBalance, $newBalance, $paymentNote, $id]);
+
+        // Update order - use separate queries to avoid PostgreSQL parameter type issues
+        if ($newBalance <= 0) {
+          // Fully paid - set paid_at
+          $updateStmt = $pdo->prepare("
+            UPDATE orders
+            SET amount_due = ?,
+                amount_paid = ?,
+                balance_due = ?,
+                paid_at = NOW(),
+                notes = CONCAT(COALESCE(notes, ''), '\n', ?),
+                updated_at = NOW()
+            WHERE id = ?
+          ");
+          $updateStmt->execute([$currentAmountDue, $newAmountPaid, $newBalance, $paymentNote, $id]);
+        } else {
+          // Partial payment - don't set paid_at
+          $updateStmt = $pdo->prepare("
+            UPDATE orders
+            SET amount_due = ?,
+                amount_paid = ?,
+                balance_due = ?,
+                notes = CONCAT(COALESCE(notes, ''), '\n', ?),
+                updated_at = NOW()
+            WHERE id = ?
+          ");
+          $updateStmt->execute([$currentAmountDue, $newAmountPaid, $newBalance, $paymentNote, $id]);
+        }
 
         $_SESSION['success_msg'] = 'Payment of $' . number_format($paymentAmount, 2) . ' recorded successfully';
       }
@@ -172,7 +187,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $pdo->prepare("UPDATE orders SET paid_at=NULL, amount_paid=0, balance_due=amount_due, updated_at=NOW() WHERE id=?")->execute([$id]);
     $_SESSION['success_msg'] = 'Payment status reset to unpaid';
   } elseif ($id && $action==='delete_order') {
-    // Delete wholesale order
+    // Delete single wholesale order item
     try {
       $pdo->beginTransaction();
 
@@ -203,6 +218,46 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
       }
       error_log('[wholesale-orders] delete_order error: ' . $e->getMessage());
       $_SESSION['error_msg'] = 'Error deleting order';
+    }
+  } elseif ($action==='delete_order_group') {
+    // Delete ALL items with the same order_number
+    $orderNumber = $_POST['order_number'] ?? '';
+    if ($orderNumber) {
+      try {
+        $pdo->beginTransaction();
+
+        // Get all patient IDs in this order group
+        $patientStmt = $pdo->prepare("SELECT DISTINCT patient_id FROM orders WHERE order_number = ? AND billed_by = 'practice_dme'");
+        $patientStmt->execute([$orderNumber]);
+        $patientIds = $patientStmt->fetchAll(PDO::FETCH_COLUMN);
+
+        // Delete all orders with this order_number
+        $deleteStmt = $pdo->prepare("DELETE FROM orders WHERE order_number = ? AND billed_by = 'practice_dme'");
+        $deleteStmt->execute([$orderNumber]);
+        $deletedCount = $deleteStmt->rowCount();
+
+        // Clean up orphaned patients
+        foreach ($patientIds as $patientId) {
+          if ($patientId) {
+            $patientCheck = $pdo->prepare("SELECT COUNT(*) as cnt FROM orders WHERE patient_id = ?");
+            $patientCheck->execute([$patientId]);
+            $result = $patientCheck->fetch(PDO::FETCH_ASSOC);
+
+            if ($result['cnt'] == 0) {
+              $pdo->prepare("DELETE FROM patients WHERE id = ?")->execute([$patientId]);
+            }
+          }
+        }
+
+        $pdo->commit();
+        $_SESSION['success_msg'] = "Deleted $deletedCount item(s) from order $orderNumber";
+      } catch (Throwable $e) {
+        if ($pdo->inTransaction()) {
+          $pdo->rollBack();
+        }
+        error_log('[wholesale-orders] delete_order_group error: ' . $e->getMessage());
+        $_SESSION['error_msg'] = 'Error deleting order group';
+      }
     }
   } elseif ($id && $action==='send_invoice') {
     // Send invoice email
@@ -297,6 +352,29 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
   exit;
 }
 
+/* ---------- Filter parameters ---------- */
+$filterPractice = trim($_GET['practice'] ?? '');
+$filterStatus = trim($_GET['status'] ?? '');
+$filterPayment = trim($_GET['payment'] ?? '');
+$filterDateFrom = trim($_GET['date_from'] ?? '');
+$filterDateTo = trim($_GET['date_to'] ?? '');
+$filterSearch = trim($_GET['search'] ?? '');
+
+/* ---------- Fetch list of practices for filter dropdown ---------- */
+$practices = [];
+try {
+  $practiceStmt = $pdo->query("
+    SELECT DISTINCT u.id, u.practice_name, u.first_name, u.last_name
+    FROM users u
+    INNER JOIN orders o ON o.user_id = u.id
+    WHERE o.billed_by = 'practice_dme'
+    ORDER BY u.practice_name ASC
+  ");
+  $practices = $practiceStmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {
+  error_log('[wholesale-orders] Could not fetch practices: ' . $e->getMessage());
+}
+
 /* ---------- Fetch wholesale orders grouped by order_number ---------- */
 // Check if billed_by column exists
 $hasBilledBy = false;
@@ -314,12 +392,56 @@ if (!$hasBilledBy) {
   $groupedOrders = [];
 } else {
   try {
+    // Build WHERE clauses with filters
+    $whereConditions = [
+      "o.billed_by = 'practice_dme'",
+      "(o.review_status IS NULL OR o.review_status != 'draft')"
+    ];
+    $params = [];
+
+    if ($filterPractice) {
+      $whereConditions[] = "o.user_id = ?";
+      $params[] = $filterPractice;
+    }
+
+    if ($filterStatus) {
+      $whereConditions[] = "o.status = ?";
+      $params[] = $filterStatus;
+    }
+
+    if ($filterPayment === 'paid') {
+      $whereConditions[] = "(o.paid_at IS NOT NULL OR o.balance_due <= 0)";
+    } elseif ($filterPayment === 'unpaid') {
+      $whereConditions[] = "(o.paid_at IS NULL AND (o.balance_due IS NULL OR o.balance_due > 0))";
+    }
+
+    if ($filterDateFrom) {
+      $whereConditions[] = "DATE(o.created_at) >= ?";
+      $params[] = $filterDateFrom;
+    }
+
+    if ($filterDateTo) {
+      $whereConditions[] = "DATE(o.created_at) <= ?";
+      $params[] = $filterDateTo;
+    }
+
+    if ($filterSearch) {
+      $whereConditions[] = "(o.order_number ILIKE ? OR u.practice_name ILIKE ? OR CONCAT(p.first_name, ' ', p.last_name) ILIKE ? OR pr.name ILIKE ?)";
+      $searchPattern = '%' . $filterSearch . '%';
+      $params[] = $searchPattern;
+      $params[] = $searchPattern;
+      $params[] = $searchPattern;
+      $params[] = $searchPattern;
+    }
+
+    $whereClause = implode(' AND ', $whereConditions);
+
     // Fetch all individual order items
     $sql = "
       SELECT
         o.id,
         o.created_at,
-        o.product,
+        COALESCE(NULLIF(o.product, ''), pr.name, 'Unknown Product') as product,
         o.product_id,
         o.qty_per_change as boxes,
         o.product_price as unit_price,
@@ -328,7 +450,7 @@ if (!$hasBilledBy) {
         o.notes,
         o.billed_by,
         o.user_id,
-        COALESCE(o.order_number, o.id) as order_number,
+        COALESCE(o.order_number, o.id::text) as order_number,
         o.created_at as invoice_date,
         o.amount_due,
         o.amount_paid,
@@ -342,17 +464,20 @@ if (!$hasBilledBy) {
         p.last_name as pat_last,
         CONCAT_WS(', ', o.shipping_address, o.shipping_city, o.shipping_state, o.shipping_zip) as shipping_address,
         pr.pieces_per_box,
-        pr.price_wholesale
+        pr.price_wholesale,
+        pr.name as product_name,
+        pr.size as product_size
       FROM orders o
       LEFT JOIN users u ON o.user_id = u.id
       LEFT JOIN patients p ON o.patient_id = p.id
       LEFT JOIN products pr ON o.product_id = pr.id
-      WHERE o.billed_by = 'practice_dme'
-        AND (o.review_status IS NULL OR o.review_status != 'draft')
+      WHERE $whereClause
       ORDER BY o.order_number DESC, o.created_at DESC
     ";
 
-    $orders = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
     error_log('[wholesale-orders] Found ' . count($orders) . ' wholesale order items');
 
     // Group orders by order_number for display
@@ -464,11 +589,18 @@ foreach ($groupedOrders as $orderNum => $group) {
   // Use grouped total value
   $orderValue = $group['total_value'];
   $balanceDue = $group['balance_due'];
+  $amountPaid = $group['amount_paid'];
+  $isPaid = !empty($group['paid_at']) && $balanceDue <= 0;
 
-  if ($balanceDue > 0) {
-    $totalRevenue += $balanceDue;
-  } else {
-    $totalRevenue += $orderValue;
+  // If no balance tracking set up yet, use order value as balance
+  $effectiveBalance = $balanceDue;
+  if ($balanceDue == 0 && $amountPaid == 0 && empty($group['paid_at'])) {
+    $effectiveBalance = $orderValue;
+  }
+
+  // Add to total revenue (A/R balance)
+  if (!$isPaid && $effectiveBalance > 0) {
+    $totalRevenue += $effectiveBalance;
   }
 
   // Count pending orders
@@ -477,7 +609,8 @@ foreach ($groupedOrders as $orderNum => $group) {
   }
 
   // Count unpaid orders and track aging
-  if ($balanceDue > 0 && !in_array($group['status'], ['rejected', 'cancelled'])) {
+  // An order is unpaid if: not marked as paid AND has effective balance > 0 AND not rejected/cancelled
+  if (!$isPaid && $effectiveBalance > 0 && !in_array($group['status'], ['rejected', 'cancelled'])) {
     $unpaidOrders++;
 
     // Calculate days since order for aging
@@ -488,15 +621,15 @@ foreach ($groupedOrders as $orderNum => $group) {
     $daysPastDue = max(0, $daysSinceOrder - $netTerms);
 
     if ($daysPastDue === 0) {
-      $aging['current'] += $balanceDue;
+      $aging['current'] += $effectiveBalance;
     } elseif ($daysPastDue <= 30) {
-      $aging['0-30'] += $balanceDue;
+      $aging['0-30'] += $effectiveBalance;
     } elseif ($daysPastDue <= 60) {
-      $aging['31-60'] += $balanceDue;
+      $aging['31-60'] += $effectiveBalance;
     } elseif ($daysPastDue <= 90) {
-      $aging['61-90'] += $balanceDue;
+      $aging['61-90'] += $effectiveBalance;
     } else {
-      $aging['over_90'] += $balanceDue;
+      $aging['over_90'] += $effectiveBalance;
     }
   }
 }
@@ -672,6 +805,69 @@ require_once '_header.php';
       <div class="stat-label">Total A/R Balance</div>
       <div class="stat-value success">$<?= number_format($totalRevenue, 2) ?></div>
     </div>
+  </div>
+
+  <!-- Filter Bar -->
+  <div class="card" style="margin-bottom: 1.5rem; padding: 1rem 1.5rem;">
+    <form method="GET" id="filterForm" style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
+      <div style="flex: 1; min-width: 200px;">
+        <label style="display: block; font-size: 0.75rem; font-weight: 500; color: var(--muted); margin-bottom: 0.25rem;">Search</label>
+        <input type="text" name="search" value="<?= htmlspecialchars($filterSearch) ?>" placeholder="Order #, practice, patient, product..." style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.875rem;">
+      </div>
+
+      <div style="min-width: 180px;">
+        <label style="display: block; font-size: 0.75rem; font-weight: 500; color: var(--muted); margin-bottom: 0.25rem;">Practice</label>
+        <select name="practice" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.875rem;">
+          <option value="">All Practices</option>
+          <?php foreach ($practices as $practice): ?>
+            <option value="<?= htmlspecialchars($practice['id']) ?>" <?= $filterPractice === $practice['id'] ? 'selected' : '' ?>>
+              <?= htmlspecialchars($practice['practice_name'] ?: ($practice['first_name'] . ' ' . $practice['last_name'])) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+
+      <div style="min-width: 140px;">
+        <label style="display: block; font-size: 0.75rem; font-weight: 500; color: var(--muted); margin-bottom: 0.25rem;">Status</label>
+        <select name="status" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.875rem;">
+          <option value="">All Status</option>
+          <option value="pending" <?= $filterStatus === 'pending' ? 'selected' : '' ?>>Pending</option>
+          <option value="approved" <?= $filterStatus === 'approved' ? 'selected' : '' ?>>Approved</option>
+          <option value="in_transit" <?= $filterStatus === 'in_transit' ? 'selected' : '' ?>>In Transit</option>
+          <option value="delivered" <?= $filterStatus === 'delivered' ? 'selected' : '' ?>>Delivered</option>
+          <option value="rejected" <?= $filterStatus === 'rejected' ? 'selected' : '' ?>>Rejected</option>
+        </select>
+      </div>
+
+      <div style="min-width: 140px;">
+        <label style="display: block; font-size: 0.75rem; font-weight: 500; color: var(--muted); margin-bottom: 0.25rem;">Payment</label>
+        <select name="payment" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.875rem;">
+          <option value="">All</option>
+          <option value="unpaid" <?= $filterPayment === 'unpaid' ? 'selected' : '' ?>>Unpaid</option>
+          <option value="paid" <?= $filterPayment === 'paid' ? 'selected' : '' ?>>Paid</option>
+        </select>
+      </div>
+
+      <div style="min-width: 140px;">
+        <label style="display: block; font-size: 0.75rem; font-weight: 500; color: var(--muted); margin-bottom: 0.25rem;">Date From</label>
+        <input type="date" name="date_from" value="<?= htmlspecialchars($filterDateFrom) ?>" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.875rem;">
+      </div>
+
+      <div style="min-width: 140px;">
+        <label style="display: block; font-size: 0.75rem; font-weight: 500; color: var(--muted); margin-bottom: 0.25rem;">Date To</label>
+        <input type="date" name="date_to" value="<?= htmlspecialchars($filterDateTo) ?>" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.875rem;">
+      </div>
+
+      <div style="display: flex; gap: 0.5rem;">
+        <button type="submit" class="btn" style="background: var(--brand); color: white; border-color: var(--brand);">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          Filter
+        </button>
+        <?php if ($filterPractice || $filterStatus || $filterPayment || $filterDateFrom || $filterDateTo || $filterSearch): ?>
+        <a href="/admin/wholesale-orders.php" class="btn">Clear</a>
+        <?php endif; ?>
+      </div>
+    </form>
   </div>
 
   <!-- Aging Summary -->
@@ -904,6 +1100,16 @@ require_once '_header.php';
                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
                   </button>
                 </form>
+
+                <!-- Delete Order -->
+                <form method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete order <?= htmlspecialchars($orderNum) ?>? This cannot be undone.');">
+                  <?= csrf_field() ?>
+                  <input type="hidden" name="action" value="delete_order_group">
+                  <input type="hidden" name="order_number" value="<?= htmlspecialchars($orderNum) ?>">
+                  <button type="submit" class="btn-icon" title="Delete Order" style="color: #dc2626; border-color: #dc2626;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                  </button>
+                </form>
               </div>
             </td>
           </tr>
@@ -963,8 +1169,9 @@ function toggleProductDetails(orderNumber) {
 }
 
 function viewOrderGroup(orderNumber) {
-  // Open order detail modal/page for the entire order group
-  window.location.href = `/admin/wholesale-order-detail.php?order_number=${encodeURIComponent(orderNumber)}`;
+  // Open PDF invoice for the order group
+  const csrfToken = '<?= $_SESSION['csrf'] ?? '' ?>';
+  window.open(`/portal/wholesale-order.pdf.php?order_group=${encodeURIComponent(orderNumber)}&csrf=${csrfToken}`, '_blank');
 }
 </script>
 

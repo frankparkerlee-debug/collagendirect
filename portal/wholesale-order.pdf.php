@@ -4,20 +4,25 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../api/db.php';
 
-// Require portal authentication (physician must be logged in)
-if (empty($_SESSION['user_id'])) {
+// Check if user is an admin (via admin session)
+$isAdmin = !empty($_SESSION['admin_id']) || !empty($_SESSION['admin']);
+
+// Require authentication (portal or admin)
+if (empty($_SESSION['user_id']) && !$isAdmin) {
   http_response_code(401);
   echo "Not authenticated";
   exit;
 }
 
-$userId = $_SESSION['user_id'];
+$userId = $_SESSION['user_id'] ?? null;
 
-// CSRF check
-if (empty($_GET['csrf']) || $_GET['csrf'] !== ($_SESSION['csrf'] ?? '')) {
-  http_response_code(403);
-  echo "forbidden";
-  exit;
+// CSRF check (skip for admin if they have a valid admin session)
+if (!$isAdmin) {
+  if (empty($_GET['csrf']) || $_GET['csrf'] !== ($_SESSION['csrf'] ?? '')) {
+    http_response_code(403);
+    echo "forbidden";
+    exit;
+  }
 }
 
 // Get order_group parameter - this will be used to fetch all orders in a wholesale batch
@@ -29,14 +34,14 @@ if ($order_group === '') {
 }
 
 try {
-  // Fetch all orders in this wholesale order group (orders placed together)
-  // For wholesale orders, we use the additional_instructions field to group orders by batch
+  // Fetch all orders in this wholesale order group
+  // Use order_number field directly, with fallback to additional_instructions for legacy orders
   $sql = "SELECT
             o.*,
             p.first_name, p.last_name, p.phone AS patient_phone, p.address, p.city, p.state, p.zip,
             u.first_name AS doc_first, u.last_name AS doc_last, u.practice_name, u.address AS practice_address,
             u.city AS practice_city, u.state AS practice_state, u.zip AS practice_zip, u.phone AS practice_phone,
-            pr.pieces_per_box, pr.price_wholesale,
+            pr.pieces_per_box, pr.price_wholesale, pr.name AS product_name,
             pp.custom_price AS practice_custom_price,
             pp.discount_percentage AS practice_discount_percentage
           FROM orders o
@@ -44,13 +49,21 @@ try {
           LEFT JOIN users u ON u.id=o.user_id
           LEFT JOIN products pr ON pr.id=o.product_id
           LEFT JOIN practice_pricing pp ON pp.user_id = o.user_id AND pp.product_id = o.product_id
-          WHERE o.user_id = ?
-            AND o.payment_type = 'wholesale'
-            AND o.additional_instructions LIKE ?
-          ORDER BY o.created_at ASC, p.last_name, p.first_name";
+          WHERE (o.order_number = ? OR o.additional_instructions LIKE ?)
+            AND o.billed_by = 'practice_dme'";
+
+  $params = [$order_group, "%Wholesale Order #$order_group%"];
+
+  // For non-admin, restrict to their own orders
+  if (!$isAdmin && $userId) {
+    $sql .= " AND o.user_id = ?";
+    $params[] = $userId;
+  }
+
+  $sql .= " ORDER BY o.created_at ASC, p.last_name, p.first_name";
 
   $st = $pdo->prepare($sql);
-  $st->execute([$userId, "%Wholesale Order #$order_group%"]);
+  $st->execute($params);
   $orders = $st->fetchAll();
 
   if (empty($orders)) {
