@@ -732,9 +732,10 @@ function get_dashboard_metrics(PDO $pdo): array {
         'revenue_change_pct' => $revenueChange,
         'orders_change_pct' => $ordersChange,
 
-        // Top metrics for quick glance
-        'top_payors' => array_slice($currentMonth['payor_mix'], 0, 5, true),
-        'top_products' => array_slice($currentMonth['product_mix'], 0, 5, true),
-        'top_physicians' => array_slice($currentMonth['physician_revenue'], 0, 5, true)
+        // Top metrics for quick glance - use YTD data for meaningful business insights
+        // (Dashboard drill-down links go to YTD revenue report)
+        'top_payors' => array_slice($ytd['payor_mix'], 0, 5, true),
+        'top_products' => array_slice($ytd['product_mix'], 0, 5, true),
+        'top_physicians' => array_slice($ytd['physician_revenue'], 0, 5, true)
     ];
 }

@@ -297,10 +297,10 @@ include __DIR__ . '/../_header.php';
 
     <!-- Top Performers Row -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <!-- Top Payors -->
+        <!-- Top Payors (YTD) -->
         <div class="bg-white border rounded-2xl shadow-sm">
             <div class="p-4 border-b flex items-center justify-between">
-                <h3 class="font-semibold text-slate-900">Top Payors</h3>
+                <h3 class="font-semibold text-slate-900">Top Payors <span class="text-xs font-normal text-slate-400">(YTD)</span></h3>
                 <a href="/admin/revenue-report.php" class="text-xs text-brand hover:underline">View All</a>
             </div>
             <div class="p-4">
@@ -323,10 +323,10 @@ include __DIR__ . '/../_header.php';
             </div>
         </div>
 
-        <!-- Top Products -->
+        <!-- Top Products (YTD) -->
         <div class="bg-white border rounded-2xl shadow-sm">
             <div class="p-4 border-b flex items-center justify-between">
-                <h3 class="font-semibold text-slate-900">Top Products</h3>
+                <h3 class="font-semibold text-slate-900">Top Products <span class="text-xs font-normal text-slate-400">(YTD)</span></h3>
                 <a href="/admin/revenue-report.php" class="text-xs text-brand hover:underline">View All</a>
             </div>
             <div class="p-4">
@@ -349,10 +349,10 @@ include __DIR__ . '/../_header.php';
             </div>
         </div>
 
-        <!-- Top Physicians -->
+        <!-- Top Physicians (YTD) -->
         <div class="bg-white border rounded-2xl shadow-sm">
             <div class="p-4 border-b flex items-center justify-between">
-                <h3 class="font-semibold text-slate-900">Top Practices</h3>
+                <h3 class="font-semibold text-slate-900">Top Practices <span class="text-xs font-normal text-slate-400">(YTD)</span></h3>
                 <a href="/admin/revenue-report.php" class="text-xs text-brand hover:underline">View All</a>
             </div>
             <div class="p-4">
