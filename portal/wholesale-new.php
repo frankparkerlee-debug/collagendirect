@@ -778,24 +778,37 @@ $products = $productsStmt->fetchAll(PDO::FETCH_ASSOC);
         <a href="?page=wholesale&step=1" class="btn btn-primary">← Back to Patient Entry</a>
       </div>
     <?php else:
-      // Group products by category (from admin/products.php - the source of truth)
+      // Group products by product name (without size) for dropdown selection
+      // User picks Product Name -> then picks Size from available sizes
       // Each product has: name, size, category, hcpcs_code, price_wholesale, pieces_per_box
       $productGroups = [];
 
       foreach ($products as $product) {
-        // Use category field from products table as the grouping key
-        $category = trim($product['category'] ?? 'Other');
-        if (empty($category)) {
-          $category = 'Other';
+        $fullName = trim($product['name'] ?? '');
+        $size = trim($product['size'] ?? '');
+
+        // Derive the base product name by removing the size from the end of the name
+        // e.g., "Calcium Alginate 2x2" with size "2x2" -> "Calcium Alginate"
+        $baseName = $fullName;
+        if (!empty($size)) {
+          // Remove size from end of name (case-insensitive, with optional spaces)
+          $pattern = '/\s*' . preg_quote($size, '/') . '\s*$/i';
+          $baseName = preg_replace($pattern, '', $fullName);
+          $baseName = trim($baseName);
         }
 
-        if (!isset($productGroups[$category])) {
-          $productGroups[$category] = [];
+        // If baseName is empty after removing size, use the full name
+        if (empty($baseName)) {
+          $baseName = $fullName;
         }
-        $productGroups[$category][] = $product;
+
+        if (!isset($productGroups[$baseName])) {
+          $productGroups[$baseName] = [];
+        }
+        $productGroups[$baseName][] = $product;
       }
 
-      // Sort categories alphabetically
+      // Sort product names alphabetically
       ksort($productGroups);
     ?>
 
@@ -890,19 +903,19 @@ $products = $productsStmt->fetchAll(PDO::FETCH_ASSOC);
 
       row.innerHTML = `
         <div>
-          <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem; color: var(--ink);">Category</label>
+          <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem; color: var(--ink);">Product</label>
           <select class="form-control product-selector" onchange="updateSizeOptions(${patientIndex}, ${rowIndex})" required style="font-size: 0.875rem;">
-            <option value="">Select category...</option>
-            ${Object.keys(productCatalog).map(category =>
-              `<option value="${category}">${category}</option>`
+            <option value="">Select product...</option>
+            ${Object.keys(productCatalog).map(productName =>
+              `<option value="${productName}">${productName}</option>`
             ).join('')}
           </select>
         </div>
 
         <div class="size-selector-container" style="display: none;">
-          <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem; color: var(--ink);">Product / Size</label>
+          <label style="display: block; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.25rem; color: var(--ink);">Size</label>
           <select class="form-control size-selector" onchange="updateProductSelection(${patientIndex}, ${rowIndex})" required style="font-size: 0.875rem;">
-            <option value="">Select product...</option>
+            <option value="">Select size...</option>
           </select>
         </div>
 
@@ -930,33 +943,25 @@ $products = $productsStmt->fetchAll(PDO::FETCH_ASSOC);
       const sizeSelect = row.querySelector('.size-selector');
       const quantityContainer = row.querySelector('.quantity-container');
 
-      const selectedCategory = productSelect.value;
+      const selectedProductName = productSelect.value;
 
-      if (!selectedCategory) {
+      if (!selectedProductName) {
         sizeContainer.style.display = 'none';
         quantityContainer.style.display = 'none';
         return;
       }
 
-      const products = productCatalog[selectedCategory];
-      sizeSelect.innerHTML = '<option value="">Select product...</option>';
+      const products = productCatalog[selectedProductName];
+      sizeSelect.innerHTML = '<option value="">Select size...</option>';
 
       products.forEach(product => {
         const option = document.createElement('option');
         option.value = product.id;
 
-        // Use product name and size field from product data (from admin/products.php)
-        // This is the authoritative source of truth
-        const productName = product.name || 'Unknown';
-        const size = product.size || '';
-
-        // Show "Product Name - Size" or just "Product Name" if no size
-        let displayText = productName;
-        if (size && !productName.toLowerCase().includes(size.toLowerCase())) {
-          displayText = `${productName} - ${size}`;
-        }
-
-        option.textContent = displayText;
+        // Show just the size from the product's size field
+        // User picks Product Name first, then Size (e.g., "2x2", "4.33x4.33", "6x6")
+        const size = product.size || 'Standard';
+        option.textContent = size;
         sizeSelect.appendChild(option);
       });
 
