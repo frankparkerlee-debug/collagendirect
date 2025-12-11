@@ -812,8 +812,8 @@ $products = $productsStmt->fetchAll(PDO::FETCH_ASSOC);
       ksort($productGroups);
 
       // Sort sizes within each product group (smallest to largest)
-      foreach ($productGroups as $baseName => &$products) {
-        usort($products, function($a, $b) {
+      foreach ($productGroups as $baseName => &$groupProducts) {
+        usort($groupProducts, function($a, $b) {
           $sizeA = trim($a['size'] ?? '');
           $sizeB = trim($b['size'] ?? '');
 
@@ -830,7 +830,7 @@ $products = $productsStmt->fetchAll(PDO::FETCH_ASSOC);
           return strcasecmp($sizeA, $sizeB);
         });
       }
-      unset($products); // Break reference
+      unset($groupProducts); // Break reference
     ?>
 
     <div style="margin-bottom: 1.5rem;">
