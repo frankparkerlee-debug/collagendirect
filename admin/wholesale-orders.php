@@ -265,92 +265,260 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $_SESSION['error_msg'] = 'Error deleting order group';
       }
     }
-  } elseif ($id && $action==='send_invoice') {
-    // Send invoice email
-    try {
-      require_once __DIR__ . '/../api/lib/sg_curl.php';
+  } elseif ($action==='send_invoice') {
+    // Send invoice email for entire order group
+    $orderNumber = $_POST['order_number'] ?? '';
+    if (!$orderNumber) {
+      $_SESSION['error_msg'] = 'Order number required';
+    } else {
+      try {
+        require_once __DIR__ . '/../api/lib/sg_curl.php';
 
-      // Get order details
-      $orderStmt = $pdo->prepare("
-        SELECT o.*, u.email as phys_email, u.first_name as phys_first, u.last_name as phys_last,
-               u.practice_name, p.first_name as pat_first, p.last_name as pat_last,
-               pr.pieces_per_box, pr.price_wholesale
-        FROM orders o
-        JOIN users u ON o.user_id = u.id
-        JOIN patients p ON o.patient_id = p.id
-        LEFT JOIN products pr ON o.product_id = pr.id
-        WHERE o.id = ?
-      ");
-      $orderStmt->execute([$id]);
-      $order = $orderStmt->fetch(PDO::FETCH_ASSOC);
+        // Get all order items in this group
+        $orderStmt = $pdo->prepare("
+          SELECT o.*,
+                 u.email as phys_email, u.first_name as phys_first, u.last_name as phys_last,
+                 u.practice_name, u.address as practice_address, u.city as practice_city,
+                 u.state as practice_state, u.zip as practice_zip, u.phone as practice_phone,
+                 p.first_name as pat_first, p.last_name as pat_last,
+                 pr.pieces_per_box, pr.price_wholesale, pr.name as product_name
+          FROM orders o
+          JOIN users u ON o.user_id = u.id
+          LEFT JOIN patients p ON o.patient_id = p.id
+          LEFT JOIN products pr ON o.product_id = pr.id
+          WHERE o.order_number = ? AND o.billed_by = 'practice_dme'
+          ORDER BY o.created_at ASC
+        ");
+        $orderStmt->execute([$orderNumber]);
+        $orderItems = $orderStmt->fetchAll(PDO::FETCH_ASSOC);
 
-      if ($order && $order['phys_email']) {
-        $boxes = (int)($order['shipments_remaining'] ?? 0);
-        $pieces_per_box = (int)($order['pieces_per_box'] ?? 10);
-        $unit_price = (float)($order['product_price'] ?? $order['price_wholesale'] ?? 0);
-        $total_value = $boxes * ($unit_price * $pieces_per_box);
-
-        $subject = "Invoice for Wholesale Order #{$order['id']}";
-        $body = "
-          <h2>CollagenDirect Wholesale Order Invoice</h2>
-          <p>Dear " . htmlspecialchars($order['phys_first'] . ' ' . $order['phys_last']) . ",</p>
-          <p>Please find below the invoice for your recent wholesale order:</p>
-
-          <h3>Order Details</h3>
-          <table style='border-collapse: collapse; width: 100%; max-width: 600px;'>
-            <tr style='border-bottom: 1px solid #ddd;'>
-              <td style='padding: 8px;'><strong>Order Number:</strong></td>
-              <td style='padding: 8px;'>#{$order['id']}</td>
-            </tr>
-            <tr style='border-bottom: 1px solid #ddd;'>
-              <td style='padding: 8px;'><strong>Order Date:</strong></td>
-              <td style='padding: 8px;'>" . date('F j, Y', strtotime($order['created_at'])) . "</td>
-            </tr>
-            <tr style='border-bottom: 1px solid #ddd;'>
-              <td style='padding: 8px;'><strong>Practice:</strong></td>
-              <td style='padding: 8px;'>" . htmlspecialchars($order['practice_name']) . "</td>
-            </tr>
-            <tr style='border-bottom: 1px solid #ddd;'>
-              <td style='padding: 8px;'><strong>Patient:</strong></td>
-              <td style='padding: 8px;'>" . htmlspecialchars($order['pat_first'] . ' ' . $order['pat_last']) . "</td>
-            </tr>
-            <tr style='border-bottom: 1px solid #ddd;'>
-              <td style='padding: 8px;'><strong>Product:</strong></td>
-              <td style='padding: 8px;'>" . htmlspecialchars($order['product']) . "</td>
-            </tr>
-            <tr style='border-bottom: 1px solid #ddd;'>
-              <td style='padding: 8px;'><strong>Quantity:</strong></td>
-              <td style='padding: 8px;'>{$boxes} boxes ({$pieces_per_box} pieces/box)</td>
-            </tr>
-            <tr style='border-bottom: 1px solid #ddd;'>
-              <td style='padding: 8px;'><strong>Unit Price:</strong></td>
-              <td style='padding: 8px;'>$" . number_format($unit_price, 2) . " per piece</td>
-            </tr>
-            <tr style='background: #f9fafb;'>
-              <td style='padding: 8px;'><strong>Total Amount Due:</strong></td>
-              <td style='padding: 8px;'><strong>$" . number_format($total_value, 2) . "</strong></td>
-            </tr>
-          </table>
-
-          <p style='margin-top: 20px;'>Payment instructions will be provided separately. Please contact us if you have any questions.</p>
-
-          <p>Best regards,<br>CollagenDirect Team</p>
-        ";
-
-        $sent = sg_send_simple($order['phys_email'], $subject, $body);
-        if ($sent) {
-          // Record invoice sent
-          $pdo->prepare("UPDATE orders SET invoice_sent_at=NOW(), updated_at=NOW() WHERE id=?")->execute([$id]);
-          $_SESSION['success_msg'] = 'Invoice sent successfully to ' . $order['phys_email'];
+        if (empty($orderItems)) {
+          $_SESSION['error_msg'] = 'Order not found';
+        } elseif (empty($orderItems[0]['phys_email'])) {
+          $_SESSION['error_msg'] = 'Physician has no email address on file';
         } else {
-          $_SESSION['error_msg'] = 'Failed to send invoice email';
+          $firstItem = $orderItems[0];
+          $recipientEmail = $firstItem['phys_email'];
+          $recipientName = trim($firstItem['phys_first'] . ' ' . $firstItem['phys_last']);
+          $practiceName = $firstItem['practice_name'] ?: $recipientName;
+          $orderDate = date('F j, Y', strtotime($firstItem['created_at']));
+          $invoiceDate = date('F j, Y');
+          $dueDate = date('F j, Y', strtotime('+30 days'));
+
+          // Group items by patient
+          $patientGroups = [];
+          $grandTotal = 0;
+          $totalBoxes = 0;
+
+          foreach ($orderItems as $item) {
+            $patientName = trim(($item['pat_first'] ?? '') . ' ' . ($item['pat_last'] ?? ''));
+            if (empty($patientName)) $patientName = 'Office Stock';
+
+            if (!isset($patientGroups[$patientName])) {
+              $patientGroups[$patientName] = [];
+            }
+
+            $boxes = (int)($item['qty_per_change'] ?? 1);
+            $piecesPerBox = (int)($item['pieces_per_box'] ?? 10);
+            $unitPrice = (float)($item['product_price'] ?? 0);
+            $pricePerBox = $unitPrice * $piecesPerBox;
+            if ($pricePerBox == 0) {
+              $pricePerBox = (float)($item['price_wholesale'] ?? 0);
+            }
+            $lineTotal = $boxes * $pricePerBox;
+
+            $patientGroups[$patientName][] = [
+              'product' => $item['product'] ?: $item['product_name'] ?: 'Product',
+              'boxes' => $boxes,
+              'price_per_box' => $pricePerBox,
+              'line_total' => $lineTotal
+            ];
+
+            $grandTotal += $lineTotal;
+            $totalBoxes += $boxes;
+          }
+
+          // Build product rows HTML
+          $productRowsHtml = '';
+          foreach ($patientGroups as $patientName => $products) {
+            $productRowsHtml .= '<tr style="background: #f8fafc;"><td colspan="4" style="padding: 12px 16px; font-weight: 600; color: #1e293b; border-bottom: 1px solid #e2e8f0;">' . htmlspecialchars($patientName) . '</td></tr>';
+            foreach ($products as $product) {
+              $productRowsHtml .= '
+                <tr>
+                  <td style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9;">' . htmlspecialchars($product['product']) . '</td>
+                  <td style="padding: 12px 16px; text-align: center; border-bottom: 1px solid #f1f5f9;">' . $product['boxes'] . '</td>
+                  <td style="padding: 12px 16px; text-align: right; border-bottom: 1px solid #f1f5f9;">$' . number_format($product['price_per_box'], 2) . '</td>
+                  <td style="padding: 12px 16px; text-align: right; border-bottom: 1px solid #f1f5f9; font-weight: 600;">$' . number_format($product['line_total'], 2) . '</td>
+                </tr>';
+            }
+          }
+
+          // Build stylized HTML email
+          $subject = "Invoice #{$orderNumber} from CollagenDirect";
+          $html = '
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, sans-serif; background-color: #f3f4f6; line-height: 1.6;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f3f4f6;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 32px 40px; border-radius: 12px 12px 0 0;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td>
+                    <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">CollagenDirect</h1>
+                    <p style="margin: 4px 0 0; color: rgba(255,255,255,0.9); font-size: 14px;">Wholesale Invoice</p>
+                  </td>
+                  <td align="right">
+                    <div style="background: rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 6px;">
+                      <span style="color: #ffffff; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Invoice</span>
+                      <div style="color: #ffffff; font-size: 18px; font-weight: 700;">' . htmlspecialchars($orderNumber) . '</div>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Invoice Details -->
+          <tr>
+            <td style="padding: 32px 40px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td width="50%" valign="top">
+                    <p style="margin: 0 0 4px; font-size: 12px; text-transform: uppercase; color: #64748b; font-weight: 600;">Bill To</p>
+                    <p style="margin: 0; font-size: 16px; font-weight: 600; color: #1e293b;">' . htmlspecialchars($practiceName) . '</p>
+                    <p style="margin: 4px 0 0; font-size: 14px; color: #64748b;">' . htmlspecialchars($recipientName) . '</p>
+                    ' . ($firstItem['practice_address'] ? '<p style="margin: 4px 0 0; font-size: 14px; color: #64748b;">' . htmlspecialchars($firstItem['practice_address']) . '<br>' . htmlspecialchars($firstItem['practice_city'] . ', ' . $firstItem['practice_state'] . ' ' . $firstItem['practice_zip']) . '</p>' : '') . '
+                  </td>
+                  <td width="50%" valign="top" align="right">
+                    <table role="presentation" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td style="padding: 4px 0; font-size: 13px; color: #64748b;">Invoice Date:</td>
+                        <td style="padding: 4px 0 4px 16px; font-size: 13px; color: #1e293b; font-weight: 500;">' . $invoiceDate . '</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 4px 0; font-size: 13px; color: #64748b;">Order Date:</td>
+                        <td style="padding: 4px 0 4px 16px; font-size: 13px; color: #1e293b; font-weight: 500;">' . $orderDate . '</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 4px 0; font-size: 13px; color: #64748b;">Due Date:</td>
+                        <td style="padding: 4px 0 4px 16px; font-size: 13px; color: #dc2626; font-weight: 600;">' . $dueDate . '</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Order Items -->
+          <tr>
+            <td style="padding: 0 40px 32px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+                <tr style="background: #1e293b;">
+                  <td style="padding: 12px 16px; color: #ffffff; font-size: 12px; text-transform: uppercase; font-weight: 600;">Product</td>
+                  <td style="padding: 12px 16px; color: #ffffff; font-size: 12px; text-transform: uppercase; font-weight: 600; text-align: center;">Boxes</td>
+                  <td style="padding: 12px 16px; color: #ffffff; font-size: 12px; text-transform: uppercase; font-weight: 600; text-align: right;">Price/Box</td>
+                  <td style="padding: 12px 16px; color: #ffffff; font-size: 12px; text-transform: uppercase; font-weight: 600; text-align: right;">Total</td>
+                </tr>
+                ' . $productRowsHtml . '
+              </table>
+            </td>
+          </tr>
+
+          <!-- Total -->
+          <tr>
+            <td style="padding: 0 40px 32px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td width="60%"></td>
+                  <td width="40%">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: #f0fdf4; border-radius: 8px; border: 2px solid #10b981;">
+                      <tr>
+                        <td style="padding: 16px 20px;">
+                          <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                            <tr>
+                              <td style="font-size: 14px; color: #64748b;">Total Boxes:</td>
+                              <td align="right" style="font-size: 14px; font-weight: 600; color: #1e293b;">' . $totalBoxes . '</td>
+                            </tr>
+                            <tr>
+                              <td colspan="2" style="padding: 8px 0;"><hr style="border: none; border-top: 1px solid #bbf7d0; margin: 0;"></td>
+                            </tr>
+                            <tr>
+                              <td style="font-size: 16px; font-weight: 600; color: #1e293b;">Amount Due:</td>
+                              <td align="right" style="font-size: 24px; font-weight: 700; color: #059669;">$' . number_format($grandTotal, 2) . '</td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Payment Info -->
+          <tr>
+            <td style="padding: 0 40px 32px;">
+              <div style="background: #fef3c7; border-radius: 8px; padding: 16px 20px; border-left: 4px solid #f59e0b;">
+                <p style="margin: 0; font-size: 14px; font-weight: 600; color: #92400e;">Payment Terms: Net 30</p>
+                <p style="margin: 8px 0 0; font-size: 13px; color: #78350f;">Please remit payment within 30 days. For questions about this invoice, please contact us at support@collagendirect.health</p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background: #f8fafc; padding: 24px 40px; border-radius: 0 0 12px 12px; border-top: 1px solid #e2e8f0;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td>
+                    <p style="margin: 0; font-size: 13px; color: #64748b;">CollagenDirect Health</p>
+                    <p style="margin: 4px 0 0; font-size: 12px; color: #94a3b8;">www.collagendirect.health</p>
+                  </td>
+                  <td align="right">
+                    <p style="margin: 0; font-size: 12px; color: #94a3b8;">Thank you for your business!</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>';
+
+          // Send via SendGrid
+          $sent = sg_send(
+            ['email' => $recipientEmail, 'name' => $recipientName],
+            $subject,
+            $html,
+            ['categories' => ['wholesale', 'invoice']]
+          );
+
+          if ($sent) {
+            // Update all orders in the group with invoice_sent_at
+            $pdo->prepare("UPDATE orders SET updated_at=NOW() WHERE order_number = ? AND billed_by = 'practice_dme'")->execute([$orderNumber]);
+            $_SESSION['success_msg'] = 'Invoice sent successfully to ' . $recipientEmail;
+          } else {
+            $_SESSION['error_msg'] = 'Failed to send invoice email. Please check SendGrid configuration.';
+          }
         }
-      } else {
-        $_SESSION['error_msg'] = 'Order not found or physician has no email';
+      } catch (Throwable $e) {
+        error_log('[wholesale-orders] send_invoice error: ' . $e->getMessage());
+        $_SESSION['error_msg'] = 'Error sending invoice: ' . $e->getMessage();
       }
-    } catch (Throwable $e) {
-      error_log('[wholesale-orders] send_invoice error: ' . $e->getMessage());
-      $_SESSION['error_msg'] = 'Error sending invoice';
     }
   }
 
@@ -1098,11 +1266,11 @@ require_once '_header.php';
                 </button>
 
                 <!-- Send Invoice -->
-                <form method="POST" style="display: inline;" onsubmit="return confirm('Send invoice to <?= htmlspecialchars($group['phys_email'] ?? '') ?>?');">
+                <form method="POST" style="display: inline;" onsubmit="return confirm('Send invoice for order <?= htmlspecialchars($orderNum) ?> to <?= htmlspecialchars($group['phys_email'] ?? '') ?>?');">
                   <?= csrf_field() ?>
                   <input type="hidden" name="action" value="send_invoice">
-                  <input type="hidden" name="id" value="<?= $firstItemId ?>">
-                  <button type="submit" class="btn-icon warning" title="Send Invoice">
+                  <input type="hidden" name="order_number" value="<?= htmlspecialchars($orderNum) ?>">
+                  <button type="submit" class="btn-icon warning" title="Send Invoice Email">
                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
                   </button>
                 </form>
