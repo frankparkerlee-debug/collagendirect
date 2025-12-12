@@ -152,6 +152,12 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
         $paymentNote = date('Y-m-d H:i') . " - Payment recorded: $" . number_format($paymentAmount, 2) . " via " . $paymentMethod . ($paymentNotes ? " - " . $paymentNotes : "");
 
+        // Get current notes to append to
+        $notesStmt = $pdo->prepare("SELECT notes FROM orders WHERE id = ?");
+        $notesStmt->execute([$id]);
+        $currentNotes = $notesStmt->fetchColumn() ?: '';
+        $newNotes = $currentNotes ? $currentNotes . "\n" . $paymentNote : $paymentNote;
+
         // Update order - use separate queries to avoid PostgreSQL parameter type issues
         if ($newBalance <= 0) {
           // Fully paid - set paid_at
@@ -161,11 +167,11 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 amount_paid = ?,
                 balance_due = ?,
                 paid_at = NOW(),
-                notes = CONCAT(COALESCE(notes, ''), '\n', ?),
+                notes = ?,
                 updated_at = NOW()
             WHERE id = ?
           ");
-          $updateStmt->execute([$currentAmountDue, $newAmountPaid, $newBalance, $paymentNote, $id]);
+          $updateStmt->execute([$currentAmountDue, $newAmountPaid, $newBalance, $newNotes, $id]);
         } else {
           // Partial payment - don't set paid_at
           $updateStmt = $pdo->prepare("
@@ -173,11 +179,11 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             SET amount_due = ?,
                 amount_paid = ?,
                 balance_due = ?,
-                notes = CONCAT(COALESCE(notes, ''), '\n', ?),
+                notes = ?,
                 updated_at = NOW()
             WHERE id = ?
           ");
-          $updateStmt->execute([$currentAmountDue, $newAmountPaid, $newBalance, $paymentNote, $id]);
+          $updateStmt->execute([$currentAmountDue, $newAmountPaid, $newBalance, $newNotes, $id]);
         }
 
         $_SESSION['success_msg'] = 'Payment of $' . number_format($paymentAmount, 2) . ' recorded successfully';
