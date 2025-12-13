@@ -39,7 +39,8 @@ $productFilter = $_GET['product'] ?? '';
 
 /* ================= Get Metrics ================= */
 try {
-    $metrics = get_revenue_metrics($pdo, $dateFrom, $dateTo, $physicianId ?: null, $salesRepId);
+    // Include wholesale orders in revenue report (combined view of all revenue)
+    $metrics = get_revenue_metrics($pdo, $dateFrom, $dateTo, $physicianId ?: null, $salesRepId, true);
     error_log("[revenue-report] Date range: $dateFrom to $dateTo, Found " . count($metrics['orders']) . " orders, Revenue: $" . number_format($metrics['total_revenue'], 2));
 } catch (Throwable $e) {
     error_log("[revenue-report] FATAL ERROR in get_revenue_metrics: " . $e->getMessage());

@@ -196,9 +196,10 @@ function load_reimbursement_rates(PDO $pdo): array {
  * @param string $dateTo End date (Y-m-d)
  * @param string|null $physicianId Filter by physician
  * @param int|null $salesRepId Filter by sales rep (admin_users.id)
+ * @param bool $includeWholesale Whether to include wholesale orders (default: false for referral billing)
  * @return array Comprehensive metrics
  */
-function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '', ?string $physicianId = null, ?int $salesRepId = null): array {
+function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '', ?string $physicianId = null, ?int $salesRepId = null, bool $includeWholesale = false): array {
     $rates = load_reimbursement_rates($pdo);
 
     // Check if review_status column exists
@@ -224,8 +225,15 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
 
     // Build query - match dashboard's logic: exclude rejected, cancelled, draft status
     // Also exclude orders where review_status is 'draft' (same as dashboard) - if column exists
-    // Include ALL orders (both wholesale and referral) in revenue metrics
     $where = "o.status NOT IN ('rejected', 'cancelled', 'draft')";
+
+    // Filter wholesale orders based on parameter
+    if (!$includeWholesale) {
+        // Exclude wholesale orders (for referral billing page)
+        $where .= " AND (o.billed_by IS NULL OR o.billed_by != 'practice_dme')";
+        $where .= " AND (u.account_type IS NULL OR u.account_type NOT IN ('wholesale', 'dme_wholesale'))";
+    }
+
     if ($hasReviewStatus) {
         $where .= " AND (o.review_status IS NULL OR o.review_status != 'draft')";
     }
