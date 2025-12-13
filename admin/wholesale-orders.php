@@ -947,7 +947,7 @@ require_once '_header.php';
   <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem;">
     <div>
       <h1 style="font-size: 1.875rem; font-weight: 700; color: var(--ink); margin-bottom: 0.5rem;">Wholesale Orders</h1>
-      <p style="color: var(--muted); font-size: 0.875rem;">Manage orders where practices bill their own DME license</p>
+      <p style="color: var(--muted); font-size: 0.875rem;">Order details and fulfillment status. For billing/AR, see <a href="/admin/billing-wholesale.php" style="color: var(--primary); text-decoration: underline;">Billing > Wholesale</a></p>
     </div>
     <div style="display: flex; gap: 0.75rem;">
       <a href="/admin/wholesale-orders.php?export=csv" class="btn" style="background: var(--success); color: white; border-color: var(--success);">
@@ -961,8 +961,8 @@ require_once '_header.php';
     </div>
   </div>
 
-  <!-- Stats Cards -->
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+  <!-- Stats Cards - Fulfillment focused -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
     <div class="stat-card">
       <div class="stat-label">Total Orders</div>
       <div class="stat-value"><?= number_format($totalOrders) ?></div>
@@ -972,12 +972,24 @@ require_once '_header.php';
       <div class="stat-value warning"><?= number_format($pendingOrders) ?></div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">Unpaid Orders</div>
-      <div class="stat-value error"><?= number_format($unpaidOrders) ?></div>
+      <div class="stat-label">Ready to Ship</div>
+      <div class="stat-value" style="color: var(--primary);"><?php
+        $readyToShip = 0;
+        foreach ($groupedOrders as $g) {
+          if ($g['status'] === 'approved') $readyToShip++;
+        }
+        echo number_format($readyToShip);
+      ?></div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">Total A/R Balance</div>
-      <div class="stat-value success">$<?= number_format($totalRevenue, 2) ?></div>
+      <div class="stat-label">In Transit</div>
+      <div class="stat-value" style="color: #4338ca;"><?php
+        $inTransit = 0;
+        foreach ($groupedOrders as $g) {
+          if (in_array($g['status'], ['shipped', 'in_transit'])) $inTransit++;
+        }
+        echo number_format($inTransit);
+      ?></div>
     </div>
   </div>
 
@@ -1044,35 +1056,17 @@ require_once '_header.php';
     </form>
   </div>
 
-  <!-- Aging Summary -->
-  <div class="card" style="margin-bottom: 2rem; padding: 1.5rem;">
-    <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem; color: var(--ink);">Accounts Receivable Aging</h3>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
-      <div style="text-align: center; padding: 0.75rem; background: #f0fdf4; border-radius: var(--radius); border: 1px solid #bbf7d0;">
-        <div style="font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem; font-weight: 500;">Current</div>
-        <div style="font-size: 1.25rem; font-weight: 700; color: #15803d;">$<?= number_format($aging['current'], 2) ?></div>
-        <div style="font-size: 0.7rem; color: var(--muted);">Not yet due</div>
+  <!-- Link to Billing for A/R management -->
+  <div class="card" style="margin-bottom: 1.5rem; padding: 1rem 1.25rem; background: #f0f9ff; border-color: #bae6fd;">
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <svg width="20" height="20" fill="none" stroke="#0284c7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+        <span style="font-weight: 500; color: #0369a1;">For payment tracking, aging reports, and A/R management, visit the Billing page.</span>
       </div>
-      <div style="text-align: center; padding: 0.75rem; background: #fefce8; border-radius: var(--radius); border: 1px solid #fde047;">
-        <div style="font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem; font-weight: 500;">0-30 Days</div>
-        <div style="font-size: 1.25rem; font-weight: 700; color: #ca8a04;">$<?= number_format($aging['0-30'], 2) ?></div>
-        <div style="font-size: 0.7rem; color: var(--muted);">Past due</div>
-      </div>
-      <div style="text-align: center; padding: 0.75rem; background: #fff7ed; border-radius: var(--radius); border: 1px solid #fed7aa;">
-        <div style="font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem; font-weight: 500;">31-60 Days</div>
-        <div style="font-size: 1.25rem; font-weight: 700; color: #ea580c;">$<?= number_format($aging['31-60'], 2) ?></div>
-        <div style="font-size: 0.7rem; color: var(--muted);">Past due</div>
-      </div>
-      <div style="text-align: center; padding: 0.75rem; background: #fef2f2; border-radius: var(--radius); border: 1px solid #fecaca;">
-        <div style="font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem; font-weight: 500;">61-90 Days</div>
-        <div style="font-size: 1.25rem; font-weight: 700; color: #dc2626;">$<?= number_format($aging['61-90'], 2) ?></div>
-        <div style="font-size: 0.7rem; color: var(--muted);">Past due</div>
-      </div>
-      <div style="text-align: center; padding: 0.75rem; background: #fef2f2; border-radius: var(--radius); border: 2px solid #dc2626;">
-        <div style="font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem; font-weight: 500;">Over 90 Days</div>
-        <div style="font-size: 1.25rem; font-weight: 700; color: #991b1b;">$<?= number_format($aging['over_90'], 2) ?></div>
-        <div style="font-size: 0.7rem; color: #991b1b; font-weight: 600;">⚠️ BLOCKS ORDERING</div>
-      </div>
+      <a href="/admin/billing-wholesale.php" class="btn btn-primary" style="font-size: 0.875rem;">
+        Go to Billing
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-left: 0.25rem;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+      </a>
     </div>
   </div>
 

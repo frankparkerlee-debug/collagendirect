@@ -456,10 +456,23 @@ function isActive($pageName) {
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
         <span>Shipments</span>
       </a>
-      <a class="<?=isActive('billing')?>" href="/admin/billing.php">
-        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-        <span>Billing</span>
-      </a>
+
+      <!-- Billing Section with Submenu -->
+      <div class="nav-group">
+        <a class="nav-parent <?php echo (isActive('billing') || isActive('billing-wholesale')) ? 'active expanded' : ''; ?>" href="#" onclick="toggleSubmenu(event, 'billing-submenu')">
+          <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+          <span>Billing</span>
+          <svg class="nav-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px; margin-left: auto; transition: transform 0.2s;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </a>
+        <div id="billing-submenu" class="nav-submenu" style="display: <?php echo (isActive('billing') || isActive('billing-wholesale')) ? 'flex' : 'none'; ?>;">
+          <a class="<?=isActive('billing')?>" href="/admin/billing.php">
+            <span>Referral</span>
+          </a>
+          <a class="<?=isActive('billing-wholesale')?>" href="/admin/billing-wholesale.php">
+            <span>Wholesale</span>
+          </a>
+        </div>
+      </div>
       <a class="<?=isActive('products')?>" href="/admin/products.php">
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
         <span>Products</span>
