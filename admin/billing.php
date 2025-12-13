@@ -279,6 +279,41 @@ include __DIR__.'/_header.php';
     </form>
   </div>
 
+  <?php
+  // Group orders by order_group_id (multi-product orders) or by patient+date (single orders)
+  // This allows billing team to see all line items for a patient order together
+  $groupedOrders = [];
+  foreach ($rows as $row) {
+    // Use order_group_id if available, otherwise create a group key from patient_id + date
+    $groupKey = $row['order_group_id'] ?? null;
+    if (empty($groupKey)) {
+      // For single-product orders without a group, use patient_id + date as the grouping key
+      $orderDate = date('Y-m-d', strtotime($row['created_at']));
+      $groupKey = 'single_' . ($row['patient_id'] ?? 'unknown') . '_' . $orderDate . '_' . $row['id'];
+    }
+    if (!isset($groupedOrders[$groupKey])) {
+      $groupedOrders[$groupKey] = [
+        'group_id' => $groupKey,
+        'patient_id' => $row['patient_id'] ?? '',
+        'patient_name' => trim(($row['patient_first'] ?? '') . ' ' . ($row['patient_last'] ?? '')),
+        'practice_name' => $row['practice_name'] ?? '',
+        'insurer_name' => $row['insurer_name'] ?? '',
+        'created_at' => $row['created_at'],
+        'order_type' => $row['order_type'] ?? 'Referral',
+        'items' => [],
+        'total_revenue' => 0,
+        'total_boxes' => 0,
+        'statuses' => [],
+        'primary_order_id' => $row['id'], // First order ID in group (for PDF link)
+      ];
+    }
+    $groupedOrders[$groupKey]['items'][] = $row;
+    $groupedOrders[$groupKey]['total_revenue'] += (float)($row['calculated_revenue'] ?? 0);
+    $groupedOrders[$groupKey]['total_boxes'] += (int)($row['calculated_boxes'] ?? 1);
+    $groupedOrders[$groupKey]['statuses'][$row['status'] ?? 'unknown'] = true;
+  }
+  ?>
+
   <section class="card p-5">
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
@@ -286,11 +321,9 @@ include __DIR__.'/_header.php';
           <tr class="text-left text-xs text-slate-600">
             <th class="py-2 px-2">Patient</th>
             <th class="py-2 px-2">Order</th>
-            <th class="py-2 px-2">Product</th>
-            <th class="py-2 px-2">Freq</th>
-            <th class="py-2 px-2">Boxes</th>
-            <th class="py-2 px-2">CPT</th>
-            <th class="py-2 px-2">Revenue</th>
+            <th class="py-2 px-2">Products</th>
+            <th class="py-2 px-2">Total Boxes</th>
+            <th class="py-2 px-2">Order Total</th>
             <th class="py-2 px-2">Practice</th>
             <th class="py-2 px-2">Insurance</th>
             <th class="py-2 px-2">Status</th>
@@ -301,66 +334,91 @@ include __DIR__.'/_header.php';
           </tr>
         </thead>
       <tbody>
-        <?php $total=0.0; foreach($rows as $row):
-          // get_revenue_metrics() already calculates and stores revenue in each order row
-          // Fields available: calculated_revenue, calculated_cost, calculated_profit, calculated_boxes, order_type, product_name
-          $rev = (float)($row['calculated_revenue'] ?? 0);
-          $boxes = (int)($row['calculated_boxes'] ?? 1);
-          $total += $rev;
+        <?php $total=0.0; foreach($groupedOrders as $group):
+          $total += $group['total_revenue'];
+          $itemCount = count($group['items']);
+          $orderUrl = '/admin/order.pdf.php?id=' . rawurlencode($group['primary_order_id']) . '&csrf=' . rawurlencode($_SESSION['csrf'] ?? '');
+          $downloadAllUrl = '/admin/download-all.php?id=' . rawurlencode($group['primary_order_id']) . '&csrf=' . rawurlencode($_SESSION['csrf'] ?? '');
 
-          $prodLabel = $row['product_name'] ?? 'Unknown Product';
-          $pid      = (string)($row['patient_id'] ?? '');
-          $oid      = (string)($row['id'] ?? '');
-          // get_revenue_metrics uses patient_first/patient_last
-          $fullname = trim(($row['patient_first'] ?? '').' '.($row['patient_last'] ?? ''));
+          // Determine display order number - use order_group_id if it's a real group, otherwise short UUID
+          $displayOrderNum = str_starts_with($group['group_id'], 'single_')
+            ? substr($group['primary_order_id'], 0, 8)
+            : substr($group['group_id'], 0, 8);
 
-          $orderUrl = '/admin/order.pdf.php?id=' . rawurlencode($row['id']) . '&csrf=' . rawurlencode($_SESSION['csrf'] ?? '');
-          $downloadAllUrl = '/admin/download-all.php?id=' . rawurlencode($row['id']) . '&csrf=' . rawurlencode($_SESSION['csrf'] ?? '');
+          // Combine statuses for display
+          $statusList = array_keys($group['statuses']);
+          $statusDisplay = count($statusList) === 1 ? $statusList[0] : implode(', ', $statusList);
         ?>
-        <tr class="border-t">
-          <td class="py-2">
-            <?=e($fullname ?: '—')?> <br>
-            <span class="text-[11px] text-slate-500"><?=e($row['order_type'] ?? 'Referral')?></span>
+        <!-- Order Group Header Row -->
+        <tr class="border-t bg-slate-50/50 cursor-pointer hover:bg-slate-100" onclick="toggleOrderDetails('<?=e($group['group_id'])?>')">
+          <td class="py-2 px-2">
+            <strong><?=e($group['patient_name'] ?: '—')?></strong><br>
+            <span class="text-[11px] text-slate-500"><?=e($group['order_type'])?></span>
           </td>
-          <td class="py-2">#<?=e(substr($row['id'], 0, 8))?><br><span class="text-xs text-slate-500"><?=e(date('Y-m-d', strtotime($row['created_at'])))?></span></td>
-          <td class="py-2"><?=e($prodLabel)?></td>
-          <td class="py-2">
-            <?php
-              $fpwDisp = (int)($row['frequency_per_week'] ?? 0);
-              // Try wounds_data JSON if frequency_per_week is 0
-              if ($fpwDisp <= 0 && !empty($row['wounds_data'])) {
-                $wd = json_decode($row['wounds_data'], true);
-                if (is_array($wd) && isset($wd[0]['frequency_per_week'])) {
-                  $fpwDisp = (int)$wd[0]['frequency_per_week'];
-                }
-              }
-              if ($fpwDisp === 0) $fpwDisp = 1;
-              echo e($fpwDisp.'×/week');
-            ?>
+          <td class="py-2 px-2">
+            <span class="font-medium">#<?=e($displayOrderNum)?></span><br>
+            <span class="text-xs text-slate-500"><?=e(date('Y-m-d', strtotime($group['created_at'])))?></span>
           </td>
-          <td class="py-2">
-            <span class="font-medium"><?= e((string)$boxes) ?> box<?= $boxes !== 1 ? 'es' : '' ?></span>
+          <td class="py-2 px-2">
+            <?php if ($itemCount === 1): ?>
+              <?=e($group['items'][0]['product_name'] ?? 'Unknown')?>
+              <span class="text-xs text-slate-500">(<?=e($group['items'][0]['cpt_code'] ?? '—')?>)</span>
+            <?php else: ?>
+              <span class="text-brand font-medium"><?=$itemCount?> products</span>
+              <svg class="inline-block ml-1 w-4 h-4 text-slate-400 transition-transform" id="arrow-<?=e($group['group_id'])?>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            <?php endif; ?>
           </td>
-          <td class="py-2"><?=e($row['cpt_code'] ?? '—')?></td>
-          <td class="py-2 font-semibold">$<?=number_format($rev,2)?></td>
-          <td class="py-2"><?=e($row['practice_name'] ?? '—')?></td>
-          <td class="py-2"><?=e($row['insurer_name'] ?? '—')?></td>
-          <td class="py-2"><?=e($row['status'] ?? '—')?></td>
-          <td class="py-2"><a class="text-brand underline" target="_blank" href="<?=e($orderUrl)?>">View</a></td>
+          <td class="py-2 px-2">
+            <span class="font-medium"><?= e((string)$group['total_boxes']) ?> box<?= $group['total_boxes'] !== 1 ? 'es' : '' ?></span>
+          </td>
+          <td class="py-2 px-2 font-semibold">$<?=number_format($group['total_revenue'],2)?></td>
+          <td class="py-2 px-2"><?=e($group['practice_name'] ?: '—')?></td>
+          <td class="py-2 px-2"><?=e($group['insurer_name'] ?: '—')?></td>
+          <td class="py-2 px-2"><?=e($statusDisplay)?></td>
+          <td class="py-2 px-2"><a class="text-brand underline" target="_blank" href="<?=e($orderUrl)?>" onclick="event.stopPropagation()">View</a></td>
           <?php if ($adminRole === 'manufacturer'): ?>
-          <td class="py-2">
-            <a class="btn btn-primary text-xs" href="<?=e($downloadAllUrl)?>" title="Download all documents as ZIP">
+          <td class="py-2 px-2">
+            <a class="btn btn-primary text-xs" href="<?=e($downloadAllUrl)?>" title="Download all documents as ZIP" onclick="event.stopPropagation()">
               <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
               </svg>
-              Download All
+              All
             </a>
           </td>
           <?php endif; ?>
         </tr>
+        <?php if ($itemCount > 1): ?>
+        <!-- Expandable Line Items (hidden by default) -->
+        <?php foreach ($group['items'] as $idx => $row):
+          $rev = (float)($row['calculated_revenue'] ?? 0);
+          $boxes = (int)($row['calculated_boxes'] ?? 1);
+          $fpwDisp = (int)($row['frequency_per_week'] ?? 0);
+          if ($fpwDisp <= 0 && !empty($row['wounds_data'])) {
+            $wd = json_decode($row['wounds_data'], true);
+            if (is_array($wd) && isset($wd[0]['frequency_per_week'])) {
+              $fpwDisp = (int)$wd[0]['frequency_per_week'];
+            }
+          }
+          if ($fpwDisp === 0) $fpwDisp = 1;
+        ?>
+        <tr class="border-t border-slate-100 bg-white hidden" data-order-group="<?=e($group['group_id'])?>">
+          <td class="py-1.5 px-2 pl-6 text-slate-500 text-xs">└</td>
+          <td class="py-1.5 px-2 text-xs text-slate-500"><?=e(substr($row['id'], 0, 8))?></td>
+          <td class="py-1.5 px-2">
+            <?=e($row['product_name'] ?? 'Unknown')?>
+            <span class="text-xs text-slate-500">(<?=e($row['cpt_code'] ?? '—')?>)</span>
+          </td>
+          <td class="py-1.5 px-2 text-sm"><?=$boxes?> box<?=$boxes !== 1 ? 'es' : ''?> <span class="text-slate-400">@ <?=$fpwDisp?>×/wk</span></td>
+          <td class="py-1.5 px-2 text-sm">$<?=number_format($rev,2)?></td>
+          <td class="py-1.5 px-2" colspan="<?=$adminRole==='manufacturer'?'5':'4'?>"></td>
+        </tr>
+        <?php endforeach; ?>
+        <?php endif; ?>
         <?php endforeach; ?>
         <tr class="border-t font-semibold" style="background: #f9fafb;">
-          <td class="py-2" colspan="6">Total (Filtered)</td>
+          <td class="py-2" colspan="4">Total (<?=count($groupedOrders)?> orders, <?=count($rows)?> line items)</td>
           <td class="py-2">$<?=number_format($total,2)?></td>
           <td class="py-2" colspan="<?=$adminRole==='manufacturer'?'5':'4'?>"></td>
         </tr>
@@ -368,5 +426,18 @@ include __DIR__.'/_header.php';
     </table>
     </div>
   </section>
+
+  <script>
+  function toggleOrderDetails(groupId) {
+    const rows = document.querySelectorAll(`tr[data-order-group="${groupId}"]`);
+    const arrow = document.getElementById(`arrow-${groupId}`);
+    rows.forEach(row => {
+      row.classList.toggle('hidden');
+    });
+    if (arrow) {
+      arrow.classList.toggle('rotate-180');
+    }
+  }
+  </script>
 </div>
 <?php include __DIR__.'/_footer.php'; ?>

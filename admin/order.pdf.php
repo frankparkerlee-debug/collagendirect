@@ -24,6 +24,16 @@ try {
   $st = $pdo->prepare($sql); $st->execute([$id]); $o = $st->fetch();
   if (!$o) { http_response_code(404); echo "order not found"; exit; }
 
+  // Wholesale orders should not use this referral-style PDF
+  // They have their own invoice system in wholesale-orders.php
+  if (($o['billed_by'] ?? '') === 'practice_dme') {
+    $wsOrderNum = $o['wholesale_order_number'] ?? substr($o['id'], 0, 8);
+    http_response_code(400);
+    echo "This is a wholesale order (#{$wsOrderNum}). Wholesale orders do not have referral-style order PDFs. ";
+    echo "Please use the Wholesale Orders page to view/print invoices.";
+    exit;
+  }
+
   // Fetch all products in this order group (primary, secondary, additional)
   $order_group_id = $o['order_group_id'];
   $all_products = [];

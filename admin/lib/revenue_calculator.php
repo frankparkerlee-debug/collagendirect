@@ -222,7 +222,10 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
 
     // Build query - match dashboard's logic: exclude rejected, cancelled, draft status
     // Also exclude orders where review_status is 'draft' (same as dashboard) - if column exists
+    // IMPORTANT: Exclude wholesale orders (billed_by = 'practice_dme') from billing/revenue metrics
+    // Wholesale orders are managed separately in wholesale-orders.php
     $where = "o.status NOT IN ('rejected', 'cancelled', 'draft')";
+    $where .= " AND (o.billed_by IS NULL OR o.billed_by != 'practice_dme')";
     if ($hasReviewStatus) {
         $where .= " AND (o.review_status IS NULL OR o.review_status != 'draft')";
     }
@@ -274,6 +277,7 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
     $sql = "
         SELECT
             o.id,
+            o.order_group_id,
             o.created_at,
             o.status,
             o.billed_by,
