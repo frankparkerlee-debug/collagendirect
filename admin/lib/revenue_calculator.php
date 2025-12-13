@@ -33,7 +33,9 @@ function calculate_order_revenue(array $order, array $rates = [], bool $includeS
     $pieces_per_box = max(1, (int)($order['pieces_per_box'] ?? 10));
     $cost_per_box = (float)($order['cost_per_box'] ?? 0);
     $billedBy = $order['billed_by'] ?? 'collagen_direct';
-    $isWholesale = ($billedBy === 'practice_dme');
+    $accountType = $order['account_type'] ?? '';
+    // Identify wholesale by billed_by OR by user's account_type
+    $isWholesale = ($billedBy === 'practice_dme' || in_array($accountType, ['wholesale', 'dme_wholesale']));
 
     $steps = [];
     $revenue = 0;
@@ -222,10 +224,8 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
 
     // Build query - match dashboard's logic: exclude rejected, cancelled, draft status
     // Also exclude orders where review_status is 'draft' (same as dashboard) - if column exists
-    // IMPORTANT: Exclude wholesale orders (billed_by = 'practice_dme') from billing/revenue metrics
-    // Wholesale orders are managed separately in wholesale-orders.php
+    // Include ALL orders (both wholesale and referral) in revenue metrics
     $where = "o.status NOT IN ('rejected', 'cancelled', 'draft')";
-    $where .= " AND (o.billed_by IS NULL OR o.billed_by != 'practice_dme')";
     if ($hasReviewStatus) {
         $where .= " AND (o.review_status IS NULL OR o.review_status != 'draft')";
     }
@@ -310,6 +310,7 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
             u.practice_name,
             u.first_name AS phys_first,
             u.last_name AS phys_last,
+            u.account_type,
             ap.admin_id AS sales_rep_id,
             au.name AS sales_rep_name
         FROM orders o
