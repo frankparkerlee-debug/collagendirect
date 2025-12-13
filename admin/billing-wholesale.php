@@ -48,7 +48,8 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
   ]);
 
   // Build same query as main view but for export
-  $whereConditions = ["o.billed_by = 'practice_dme'"];
+  // Include orders where billed_by = 'practice_dme' OR user has wholesale account type
+  $whereConditions = ["(o.billed_by = 'practice_dme' OR u.account_type IN ('wholesale', 'dme_wholesale'))"];
   $whereConditions[] = "(o.review_status IS NULL OR o.review_status != 'draft')";
   $whereConditions[] = "o.status NOT IN ('rejected', 'cancelled')";
   $params = [];
@@ -198,11 +199,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->beginTransaction();
 
         // Get all orders with this order_number to distribute payment
+        // Include orders where billed_by = 'practice_dme' OR user has wholesale account type
         $orderStmt = $pdo->prepare("
-          SELECT id, user_id, amount_due, amount_paid, balance_due, qty_per_change, product_price, product_id
-          FROM orders
-          WHERE order_number = ? AND billed_by = 'practice_dme'
-          ORDER BY created_at
+          SELECT o.id, o.user_id, o.amount_due, o.amount_paid, o.balance_due, o.qty_per_change, o.product_price, o.product_id
+          FROM orders o
+          JOIN users u ON u.id = o.user_id
+          WHERE o.order_number = ? AND (o.billed_by = 'practice_dme' OR u.account_type IN ('wholesale', 'dme_wholesale'))
+          ORDER BY o.created_at
         ");
         $orderStmt->execute([$orderNumber]);
         $orders = $orderStmt->fetchAll(PDO::FETCH_ASSOC);
@@ -255,16 +258,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $newBalance = $currentAmountDue - $newAmountPaid;
             $remainingPayment -= $paymentForOrder;
 
-            // Update order
+            // Update order (also set billed_by to normalize the data)
             if ($newBalance <= 0) {
               $updateStmt = $pdo->prepare("
                 UPDATE orders SET amount_due = ?, amount_paid = ?, balance_due = ?, paid_at = NOW(),
-                invoice_status = 'paid', updated_at = NOW() WHERE id = ?
+                invoice_status = 'paid', billed_by = 'practice_dme', updated_at = NOW() WHERE id = ?
               ");
             } else {
               $updateStmt = $pdo->prepare("
                 UPDATE orders SET amount_due = ?, amount_paid = ?, balance_due = ?,
-                invoice_status = 'partial', updated_at = NOW() WHERE id = ?
+                invoice_status = 'partial', billed_by = 'practice_dme', updated_at = NOW() WHERE id = ?
               ");
             }
             $updateStmt->execute([$currentAmountDue, $newAmountPaid, max(0, $newBalance), $order['id']]);
@@ -288,10 +291,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $voidReason = $_POST['void_reason'] ?? '';
 
     if ($orderNumber) {
+      // Update orders that are wholesale (by billed_by or by user account_type)
+      // Also set billed_by to normalize the data
       $stmt = $pdo->prepare("
-        UPDATE orders
-        SET invoice_status = 'void', voided_at = NOW(), voided_by = ?, void_reason = ?, updated_at = NOW()
-        WHERE order_number = ? AND billed_by = 'practice_dme'
+        UPDATE orders o
+        SET invoice_status = 'void', voided_at = NOW(), voided_by = ?, void_reason = ?, billed_by = 'practice_dme', updated_at = NOW()
+        FROM users u
+        WHERE u.id = o.user_id
+          AND o.order_number = ?
+          AND (o.billed_by = 'practice_dme' OR u.account_type IN ('wholesale', 'dme_wholesale'))
       ");
       $stmt->execute([$adminId, $voidReason, $orderNumber]);
       $_SESSION['success_msg'] = 'Invoice voided: ' . $orderNumber;
@@ -306,10 +314,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($orderNumber) {
       $status = $flag ? 'collections' : 'overdue';
+      // Update orders that are wholesale (by billed_by or by user account_type)
+      // Also set billed_by to normalize the data
       $stmt = $pdo->prepare("
-        UPDATE orders
-        SET collection_flag = ?, invoice_status = ?, updated_at = NOW()
-        WHERE order_number = ? AND billed_by = 'practice_dme'
+        UPDATE orders o
+        SET collection_flag = ?, invoice_status = ?, billed_by = 'practice_dme', updated_at = NOW()
+        FROM users u
+        WHERE u.id = o.user_id
+          AND o.order_number = ?
+          AND (o.billed_by = 'practice_dme' OR u.account_type IN ('wholesale', 'dme_wholesale'))
       ");
       $stmt->execute([$flag ? true : false, $status, $orderNumber]);
       $_SESSION['success_msg'] = $flag ? 'Flagged for collections: ' . $orderNumber : 'Removed collection flag: ' . $orderNumber;
@@ -362,7 +375,7 @@ try {
     SELECT DISTINCT u.id, u.practice_name, u.first_name, u.last_name, u.default_payment_terms
     FROM users u
     INNER JOIN orders o ON o.user_id = u.id
-    WHERE o.billed_by = 'practice_dme'
+    WHERE o.billed_by = 'practice_dme' OR u.account_type IN ('wholesale', 'dme_wholesale')
     ORDER BY u.practice_name
   ");
   $practices = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -378,7 +391,8 @@ $totalAR = 0.0;
 $totalPaid = 0.0;
 
 try {
-  $whereConditions = ["o.billed_by = 'practice_dme'"];
+  // Include orders where billed_by = 'practice_dme' OR user has wholesale account type
+  $whereConditions = ["(o.billed_by = 'practice_dme' OR u.account_type IN ('wholesale', 'dme_wholesale'))"];
   $whereConditions[] = "(o.review_status IS NULL OR o.review_status != 'draft')";
   $whereConditions[] = "o.status NOT IN ('rejected', 'cancelled')";
   $params = [];
@@ -781,6 +795,7 @@ include __DIR__.'/_header.php';
                      u.billing_notes, u.billing_contact_name, u.billing_contact_email, u.billing_contact_phone
               FROM users u
               WHERE u.id IN (SELECT DISTINCT user_id FROM orders WHERE billed_by = 'practice_dme')
+                 OR u.account_type IN ('wholesale', 'dme_wholesale')
               ORDER BY u.practice_name
             ");
             $practiceDetails = $pStmt->fetchAll(PDO::FETCH_ASSOC);
