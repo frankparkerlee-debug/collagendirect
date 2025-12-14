@@ -20,6 +20,13 @@ if (!function_exists('str_contains')) {
 if (!function_exists('e')) {
   function e($v){ return htmlspecialchars((string)$v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
 }
+// Helper to render a view link for uploaded documents
+function render_doc_link($path, $empty = '—') {
+  if (!$path) return '<span class="text-slate-400">' . $empty . '</span>';
+  $csrf = $_SESSION['csrf'] ?? '';
+  $url = '/admin/file.dl.php?p=' . rawurlencode($path) . '&mode=view&csrf=' . rawurlencode($csrf);
+  return '<a class="text-brand underline text-xs" target="_blank" href="' . e($url) . '">View</a>';
+}
 
 /* ================= Helpers ================= */
 function has_table(PDO $pdo, $t) {
@@ -297,7 +304,7 @@ include __DIR__.'/_header.php';
         'patient_id' => $row['patient_id'] ?? '',
         'patient_name' => trim(($row['patient_first'] ?? '') . ' ' . ($row['patient_last'] ?? '')),
         'practice_name' => $row['practice_name'] ?? '',
-        'insurer_name' => $row['insurer_name'] ?? '',
+        'insurer_name' => $row['insurer_name'] ?: ($row['insurance_provider'] ?? ''),
         'created_at' => $row['created_at'],
         'order_type' => $row['order_type'] ?? 'Referral',
         'items' => [],
@@ -305,6 +312,10 @@ include __DIR__.'/_header.php';
         'total_boxes' => 0,
         'statuses' => [],
         'primary_order_id' => $row['id'], // First order ID in group (for PDF link)
+        // Patient document paths (from patients table)
+        'id_card_path' => $row['id_card_path'] ?? null,
+        'ins_card_path' => $row['ins_card_path'] ?? null,
+        'rx_note_path' => $row['rx_note_path'] ?? null,
       ];
     }
     $groupedOrders[$groupKey]['items'][] = $row;
@@ -326,6 +337,9 @@ include __DIR__.'/_header.php';
             <th class="py-2 px-2">Order Total</th>
             <th class="py-2 px-2">Practice</th>
             <th class="py-2 px-2">Insurance</th>
+            <th class="py-2 px-2">ID Card</th>
+            <th class="py-2 px-2">Ins. Card</th>
+            <th class="py-2 px-2">Visit Note</th>
             <th class="py-2 px-2">Status</th>
             <th class="py-2 px-2">Order PDF</th>
             <?php if ($adminRole === 'manufacturer'): ?>
@@ -376,6 +390,9 @@ include __DIR__.'/_header.php';
           <td class="py-2 px-2 font-semibold">$<?=number_format($group['total_revenue'],2)?></td>
           <td class="py-2 px-2"><?=e($group['practice_name'] ?: '—')?></td>
           <td class="py-2 px-2"><?=e($group['insurer_name'] ?: '—')?></td>
+          <td class="py-2 px-2"><?=render_doc_link($group['id_card_path'])?></td>
+          <td class="py-2 px-2"><?=render_doc_link($group['ins_card_path'])?></td>
+          <td class="py-2 px-2"><?=render_doc_link($group['rx_note_path'])?></td>
           <td class="py-2 px-2"><?=e($statusDisplay)?></td>
           <td class="py-2 px-2"><a class="text-brand underline" target="_blank" href="<?=e($orderUrl)?>" onclick="event.stopPropagation()">View</a></td>
           <?php if ($adminRole === 'manufacturer'): ?>
@@ -412,7 +429,7 @@ include __DIR__.'/_header.php';
           </td>
           <td class="py-1.5 px-2 text-sm"><?=$boxes?> box<?=$boxes !== 1 ? 'es' : ''?> <span class="text-slate-400">@ <?=$fpwDisp?>×/wk</span></td>
           <td class="py-1.5 px-2 text-sm">$<?=number_format($rev,2)?></td>
-          <td class="py-1.5 px-2" colspan="<?=$adminRole==='manufacturer'?'5':'4'?>"></td>
+          <td class="py-1.5 px-2" colspan="<?=$adminRole==='manufacturer'?'8':'7'?>"></td>
         </tr>
         <?php endforeach; ?>
         <?php endif; ?>
@@ -420,7 +437,7 @@ include __DIR__.'/_header.php';
         <tr class="border-t font-semibold" style="background: #f9fafb;">
           <td class="py-2" colspan="4">Total (<?=count($groupedOrders)?> orders, <?=count($rows)?> line items)</td>
           <td class="py-2">$<?=number_format($total,2)?></td>
-          <td class="py-2" colspan="<?=$adminRole==='manufacturer'?'5':'4'?>"></td>
+          <td class="py-2" colspan="<?=$adminRole==='manufacturer'?'8':'7'?>"></td>
         </tr>
       </tbody>
     </table>

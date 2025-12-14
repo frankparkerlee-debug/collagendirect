@@ -38,6 +38,104 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   } elseif (($_POST['action'] ?? '') === 'set_status') {
     $pdo->prepare("UPDATE orders SET status=?, updated_at=NOW() WHERE id=?")
         ->execute([$_POST['status'] ?? 'pending', $id]);
+  } elseif (($_POST['action'] ?? '') === 'mark_delivered') {
+    // Mark order as delivered and send SMS/email confirmation
+    $pdo->prepare("UPDATE orders SET status='delivered', delivered_at=NOW(), updated_at=NOW() WHERE id=?")->execute([$id]);
+
+    // Send delivery confirmation notification
+    try {
+      require_once __DIR__ . '/../api/lib/twilio_sms.php';
+
+      // Get order and patient details including physician name
+      $orderData = $pdo->prepare("
+        SELECT o.id, o.product, o.frequency, o.delivered_at,
+               p.id as patient_id, p.first_name, p.last_name, p.phone, p.email,
+               u.first_name AS phys_first, u.last_name AS phys_last, u.practice_name
+        FROM orders o
+        LEFT JOIN patients p ON p.id = o.patient_id
+        LEFT JOIN users u ON u.id = o.user_id
+        WHERE o.id = ?
+      ");
+      $orderData->execute([$id]);
+      $order = $orderData->fetch(PDO::FETCH_ASSOC);
+
+      if ($order) {
+        $hasPhone = !empty($order['phone']);
+        $hasEmail = !empty($order['email']);
+        $patientName = trim(($order['first_name'] ?? '') . ' ' . ($order['last_name'] ?? ''));
+        $physicianName = trim(($order['phys_last'] ?? '') . ($order['phys_first'] ? ', ' . $order['phys_first'] : ''));
+        if (empty($physicianName) && !empty($order['practice_name'])) {
+          $physicianName = $order['practice_name'];
+        }
+
+        // Check if confirmation already exists
+        $existingConfirmation = $pdo->prepare("SELECT id FROM delivery_confirmations WHERE order_id = ?");
+        $existingConfirmation->execute([$id]);
+
+        if (!$existingConfirmation->fetch() && ($hasPhone || $hasEmail)) {
+          // Generate unique confirmation token
+          $token = bin2hex(random_bytes(32));
+
+          // Insert confirmation record
+          $insertStmt = $pdo->prepare("
+            INSERT INTO delivery_confirmations (
+              order_id, patient_phone, patient_email, confirmation_token, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, NOW(), NOW())
+            RETURNING id
+          ");
+          $insertStmt->execute([$id, $order['phone'] ?? null, $order['email'] ?? null, $token]);
+          $confirmationId = $insertStmt->fetchColumn();
+
+          $smsSent = false;
+          $emailSent = false;
+
+          // Try SMS first if patient has phone
+          if ($hasPhone) {
+            $smsResult = send_delivery_confirmation_sms($order['phone'], $patientName, $id, $token, $physicianName);
+            if ($smsResult['success']) {
+              $smsSent = true;
+              $pdo->prepare("UPDATE delivery_confirmations SET sms_sent_at = NOW(), sms_sid = ?, sms_status = ?, updated_at = NOW() WHERE id = ?")
+                  ->execute([$smsResult['sid'], $smsResult['status'], $confirmationId]);
+            }
+          }
+
+          // Send email if: (1) no phone, OR (2) SMS failed
+          if ($hasEmail && (!$hasPhone || !$smsSent)) {
+            require_once __DIR__ . '/../api/lib/email_sender.php';
+
+            $confirmUrl = "https://collagendirect.health/api/delivery-approval.php?token=" . urlencode($token);
+            $productName = $order['product'] ?? 'wound care supplies';
+
+            $emailSubject = "Confirm Receipt of Your Wound Care Supplies";
+            $emailBody = email_template($emailSubject, "
+              <h2 style='color: #1e293b; margin: 0 0 20px 0;'>Delivery Confirmation</h2>
+              <p style='color: #475569; line-height: 1.6;'>Hi {$patientName},</p>
+              <p style='color: #475569; line-height: 1.6;'>Your wound care supplies" . ($physicianName ? " from Dr. {$physicianName}" : "") . " have been delivered.</p>
+              <p style='color: #475569; line-height: 1.6;'>Please confirm receipt by clicking the button below:</p>
+              <div style='text-align: center; margin: 30px 0;'>
+                <a href='{$confirmUrl}' style='display: inline-block; background: linear-gradient(135deg, #10b981, #059669); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 12px; font-weight: 600; font-size: 16px;'>
+                  Confirm & Sign
+                </a>
+              </div>
+            ");
+
+            $textBody = "Delivery Confirmation\n\nHi {$patientName},\n\nYour wound care supplies" . ($physicianName ? " from Dr. {$physicianName}" : "") . " have been delivered.\n\nPlease confirm receipt by visiting:\n{$confirmUrl}";
+
+            if (send_email($order['email'], $patientName, $emailSubject, $emailBody, $textBody)) {
+              $emailSent = true;
+              $pdo->prepare("UPDATE delivery_confirmations SET notes = COALESCE(notes, '') || 'Email sent: ' || NOW()::text, updated_at = NOW() WHERE id = ?")->execute([$confirmationId]);
+            }
+          }
+        }
+
+        // Create photo prompt schedule for wound photo updates
+        require_once __DIR__ . '/../api/lib/photo_prompt_helpers.php';
+        $deliveryDate = date('Y-m-d', strtotime($order['delivered_at'] ?? 'now'));
+        create_photo_prompt_schedule($pdo, $order['id'], $order['patient_id'], $order['frequency'], $order['product'], $deliveryDate);
+      }
+    } catch (Throwable $notifyErr) {
+      error_log('[shipments.php] Delivery confirmation error: ' . $notifyErr->getMessage());
+    }
   }
   header('Location: /admin/shipments.php'); exit;
 }
@@ -285,7 +383,7 @@ include __DIR__ . '/_header.php';
             <?=e(ucwords(str_replace('_',' ',$r['status'] ?? 'pending')))?>
           </span>
         </td>
-        <td class="py-3">
+        <td class="py-3 space-x-2">
           <form method="post" class="inline"><?=csrf_field()?>
             <input type="hidden" name="action" value="set_status">
             <input type="hidden" name="id" value="<?=e($r['id'])?>">
@@ -296,6 +394,14 @@ include __DIR__ . '/_header.php';
             </select>
             <button class="ml-2 text-slate-700 text-xs">Update</button>
           </form>
+          <?php if ($r['status'] !== 'delivered'): ?>
+          <form method="post" class="inline" onsubmit="return confirm('Mark as delivered and send confirmation to patient?');">
+            <?=csrf_field()?>
+            <input type="hidden" name="action" value="mark_delivered">
+            <input type="hidden" name="id" value="<?=e($r['id'])?>">
+            <button class="text-green-600 hover:underline font-semibold text-xs whitespace-nowrap">Mark Delivered</button>
+          </form>
+          <?php endif; ?>
         </td>
       </tr>
       <?php endforeach; ?>

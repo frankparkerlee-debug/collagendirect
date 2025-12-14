@@ -302,6 +302,10 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
             o.patient_id,
             pt.first_name AS patient_first,
             pt.last_name AS patient_last,
+            pt.id_card_path,
+            pt.ins_card_path,
+            pt.insurance_provider,
+            o.rx_note_path,
             o.product_id,
             " . ($hasProducts
                 ? "COALESCE(pr.hcpcs_code, o.cpt) AS cpt_code,
@@ -380,7 +384,7 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
     ];
 
     foreach ($orders as $order) {
-        $calc = calculate_order_revenue($order, $rates);
+        $calc = calculate_order_revenue($order, $rates, true);
 
         $metrics['total_orders']++;
         $metrics['total_revenue'] += $calc['revenue'];
@@ -400,7 +404,11 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
         if ($calc['is_wholesale']) {
             $payor = 'Cash (Wholesale)';
         } else {
-            $payor = $order['insurer_name'] ?: 'Unknown';
+            // Try order's insurer_name first, then patient's insurance_provider
+            $payor = $order['insurer_name'] ?: ($order['insurance_provider'] ?? 'Unknown');
+            if (empty($payor) || $payor === '') {
+                $payor = 'Unknown';
+            }
         }
         if (!isset($metrics['payor_mix'][$payor])) {
             $metrics['payor_mix'][$payor] = ['orders' => 0, 'revenue' => 0, 'boxes' => 0];
