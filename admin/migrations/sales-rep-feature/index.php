@@ -52,12 +52,14 @@ $runMigrations = isset($_POST['run']) && $_POST['run'] === '1';
       <ol class="list-decimal list-inside space-y-2 text-gray-700 mb-6">
         <li><code class="bg-gray-100 px-2 py-0.5 rounded">001_create_sales_reps.php</code> - Sales rep profile table</li>
         <li><code class="bg-gray-100 px-2 py-0.5 rounded">002_create_rep_commission_rates.php</code> - Commission rate history</li>
+        <li><code class="bg-gray-100 px-2 py-0.5 rounded">002b_fix_commission_rates_column.php</code> - Fix: Add set_by column</li>
         <li><code class="bg-gray-100 px-2 py-0.5 rounded">003_create_rep_signed_documents.php</code> - E-signature records</li>
         <li><code class="bg-gray-100 px-2 py-0.5 rounded">004_create_rep_assignment_requests.php</code> - Clinic assignment workflow</li>
         <li><code class="bg-gray-100 px-2 py-0.5 rounded">005_create_rep_commission_ledger.php</code> - Per-order commission entries</li>
         <li><code class="bg-gray-100 px-2 py-0.5 rounded">006_create_rep_commission_payouts.php</code> - Payout records</li>
         <li><code class="bg-gray-100 px-2 py-0.5 rounded">007_add_rep_columns_to_users.php</code> - Add rep columns to users table</li>
         <li><code class="bg-gray-100 px-2 py-0.5 rounded">008_create_test_sales_rep.php</code> - Create test sales rep account</li>
+        <li><code class="bg-gray-100 px-2 py-0.5 rounded">009_admin_rep_creation.php</code> - Admin invite/direct-add columns</li>
       </ol>
 
       <form method="POST" onsubmit="return confirm('Are you sure you want to run these migrations? This will modify the database.');">
@@ -78,12 +80,14 @@ $runMigrations = isset($_POST['run']) && $_POST['run'] === '1';
 $migrations = [
   '001_create_sales_reps.php',
   '002_create_rep_commission_rates.php',
+  '002b_fix_commission_rates_column.php',
   '003_create_rep_signed_documents.php',
   '004_create_rep_assignment_requests.php',
   '005_create_rep_commission_ledger.php',
   '006_create_rep_commission_payouts.php',
   '007_add_rep_columns_to_users.php',
   '008_create_test_sales_rep.php',
+  '009_admin_rep_creation.php',
 ];
 
 $migrationDir = __DIR__;
@@ -206,6 +210,40 @@ if ($failCount > 0) {
 
           echo "<tr class='border-b'>";
           echo "<td class='py-2 font-mono text-xs'>users.{$col}</td>";
+          echo "<td class='py-2 {$statusClass}'>{$statusText}</td>";
+          echo "<td class='py-2'>-</td>";
+          echo "</tr>";
+        }
+
+        // Check sales_reps invite columns (migration 009)
+        $srColumns = ['invite_token', 'invite_token_expires_at', 'invited_by'];
+        foreach ($srColumns as $col) {
+          $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM information_schema.columns WHERE table_name = 'sales_reps' AND column_name = ?");
+          $stmt->execute([$col]);
+          $exists = (int)$stmt->fetch()['count'] > 0;
+
+          $statusClass = $exists ? 'text-green-600' : 'text-gray-400';
+          $statusText = $exists ? '✓ Exists' : '○ Not created';
+
+          echo "<tr class='border-b'>";
+          echo "<td class='py-2 font-mono text-xs'>sales_reps.{$col}</td>";
+          echo "<td class='py-2 {$statusClass}'>{$statusText}</td>";
+          echo "<td class='py-2'>-</td>";
+          echo "</tr>";
+        }
+
+        // Check rep_signed_documents source columns (migration 009)
+        $docColumns = ['source', 'uploaded_by'];
+        foreach ($docColumns as $col) {
+          $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM information_schema.columns WHERE table_name = 'rep_signed_documents' AND column_name = ?");
+          $stmt->execute([$col]);
+          $exists = (int)$stmt->fetch()['count'] > 0;
+
+          $statusClass = $exists ? 'text-green-600' : 'text-gray-400';
+          $statusText = $exists ? '✓ Exists' : '○ Not created';
+
+          echo "<tr class='border-b'>";
+          echo "<td class='py-2 font-mono text-xs'>rep_signed_documents.{$col}</td>";
           echo "<td class='py-2 {$statusClass}'>{$statusText}</td>";
           echo "<td class='py-2'>-</td>";
           echo "</tr>";
