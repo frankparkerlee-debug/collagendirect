@@ -231,7 +231,7 @@ function sendAdminNotification(PDO $pdo, string $firstName, string $lastName, st
 </p>
 
 <div style="text-align: center; margin: 30px 0;">
-  <a href="https://collagendirect.health/admin/sales-reps.php"
+  <a href="https://collagendirect.health/admin/platform/distributors.php?tab=pending"
      style="display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #0d9488 0%, #10b981 100%); color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">
     Review Application
   </a>

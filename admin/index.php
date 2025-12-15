@@ -536,7 +536,7 @@ include __DIR__.'/_header.php';
   <?php if ($adminRole === 'superadmin' || $adminRole === 'manufacturer'): ?>
   <!-- Commission Obligations Card (Superadmin/Manufacturer only) -->
   <div class="mb-8">
-    <a href="/admin/sales-reps.php?tab=payouts" class="block bg-gradient-to-r from-teal-50 to-emerald-50 border border-teal-200 rounded-2xl p-5 shadow-soft hover:shadow-md transition-shadow cursor-pointer group">
+    <a href="/admin/platform/distributors.php?tab=payouts" class="block bg-gradient-to-r from-teal-50 to-emerald-50 border border-teal-200 rounded-2xl p-5 shadow-soft hover:shadow-md transition-shadow cursor-pointer group">
       <div class="flex items-center justify-between">
         <div>
           <div class="flex items-center gap-2 mb-2">

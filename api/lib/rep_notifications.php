@@ -306,7 +306,7 @@ HTML;
  * Send notification to admin: New Rep Application
  */
 function send_admin_new_rep_application(PDO $pdo, string $repName, string $repEmail, ?string $company = null): bool {
-    $reviewUrl = env('APP_URL', 'https://collagendirect.health') . '/admin/sales-reps.php?tab=pending';
+    $reviewUrl = env('APP_URL', 'https://collagendirect.health') . '/admin/platform/distributors.php?tab=pending';
     $companyText = $company ? "<br>Company: {$company}" : '';
 
     $body = <<<HTML
@@ -349,7 +349,7 @@ HTML;
  * Send notification to admin: New Assignment Request
  */
 function send_admin_new_assignment_request(PDO $pdo, string $repName, string $clinicName): bool {
-    $reviewUrl = env('APP_URL', 'https://collagendirect.health') . '/admin/sales-reps.php?tab=requests';
+    $reviewUrl = env('APP_URL', 'https://collagendirect.health') . '/admin/platform/distributors.php?tab=requests';
 
     $body = <<<HTML
 <h2 style="color: #1e293b; margin: 0 0 20px 0; font-size: 22px;">New Assignment Request</h2>

@@ -478,18 +478,33 @@ function isActive($pageName) {
         <span>Products</span>
       </a>
 
-      <?php if (in_array($admin['role'] ?? '', ['superadmin', 'manufacturer'])): ?>
-      <!-- Rep Management - Superadmin/Manufacturer only -->
-      <a class="<?=isActive('sales-reps')?> <?=isActive('sales-rep-detail')?>" href="/admin/sales-reps.php">
-        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-        <span>Rep Management</span>
-      </a>
-      <?php endif; ?>
+      <!-- Admin Settings Section with Submenu -->
+      <div class="nav-group">
+        <a class="nav-parent <?php echo (isActive('users') || isActive('practices') || isActive('internal-users') || isActive('distributors')) ? 'active expanded' : ''; ?>" href="#" onclick="toggleSubmenu(event, 'settings-submenu')">
+          <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+          <span>Admin Settings</span>
+          <svg class="nav-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px; margin-left: auto; transition: transform 0.2s;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </a>
+        <div id="settings-submenu" class="nav-submenu" style="display: <?php echo (isActive('users') || isActive('practices') || isActive('internal-users') || isActive('distributors')) ? 'flex' : 'none'; ?>;">
+          <a class="<?=isActive('practices')?>" href="/admin/platform/practices.php">
+            <span>Practices</span>
+          </a>
+          <?php if (in_array($admin['role'] ?? '', ['superadmin', 'admin'])): ?>
+          <a class="<?=isActive('internal-users')?>" href="/admin/platform/internal-users.php">
+            <span>Internal Users</span>
+          </a>
+          <?php endif; ?>
+          <?php if (in_array($admin['role'] ?? '', ['superadmin', 'manufacturer', 'admin', 'sales'])): ?>
+          <a class="<?=isActive('distributors')?>" href="/admin/platform/distributors.php">
+            <span>Distributors</span>
+          </a>
+          <?php endif; ?>
+          <a class="<?=isActive('users')?>" href="/admin/users.php">
+            <span>Legacy Settings</span>
+          </a>
+        </div>
+      </div>
 
-      <a class="<?=isActive('users')?>" href="/admin/users.php">
-        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-        <span>Admin Settings</span>
-      </a>
       <a class="<?=isActive('messages')?>" href="/admin/messages.php">
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
         <span>Messages</span>

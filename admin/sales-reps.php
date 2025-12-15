@@ -1,11 +1,21 @@
 <?php
 /**
- * Sales Rep Management
+ * Sales Rep Management - REDIRECT
  *
- * Admin interface for managing sales representatives.
- * Accessible to: superadmin, manufacturer
+ * This page has been relocated to /admin/platform/distributors.php
+ * This redirect preserves existing bookmarks and external links.
  */
 declare(strict_types=1);
+
+// Redirect to new location, preserving query parameters
+$newUrl = '/admin/platform/distributors.php';
+if (!empty($_SERVER['QUERY_STRING'])) {
+  $newUrl .= '?' . $_SERVER['QUERY_STRING'];
+}
+header('Location: ' . $newUrl, true, 301);
+exit;
+
+// Original code below kept for reference (never executed)
 require __DIR__ . '/_header.php';
 
 // Check permissions

@@ -17,7 +17,7 @@ if (!in_array($admin['role'] ?? '', $allowedRoles)) {
 
 $repId = $_GET['id'] ?? '';
 if (!$repId) {
-  header('Location: /admin/sales-reps.php');
+  header('Location: /admin/platform/distributors.php');
   exit;
 }
 
@@ -192,7 +192,7 @@ $repStmt->execute([$repId]);
 $rep = $repStmt->fetch();
 
 if (!$rep) {
-  header('Location: /admin/sales-reps.php');
+  header('Location: /admin/platform/distributors.php');
   exit;
 }
 
@@ -335,9 +335,9 @@ $statusColors = [
 
 <!-- Page Header with Back Link -->
 <div class="mb-6">
-  <a href="/admin/sales-reps.php" class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 mb-4">
+  <a href="/admin/platform/distributors.php" class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 mb-4">
     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-    Back to Rep Management
+    Back to Distributors
   </a>
 
   <div class="flex items-start justify-between">
