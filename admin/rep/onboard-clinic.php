@@ -37,10 +37,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $error = 'Password must be at least 8 characters.';
   } else {
     // Check if email already exists
-    $checkStmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
+    $checkStmt = $pdo->prepare("SELECT id, assigned_rep_id, practice_name, first_name, last_name FROM users WHERE email = ?");
     $checkStmt->execute([strtolower($email)]);
-    if ($checkStmt->fetch()) {
-      $error = 'A user with this email already exists.';
+    $existingUser = $checkStmt->fetch();
+    if ($existingUser) {
+      if ($existingUser['assigned_rep_id'] === $repId) {
+        $error = 'This clinic is already assigned to you.';
+      } else {
+        $existingClinicName = $existingUser['practice_name'] ?: $existingUser['first_name'] . ' ' . $existingUser['last_name'];
+        $existingClinicId = $existingUser['id'];
+        $error = 'duplicate_email';
+      }
+    }
+
+    // Check for duplicate NPI if provided
+    if (!$error) {
+      $npi = preg_replace('/\D/', '', $_POST['npi'] ?? '');
+      if ($npi && strlen($npi) === 10) {
+        $npiStmt = $pdo->prepare("SELECT id, assigned_rep_id, practice_name, first_name, last_name FROM users WHERE npi = ? AND deleted_at IS NULL");
+        $npiStmt->execute([$npi]);
+        $existingNpi = $npiStmt->fetch();
+        if ($existingNpi) {
+          if ($existingNpi['assigned_rep_id'] === $repId) {
+            $error = 'A clinic with this NPI is already assigned to you.';
+          } else {
+            $existingClinicName = $existingNpi['practice_name'] ?: $existingNpi['first_name'] . ' ' . $existingNpi['last_name'];
+            $existingClinicId = $existingNpi['id'];
+            $error = 'duplicate_npi';
+          }
+        }
+      }
     }
   }
 
@@ -148,7 +174,35 @@ $states = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN'
   </div>
 <?php endif; ?>
 
-<?php if ($error): ?>
+<?php if ($error === 'duplicate_email' || $error === 'duplicate_npi'): ?>
+  <div class="card p-4 mb-6 bg-amber-50 border-amber-200">
+    <div class="flex items-start text-amber-800">
+      <svg class="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+      <div class="flex-1">
+        <strong>Clinic Already Exists</strong>
+        <p class="text-sm mt-1">
+          A clinic with this <?= $error === 'duplicate_email' ? 'email' : 'NPI' ?> already exists: <strong><?= htmlspecialchars($existingClinicName ?? 'Unknown') ?></strong>
+        </p>
+        <p class="text-sm mt-2">
+          Would you like to request assignment to this existing clinic instead?
+        </p>
+        <div class="mt-3">
+          <form method="POST" action="/admin/rep/assignment-requests.php" class="inline">
+            <?= csrf_field() ?>
+            <input type="hidden" name="action" value="request">
+            <input type="hidden" name="clinic_id" value="<?= htmlspecialchars($existingClinicId ?? '') ?>">
+            <input type="hidden" name="reason" value="Attempted to onboard clinic - detected as duplicate">
+            <button type="submit" class="btn btn-primary text-sm">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+              Request Assignment
+            </button>
+          </form>
+          <a href="/admin/rep/onboard-clinic.php" class="btn ml-2 text-sm">Start Over</a>
+        </div>
+      </div>
+    </div>
+  </div>
+<?php elseif ($error): ?>
   <div class="card p-4 mb-6 bg-red-50 border-red-200">
     <div class="flex items-center text-red-800">
       <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -157,7 +211,7 @@ $states = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN'
   </div>
 <?php endif; ?>
 
-<?php if (!$message): ?>
+<?php if (!$message && $error !== 'duplicate_email' && $error !== 'duplicate_npi'): ?>
 <form method="POST" class="card p-6">
   <?= csrf_field() ?>
 

@@ -19,12 +19,33 @@ $isManufacturer = $adminRole === 'manufacturer'; // Manufacturer - one step belo
 $tab = $_GET['tab'] ?? 'physicians';
 $msg='';
 
+/* Get active sales reps for assignment dropdown */
+$activeReps = [];
+try {
+  $activeReps = $pdo->query("
+    SELECT sr.id, sr.user_id, u.first_name, u.last_name
+    FROM sales_reps sr
+    JOIN users u ON u.id = sr.user_id
+    WHERE sr.status = 'active'
+    ORDER BY u.first_name, u.last_name
+  ")->fetchAll();
+} catch (Throwable $e) {
+  // Table may not exist yet
+}
+
+/* Rep filter for list */
+$repFilter = $_GET['rep'] ?? '';
+
 /* Physician scope: only those mapped to this admin unless owner/superadmin/practice_admin */
 /* IMPORTANT: Exclude superadmin from Physicians tab - they belong in admin portal, not as physicians */
 /* Sales role can see all physicians (not just assigned) and can create new ones */
 $physQuery = "
-  SELECT u.id, u.first_name, u.last_name, u.email, u.account_type, u.status, u.created_at, u.role, u.practice_name
+  SELECT u.id, u.first_name, u.last_name, u.email, u.account_type, u.status, u.created_at, u.role, u.practice_name,
+         u.assigned_rep_id,
+         CASE WHEN sr.id IS NOT NULL THEN CONCAT(rep_user.first_name, ' ', rep_user.last_name) ELSE NULL END as rep_name
   FROM users u
+  LEFT JOIN sales_reps sr ON sr.id = u.assigned_rep_id
+  LEFT JOIN users rep_user ON rep_user.id = sr.user_id
 ";
 if (!$isOwner && !$isSales && !$isManufacturer) {
   // Regular employees see only assigned physicians
@@ -33,10 +54,18 @@ if (!$isOwner && !$isSales && !$isManufacturer) {
   // Owner, superadmin, admin, Sales, and Manufacturer see all physicians
   $physQuery .= " WHERE (u.role IS NULL OR u.role IN ('physician', 'practice_admin'))";
 }
+// Apply rep filter
+if ($repFilter === 'unassigned') {
+  $physQuery .= " AND u.assigned_rep_id IS NULL";
+} elseif ($repFilter) {
+  $physQuery .= " AND u.assigned_rep_id = :rep_id";
+}
 $physQuery .= " ORDER BY u.created_at DESC LIMIT 300";
 $physStmt = $pdo->prepare($physQuery);
-if (!$isOwner && !$isSales && !$isManufacturer) $physStmt->execute(['aid'=>$admin['id']]);
-else $physStmt->execute();
+$params = [];
+if (!$isOwner && !$isSales && !$isManufacturer) $params['aid'] = $admin['id'];
+if ($repFilter && $repFilter !== 'unassigned') $params['rep_id'] = $repFilter;
+$physStmt->execute($params);
 $phys = $physStmt->fetchAll();
 
 /* Employees list - only CollagenDirect staff */
@@ -130,6 +159,18 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $accountTypeInput = $_POST['account_type'] ?? 'referral'; // referral, wholesale, or both
     $userId = bin2hex(random_bytes(16));
 
+    // Rep assignment (superadmin/manufacturer only)
+    $assignedRepId = null;
+    $repAssignmentDate = null;
+    $repAssignedBy = null;
+    $repAssignedByUserId = null;
+    if (($isSuperadmin || $isManufacturer) && !empty($_POST['assigned_rep_id'])) {
+      $assignedRepId = $_POST['assigned_rep_id'];
+      $repAssignmentDate = 'NOW()';
+      $repAssignedBy = 'admin_assign';
+      $repAssignedByUserId = $admin['id'];
+    }
+
     // Physician credentials (optional now)
     $npi = preg_replace('/\D/', '', $_POST['npi'] ?? '');
     $ptan = trim($_POST['ptan'] ?? '');
@@ -171,16 +212,19 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
           npi, ptan, license, license_state, license_expiry,
           role, user_type, account_type, status, can_manage_physicians,
           is_referral_only, has_dme_license, is_hybrid,
+          assigned_rep_id, rep_assignment_date, rep_assigned_by, rep_assigned_by_user_id,
           created_at, updated_at
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'practice_admin','practice_admin',?,'active',TRUE,?,?,?,NOW(),NOW())
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'practice_admin','practice_admin',?,'active',TRUE,?,?,?,?,".($assignedRepId ? "NOW()" : "NULL").",?,?,NOW(),NOW())
       ")->execute([
         $userId, $email, password_hash($password, PASSWORD_DEFAULT), $firstName, $lastName, $practiceName,
         $address, $city, $state, $zip, $phone,
         $npi ?: null, $ptan ?: null, $license ?: null, $licenseState, $licenseExpiry,
         $accountType,
-        $isReferralOnly, $hasDmeLicense, $isHybrid
+        $isReferralOnly, $hasDmeLicense, $isHybrid,
+        $assignedRepId, $repAssignedBy, $repAssignedByUserId
       ]);
       $msg = 'Practice owner created';
+      if ($assignedRepId) $msg .= ' and assigned to rep';
     } else {
       // Creating a physician and linking to practice
       $practiceId = $_POST['practice_id'] ?? '';
@@ -191,13 +235,15 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
           npi, ptan, license, license_state, license_expiry,
           role, user_type, account_type, status,
           is_referral_only, has_dme_license, is_hybrid,
+          assigned_rep_id, rep_assignment_date, rep_assigned_by, rep_assigned_by_user_id,
           created_at, updated_at
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,'physician','physician',?,'active',?,?,?,NOW(),NOW())
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,'physician','physician',?,'active',?,?,?,?,".($assignedRepId ? "NOW()" : "NULL").",?,?,NOW(),NOW())
       ")->execute([
         $userId, $email, password_hash($password, PASSWORD_DEFAULT), $firstName, $lastName,
         $npi ?: null, $ptan ?: null, $license ?: null, $licenseState, $licenseExpiry,
         $accountType,
-        $isReferralOnly, $hasDmeLicense, $isHybrid
+        $isReferralOnly, $hasDmeLicense, $isHybrid,
+        $assignedRepId, $repAssignedBy, $repAssignedByUserId
       ]);
 
       // Link physician to practice via practice_physicians table
@@ -313,6 +359,20 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $pdo->prepare("DELETE FROM admin_physicians WHERE physician_user_id=?")->execute([$_POST['phys_id']]);
     $msg='Physician deleted';
   }
+  if ($act==='assign_rep' && ($isSuperadmin || $isManufacturer)) {
+    $physId = $_POST['phys_id'] ?? '';
+    $newRepId = $_POST['assigned_rep_id'] ?? '';
+
+    if ($newRepId === '') {
+      // Unassign rep
+      $pdo->prepare("UPDATE users SET assigned_rep_id = NULL, rep_assignment_date = NULL, rep_assigned_by = NULL, rep_assigned_by_user_id = NULL, updated_at = NOW() WHERE id = ?")->execute([$physId]);
+      $msg = 'Sales rep unassigned from this clinic';
+    } else {
+      // Assign rep
+      $pdo->prepare("UPDATE users SET assigned_rep_id = ?, rep_assignment_date = NOW(), rep_assigned_by = 'admin_assign', rep_assigned_by_user_id = ?, updated_at = NOW() WHERE id = ?")->execute([$newRepId, $admin['id'], $physId]);
+      $msg = 'Sales rep assigned to this clinic';
+    }
+  }
   if ($act==='map_phys' && !$isOwner && ($admin['role'] ?? '') !== 'practice_admin') {
     $pdo->prepare("INSERT INTO admin_physicians(admin_id, physician_user_id) VALUES(?,?) ON CONFLICT DO NOTHING")->execute([$admin['id'], $_POST['phys_id']]);
     $msg='Physician assigned to you';
@@ -420,6 +480,23 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
 <div class="bg-white border rounded-b rounded-r p-4">
 <?php if ($tab==='physicians'): ?>
+  <!-- Rep Filter -->
+  <?php if (!empty($activeReps)): ?>
+  <div class="mb-4 flex items-center gap-4">
+    <label class="text-sm font-medium text-gray-700">Filter by Rep:</label>
+    <select id="rep-filter" onchange="filterByRep(this.value)" class="border rounded px-3 py-1.5 text-sm">
+      <option value="">All Providers</option>
+      <option value="unassigned" <?= $repFilter === 'unassigned' ? 'selected' : '' ?>>Unassigned</option>
+      <?php foreach ($activeReps as $rep): ?>
+        <option value="<?= e($rep['id']) ?>" <?= $repFilter === $rep['id'] ? 'selected' : '' ?>><?= e($rep['first_name'] . ' ' . $rep['last_name']) ?></option>
+      <?php endforeach; ?>
+    </select>
+    <?php if ($repFilter): ?>
+      <a href="/admin/users.php?tab=physicians" class="text-sm text-gray-500 hover:underline">Clear filter</a>
+    <?php endif; ?>
+  </div>
+  <?php endif; ?>
+
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <div class="lg:col-span-2 overflow-x-auto">
       <table class="w-full text-sm">
@@ -428,15 +505,20 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             <th class="py-2">Name</th>
             <th class="py-2">Email</th>
             <th class="py-2">Type</th>
+            <th class="py-2">Assigned Rep</th>
             <th class="py-2">Status</th>
-            <th class="py-2">Joined</th>
             <th class="py-2">Actions</th>
           </tr>
         </thead>
         <tbody>
           <?php foreach ($phys as $u): ?>
           <tr class="border-b hover:bg-slate-50">
-            <td class="py-3"><?=e(trim(($u['first_name']??'').' '.($u['last_name']??'')))?></td>
+            <td class="py-3">
+              <div class="font-medium"><?=e(trim(($u['first_name']??'').' '.($u['last_name']??'')))?></div>
+              <?php if ($u['practice_name']): ?>
+                <div class="text-xs text-slate-500"><?=e($u['practice_name'])?></div>
+              <?php endif; ?>
+            </td>
             <td class="py-3"><?=e($u['email'] ?? '')?></td>
             <td class="py-3">
               <?php
@@ -451,16 +533,29 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
               echo e($displayType);
               ?>
             </td>
-            <td class="py-3"><?=e($u['status'] ?? '')?></td>
-            <td class="py-3"><?=e($u['created_at'] ?? '')?></td>
+            <td class="py-3">
+              <?php if ($u['rep_name']): ?>
+                <span class="text-teal-600 font-medium text-xs"><?= e($u['rep_name']) ?></span>
+              <?php else: ?>
+                <span class="text-gray-400 text-xs">Unassigned</span>
+              <?php endif; ?>
+              <?php if ($isSuperadmin || $isManufacturer): ?>
+                <button onclick="showRepAssignModal('<?= e($u['id']) ?>', '<?= e(addslashes(trim(($u['first_name']??'').' '.($u['last_name']??'')))) ?>', '<?= e($u['assigned_rep_id'] ?? '') ?>')" class="ml-1 text-blue-600 text-xs hover:underline">[change]</button>
+              <?php endif; ?>
+            </td>
+            <td class="py-3">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium <?= ($u['status'] ?? '') === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' ?>">
+                <?=e($u['status'] ?? 'unknown')?>
+              </span>
+            </td>
             <td class="py-3 space-x-2">
-              <button onclick="toggleUserDetails('user-<?=e($u['id'])?>')" class="text-blue-600 text-xs">View Details</button>
+              <button onclick="toggleUserDetails('user-<?=e($u['id'])?>')" class="text-blue-600 text-xs">Details</button>
               <?php if (!$isManufacturer): ?>
               <form method="post" class="inline"><?=csrf_field()?>
                 <input type="hidden" name="action" value="reset_phys_pw">
                 <input type="hidden" name="phys_id" value="<?=e($u['id'])?>">
-                <input type="password" name="newpw" placeholder="New pw" class="border rounded px-2 py-0.5 text-xs" required>
-                <button class="text-brand text-xs">Reset PW</button>
+                <input type="password" name="newpw" placeholder="New pw" class="border rounded px-2 py-0.5 text-xs w-20" required>
+                <button class="text-brand text-xs">Reset</button>
               </form>
               <form method="post" class="inline" onsubmit="return confirm('Delete physician?')"><?=csrf_field()?>
                 <input type="hidden" name="action" value="delete_phys">
@@ -743,6 +838,20 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             <option value="physician">Physician</option>
           </select>
         </div>
+
+        <!-- Rep Assignment (Superadmin/Manufacturer only) -->
+        <?php if (($isSuperadmin || $isManufacturer) && !empty($activeReps)): ?>
+        <div class="mb-2">
+          <label class="text-sm text-slate-600 block mb-1">Assign to Sales Rep</label>
+          <select class="border rounded px-2 py-1 w-full" name="assigned_rep_id">
+            <option value="">Unassigned</option>
+            <?php foreach ($activeReps as $rep): ?>
+              <option value="<?= e($rep['id']) ?>"><?= e($rep['first_name'] . ' ' . $rep['last_name']) ?></option>
+            <?php endforeach; ?>
+          </select>
+          <div class="text-xs text-slate-500 mt-1">Optional: Assign this provider to a sales rep</div>
+        </div>
+        <?php endif; ?>
 
         <!-- Physician Credentials (Optional) -->
         <div class="mb-2">
@@ -1323,7 +1432,65 @@ function resetLocationForm(userId) {
   document.getElementById('location-submit-btn-' + userId).textContent = 'Add Location';
   document.getElementById('location-cancel-btn-' + userId).style.display = 'none';
 }
+
+// Filter by rep
+function filterByRep(repId) {
+  const url = new URL(window.location.href);
+  url.searchParams.set('tab', 'physicians');
+  if (repId) {
+    url.searchParams.set('rep', repId);
+  } else {
+    url.searchParams.delete('rep');
+  }
+  window.location.href = url.toString();
+}
+
+// Show rep assignment modal
+function showRepAssignModal(userId, userName, currentRepId) {
+  document.getElementById('rep-assign-user-id').value = userId;
+  document.getElementById('rep-assign-user-name').textContent = userName;
+  document.getElementById('rep-assign-select').value = currentRepId || '';
+  document.getElementById('rep-assign-modal').showModal();
+}
 </script>
+
+<!-- Rep Assignment Modal -->
+<?php if ($isSuperadmin || $isManufacturer): ?>
+<dialog id="rep-assign-modal" class="rounded-lg shadow-xl w-full max-w-md p-0 backdrop:bg-black/50">
+  <form method="post" class="p-6">
+    <?=csrf_field()?>
+    <input type="hidden" name="action" value="assign_rep">
+    <input type="hidden" name="phys_id" id="rep-assign-user-id">
+
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-semibold">Assign Sales Rep</h3>
+      <button type="button" onclick="document.getElementById('rep-assign-modal').close()" class="text-slate-400 hover:text-slate-600">
+        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-4">
+      Assign <strong id="rep-assign-user-name"></strong> to a sales rep:
+    </p>
+
+    <div class="mb-4">
+      <select name="assigned_rep_id" id="rep-assign-select" class="border rounded px-3 py-2 w-full">
+        <option value="">Unassigned</option>
+        <?php foreach ($activeReps as $rep): ?>
+          <option value="<?= e($rep['id']) ?>"><?= e($rep['first_name'] . ' ' . $rep['last_name']) ?></option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+
+    <div class="flex justify-end gap-3">
+      <button type="button" onclick="document.getElementById('rep-assign-modal').close()" class="btn">Cancel</button>
+      <button type="submit" class="btn btn-primary">Save Assignment</button>
+    </div>
+  </form>
+</dialog>
+<?php endif; ?>
 
 <?php if (defined('GOOGLE_PLACES_API_KEY') && !empty(GOOGLE_PLACES_API_KEY)): ?>
 <!-- Google Maps Places API for address autocomplete -->
