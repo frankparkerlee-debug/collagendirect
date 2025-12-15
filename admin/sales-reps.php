@@ -128,9 +128,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $notes = $_POST['notes'] ?? '';
 
         if ($repId && $amount > 0) {
-          $pdo->prepare("INSERT INTO rep_commission_payouts (rep_id, amount, payment_method, reference_number, period_start, period_end, status, paid_at, processed_by, notes, created_at) VALUES (?, ?, ?, ?, ?, ?, 'completed', NOW(), ?, ?, NOW())")
-              ->execute([$repId, $amount, $paymentMethod, $referenceNumber ?: null, $periodStart ?: null, $periodEnd ?: null, $admin['id'], $notes ?: null]);
-          $message = 'Payout recorded successfully.';
+          // Validate payout amount doesn't exceed current balance
+          require_once __DIR__ . '/../api/lib/commission.php';
+          $balanceInfo = get_commission_balance($pdo, $repId);
+          $currentBalance = $balanceInfo['balance'];
+
+          if ($amount > $currentBalance + 0.01) { // Allow small rounding tolerance
+            $error = 'Payout amount ($' . number_format($amount, 2) . ') exceeds available balance ($' . number_format($currentBalance, 2) . ')';
+          } else {
+            $pdo->prepare("INSERT INTO rep_commission_payouts (rep_id, amount, payment_method, reference_number, period_start, period_end, status, paid_at, processed_by, notes, created_at) VALUES (?, ?, ?, ?, ?, ?, 'completed', NOW(), ?, ?, NOW())")
+                ->execute([$repId, $amount, $paymentMethod, $referenceNumber ?: null, $periodStart ?: null, $periodEnd ?: null, $admin['id'], $notes ?: null]);
+            $message = 'Payout of $' . number_format($amount, 2) . ' recorded successfully.';
+          }
         }
         break;
     }

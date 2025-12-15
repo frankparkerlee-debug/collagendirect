@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 $bootstrap = __DIR__.'/_bootstrap.php'; if (is_file($bootstrap)) require_once $bootstrap;
 require_once __DIR__.'/db.php';
+require_once __DIR__.'/../api/lib/commission.php';
 $auth = __DIR__.'/auth.php'; if (is_file($auth)) { require_once $auth; if (function_exists('require_admin')) require_admin(); }
 
 // Sales reps cannot access wholesale billing
@@ -277,7 +278,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           }
 
           $pdo->commit();
-          $_SESSION['success_msg'] = 'Payment of $' . number_format($paymentAmount, 2) . ' recorded successfully for ' . $orderNumber;
+
+          // Calculate commission for the sales rep (if clinic has an assigned rep)
+          $commissionResult = calculate_commission(
+            $pdo,
+            $orderNumber,
+            'wholesale',
+            $userId,
+            $paymentAmount,
+            $paymentDate
+          );
+
+          if ($commissionResult) {
+            $_SESSION['success_msg'] = 'Payment of $' . number_format($paymentAmount, 2) . ' recorded successfully for ' . $orderNumber .
+              ' (Commission: $' . number_format($commissionResult['commission_amount'], 2) . ')';
+          } else {
+            $_SESSION['success_msg'] = 'Payment of $' . number_format($paymentAmount, 2) . ' recorded successfully for ' . $orderNumber;
+          }
         }
       } catch (Exception $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();

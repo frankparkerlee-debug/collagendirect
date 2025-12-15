@@ -21,6 +21,64 @@ if (!$repId) {
   exit;
 }
 
+// CSV Export for Commission Ledger
+if (isset($_GET['export']) && $_GET['export'] === 'ledger-csv') {
+  // Fetch rep info for filename
+  $repInfoStmt = $pdo->prepare("SELECT u.first_name, u.last_name FROM sales_reps sr JOIN users u ON u.id = sr.user_id WHERE sr.id = ?");
+  $repInfoStmt->execute([$repId]);
+  $repInfo = $repInfoStmt->fetch();
+
+  $filename = 'commission_ledger_' . strtolower(str_replace(' ', '_', $repInfo['first_name'] . '_' . $repInfo['last_name'])) . '_' . date('Y-m-d') . '.csv';
+
+  header('Content-Type: text/csv; charset=utf-8');
+  header('Content-Disposition: attachment; filename=' . $filename);
+
+  $output = fopen('php://output', 'w');
+
+  // CSV Headers
+  fputcsv($output, [
+    'Date',
+    'Order ID',
+    'Order Type',
+    'Clinic',
+    'Collected Amount',
+    'Commission Rate',
+    'Commission Amount',
+    'Status',
+    'Notes'
+  ]);
+
+  // Fetch all ledger entries for this rep
+  $exportQuery = "
+    SELECT rcl.*,
+      u.practice_name as clinic_name, u.first_name as clinic_first, u.last_name as clinic_last
+    FROM rep_commission_ledger rcl
+    LEFT JOIN users u ON u.id = rcl.clinic_id
+    WHERE rcl.rep_id = ?
+    ORDER BY rcl.payment_date DESC, rcl.created_at DESC
+  ";
+  $exportStmt = $pdo->prepare($exportQuery);
+  $exportStmt->execute([$repId]);
+
+  while ($row = $exportStmt->fetch(PDO::FETCH_ASSOC)) {
+    $clinicName = $row['clinic_name'] ?: trim($row['clinic_first'] . ' ' . $row['clinic_last']);
+    fputcsv($output, [
+      date('Y-m-d', strtotime($row['payment_date'] ?: $row['created_at'])),
+      $row['order_id'],
+      ucfirst($row['order_type'] ?? ''),
+      $clinicName,
+      number_format((float)$row['collected_amount'], 2),
+      number_format((float)$row['commission_rate'] * 100, 1) . '%',
+      number_format((float)$row['commission_amount'], 2),
+      ucfirst($row['status'] ?? 'pending'),
+      $row['notes'] ?? ''
+    ]);
+  }
+
+  fclose($output);
+  exit;
+}
+
 // Handle form actions
 $message = '';
 $error = '';
@@ -69,9 +127,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $notes = $_POST['notes'] ?? '';
 
         if ($amount > 0) {
-          $pdo->prepare("INSERT INTO rep_commission_payouts (rep_id, amount, payment_method, reference_number, period_start, period_end, status, paid_at, processed_by, notes, created_at) VALUES (?, ?, ?, ?, ?, ?, 'completed', NOW(), ?, ?, NOW())")
-              ->execute([$repId, $amount, $paymentMethod, $referenceNumber ?: null, $periodStart ?: null, $periodEnd ?: null, $admin['id'], $notes ?: null]);
-          $message = 'Payout recorded successfully.';
+          // Validate payout amount doesn't exceed current balance
+          require_once __DIR__ . '/../api/lib/commission.php';
+          $balanceInfo = get_commission_balance($pdo, $repId);
+          $currentBalanceCheck = $balanceInfo['balance'];
+
+          if ($amount > $currentBalanceCheck + 0.01) { // Allow small rounding tolerance
+            $error = 'Payout amount ($' . number_format($amount, 2) . ') exceeds available balance ($' . number_format($currentBalanceCheck, 2) . ')';
+          } else {
+            $pdo->prepare("INSERT INTO rep_commission_payouts (rep_id, amount, payment_method, reference_number, period_start, period_end, status, paid_at, processed_by, notes, created_at) VALUES (?, ?, ?, ?, ?, ?, 'completed', NOW(), ?, ?, NOW())")
+                ->execute([$repId, $amount, $paymentMethod, $referenceNumber ?: null, $periodStart ?: null, $periodEnd ?: null, $admin['id'], $notes ?: null]);
+            $message = 'Payout of $' . number_format($amount, 2) . ' recorded successfully.';
+          }
         } else {
           $error = 'Invalid payout amount.';
         }
@@ -522,10 +589,10 @@ $statusColors = [
 <div class="card mb-6" id="ledger">
   <div class="p-6 border-b flex items-center justify-between">
     <h3 class="text-lg font-semibold">Commission Ledger</h3>
-    <button onclick="exportLedger()" class="btn text-sm">
+    <a href="?id=<?= htmlspecialchars($repId) ?>&export=ledger-csv" class="btn text-sm">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
       Export CSV
-    </button>
+    </a>
   </div>
   <?php if (empty($ledgerEntries)): ?>
     <div class="p-6 text-center text-gray-500">No commission entries yet.</div>
