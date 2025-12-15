@@ -214,7 +214,7 @@ $clinicsQuery = "
   SELECT u.id, u.first_name, u.last_name, u.practice_name, u.email, u.npi,
     u.rep_assignment_date, u.rep_assigned_by,
     (SELECT COUNT(*) FROM orders WHERE user_id = u.id) as order_count,
-    (SELECT SUM(total) FROM orders WHERE user_id = u.id AND status NOT IN ('cancelled', 'voided')) as total_revenue
+    (SELECT COALESCE(SUM(product_price), 0) FROM orders WHERE user_id = u.id AND status NOT IN ('cancelled', 'voided')) as total_revenue
   FROM users u
   WHERE u.assigned_rep_id = ?
   ORDER BY u.rep_assignment_date DESC
@@ -228,7 +228,7 @@ $metricsQuery = "
   SELECT
     (SELECT COUNT(*) FROM users WHERE assigned_rep_id = :rep_id) as total_clinics,
     (SELECT COUNT(*) FROM orders o JOIN users u ON o.user_id = u.id WHERE u.assigned_rep_id = :rep_id) as total_orders,
-    (SELECT COALESCE(SUM(o.total), 0) FROM orders o JOIN users u ON o.user_id = u.id WHERE u.assigned_rep_id = :rep_id AND o.status NOT IN ('cancelled', 'voided')) as total_revenue,
+    (SELECT COALESCE(SUM(o.product_price), 0) FROM orders o JOIN users u ON o.user_id = u.id WHERE u.assigned_rep_id = :rep_id AND o.status NOT IN ('cancelled', 'voided')) as total_revenue,
     (SELECT COALESCE(SUM(commission_amount), 0) FROM rep_commission_ledger WHERE rep_id = :rep_id) as total_commission
 ";
 $metricsStmt = $pdo->prepare($metricsQuery);

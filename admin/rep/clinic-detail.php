@@ -25,7 +25,7 @@ $query = "
   SELECT u.*,
          (SELECT COUNT(*) FROM patients p WHERE p.user_id = u.id) as patient_count,
          (SELECT COUNT(*) FROM orders o WHERE o.user_id = u.id AND o.status NOT IN ('cancelled', 'rejected', 'draft')) as order_count,
-         (SELECT COALESCE(SUM(o.total), 0) FROM orders o WHERE o.user_id = u.id AND o.status NOT IN ('cancelled', 'rejected', 'voided')) as total_revenue
+         (SELECT COALESCE(SUM(o.product_price), 0) FROM orders o WHERE o.user_id = u.id AND o.status NOT IN ('cancelled', 'rejected', 'voided')) as total_revenue
   FROM users u
   WHERE u.id = ?
   AND u.assigned_rep_id = ?
