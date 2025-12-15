@@ -20,7 +20,13 @@
       "Bash(grep:*)",
       "Bash(brew services list:*)",
       "Bash(composer install:*)",
-      "Bash(dig:*)"
+      "Bash(dig:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(git rebase:*)",
+      "Bash(git stash:*)",
+      "Bash(xargs ls:*)",
+      "Bash(wc:*)"
     ],
     "deny": [],
     "ask": []
