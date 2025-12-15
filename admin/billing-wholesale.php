@@ -60,8 +60,8 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
 
   $filterPractice = $_GET['practice'] ?? '';
   $filterStatus = $_GET['status'] ?? '';
-  $filterFrom = $_GET['from'] ?? date('Y-01-01');
-  $filterTo = $_GET['to'] ?? date('Y-m-d');
+  $filterFrom = $_GET['from'] ?? '';
+  $filterTo = $_GET['to'] ?? '';
   $filterSearch = $_GET['search'] ?? '';
 
   if ($filterPractice) {
@@ -389,8 +389,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $filterPractice = $_GET['practice'] ?? '';
 $filterStatus = $_GET['status'] ?? '';
 $filterAging = $_GET['aging'] ?? '';
-$filterFrom = $_GET['from'] ?? date('Y-01-01');
-$filterTo = $_GET['to'] ?? date('Y-m-d');
+// Default to showing all orders (no date filter) to ensure orders display
+$filterFrom = $_GET['from'] ?? '';
+$filterTo = $_GET['to'] ?? '';
 $filterSearch = $_GET['search'] ?? '';
 
 /* ================= Fetch Practices for Filter ================= */
@@ -496,6 +497,7 @@ try {
   $stmt = $pdo->prepare($sql);
   $stmt->execute($params);
   $invoices = $stmt->fetchAll(PDO::FETCH_ASSOC);
+  error_log("[billing-wholesale] Found " . count($invoices) . " wholesale invoice records");
 
   // Group invoices by order_number
   foreach ($invoices as $inv) {
