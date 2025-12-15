@@ -190,7 +190,7 @@ $currentRate = $rateStmt->fetch();
 $rateHistoryQuery = "
   SELECT rcr.*, au.name as set_by_name
   FROM rep_commission_rates rcr
-  LEFT JOIN admin_users au ON au.id = rcr.set_by::uuid
+  LEFT JOIN admin_users au ON au.id = rcr.set_by::integer
   WHERE rcr.rep_id = ?
   ORDER BY rcr.created_at DESC
   LIMIT 20
