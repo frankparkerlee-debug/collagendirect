@@ -378,9 +378,20 @@
 
         if (res.ok && (data.ok || data.success)) {
           const params = new URLSearchParams(location.search);
-          location.href = params.get('next') || '/portal/';
+          location.href = data.redirect || params.get('next') || '/portal/';
         } else {
-          err.textContent = data.error || `Login failed (status ${res.status}).`;
+          // Handle pending sales rep approval
+          if (data.error === 'pending_approval') {
+            err.innerHTML = '<strong>Application Under Review</strong><br>' + (data.message || 'Your application is being reviewed. You will receive an email once approved.');
+            err.style.background = '#fef3c7';
+            err.style.borderColor = '#fcd34d';
+            err.style.color = '#92400e';
+          } else {
+            err.textContent = data.error || data.message || `Login failed (status ${res.status}).`;
+            err.style.background = '#fef2f2';
+            err.style.borderColor = '#fecaca';
+            err.style.color = '#991b1b';
+          }
           err.style.display = 'block';
         }
       } catch (ex) {

@@ -80,18 +80,33 @@ if ($isAdminUser) {
 // Handle users table (physicians, practice_admin, superadmin, sales_rep)
 $_SESSION['user_id'] = $user['id'];
 
-// Check if user is an active sales rep
+// Check if user is a sales rep (active or pending)
 $userRole = $user['role'] ?? 'physician';
 $isSalesRep = false;
+$isPendingRep = false;
 $repId = null;
 
-$repStmt = $pdo->prepare("SELECT id, status FROM sales_reps WHERE user_id = ? AND status = 'active'");
+$repStmt = $pdo->prepare("SELECT id, status FROM sales_reps WHERE user_id = ?");
 $repStmt->execute([$user['id']]);
 $repRecord = $repStmt->fetch();
 if ($repRecord) {
-  $isSalesRep = true;
-  $repId = $repRecord['id'];
-  $userRole = 'sales_rep';
+  if ($repRecord['status'] === 'active') {
+    $isSalesRep = true;
+    $repId = $repRecord['id'];
+    $userRole = 'sales_rep';
+  } elseif ($repRecord['status'] === 'pending') {
+    $isPendingRep = true;
+  } elseif ($repRecord['status'] === 'suspended') {
+    json_out(403, ['error' => 'Your sales rep account has been suspended. Please contact support.']);
+  }
+}
+
+// If pending rep, show pending message
+if ($isPendingRep) {
+  json_out(403, [
+    'error' => 'pending_approval',
+    'message' => 'Your application is under review. You will receive an email once your account is approved.'
+  ]);
 }
 
 // Set admin session for superadmin or sales_rep
