@@ -97,11 +97,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           if ($request) {
             // Update user's assigned rep
             $pdo->prepare("UPDATE users SET assigned_rep_id = ?, rep_assignment_date = NOW(), rep_assigned_by = 'admin', rep_assigned_by_user_id = ? WHERE id = ?")
-                ->execute([$request['rep_id'], $admin['id'], $request['user_id']]);
+                ->execute([$request['rep_id'], $admin['id'], $request['clinic_id']]);
 
             // Update request status
             $pdo->prepare("UPDATE rep_assignment_requests SET status = 'approved', reviewed_by = ?, reviewed_at = NOW() WHERE id = ?")
                 ->execute([$admin['id'], $requestId]);
+
+            // Send notification to rep
+            require_once __DIR__ . '/../api/lib/rep_notifications.php';
+            $repStmt = $pdo->prepare("SELECT u.email, u.first_name, u.last_name FROM sales_reps sr JOIN users u ON u.id = sr.user_id WHERE sr.id = ?");
+            $repStmt->execute([$request['rep_id']]);
+            $repInfo = $repStmt->fetch();
+            $clinicStmt = $pdo->prepare("SELECT practice_name, first_name, last_name FROM users WHERE id = ?");
+            $clinicStmt->execute([$request['clinic_id']]);
+            $clinicInfo = $clinicStmt->fetch();
+            if ($repInfo && $clinicInfo) {
+              $clinicName = $clinicInfo['practice_name'] ?: $clinicInfo['first_name'] . ' ' . $clinicInfo['last_name'];
+              send_rep_assignment_approved($pdo, $repInfo['email'], $repInfo['first_name'] . ' ' . $repInfo['last_name'], $clinicName);
+            }
 
             $message = 'Assignment request approved.';
           }
@@ -112,8 +125,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $requestId = $_POST['request_id'] ?? '';
         $reason = $_POST['denial_reason'] ?? '';
         if ($requestId) {
+          // Get request details for notification
+          $reqStmt = $pdo->prepare("SELECT * FROM rep_assignment_requests WHERE id = ?");
+          $reqStmt->execute([$requestId]);
+          $request = $reqStmt->fetch();
+
           $pdo->prepare("UPDATE rep_assignment_requests SET status = 'denied', denial_reason = ?, reviewed_by = ?, reviewed_at = NOW() WHERE id = ?")
               ->execute([$reason, $admin['id'], $requestId]);
+
+          // Send notification to rep
+          if ($request) {
+            require_once __DIR__ . '/../api/lib/rep_notifications.php';
+            $repStmt = $pdo->prepare("SELECT u.email, u.first_name, u.last_name FROM sales_reps sr JOIN users u ON u.id = sr.user_id WHERE sr.id = ?");
+            $repStmt->execute([$request['rep_id']]);
+            $repInfo = $repStmt->fetch();
+            $clinicStmt = $pdo->prepare("SELECT practice_name, first_name, last_name FROM users WHERE id = ?");
+            $clinicStmt->execute([$request['clinic_id']]);
+            $clinicInfo = $clinicStmt->fetch();
+            if ($repInfo && $clinicInfo) {
+              $clinicName = $clinicInfo['practice_name'] ?: $clinicInfo['first_name'] . ' ' . $clinicInfo['last_name'];
+              send_rep_assignment_denied($pdo, $repInfo['email'], $repInfo['first_name'] . ' ' . $repInfo['last_name'], $clinicName, $reason);
+            }
+          }
+
           $message = 'Assignment request denied.';
         }
         break;
@@ -138,6 +172,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           } else {
             $pdo->prepare("INSERT INTO rep_commission_payouts (rep_id, amount, payment_method, reference_number, period_start, period_end, status, paid_at, processed_by, notes, created_at) VALUES (?, ?, ?, ?, ?, ?, 'completed', NOW(), ?, ?, NOW())")
                 ->execute([$repId, $amount, $paymentMethod, $referenceNumber ?: null, $periodStart ?: null, $periodEnd ?: null, $admin['id'], $notes ?: null]);
+
+            // Send notification to rep
+            require_once __DIR__ . '/../api/lib/rep_notifications.php';
+            $repStmt = $pdo->prepare("SELECT u.email, u.first_name, u.last_name FROM sales_reps sr JOIN users u ON u.id = sr.user_id WHERE sr.id = ?");
+            $repStmt->execute([$repId]);
+            $repInfo = $repStmt->fetch();
+            if ($repInfo) {
+              send_rep_payout_processed($pdo, $repInfo['email'], $repInfo['first_name'] . ' ' . $repInfo['last_name'], $amount, ucfirst($paymentMethod), $referenceNumber ?: null);
+            }
+
             $message = 'Payout of $' . number_format($amount, 2) . ' recorded successfully.';
           }
         }

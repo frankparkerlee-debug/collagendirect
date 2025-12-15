@@ -6,11 +6,62 @@
  */
 declare(strict_types=1);
 require __DIR__ . '/_header.php';
+require_once __DIR__ . '/../../api/lib/commission.php';
 
 $repId = $admin['rep_id'] ?? null;
 if (!$repId) {
   echo '<div class="card p-6"><p class="text-red-600">Sales rep profile not found.</p></div>';
   require __DIR__ . '/_footer.php';
+  exit;
+}
+
+// CSV Export for Payout History
+if (isset($_GET['export']) && $_GET['export'] === 'payouts-csv') {
+  $filename = 'payout_history_' . date('Y-m-d') . '.csv';
+
+  header('Content-Type: text/csv; charset=utf-8');
+  header('Content-Disposition: attachment; filename=' . $filename);
+
+  $output = fopen('php://output', 'w');
+
+  // CSV Headers
+  fputcsv($output, [
+    'Date',
+    'Amount',
+    'Payment Method',
+    'Reference #',
+    'Period',
+    'Status',
+    'Notes'
+  ]);
+
+  // Fetch all payouts for this rep
+  $exportQuery = "
+    SELECT *
+    FROM rep_commission_payouts
+    WHERE rep_id = ?
+    ORDER BY paid_at DESC
+  ";
+  $exportStmt = $pdo->prepare($exportQuery);
+  $exportStmt->execute([$repId]);
+
+  while ($row = $exportStmt->fetch(PDO::FETCH_ASSOC)) {
+    $period = '';
+    if ($row['period_start'] && $row['period_end']) {
+      $period = date('M j, Y', strtotime($row['period_start'])) . ' - ' . date('M j, Y', strtotime($row['period_end']));
+    }
+    fputcsv($output, [
+      date('Y-m-d', strtotime($row['paid_at'])),
+      number_format((float)$row['amount'], 2),
+      ucfirst($row['payment_method'] ?? 'check'),
+      $row['reference_number'] ?? '',
+      $period,
+      ucfirst($row['status'] ?? 'completed'),
+      $row['notes'] ?? ''
+    ]);
+  }
+
+  fclose($output);
   exit;
 }
 
@@ -27,9 +78,9 @@ $repStmt = $pdo->prepare("
 $repStmt->execute([$repId]);
 $repProfile = $repStmt->fetch();
 
-// Get current commission rate
+// Get current commission rate and effective date
 $rateStmt = $pdo->prepare("
-  SELECT rate, effective_date
+  SELECT rate, effective_date, created_at
   FROM rep_commission_rates
   WHERE rep_id = ?
   AND (effective_date IS NULL OR effective_date <= CURRENT_DATE)
@@ -38,6 +89,17 @@ $rateStmt = $pdo->prepare("
 ");
 $rateStmt->execute([$repId]);
 $currentRate = $rateStmt->fetch();
+
+// Get payout history
+$payoutsStmt = $pdo->prepare("
+  SELECT *
+  FROM rep_commission_payouts
+  WHERE rep_id = ?
+  ORDER BY paid_at DESC
+  LIMIT 20
+");
+$payoutsStmt->execute([$repId]);
+$payouts = $payoutsStmt->fetchAll();
 
 // Handle password change
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'change_password') {
@@ -172,6 +234,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'chang
   </div>
 </div>
 
+<!-- Commission Terms -->
+<div class="card p-6 mt-6">
+  <h3 class="text-lg font-medium text-gray-900 mb-4">Commission Terms</h3>
+
+  <div class="bg-teal-50 rounded-lg p-4">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div>
+        <p class="text-sm text-gray-500 mb-1">Your Commission Rate</p>
+        <p class="text-2xl font-bold text-teal-600"><?= $currentRate ? number_format((float)$currentRate['rate'] * 100, 0) : '25' ?>%</p>
+      </div>
+      <div>
+        <p class="text-sm text-gray-500 mb-1">Effective Since</p>
+        <p class="text-lg font-medium text-gray-900">
+          <?php
+          if ($currentRate) {
+            echo $currentRate['effective_date']
+              ? date('F j, Y', strtotime($currentRate['effective_date']))
+              : date('F j, Y', strtotime($currentRate['created_at']));
+          } else {
+            echo 'N/A';
+          }
+          ?>
+        </p>
+      </div>
+      <div>
+        <p class="text-sm text-gray-500 mb-1">Calculation Basis</p>
+        <p class="text-sm text-gray-700">Commission is calculated on collected payments, not order placement.</p>
+      </div>
+    </div>
+  </div>
+
+  <p class="text-sm text-gray-500 mt-4">
+    Your commission is calculated when payment is collected from your assigned clinics.
+    Commission entries appear in your ledger after payment is recorded.
+    <a href="/admin/rep/commissions.php" class="text-teal-600 hover:underline">View Commission Ledger &rarr;</a>
+  </p>
+</div>
+
 <!-- Signed Documents -->
 <div class="card p-6 mt-6">
   <h3 class="text-lg font-medium text-gray-900 mb-4">Signed Documents</h3>
@@ -222,6 +322,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'chang
         </tbody>
       </table>
     </div>
+  <?php endif; ?>
+</div>
+
+<!-- Payout History -->
+<div class="card p-6 mt-6">
+  <div class="flex items-center justify-between mb-4">
+    <h3 class="text-lg font-medium text-gray-900">Payout History</h3>
+    <?php if (!empty($payouts)): ?>
+      <a href="?export=payouts-csv" class="btn text-sm">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+        Export CSV
+      </a>
+    <?php endif; ?>
+  </div>
+
+  <?php if (empty($payouts)): ?>
+    <p class="text-gray-500">No payouts yet.</p>
+  <?php else: ?>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr>
+            <th class="text-left py-2">Date</th>
+            <th class="text-right py-2">Amount</th>
+            <th class="text-left py-2">Method</th>
+            <th class="text-left py-2">Reference #</th>
+            <th class="text-left py-2">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($payouts as $payout): ?>
+            <tr class="border-t border-gray-100">
+              <td class="py-2"><?= date('M j, Y', strtotime($payout['paid_at'])) ?></td>
+              <td class="py-2 text-right font-medium text-green-600">$<?= number_format((float)$payout['amount'], 2) ?></td>
+              <td class="py-2"><?= ucfirst($payout['payment_method'] ?? 'check') ?></td>
+              <td class="py-2"><?= htmlspecialchars($payout['reference_number'] ?? '-') ?></td>
+              <td class="py-2">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+                  <?php
+                  switch ($payout['status']) {
+                    case 'completed': echo 'bg-green-100 text-green-800'; break;
+                    case 'pending': echo 'bg-yellow-100 text-yellow-800'; break;
+                    default: echo 'bg-gray-100 text-gray-800';
+                  }
+                  ?>
+                ">
+                  <?= ucfirst($payout['status'] ?? 'completed') ?>
+                </span>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+    <p class="text-sm text-gray-500 mt-4">
+      Showing last 20 payouts.
+      <a href="/admin/rep/payouts.php" class="text-teal-600 hover:underline">View all payouts &rarr;</a>
+    </p>
   <?php endif; ?>
 </div>
 

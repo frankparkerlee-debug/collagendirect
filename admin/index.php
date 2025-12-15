@@ -395,6 +395,41 @@ if ($adminRole === 'superadmin' || $adminRole === 'manufacturer' || $adminRole =
   } catch(Throwable $e){}
 }
 
+/* ---------- Commission Obligations (Superadmin/Manufacturer only) ---------- */
+$totalUnpaidCommission = 0.0;
+$repsWithBalance = 0;
+if ($adminRole === 'superadmin' || $adminRole === 'manufacturer') {
+  try {
+    // Total unpaid commission: sum of all ledger entries minus sum of all completed payouts
+    $totalCommissionEarned = 0.0;
+    $totalCommissionPaid = 0.0;
+
+    $earnedStmt = $pdo->query("SELECT COALESCE(SUM(commission_amount), 0) as total FROM rep_commission_ledger");
+    $totalCommissionEarned = (float)$earnedStmt->fetch()['total'];
+
+    $paidStmt = $pdo->query("SELECT COALESCE(SUM(amount), 0) as total FROM rep_commission_payouts WHERE status = 'completed'");
+    $totalCommissionPaid = (float)$paidStmt->fetch()['total'];
+
+    $totalUnpaidCommission = $totalCommissionEarned - $totalCommissionPaid;
+
+    // Count reps with balance > 0
+    $repsStmt = $pdo->query("
+      SELECT COUNT(DISTINCT sr.id) as count
+      FROM sales_reps sr
+      WHERE sr.status = 'active'
+      AND (
+        SELECT COALESCE(SUM(rcl.commission_amount), 0) - COALESCE(
+          (SELECT SUM(rcp.amount) FROM rep_commission_payouts rcp WHERE rcp.rep_id = sr.id AND rcp.status = 'completed'), 0
+        )
+        FROM rep_commission_ledger rcl WHERE rcl.rep_id = sr.id
+      ) > 0.01
+    ");
+    $repsWithBalance = (int)$repsStmt->fetch()['count'];
+  } catch (Throwable $e) {
+    error_log("[commission-obligations] " . $e->getMessage());
+  }
+}
+
 /* ---------- Notifications for manufacturer ---------- */
 $notifications = [];
 if ($adminRole === 'manufacturer' && has_table($pdo, 'notifications')) {
@@ -497,6 +532,40 @@ include __DIR__.'/_header.php';
       <div class="text-xs text-slate-400 mt-2">View billing →</div>
     </a>
   </div>
+
+  <?php if ($adminRole === 'superadmin' || $adminRole === 'manufacturer'): ?>
+  <!-- Commission Obligations Card (Superadmin/Manufacturer only) -->
+  <div class="mb-8">
+    <a href="/admin/sales-reps.php?tab=payouts" class="block bg-gradient-to-r from-teal-50 to-emerald-50 border border-teal-200 rounded-2xl p-5 shadow-soft hover:shadow-md transition-shadow cursor-pointer group">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="flex items-center gap-2 mb-2">
+            <svg class="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span class="text-sm font-semibold text-teal-700">Commission Obligations</span>
+          </div>
+          <div class="grid grid-cols-2 gap-6">
+            <div>
+              <div class="text-xs text-slate-500 mb-1">Total Unpaid Commission</div>
+              <div class="text-2xl font-bold text-teal-600">$<?= number_format($totalUnpaidCommission, 2) ?></div>
+            </div>
+            <div>
+              <div class="text-xs text-slate-500 mb-1">Reps with Balance > $0</div>
+              <div class="text-2xl font-bold text-teal-600"><?= $repsWithBalance ?></div>
+            </div>
+          </div>
+        </div>
+        <div class="text-right">
+          <span class="inline-flex items-center text-sm text-teal-600 group-hover:text-teal-800">
+            View Details
+            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+          </span>
+        </div>
+      </div>
+    </a>
+  </div>
+  <?php endif; ?>
 
   <!-- Recent Activity and Reminders - Mobile Responsive -->
   <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
