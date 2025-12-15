@@ -151,6 +151,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           $message = 'Clinic unassigned from this rep.';
         }
         break;
+
+      case 'assign_clinic':
+        $clinicUserId = $_POST['clinic_user_id'] ?? '';
+        if ($clinicUserId) {
+          // Verify clinic exists and is a physician
+          $checkStmt = $pdo->prepare("SELECT id, first_name, last_name, practice_name FROM users WHERE id = ? AND role = 'physician'");
+          $checkStmt->execute([$clinicUserId]);
+          $clinic = $checkStmt->fetch();
+
+          if ($clinic) {
+            $pdo->prepare("
+              UPDATE users
+              SET assigned_rep_id = ?, rep_assignment_date = NOW(), rep_assigned_by = 'admin_assign', rep_assigned_by_user_id = ?
+              WHERE id = ?
+            ")->execute([$repId, $admin['id'], $clinicUserId]);
+            $clinicName = $clinic['practice_name'] ?: ($clinic['first_name'] . ' ' . $clinic['last_name']);
+            $message = 'Clinic "' . $clinicName . '" assigned to this rep.';
+          } else {
+            $error = 'Invalid clinic selected.';
+          }
+        }
+        break;
     }
   } catch (PDOException $e) {
     $error = 'Database error: ' . $e->getMessage();
@@ -225,6 +247,17 @@ $clinicsQuery = "
 $clinicsStmt = $pdo->prepare($clinicsQuery);
 $clinicsStmt->execute([$repId]);
 $assignedClinics = $clinicsStmt->fetchAll();
+
+// Fetch available clinics (physicians not assigned to any rep)
+$availableClinicsQuery = "
+  SELECT id, first_name, last_name, practice_name, email, npi
+  FROM users
+  WHERE role = 'physician' AND (assigned_rep_id IS NULL OR assigned_rep_id = '')
+  ORDER BY practice_name, last_name, first_name
+  LIMIT 500
+";
+$availableClinicsStmt = $pdo->query($availableClinicsQuery);
+$availableClinics = $availableClinicsStmt->fetchAll();
 
 // Performance metrics
 $metricsQuery = "
@@ -485,7 +518,15 @@ $statusColors = [
 <div class="card mb-6">
   <div class="p-6 border-b flex items-center justify-between">
     <h3 class="text-lg font-semibold">Assigned Clinics</h3>
-    <span class="text-sm text-gray-500"><?= count($assignedClinics) ?> clinic<?= count($assignedClinics) !== 1 ? 's' : '' ?></span>
+    <div class="flex items-center gap-4">
+      <span class="text-sm text-gray-500"><?= count($assignedClinics) ?> clinic<?= count($assignedClinics) !== 1 ? 's' : '' ?></span>
+      <?php if (!empty($availableClinics)): ?>
+        <button onclick="document.getElementById('assignClinicModal').showModal()" class="btn btn-primary text-sm">
+          <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+          Assign Clinic
+        </button>
+      <?php endif; ?>
+    </div>
   </div>
   <?php if (empty($assignedClinics)): ?>
     <div class="p-6 text-center text-gray-500">No clinics assigned to this rep.</div>
@@ -674,7 +715,7 @@ $statusColors = [
         <tbody>
           <?php foreach ($payoutHistory as $payout): ?>
             <tr>
-              <td class="text-sm"><?= date('M j, Y', strtotime($payout['paid_at'])) ?></td>
+              <td class="text-sm"><?= date('M j, Y', strtotime($payout['payout_date'])) ?></td>
               <td class="font-medium">$<?= number_format((float)$payout['amount'], 2) ?></td>
               <td class="text-sm"><?= ucfirst($payout['payment_method']) ?></td>
               <td class="text-sm"><?= htmlspecialchars($payout['reference_number'] ?? '-') ?></td>
@@ -807,6 +848,79 @@ $statusColors = [
     </div>
   </form>
 </dialog>
+
+<!-- Assign Clinic Modal -->
+<dialog id="assignClinicModal" class="rounded-2xl w-full max-w-lg p-0 backdrop:bg-black/50">
+  <form method="POST" class="p-0">
+    <?= csrf_field() ?>
+    <input type="hidden" name="action" value="assign_clinic">
+
+    <div class="p-6 border-b border-gray-200">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold text-gray-900">Assign Clinic to Rep</h3>
+        <button type="button" onclick="document.getElementById('assignClinicModal').close()" class="text-gray-400 hover:text-gray-600">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="p-6 space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Select Clinic</label>
+        <select name="clinic_user_id" required class="w-full" id="clinicSelect">
+          <option value="">-- Select a clinic --</option>
+          <?php foreach ($availableClinics as $clinic): ?>
+            <option value="<?= htmlspecialchars($clinic['id']) ?>">
+              <?= htmlspecialchars($clinic['practice_name'] ?: ($clinic['first_name'] . ' ' . $clinic['last_name'])) ?>
+              <?php if ($clinic['npi']): ?> (NPI: <?= htmlspecialchars($clinic['npi']) ?>)<?php endif; ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+        <p class="text-xs text-gray-500 mt-1"><?= count($availableClinics) ?> unassigned clinic<?= count($availableClinics) !== 1 ? 's' : '' ?> available</p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Search Filter</label>
+        <input type="text" id="clinicSearchFilter" placeholder="Type to filter clinics..." class="w-full" oninput="filterClinics(this.value)">
+      </div>
+    </div>
+
+    <div class="p-6 border-t border-gray-200 flex gap-3">
+      <button type="button" onclick="document.getElementById('assignClinicModal').close()" class="flex-1 btn">Cancel</button>
+      <button type="submit" class="flex-1 btn btn-primary">Assign Clinic</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+// Store original options for filtering
+let originalClinicOptions = [];
+document.addEventListener('DOMContentLoaded', function() {
+  const select = document.getElementById('clinicSelect');
+  if (select) {
+    originalClinicOptions = Array.from(select.options).slice(1); // Skip the first "Select a clinic" option
+  }
+});
+
+function filterClinics(searchTerm) {
+  const select = document.getElementById('clinicSelect');
+  if (!select) return;
+
+  const term = searchTerm.toLowerCase();
+
+  // Clear all options except the first one
+  while (select.options.length > 1) {
+    select.remove(1);
+  }
+
+  // Add back matching options
+  originalClinicOptions.forEach(option => {
+    if (option.text.toLowerCase().includes(term)) {
+      select.add(option.cloneNode(true));
+    }
+  });
+}
+</script>
 
 <script>
 document.getElementById('newRate')?.addEventListener('input', function() {
