@@ -239,28 +239,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           foreach ($orders as $order) {
             if ($remainingPayment <= 0) break;
 
-            // Calculate current balance if not set
+            // Get current values
             $currentAmountDue = (float)($order['amount_due'] ?? 0);
             $currentAmountPaid = (float)($order['amount_paid'] ?? 0);
             $currentBalance = (float)($order['balance_due'] ?? 0);
 
-            // Initialize amounts if needed
-            if ($currentAmountDue == 0 && $currentBalance == 0) {
+            // Calculate order value if amount_due not set
+            if ($currentAmountDue == 0) {
               $boxes = (int)($order['qty_per_change'] ?? 0);
               $unitPrice = (float)($order['product_price'] ?? 0);
               // Get pieces per box
               $piecesStmt = $pdo->prepare("SELECT pieces_per_box FROM products WHERE id = ?");
               $piecesStmt->execute([$order['product_id']]);
               $piecesPerBox = (int)($piecesStmt->fetchColumn() ?: 10);
-              $currentAmountDue = $boxes * $unitPrice * $piecesPerBox;
-              $currentBalance = $currentAmountDue - $currentAmountPaid;
+              $currentAmountDue = round($boxes * $unitPrice * $piecesPerBox, 2);
             }
 
-            // Apply payment to this order
-            $paymentForOrder = min($remainingPayment, $currentBalance);
-            $newAmountPaid = $currentAmountPaid + $paymentForOrder;
-            $newBalance = $currentAmountDue - $newAmountPaid;
-            $remainingPayment -= $paymentForOrder;
+            // Calculate actual balance (amount_due - amount_paid)
+            // Don't trust balance_due if it's inconsistent
+            $actualBalance = round($currentAmountDue - $currentAmountPaid, 2);
+            if ($actualBalance <= 0) continue; // Already fully paid
+
+            // Apply payment to this order (use actual balance, not stored balance)
+            $paymentForOrder = min($remainingPayment, $actualBalance);
+            $newAmountPaid = round($currentAmountPaid + $paymentForOrder, 2);
+            $newBalance = round($currentAmountDue - $newAmountPaid, 2);
+            $remainingPayment = round($remainingPayment - $paymentForOrder, 2);
 
             // Update order (also set billed_by to normalize the data)
             if ($newBalance <= 0) {

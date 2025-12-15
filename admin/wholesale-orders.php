@@ -124,77 +124,11 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $pdo->prepare("UPDATE orders SET status='delivered', delivered_at=NOW(), updated_at=NOW() WHERE id=?")->execute([$id]);
     $_SESSION['success_msg'] = 'Order marked as delivered';
   } elseif ($id && $action==='record_payment') {
-    // Record a payment (partial or full)
-    $paymentAmount = (float)($_POST['payment_amount'] ?? 0);
-    $paymentMethod = $_POST['payment_method'] ?? 'check';
-    $paymentNotes = $_POST['payment_notes'] ?? '';
-
-    if ($paymentAmount > 0) {
-      // Get current order financials
-      $stmt = $pdo->prepare("SELECT amount_due, amount_paid, balance_due, qty_per_change, product_price, pieces_per_box FROM orders o LEFT JOIN products pr ON o.product_id = pr.id WHERE o.id = ?");
-      $stmt->execute([$id]);
-      $orderData = $stmt->fetch(PDO::FETCH_ASSOC);
-
-      if ($orderData) {
-        // Calculate order value if not set
-        $currentAmountDue = (float)($orderData['amount_due'] ?? 0);
-        $currentAmountPaid = (float)($orderData['amount_paid'] ?? 0);
-        $currentBalance = (float)($orderData['balance_due'] ?? 0);
-
-        if ($currentAmountDue == 0) {
-          $boxes = (int)($orderData['qty_per_change'] ?? 0);
-          $unitPrice = (float)($orderData['product_price'] ?? 0);
-          $piecesPerBox = (int)($orderData['pieces_per_box'] ?? 10);
-          $currentAmountDue = $boxes * $unitPrice * $piecesPerBox;
-          $currentBalance = $currentAmountDue;
-        }
-
-        // Apply payment
-        $newAmountPaid = $currentAmountPaid + $paymentAmount;
-        $newBalance = $currentAmountDue - $newAmountPaid;
-
-        $paymentNote = date('Y-m-d H:i') . " - Payment recorded: $" . number_format($paymentAmount, 2) . " via " . $paymentMethod . ($paymentNotes ? " - " . $paymentNotes : "");
-
-        // Get current notes to append to
-        $notesStmt = $pdo->prepare("SELECT notes FROM orders WHERE id = ?");
-        $notesStmt->execute([$id]);
-        $currentNotes = $notesStmt->fetchColumn() ?: '';
-        $newNotes = $currentNotes ? $currentNotes . "\n" . $paymentNote : $paymentNote;
-
-        // Update order - use separate queries to avoid PostgreSQL parameter type issues
-        if ($newBalance <= 0) {
-          // Fully paid - set paid_at
-          $updateStmt = $pdo->prepare("
-            UPDATE orders
-            SET amount_due = ?,
-                amount_paid = ?,
-                balance_due = ?,
-                paid_at = NOW(),
-                notes = ?,
-                updated_at = NOW()
-            WHERE id = ?
-          ");
-          $updateStmt->execute([$currentAmountDue, $newAmountPaid, $newBalance, $newNotes, $id]);
-        } else {
-          // Partial payment - don't set paid_at
-          $updateStmt = $pdo->prepare("
-            UPDATE orders
-            SET amount_due = ?,
-                amount_paid = ?,
-                balance_due = ?,
-                notes = ?,
-                updated_at = NOW()
-            WHERE id = ?
-          ");
-          $updateStmt->execute([$currentAmountDue, $newAmountPaid, $newBalance, $newNotes, $id]);
-        }
-
-        $_SESSION['success_msg'] = 'Payment of $' . number_format($paymentAmount, 2) . ' recorded successfully';
-      }
-    }
+    // Payment recording should be done via billing-wholesale.php for proper tracking
+    $_SESSION['error_msg'] = 'Please record payments through the Wholesale Billing page for proper tracking and commission calculation.';
   } elseif ($id && $action==='mark_unpaid') {
-    $pdo->prepare("UPDATE orders SET paid_at=NULL, amount_paid=0, balance_due=amount_due, updated_at=NOW() WHERE id=?")->execute([$id]);
-    $_SESSION['success_msg'] = 'Payment status reset to unpaid';
+    // Payment reset should be done via billing-wholesale.php
+    $_SESSION['error_msg'] = 'Please manage payment status through the Wholesale Billing page.';
   } elseif ($id && $action==='delete_order') {
     // Delete single wholesale order item
     try {
@@ -275,7 +209,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
       $_SESSION['error_msg'] = 'Order number required';
     } else {
       try {
-        require_once __DIR__ . '/../api/lib/sg_curl.php';
+        require_once __DIR__ . '/../api/lib/email_sender.php';
 
         // Get all order items in this group
         $orderStmt = $pdo->prepare("
@@ -502,12 +436,12 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 </body>
 </html>';
 
-          // Send via SendGrid
-          $sent = sg_send(
-            ['email' => $recipientEmail, 'name' => $recipientName],
+          // Send via SMTP (email_sender.php)
+          $sent = send_email(
+            $recipientEmail,
+            $recipientName,
             $subject,
-            $html,
-            ['categories' => ['wholesale', 'invoice']]
+            $html
           );
 
           if ($sent) {
@@ -515,7 +449,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             $pdo->prepare("UPDATE orders SET updated_at=NOW() WHERE order_number = ? AND billed_by = 'practice_dme'")->execute([$orderNumber]);
             $_SESSION['success_msg'] = 'Invoice sent successfully to ' . $recipientEmail;
           } else {
-            $_SESSION['error_msg'] = 'Failed to send invoice email. Please check SendGrid configuration.';
+            $_SESSION['error_msg'] = 'Failed to send invoice email. Please check SMTP configuration.';
           }
         }
       } catch (Throwable $e) {
