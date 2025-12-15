@@ -167,6 +167,99 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 break;
 
+            case 'approve_w9':
+                $w9Id = (int)($_POST['w9_id'] ?? 0);
+                if ($w9Id) {
+                    // Get W9 submission details
+                    $w9Stmt = $pdo->prepare("SELECT rep_id FROM rep_w9_submissions WHERE id = ?");
+                    $w9Stmt->execute([$w9Id]);
+                    $w9 = $w9Stmt->fetch();
+
+                    if ($w9) {
+                        // Update W9 submission status
+                        $pdo->prepare("UPDATE rep_w9_submissions SET status = 'approved', reviewed_by = ?, reviewed_at = NOW() WHERE id = ?")
+                            ->execute([$admin['id'], $w9Id]);
+
+                        // Update sales_reps W9 status
+                        $pdo->prepare("UPDATE sales_reps SET w9_status = 'approved', w9_approved_at = NOW(), updated_at = NOW() WHERE id = ?")
+                            ->execute([$w9['rep_id']]);
+
+                        // Send approval email
+                        if (function_exists('send_generic_email')) {
+                            $repStmt = $pdo->prepare("SELECT u.email, u.first_name FROM sales_reps sr JOIN users u ON u.id = sr.user_id WHERE sr.id = ?");
+                            $repStmt->execute([$w9['rep_id']]);
+                            $rep = $repStmt->fetch();
+                            if ($rep) {
+                                send_generic_email(
+                                    $rep['email'],
+                                    "W9 Approved - CollagenDirect",
+                                    "Hi {$rep['first_name']},\n\nYour W9 form has been reviewed and approved. You are now eligible to receive commission payouts.\n\nThank you,\nCollagenDirect Team"
+                                );
+                            }
+                        }
+
+                        $message = 'W9 approved successfully.';
+                    }
+                }
+                break;
+
+            case 'reject_w9':
+                $w9Id = (int)($_POST['w9_id'] ?? 0);
+                $reason = trim($_POST['rejection_reason'] ?? '');
+                if ($w9Id) {
+                    $w9Stmt = $pdo->prepare("SELECT rep_id FROM rep_w9_submissions WHERE id = ?");
+                    $w9Stmt->execute([$w9Id]);
+                    $w9 = $w9Stmt->fetch();
+
+                    if ($w9) {
+                        // Update W9 submission status
+                        $pdo->prepare("UPDATE rep_w9_submissions SET status = 'rejected', reviewed_by = ?, reviewed_at = NOW(), rejection_reason = ? WHERE id = ?")
+                            ->execute([$admin['id'], $reason ?: null, $w9Id]);
+
+                        // Update sales_reps W9 status
+                        $pdo->prepare("UPDATE sales_reps SET w9_status = 'rejected', updated_at = NOW() WHERE id = ?")
+                            ->execute([$w9['rep_id']]);
+
+                        // Send rejection email
+                        if (function_exists('send_generic_email')) {
+                            $repStmt = $pdo->prepare("SELECT u.email, u.first_name FROM sales_reps sr JOIN users u ON u.id = sr.user_id WHERE sr.id = ?");
+                            $repStmt->execute([$w9['rep_id']]);
+                            $rep = $repStmt->fetch();
+                            if ($rep) {
+                                $reasonText = $reason ? "\n\nReason: {$reason}" : '';
+                                send_generic_email(
+                                    $rep['email'],
+                                    "W9 Review - Action Required",
+                                    "Hi {$rep['first_name']},\n\nYour W9 form submission has been reviewed and requires corrections.{$reasonText}\n\nPlease log in to your distributor portal and submit a new W9 form.\n\nThank you,\nCollagenDirect Team"
+                                );
+                            }
+                        }
+
+                        $message = 'W9 rejected. Distributor has been notified.';
+                    }
+                }
+                break;
+
+            case 'request_w9':
+                $repId = $_POST['rep_id'] ?? '';
+                if ($repId) {
+                    // Send W9 request email
+                    if (function_exists('send_generic_email')) {
+                        $repStmt = $pdo->prepare("SELECT u.email, u.first_name FROM sales_reps sr JOIN users u ON u.id = sr.user_id WHERE sr.id = ?");
+                        $repStmt->execute([$repId]);
+                        $rep = $repStmt->fetch();
+                        if ($rep) {
+                            send_generic_email(
+                                $rep['email'],
+                                "W9 Form Required - CollagenDirect",
+                                "Hi {$rep['first_name']},\n\nWe need you to submit your W9 form to process your commission payouts.\n\nPlease log in to your distributor portal, go to My Account > Documents, and upload your completed W9 form.\n\nIf you need a blank W9 form, you can download it from the IRS website: https://www.irs.gov/pub/irs-pdf/fw9.pdf\n\nThank you,\nCollagenDirect Team"
+                            );
+                            $message = 'W9 request email sent to ' . $rep['first_name'] . '.';
+                        }
+                    }
+                }
+                break;
+
             case 'invite_rep':
                 $firstName = trim($_POST['invite_first_name'] ?? '');
                 $lastName = trim($_POST['invite_last_name'] ?? '');
@@ -288,10 +381,42 @@ foreach ($activeReps as $rep) {
     }
 }
 
+// W9 Review data
+$pendingW9s = [];
+try {
+    $pendingW9s = $pdo->query("
+        SELECT w9.*, sr.company_name, u.first_name, u.last_name, u.email
+        FROM rep_w9_submissions w9
+        JOIN sales_reps sr ON sr.id = w9.rep_id
+        JOIN users u ON u.id = sr.user_id
+        WHERE w9.status = 'pending'
+        ORDER BY w9.submitted_at ASC
+    ")->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    // Table may not exist yet
+    $pendingW9s = [];
+}
+
+// Get distributors missing W9 (active reps without approved W9)
+$missingW9s = [];
+try {
+    $missingW9s = $pdo->query("
+        SELECT sr.id, sr.company_name, sr.w9_status, u.first_name, u.last_name, u.email
+        FROM sales_reps sr
+        JOIN users u ON u.id = sr.user_id
+        WHERE sr.status = 'active'
+        AND (sr.w9_status IS NULL OR sr.w9_status IN ('none', 'rejected', 'expired'))
+        ORDER BY u.last_name, u.first_name
+    ")->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    $missingW9s = [];
+}
+
 // Count badges
 $pendingCount = count($pendingReps) + count($invitedReps);
 $requestCount = count($assignmentRequests);
 $payoutCount = count($payoutData);
+$w9Count = count($pendingW9s);
 
 // Email helper functions (simplified versions)
 function sendDistributorApprovalEmail($pdo, $repId) {
@@ -371,6 +496,12 @@ function sendDistributorInviteEmail($pdo, $repId, $inviteToken, $personalNote) {
                 Pending Applications
                 <?php if ($pendingCount > 0): ?>
                 <span class="ml-1 text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full"><?= $pendingCount ?></span>
+                <?php endif; ?>
+            </a>
+            <a href="?tab=w9review" class="px-4 py-2 border-b-2 <?= $activeTab === 'w9review' ? 'border-brand text-brand font-medium' : 'border-transparent text-gray-500 hover:text-gray-700' ?>">
+                W9 Review
+                <?php if ($w9Count > 0): ?>
+                <span class="ml-1 text-xs bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full"><?= $w9Count ?></span>
                 <?php endif; ?>
             </a>
             <a href="?tab=requests" class="px-4 py-2 border-b-2 <?= $activeTab === 'requests' ? 'border-brand text-brand font-medium' : 'border-transparent text-gray-500 hover:text-gray-700' ?>">
@@ -520,6 +651,117 @@ function sendDistributorInviteEmail($pdo, $repId, $inviteToken, $personalNote) {
 
         <?php if (empty($pendingReps) && empty($invitedReps)): ?>
         <div class="py-8 text-center text-gray-500">No pending applications.</div>
+        <?php endif; ?>
+
+        <?php elseif ($activeTab === 'w9review'): ?>
+        <!-- W9 Review -->
+        <?php if (!empty($pendingW9s)): ?>
+        <div class="p-4 border-b">
+            <h3 class="font-semibold text-gray-700">Pending W9 Submissions</h3>
+        </div>
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 border-b">
+                <tr>
+                    <th class="text-left py-3 px-4 font-semibold text-gray-600">Distributor</th>
+                    <th class="text-left py-3 px-4 font-semibold text-gray-600">Company</th>
+                    <th class="text-left py-3 px-4 font-semibold text-gray-600">Tax Year</th>
+                    <th class="text-left py-3 px-4 font-semibold text-gray-600">Submitted</th>
+                    <th class="text-left py-3 px-4 font-semibold text-gray-600">Document</th>
+                    <th class="text-left py-3 px-4 font-semibold text-gray-600">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($pendingW9s as $w9): ?>
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="py-3 px-4">
+                        <div class="font-medium"><?= htmlspecialchars($w9['first_name'] . ' ' . $w9['last_name']) ?></div>
+                        <div class="text-xs text-gray-500"><?= htmlspecialchars($w9['email']) ?></div>
+                    </td>
+                    <td class="py-3 px-4 text-gray-600"><?= htmlspecialchars($w9['company_name'] ?? '-') ?></td>
+                    <td class="py-3 px-4"><?= htmlspecialchars($w9['tax_year']) ?></td>
+                    <td class="py-3 px-4 text-gray-500 text-xs"><?= date('M j, Y g:i A', strtotime($w9['submitted_at'])) ?></td>
+                    <td class="py-3 px-4">
+                        <a href="/<?= htmlspecialchars($w9['file_path']) ?>" target="_blank" class="text-blue-600 hover:underline text-xs flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                            View
+                        </a>
+                        <div class="text-xs text-gray-400"><?= htmlspecialchars($w9['file_name']) ?></div>
+                    </td>
+                    <td class="py-3 px-4">
+                        <?php if ($canManage): ?>
+                        <form method="post" class="inline">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="action" value="approve_w9">
+                            <input type="hidden" name="w9_id" value="<?= (int)$w9['id'] ?>">
+                            <button class="text-green-600 hover:underline text-xs">Approve</button>
+                        </form>
+                        <button onclick="showRejectW9Modal(<?= (int)$w9['id'] ?>, '<?= htmlspecialchars(addslashes($w9['first_name'] . ' ' . $w9['last_name'])) ?>')"
+                                class="text-red-600 hover:underline text-xs ml-2">Reject</button>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        <?php endif; ?>
+
+        <?php if (!empty($missingW9s)): ?>
+        <div class="p-4 border-b <?= !empty($pendingW9s) ? 'border-t mt-4' : '' ?>">
+            <h3 class="font-semibold text-gray-700">Missing W9 Forms</h3>
+            <p class="text-xs text-gray-500 mt-1">Active distributors who haven't submitted an approved W9</p>
+        </div>
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 border-b">
+                <tr>
+                    <th class="text-left py-3 px-4 font-semibold text-gray-600">Distributor</th>
+                    <th class="text-left py-3 px-4 font-semibold text-gray-600">Company</th>
+                    <th class="text-left py-3 px-4 font-semibold text-gray-600">Status</th>
+                    <th class="text-left py-3 px-4 font-semibold text-gray-600">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($missingW9s as $rep): ?>
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="py-3 px-4">
+                        <div class="font-medium"><?= htmlspecialchars($rep['first_name'] . ' ' . $rep['last_name']) ?></div>
+                        <div class="text-xs text-gray-500"><?= htmlspecialchars($rep['email']) ?></div>
+                    </td>
+                    <td class="py-3 px-4 text-gray-600"><?= htmlspecialchars($rep['company_name'] ?? '-') ?></td>
+                    <td class="py-3 px-4">
+                        <?php
+                        $statusLabels = [
+                            'none' => ['bg-gray-100 text-gray-800', 'Not Submitted'],
+                            'rejected' => ['bg-red-100 text-red-800', 'Rejected'],
+                            'expired' => ['bg-orange-100 text-orange-800', 'Expired'],
+                        ];
+                        $status = $rep['w9_status'] ?? 'none';
+                        $statusInfo = $statusLabels[$status] ?? $statusLabels['none'];
+                        ?>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium <?= $statusInfo[0] ?>">
+                            <?= $statusInfo[1] ?>
+                        </span>
+                    </td>
+                    <td class="py-3 px-4">
+                        <?php if ($canManage): ?>
+                        <form method="post" class="inline" onsubmit="return confirm('Send W9 request email to this distributor?')">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="action" value="request_w9">
+                            <input type="hidden" name="rep_id" value="<?= htmlspecialchars($rep['id']) ?>">
+                            <button class="text-brand hover:underline text-xs">Send Request</button>
+                        </form>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        <?php endif; ?>
+
+        <?php if (empty($pendingW9s) && empty($missingW9s)): ?>
+        <div class="py-8 text-center text-gray-500">All distributors have valid W9 forms on file.</div>
         <?php endif; ?>
 
         <?php elseif ($activeTab === 'requests'): ?>
@@ -776,6 +1018,28 @@ function sendDistributorInviteEmail($pdo, $repId, $inviteToken, $personalNote) {
     </form>
 </dialog>
 
+<!-- Reject W9 Modal -->
+<dialog id="reject-w9-modal" class="rounded-xl shadow-xl w-full max-w-sm p-0 backdrop:bg-black/50">
+    <form method="post" class="p-6">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="reject_w9">
+        <input type="hidden" name="w9_id" id="reject-w9-id">
+
+        <h2 class="text-xl font-semibold mb-4">Reject W9</h2>
+        <p class="text-sm text-gray-600 mb-4">Reject W9 submission from <strong id="reject-w9-name"></strong>?</p>
+
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Reason (will be sent to distributor)</label>
+            <textarea name="rejection_reason" rows="3" class="w-full border rounded-lg px-3 py-2" placeholder="e.g., Document is illegible, missing signature, incorrect tax year..."></textarea>
+        </div>
+
+        <div class="flex justify-end gap-3">
+            <button type="button" onclick="document.getElementById('reject-w9-modal').close()" class="btn">Cancel</button>
+            <button type="submit" class="btn" style="background: var(--error); color: white;">Reject W9</button>
+        </div>
+    </form>
+</dialog>
+
 <script>
 function showApproveModal(repId, repName) {
     document.getElementById('approve-rep-id').value = repId;
@@ -801,6 +1065,12 @@ function showPayoutModal(repId, repName, balance) {
     document.getElementById('payout-amount').value = balance.toFixed(2);
     document.getElementById('payout-amount').max = balance.toFixed(2);
     document.getElementById('payout-modal').showModal();
+}
+
+function showRejectW9Modal(w9Id, repName) {
+    document.getElementById('reject-w9-id').value = w9Id;
+    document.getElementById('reject-w9-name').textContent = repName;
+    document.getElementById('reject-w9-modal').showModal();
 }
 </script>
 

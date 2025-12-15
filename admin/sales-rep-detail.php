@@ -173,13 +173,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           }
         }
         break;
+
+      case 'request_w9':
+        // Send W9 request email to distributor
+        require_once __DIR__ . '/../api/lib/email_notifications.php';
+        $repStmt = $pdo->prepare("SELECT u.email, u.first_name FROM sales_reps sr JOIN users u ON u.id = sr.user_id WHERE sr.id = ?");
+        $repStmt->execute([$repId]);
+        $repInfo = $repStmt->fetch();
+        if ($repInfo && function_exists('send_generic_email')) {
+          send_generic_email(
+            $repInfo['email'],
+            "W9 Form Required - CollagenDirect",
+            "Hi {$repInfo['first_name']},\n\nWe need you to submit your W9 form to process your commission payouts.\n\nPlease log in to your distributor portal, go to My Account > Documents, and upload your completed W9 form.\n\nIf you need a blank W9 form, you can download it from the IRS website: https://www.irs.gov/pub/irs-pdf/fw9.pdf\n\nThank you,\nCollagenDirect Team"
+          );
+          $message = 'W9 request email sent to ' . $repInfo['first_name'] . '.';
+        } else {
+          $error = 'Unable to send W9 request email.';
+        }
+        break;
     }
   } catch (PDOException $e) {
     $error = 'Database error: ' . $e->getMessage();
   }
 }
 
-// Fetch rep details
+// Fetch rep details (including Phase 11 business profile fields)
 $repQuery = "
   SELECT sr.*,
     u.email, u.first_name, u.last_name, u.phone, u.created_at as user_created_at
@@ -195,6 +213,18 @@ if (!$rep) {
   header('Location: /admin/platform/distributors.php');
   exit;
 }
+
+// Fetch W9 submissions (Phase 11)
+$w9Query = "
+  SELECT *
+  FROM rep_w9_submissions
+  WHERE rep_id = ?
+  ORDER BY submitted_at DESC
+";
+$w9Stmt = $pdo->prepare($w9Query);
+$w9Stmt->execute([$repId]);
+$w9Submissions = $w9Stmt->fetchAll();
+$currentW9 = !empty($w9Submissions) ? $w9Submissions[0] : null;
 
 // Fetch current commission rate (defaults to 25% if not set)
 // Order by effective_date DESC (most recent effective date first), then by created_at DESC (most recently created)
@@ -485,6 +515,176 @@ $statusColors = [
         <div class="text-sm text-gray-500">Generated Revenue</div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- Section 2b: Business Information (Phase 11) -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+  <div class="card p-6">
+    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Business Information</h3>
+    <dl class="space-y-3">
+      <?php if ($rep['dba']): ?>
+      <div>
+        <dt class="text-xs text-gray-500">DBA (Doing Business As)</dt>
+        <dd class="font-medium"><?= htmlspecialchars($rep['dba']) ?></dd>
+      </div>
+      <?php endif; ?>
+      <?php if ($rep['tax_classification']): ?>
+      <div>
+        <dt class="text-xs text-gray-500">Tax Classification</dt>
+        <dd>
+          <?php
+          $taxLabels = [
+            'sole_proprietor' => 'Individual/Sole Proprietor',
+            'llc_single' => 'Single-member LLC',
+            'llc_c' => 'LLC (C-Corp)',
+            'llc_s' => 'LLC (S-Corp)',
+            'llc_p' => 'LLC (Partnership)',
+            'c_corp' => 'C Corporation',
+            's_corp' => 'S Corporation',
+            'partnership' => 'Partnership',
+            'trust' => 'Trust/Estate',
+            'other' => 'Other'
+          ];
+          echo htmlspecialchars($taxLabels[$rep['tax_classification']] ?? $rep['tax_classification']);
+          ?>
+        </dd>
+      </div>
+      <?php endif; ?>
+      <?php if ($rep['ein_last4']): ?>
+      <div>
+        <dt class="text-xs text-gray-500">EIN (Last 4)</dt>
+        <dd>***-**-<?= htmlspecialchars($rep['ein_last4']) ?></dd>
+      </div>
+      <?php endif; ?>
+      <?php if ($rep['website']): ?>
+      <div>
+        <dt class="text-xs text-gray-500">Website</dt>
+        <dd><a href="<?= htmlspecialchars($rep['website']) ?>" target="_blank" class="text-teal-600 hover:underline"><?= htmlspecialchars($rep['website']) ?></a></dd>
+      </div>
+      <?php endif; ?>
+      <?php if ($rep['business_address_line1']): ?>
+      <div>
+        <dt class="text-xs text-gray-500">Business Address</dt>
+        <dd>
+          <?= htmlspecialchars($rep['business_address_line1']) ?><br>
+          <?php if ($rep['business_address_line2']): ?><?= htmlspecialchars($rep['business_address_line2']) ?><br><?php endif; ?>
+          <?= htmlspecialchars($rep['business_city'] ?? '') ?><?= $rep['business_city'] && $rep['business_state'] ? ', ' : '' ?><?= htmlspecialchars($rep['business_state'] ?? '') ?> <?= htmlspecialchars($rep['business_zip'] ?? '') ?>
+        </dd>
+      </div>
+      <?php endif; ?>
+      <?php if ($rep['business_phone']): ?>
+      <div>
+        <dt class="text-xs text-gray-500">Business Phone</dt>
+        <dd><?= htmlspecialchars($rep['business_phone']) ?></dd>
+      </div>
+      <?php endif; ?>
+      <?php if ($rep['business_email']): ?>
+      <div>
+        <dt class="text-xs text-gray-500">Business Email</dt>
+        <dd><a href="mailto:<?= htmlspecialchars($rep['business_email']) ?>" class="text-teal-600 hover:underline"><?= htmlspecialchars($rep['business_email']) ?></a></dd>
+      </div>
+      <?php endif; ?>
+      <?php if (!$rep['dba'] && !$rep['tax_classification'] && !$rep['business_address_line1'] && !$rep['business_phone'] && !$rep['business_email']): ?>
+      <div class="text-gray-400 text-sm">No business information on file.</div>
+      <?php endif; ?>
+    </dl>
+  </div>
+
+  <!-- W9 Status (Phase 11) -->
+  <div class="card p-6">
+    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">W9 Status</h3>
+    <?php
+    $w9Status = $rep['w9_status'] ?? 'none';
+    $w9StatusLabels = [
+      'none' => ['label' => 'Not Submitted', 'class' => 'bg-gray-100 text-gray-800', 'desc' => 'No W9 form on file'],
+      'pending' => ['label' => 'Pending Review', 'class' => 'bg-yellow-100 text-yellow-800', 'desc' => 'Awaiting admin review'],
+      'approved' => ['label' => 'Approved', 'class' => 'bg-green-100 text-green-800', 'desc' => 'Valid W9 on file'],
+      'rejected' => ['label' => 'Rejected', 'class' => 'bg-red-100 text-red-800', 'desc' => 'Needs resubmission'],
+      'expired' => ['label' => 'Expired', 'class' => 'bg-orange-100 text-orange-800', 'desc' => 'W9 has expired'],
+    ];
+    $w9Info = $w9StatusLabels[$w9Status] ?? $w9StatusLabels['none'];
+    ?>
+
+    <div class="flex items-start gap-4 mb-4">
+      <div class="flex-shrink-0">
+        <span class="inline-flex items-center justify-center w-12 h-12 rounded-full <?= str_replace('text-', 'bg-', explode(' ', $w9Info['class'])[0]) ?>-200">
+          <?php if ($w9Status === 'approved'): ?>
+            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <?php elseif ($w9Status === 'pending'): ?>
+            <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <?php elseif ($w9Status === 'rejected'): ?>
+            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <?php else: ?>
+            <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <?php endif; ?>
+        </span>
+      </div>
+      <div>
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium <?= $w9Info['class'] ?>">
+          <?= $w9Info['label'] ?>
+        </span>
+        <p class="text-sm text-gray-500 mt-1"><?= $w9Info['desc'] ?></p>
+        <?php if ($rep['w9_approved_at']): ?>
+          <p class="text-xs text-gray-400 mt-1">Approved: <?= date('M j, Y', strtotime($rep['w9_approved_at'])) ?></p>
+        <?php endif; ?>
+      </div>
+    </div>
+
+    <?php if ($currentW9): ?>
+    <div class="border-t pt-4">
+      <h4 class="text-xs font-medium text-gray-500 mb-2">Latest Submission</h4>
+      <div class="bg-gray-50 rounded-lg p-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium"><?= htmlspecialchars($currentW9['file_name']) ?></p>
+            <p class="text-xs text-gray-500">Tax Year <?= $currentW9['tax_year'] ?> · Submitted <?= date('M j, Y', strtotime($currentW9['submitted_at'])) ?></p>
+          </div>
+          <a href="/<?= htmlspecialchars($currentW9['file_path']) ?>" target="_blank" class="btn text-sm">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+            </svg>
+            View
+          </a>
+        </div>
+        <?php if ($currentW9['rejection_reason']): ?>
+          <p class="text-xs text-red-600 mt-2">Rejection reason: <?= htmlspecialchars($currentW9['rejection_reason']) ?></p>
+        <?php endif; ?>
+      </div>
+    </div>
+    <?php endif; ?>
+
+    <?php if (count($w9Submissions) > 1): ?>
+    <div class="border-t pt-4 mt-4">
+      <h4 class="text-xs font-medium text-gray-500 mb-2">Submission History</h4>
+      <div class="space-y-2 max-h-32 overflow-y-auto">
+        <?php foreach (array_slice($w9Submissions, 1, 5) as $w9): ?>
+          <div class="flex justify-between text-sm">
+            <span class="text-gray-600"><?= date('M j, Y', strtotime($w9['submitted_at'])) ?></span>
+            <span class="<?= $w9['status'] === 'approved' ? 'text-green-600' : ($w9['status'] === 'rejected' ? 'text-red-600' : 'text-gray-500') ?>">
+              <?= ucfirst($w9['status']) ?>
+            </span>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    </div>
+    <?php endif; ?>
+
+    <?php if ($w9Status !== 'approved' && $w9Status !== 'pending'): ?>
+    <div class="border-t pt-4 mt-4">
+      <form method="POST" class="inline">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="request_w9">
+        <button type="submit" class="btn btn-primary w-full text-sm" onclick="return confirm('Send W9 request email to this distributor?')">
+          <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+          </svg>
+          Request W9 Form
+        </button>
+      </form>
+    </div>
+    <?php endif; ?>
   </div>
 </div>
 
