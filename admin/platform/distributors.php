@@ -558,7 +558,7 @@ function sendDistributorInviteEmail($pdo, $repId, $inviteToken, $personalNote) {
                         <?= $rep['commission_rate'] ? number_format($rep['commission_rate'] * 100, 0) . '%' : '-' ?>
                     </td>
                     <td class="py-3 px-4">
-                        <a href="/admin/platform/distributor-detail.php?id=<?= urlencode($rep['id']) ?>" class="text-blue-600 hover:underline text-xs">View</a>
+                        <a href="/admin/sales-rep-detail.php?id=<?= urlencode($rep['id']) ?>" class="text-blue-600 hover:underline text-xs">View</a>
                         <?php if ($canManage): ?>
                         <form method="post" class="inline ml-2" onsubmit="return confirm('Suspend this distributor?')">
                             <?= csrf_field() ?>

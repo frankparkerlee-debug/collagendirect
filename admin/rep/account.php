@@ -800,7 +800,7 @@ $w9StatusInfo = $w9StatusLabels[$w9Status] ?? $w9StatusLabels['none'];
 
   <?php
   $docsStmt = $pdo->prepare("
-    SELECT document_type, document_version, signed_at, signature_name
+    SELECT document_type, document_version, signed_at, signature_text
     FROM rep_signed_documents
     WHERE rep_id = ?
     ORDER BY signed_at DESC
@@ -837,7 +837,7 @@ $w9StatusInfo = $w9StatusLabels[$w9Status] ?? $w9StatusLabels['none'];
                 ?>
               </td>
               <td class="py-2"><?= htmlspecialchars($doc['document_version'] ?: '-') ?></td>
-              <td class="py-2"><?= htmlspecialchars($doc['signature_name']) ?></td>
+              <td class="py-2"><?= htmlspecialchars($doc['signature_text']) ?></td>
               <td class="py-2"><?= date('M j, Y', strtotime($doc['signed_at'])) ?></td>
             </tr>
           <?php endforeach; ?>

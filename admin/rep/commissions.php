@@ -36,10 +36,10 @@ $summary = $summaryStmt->fetch();
 
 // Get ledger entries
 $query = "
-  SELECT cl.id, cl.order_id, cl.clinic_id, cl.order_amount, cl.commission_rate, cl.commission_amount,
-         cl.status, cl.payout_id, cl.created_at, cl.updated_at,
+  SELECT cl.id, cl.order_id, cl.clinic_id, cl.collected_amount, cl.commission_rate, cl.commission_amount,
+         cl.status, cl.payout_id, cl.created_at,
          u.practice_name, u.first_name, u.last_name,
-         o.invoice_number, o.product
+         o.product
   FROM rep_commission_ledger cl
   LEFT JOIN users u ON u.id = cl.clinic_id
   LEFT JOIN orders o ON o.id = cl.order_id
@@ -157,7 +157,7 @@ $totalPages = ceil($totalEntries / $perPage);
           <th>Date</th>
           <th>Order</th>
           <th>Clinic</th>
-          <th>Order Amount</th>
+          <th>Collected</th>
           <th>Rate</th>
           <th>Commission</th>
           <th>Status</th>
@@ -170,7 +170,7 @@ $totalPages = ceil($totalEntries / $perPage);
               <div class="text-sm"><?= date('M j, Y', strtotime($entry['created_at'])) ?></div>
             </td>
             <td>
-              <span class="font-mono text-sm"><?= htmlspecialchars($entry['invoice_number'] ?: $entry['order_id']) ?></span>
+              <span class="font-mono text-sm"><?= htmlspecialchars(substr($entry['order_id'], 0, 8)) ?></span>
               <?php if ($entry['product']): ?>
                 <div class="text-xs text-gray-500"><?= htmlspecialchars($entry['product']) ?></div>
               <?php endif; ?>
@@ -179,7 +179,7 @@ $totalPages = ceil($totalEntries / $perPage);
               <div class="text-sm"><?= htmlspecialchars($entry['practice_name'] ?: $entry['first_name'] . ' ' . $entry['last_name']) ?></div>
             </td>
             <td>
-              <span class="font-medium">$<?= number_format((float)$entry['order_amount'], 2) ?></span>
+              <span class="font-medium">$<?= number_format((float)$entry['collected_amount'], 2) ?></span>
             </td>
             <td>
               <span class="text-sm"><?= number_format((float)$entry['commission_rate'] * 100, 1) ?>%</span>

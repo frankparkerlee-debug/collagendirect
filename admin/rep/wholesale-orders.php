@@ -33,7 +33,7 @@ $clinics = $clinicsStmt->fetchAll();
 
 // Build orders query - SCOPED to assigned clinics only, wholesale orders only
 $query = "
-  SELECT o.id, o.status, o.created_at, o.product, o.amount_due, o.invoice_number,
+  SELECT o.id, o.status, o.created_at, o.product, o.amount_due,
          p.first_name as patient_first, p.last_name as patient_last,
          u.id as clinic_id, u.practice_name, u.first_name as phys_first, u.last_name as phys_last
   FROM orders o
@@ -138,7 +138,7 @@ $statuses = ['submitted', 'approved', 'in_production', 'shipped', 'delivered', '
     <table>
       <thead>
         <tr>
-          <th>Invoice #</th>
+          <th>Order ID</th>
           <th>Patient</th>
           <th>Clinic</th>
           <th>Product</th>
@@ -151,7 +151,7 @@ $statuses = ['submitted', 'approved', 'in_production', 'shipped', 'delivered', '
         <?php foreach ($orders as $order): ?>
           <tr>
             <td>
-              <span class="font-mono text-sm"><?= htmlspecialchars($order['invoice_number'] ?: '-') ?></span>
+              <span class="font-mono text-sm"><?= htmlspecialchars(substr($order['id'], 0, 8)) ?></span>
             </td>
             <td>
               <div class="font-medium"><?= htmlspecialchars($order['patient_first'] . ' ' . $order['patient_last']) ?></div>

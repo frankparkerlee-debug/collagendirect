@@ -284,9 +284,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           $pdo->commit();
 
           // Calculate commission for the sales rep (if clinic has an assigned rep)
+          // Use the first order's UUID as the order_id reference
           $commissionResult = calculate_commission(
             $pdo,
-            $orderNumber,
+            $orders[0]['id'],  // Use order UUID, not display order number
             'wholesale',
             $userId,
             $paymentAmount,

@@ -42,7 +42,7 @@ if (!$clinic) {
 
 // Get recent orders
 $ordersStmt = $pdo->prepare("
-  SELECT o.id, o.created_at, o.status, o.total, p.first_name as patient_first, p.last_name as patient_last
+  SELECT o.id, o.created_at, o.status, o.amount_due, p.first_name as patient_first, p.last_name as patient_last
   FROM orders o
   LEFT JOIN patients p ON p.id = o.patient_id
   WHERE o.user_id = ?
@@ -258,7 +258,7 @@ $statusColors = [
                   <td class="font-medium">#<?= $order['id'] ?></td>
                   <td><?= htmlspecialchars(($order['patient_first'] ?? '') . ' ' . ($order['patient_last'] ?? '')) ?: '-' ?></td>
                   <td class="text-sm text-gray-500"><?= date('M j, Y', strtotime($order['created_at'])) ?></td>
-                  <td>$<?= number_format((float)$order['total'], 2) ?></td>
+                  <td>$<?= number_format((float)$order['amount_due'], 2) ?></td>
                   <td>
                     <?php
                     $statusColors = [

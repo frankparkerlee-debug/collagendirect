@@ -6,6 +6,7 @@
  */
 declare(strict_types=1);
 require __DIR__ . '/_header.php';
+require_once __DIR__ . '/../../api/lib/email_notifications.php';
 
 $repId = $admin['rep_id'] ?? null;
 if (!$repId) {
@@ -40,6 +41,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $npi = preg_replace('/\D/', '', $_POST['npi'] ?? '');
   $license = trim($_POST['license'] ?? '');
   $licenseState = $_POST['license_state'] ?? null;
+
+  // Address fields (optional - creates practice location if provided)
+  $locationName = trim($_POST['location_name'] ?? '');
+  $address = trim($_POST['address'] ?? '');
+  $city = trim($_POST['city'] ?? '');
+  $state = $_POST['state'] ?? '';
+  $zip = trim($_POST['zip'] ?? '');
+  $phone = trim($_POST['phone'] ?? '');
 
   // Validate practice belongs to this rep
   $validPractice = false;
@@ -96,8 +105,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $practiceId, $userId, $firstName, $lastName, strtolower($email), $npi ?: null, $license ?: null, $licenseState
       ]);
 
+      // Create practice location if address provided (linked to practice_admin)
+      if ($address && $city && $state && $zip) {
+        $locationId = bin2hex(random_bytes(16));
+        $locName = $locationName ?: ($firstName . ' ' . $lastName . ' Office');
+        $pdo->prepare("
+          INSERT INTO practice_locations (id, user_id, location_name, address, city, state, zip, phone, is_primary, is_active, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, FALSE, TRUE, NOW(), NOW())
+        ")->execute([
+          $locationId, $practiceId, $locName, $address, $city, $state, $zip, $phone ?: null
+        ]);
+      }
+
       $pdo->commit();
-      $message = 'Physician "' . htmlspecialchars($firstName . ' ' . $lastName) . '" has been added to the practice.';
+
+      // Send welcome email with login credentials
+      $fullName = $firstName . ' ' . $lastName;
+      $emailSent = send_physician_account_created_email($email, $fullName, $password);
+      if ($emailSent) {
+        error_log("[add-physician] Welcome email sent to $email");
+        $message = 'Physician "' . htmlspecialchars($fullName) . '" has been added to the practice. A welcome email with login credentials has been sent.';
+      } else {
+        error_log("[add-physician] Failed to send welcome email to $email");
+        $message = 'Physician "' . htmlspecialchars($fullName) . '" has been added to the practice. Note: Welcome email could not be sent - please share credentials manually.';
+      }
     } catch (PDOException $e) {
       $pdo->rollBack();
       error_log("Add physician error: " . $e->getMessage());
@@ -207,6 +238,45 @@ $states = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN'
             <option value="<?= $st ?>" <?= ($_POST['license_state'] ?? '') === $st ? 'selected' : '' ?>><?= $st ?></option>
           <?php endforeach; ?>
         </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Practice Location (Optional) -->
+  <div class="border-t pt-6 mb-6">
+    <h3 class="text-lg font-medium text-gray-900 mb-4">Practice Location (Optional)</h3>
+    <p class="text-sm text-gray-500 mb-4">If provided, this will create a new location for the practice that can be used for shipping orders.</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="md:col-span-2">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Location Name</label>
+        <input type="text" name="location_name" placeholder="e.g., Downtown Office" value="<?= htmlspecialchars($_POST['location_name'] ?? '') ?>">
+      </div>
+      <div class="md:col-span-2">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Street Address</label>
+        <input type="text" name="address" value="<?= htmlspecialchars($_POST['address'] ?? '') ?>">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
+        <input type="text" name="city" value="<?= htmlspecialchars($_POST['city'] ?? '') ?>">
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">State</label>
+          <select name="state">
+            <option value="">Select...</option>
+            <?php foreach ($states as $st): ?>
+              <option value="<?= $st ?>" <?= ($_POST['state'] ?? '') === $st ? 'selected' : '' ?>><?= $st ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">ZIP Code</label>
+          <input type="text" name="zip" maxlength="10" value="<?= htmlspecialchars($_POST['zip'] ?? '') ?>">
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+        <input type="tel" name="phone" value="<?= htmlspecialchars($_POST['phone'] ?? '') ?>">
       </div>
     </div>
   </div>
