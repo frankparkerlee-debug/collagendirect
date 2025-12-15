@@ -459,14 +459,17 @@ function isActive($pageName) {
 
       <!-- Billing Section with Submenu -->
       <div class="nav-group">
-        <a class="nav-parent <?php echo (isActive('billing') || isActive('billing-wholesale')) ? 'active expanded' : ''; ?>" href="#" onclick="toggleSubmenu(event, 'billing-submenu')">
+        <a class="nav-parent <?php echo (isActive('billing') || isActive('billing-wholesale') || isActive('billing-referral')) ? 'active expanded' : ''; ?>" href="#" onclick="toggleSubmenu(event, 'billing-submenu')">
           <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
           <span>Billing</span>
           <svg class="nav-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px; margin-left: auto; transition: transform 0.2s;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
         </a>
-        <div id="billing-submenu" class="nav-submenu" style="display: <?php echo (isActive('billing') || isActive('billing-wholesale')) ? 'flex' : 'none'; ?>;">
+        <div id="billing-submenu" class="nav-submenu" style="display: <?php echo (isActive('billing') || isActive('billing-wholesale') || isActive('billing-referral')) ? 'flex' : 'none'; ?>;">
           <a class="<?=isActive('billing')?>" href="/admin/billing.php">
-            <span>Referral</span>
+            <span>Referral Orders</span>
+          </a>
+          <a class="<?=isActive('billing-referral')?>" href="/admin/billing-referral.php">
+            <span>Referral Collections</span>
           </a>
           <a class="<?=isActive('billing-wholesale')?>" href="/admin/billing-wholesale.php">
             <span>Wholesale</span>
