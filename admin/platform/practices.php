@@ -435,7 +435,7 @@ $locations = $locStmt->fetchAll();
 $usersQuery = "
     SELECT u.id, u.first_name, u.last_name, u.email, u.phone, u.practice_name,
            u.role, u.status, u.npi, u.ptan, u.license, u.license_state, u.license_expiry,
-           u.account_type, u.created_at, u.last_login_at
+           u.account_type, u.created_at, u.updated_at
     FROM users u
     WHERE u.role IN ('physician', 'practice_admin')
 ";
