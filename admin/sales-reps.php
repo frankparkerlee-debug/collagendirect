@@ -237,7 +237,7 @@ $assignmentQuery = "
   FROM rep_assignment_requests ar
   JOIN sales_reps sr_requester ON sr_requester.id = ar.rep_id
   JOIN users u_requester ON u_requester.id = sr_requester.user_id
-  JOIN users u_clinic ON u_clinic.id = ar.user_id
+  JOIN users u_clinic ON u_clinic.id = ar.clinic_id
   LEFT JOIN sales_reps sr_current ON sr_current.id = u_clinic.assigned_rep_id
   LEFT JOIN users u_current_rep ON u_current_rep.id = sr_current.user_id
   WHERE ar.status = 'pending'
