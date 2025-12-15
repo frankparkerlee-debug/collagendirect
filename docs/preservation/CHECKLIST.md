@@ -307,16 +307,36 @@ curl "https://[domain]/api/icd10_search.php?q=diabetes"
 
 ## UI Verification
 
-### Admin Panel
+### Admin Panel - Core Pages
 
 - [ ] `/admin/` - Dashboard loads
 - [ ] `/admin/orders.php` - Order list loads
 - [ ] `/admin/patients.php` - Patient list loads
 - [ ] `/admin/products.php` - Product list loads
-- [ ] `/admin/sales-reps.php` - Rep list loads
-- [ ] `/admin/sales-rep-detail.php?id=X` - Rep detail loads
 - [ ] `/admin/billing-wholesale.php` - Billing page loads
 - [ ] `/admin/wholesale-orders.php` - Wholesale orders load
+
+### Admin Panel - Admin Settings (Phase 10 Restructure)
+
+- [ ] `/admin/platform/practices.php` - Practice Management loads
+  - [ ] Practices tab with search/filter
+  - [ ] Locations tab (flat view)
+  - [ ] Practice Users tab (flat view)
+- [ ] `/admin/platform/internal-users.php` - Internal Users loads (Super Admin/Admin only)
+  - [ ] Create/Edit user works
+  - [ ] Suspend/Reactivate works
+  - [ ] Role visibility restrictions work
+- [ ] `/admin/platform/distributors.php` - Distributors loads
+  - [ ] Active Distributors tab
+  - [ ] Pending Applications tab
+  - [ ] Assignment Requests tab
+  - [ ] Commission Payouts tab
+- [ ] `/admin/platform/roles-permissions.php` - Roles & Permissions loads (Super Admin/Admin only)
+  - [ ] Role Templates view
+  - [ ] Permission Matrix view/edit
+  - [ ] User Overrides tab (Super Admin only)
+- [ ] `/admin/sales-reps.php` - Redirects to `/admin/platform/distributors.php`
+- [ ] `/admin/sales-rep-detail.php?id=X` - Rep detail loads (back link to distributors)
 
 ### Portal
 
