@@ -122,15 +122,15 @@ try {
 
   // 4. Create index on invite_token for fast lookups
   echo "4. Creating indexes...\n";
-  try {
+  $indexExists = $pdo->query("
+    SELECT COUNT(*) FROM pg_indexes
+    WHERE tablename = 'sales_reps' AND indexname = 'idx_sales_reps_invite_token'
+  ")->fetchColumn();
+  if ($indexExists == 0) {
     $pdo->exec("CREATE INDEX idx_sales_reps_invite_token ON sales_reps(invite_token) WHERE invite_token IS NOT NULL");
     echo "   ✓ Created invite_token index\n";
-  } catch (PDOException $e) {
-    if (strpos($e->getMessage(), 'already exists') !== false) {
-      echo "   - Index already exists\n";
-    } else {
-      throw $e;
-    }
+  } else {
+    echo "   - Index already exists\n";
   }
 
   // 5. Add comments
