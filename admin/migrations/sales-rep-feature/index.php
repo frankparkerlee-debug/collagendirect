@@ -57,6 +57,7 @@ $runMigrations = isset($_POST['run']) && $_POST['run'] === '1';
         <li><code class="bg-gray-100 px-2 py-0.5 rounded">005_create_rep_commission_ledger.php</code> - Per-order commission entries</li>
         <li><code class="bg-gray-100 px-2 py-0.5 rounded">006_create_rep_commission_payouts.php</code> - Payout records</li>
         <li><code class="bg-gray-100 px-2 py-0.5 rounded">007_add_rep_columns_to_users.php</code> - Add rep columns to users table</li>
+        <li><code class="bg-gray-100 px-2 py-0.5 rounded">008_create_test_sales_rep.php</code> - Create test sales rep account</li>
       </ol>
 
       <form method="POST" onsubmit="return confirm('Are you sure you want to run these migrations? This will modify the database.');">
@@ -82,6 +83,7 @@ $migrations = [
   '005_create_rep_commission_ledger.php',
   '006_create_rep_commission_payouts.php',
   '007_add_rep_columns_to_users.php',
+  '008_create_test_sales_rep.php',
 ];
 
 $migrationDir = __DIR__;
