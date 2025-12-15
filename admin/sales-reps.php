@@ -804,7 +804,7 @@ HTML;
 
 <!-- Tab 1: Active Reps -->
 <?php if ($activeTab === 'active'): ?>
-<div class="card overflow-hidden">
+<div class="card overflow-visible">
   <?php if (empty($activeReps)): ?>
     <div class="p-8 text-center">
       <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -814,6 +814,7 @@ HTML;
       <p class="text-gray-500">Once reps are approved, they'll appear here.</p>
     </div>
   <?php else: ?>
+  <div class="overflow-x-auto">
     <table>
       <thead>
         <tr>
@@ -903,13 +904,14 @@ HTML;
         <?php endforeach; ?>
       </tbody>
     </table>
+  </div>
   <?php endif; ?>
 </div>
 <?php endif; ?>
 
 <!-- Tab: Invited Reps -->
 <?php if ($activeTab === 'invited'): ?>
-<div class="card overflow-hidden">
+<div class="card overflow-visible">
   <?php if (empty($invitedReps)): ?>
     <div class="p-8 text-center">
       <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -925,6 +927,7 @@ HTML;
       </button>
     </div>
   <?php else: ?>
+  <div class="overflow-x-auto">
     <table>
       <thead>
         <tr>
@@ -988,13 +991,14 @@ HTML;
         <?php endforeach; ?>
       </tbody>
     </table>
+  </div>
   <?php endif; ?>
 </div>
 <?php endif; ?>
 
 <!-- Tab 2: Pending Applications -->
 <?php if ($activeTab === 'pending'): ?>
-<div class="card overflow-hidden">
+<div class="card overflow-visible">
   <?php if (empty($pendingApplications)): ?>
     <div class="p-8 text-center">
       <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1004,6 +1008,7 @@ HTML;
       <p class="text-gray-500">New applications will appear here for review.</p>
     </div>
   <?php else: ?>
+  <div class="overflow-x-auto">
     <table>
       <thead>
         <tr>
@@ -1053,13 +1058,14 @@ HTML;
         <?php endforeach; ?>
       </tbody>
     </table>
+  </div>
   <?php endif; ?>
 </div>
 <?php endif; ?>
 
 <!-- Tab 3: Assignment Requests -->
 <?php if ($activeTab === 'assignments'): ?>
-<div class="card overflow-hidden">
+<div class="card overflow-visible">
   <?php if (empty($assignmentRequests)): ?>
     <div class="p-8 text-center">
       <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1069,6 +1075,7 @@ HTML;
       <p class="text-gray-500">When reps request clinic assignments, they'll appear here.</p>
     </div>
   <?php else: ?>
+  <div class="overflow-x-auto">
     <table>
       <thead>
         <tr>
@@ -1118,6 +1125,7 @@ HTML;
         <?php endforeach; ?>
       </tbody>
     </table>
+  </div>
   <?php endif; ?>
 </div>
 <?php endif; ?>
@@ -1171,7 +1179,7 @@ HTML;
   </div>
 </div>
 
-<div class="card overflow-hidden">
+<div class="card overflow-visible">
   <?php if (empty($payoutQueue)): ?>
     <div class="p-8 text-center">
       <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1181,6 +1189,7 @@ HTML;
       <p class="text-gray-500">Commission payouts will appear here when reps earn commission.</p>
     </div>
   <?php else: ?>
+  <div class="overflow-x-auto">
     <table>
       <thead>
         <tr>
@@ -1227,6 +1236,7 @@ HTML;
         <?php endforeach; ?>
       </tbody>
     </table>
+  </div>
   <?php endif; ?>
 </div>
 <?php endif; ?>

@@ -255,7 +255,7 @@ $ledgerEntries = $ledgerStmt->fetchAll();
 $payoutsQuery = "
   SELECT rcp.*, au.name as processed_by_name
   FROM rep_commission_payouts rcp
-  LEFT JOIN admin_users au ON au.id = rcp.processed_by::uuid
+  LEFT JOIN admin_users au ON au.id = rcp.processed_by::integer
   WHERE rcp.rep_id = ?
   ORDER BY rcp.paid_at DESC
   LIMIT 50
