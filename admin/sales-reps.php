@@ -186,6 +186,182 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           }
         }
         break;
+
+      case 'invite_rep':
+        $firstName = trim($_POST['invite_first_name'] ?? '');
+        $lastName = trim($_POST['invite_last_name'] ?? '');
+        $email = strtolower(trim($_POST['invite_email'] ?? ''));
+        $phone = trim($_POST['invite_phone'] ?? '');
+        $companyName = trim($_POST['invite_company_name'] ?? '');
+        $commissionRate = floatval($_POST['invite_commission_rate'] ?? 25) / 100;
+        $personalNote = trim($_POST['invite_note'] ?? '');
+
+        if (!$firstName || !$lastName || !$email || !$phone) {
+          $error = 'Please fill in all required fields.';
+          break;
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+          $error = 'Invalid email address.';
+          break;
+        }
+
+        // Check if email already exists
+        $checkEmail = $pdo->prepare("SELECT id FROM users WHERE email = ?");
+        $checkEmail->execute([$email]);
+        if ($checkEmail->fetch()) {
+          $error = 'A user with this email already exists.';
+          break;
+        }
+
+        // Generate secure invite token
+        $inviteToken = bin2hex(random_bytes(32));
+        $inviteExpires = date('Y-m-d H:i:s', strtotime('+7 days'));
+
+        // Create user record
+        $userId = bin2hex(random_bytes(16));
+        $pdo->prepare("
+          INSERT INTO users (id, email, first_name, last_name, phone, role, password_hash, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, 'physician', '', NOW(), NOW())
+        ")->execute([$userId, $email, $firstName, $lastName, $phone]);
+
+        // Create sales_reps record
+        $repId = bin2hex(random_bytes(16));
+        $pdo->prepare("
+          INSERT INTO sales_reps (id, user_id, status, company_name, invite_token, invite_token_expires_at, invited_by, application_date, created_at, updated_at)
+          VALUES (?, ?, 'invited', ?, ?, ?, ?, NOW(), NOW(), NOW())
+        ")->execute([$repId, $userId, $companyName ?: null, $inviteToken, $inviteExpires, $admin['id']]);
+
+        // Set commission rate
+        $rateId = bin2hex(random_bytes(16));
+        $pdo->prepare("
+          INSERT INTO rep_commission_rates (id, rep_id, rate, effective_date, set_by, notes, created_at)
+          VALUES (?, ?, ?, NULL, ?, 'Set on invite', NOW())
+        ")->execute([$rateId, $repId, $commissionRate, $admin['id']]);
+
+        // Send invite email
+        sendInviteEmail($pdo, $repId, $inviteToken, $personalNote);
+
+        $message = "Invite sent to {$firstName} {$lastName} at {$email}. The invite expires in 7 days.";
+        break;
+
+      case 'add_rep_directly':
+        $firstName = trim($_POST['direct_first_name'] ?? '');
+        $lastName = trim($_POST['direct_last_name'] ?? '');
+        $email = strtolower(trim($_POST['direct_email'] ?? ''));
+        $phone = trim($_POST['direct_phone'] ?? '');
+        $companyName = trim($_POST['direct_company_name'] ?? '');
+        $commissionRate = floatval($_POST['direct_commission_rate'] ?? 25) / 100;
+        $tempPassword = trim($_POST['direct_temp_password'] ?? '');
+        $documentsConfirmed = !empty($_POST['documents_confirmed']);
+
+        if (!$firstName || !$lastName || !$email || !$phone || !$tempPassword) {
+          $error = 'Please fill in all required fields including temporary password.';
+          break;
+        }
+
+        if (strlen($tempPassword) < 8) {
+          $error = 'Temporary password must be at least 8 characters.';
+          break;
+        }
+
+        if (!$documentsConfirmed) {
+          $error = 'Please confirm that all required documents have been signed offline.';
+          break;
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+          $error = 'Invalid email address.';
+          break;
+        }
+
+        // Check if email already exists
+        $checkEmail = $pdo->prepare("SELECT id FROM users WHERE email = ?");
+        $checkEmail->execute([$email]);
+        if ($checkEmail->fetch()) {
+          $error = 'A user with this email already exists.';
+          break;
+        }
+
+        // Create user record with password
+        $userId = bin2hex(random_bytes(16));
+        $passwordHash = password_hash($tempPassword, PASSWORD_DEFAULT);
+        $pdo->prepare("
+          INSERT INTO users (id, email, first_name, last_name, phone, role, password_hash, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, 'physician', ?, NOW(), NOW())
+        ")->execute([$userId, $email, $firstName, $lastName, $phone, $passwordHash]);
+
+        // Create sales_reps record as active
+        $repId = bin2hex(random_bytes(16));
+        $pdo->prepare("
+          INSERT INTO sales_reps (id, user_id, status, company_name, approved_by, approved_date, application_date, created_at, updated_at)
+          VALUES (?, ?, 'active', ?, ?, NOW(), NOW(), NOW(), NOW())
+        ")->execute([$repId, $userId, $companyName ?: null, $admin['id']]);
+
+        // Set commission rate
+        $rateId = bin2hex(random_bytes(16));
+        $pdo->prepare("
+          INSERT INTO rep_commission_rates (id, rep_id, rate, effective_date, set_by, notes, created_at)
+          VALUES (?, ?, ?, CURRENT_DATE, ?, 'Set on direct add', NOW())
+        ")->execute([$rateId, $repId, $commissionRate, $admin['id']]);
+
+        // Record offline attestation for documents
+        $docTypes = ['rep_agreement', 'baa'];
+        foreach ($docTypes as $docType) {
+          $docId = bin2hex(random_bytes(16));
+          $pdo->prepare("
+            INSERT INTO rep_signed_documents (id, rep_id, document_type, document_version, signature_name, signed_at, ip_address, source, uploaded_by, created_at)
+            VALUES (?, ?, ?, '1.0', ?, NOW(), ?, 'offline_attestation', ?, NOW())
+          ")->execute([$docId, $repId, $docType, $firstName . ' ' . $lastName, $_SERVER['REMOTE_ADDR'] ?? 'unknown', $admin['id']]);
+        }
+
+        // Send welcome email with credentials
+        sendDirectAddWelcomeEmail($pdo, $repId, $tempPassword);
+
+        $message = "Sales rep {$firstName} {$lastName} has been created and is now active. Login credentials have been emailed.";
+        break;
+
+      case 'resend_invite':
+        $repId = $_POST['rep_id'] ?? '';
+        if ($repId) {
+          // Generate new token and extend expiry
+          $newToken = bin2hex(random_bytes(32));
+          $newExpires = date('Y-m-d H:i:s', strtotime('+7 days'));
+
+          $pdo->prepare("
+            UPDATE sales_reps
+            SET invite_token = ?, invite_token_expires_at = ?, updated_at = NOW()
+            WHERE id = ? AND status = 'invited'
+          ")->execute([$newToken, $newExpires, $repId]);
+
+          sendInviteEmail($pdo, $repId, $newToken, '');
+
+          $message = 'Invite has been resent with a new 7-day expiration.';
+        }
+        break;
+
+      case 'cancel_invite':
+        $repId = $_POST['rep_id'] ?? '';
+        if ($repId) {
+          // Get user_id first
+          $userStmt = $pdo->prepare("SELECT user_id FROM sales_reps WHERE id = ? AND status = 'invited'");
+          $userStmt->execute([$repId]);
+          $userId = $userStmt->fetchColumn();
+
+          if ($userId) {
+            // Delete commission rates
+            $pdo->prepare("DELETE FROM rep_commission_rates WHERE rep_id = ?")->execute([$repId]);
+
+            // Delete sales_rep record
+            $pdo->prepare("DELETE FROM sales_reps WHERE id = ?")->execute([$repId]);
+
+            // Delete user record (they never activated)
+            $pdo->prepare("DELETE FROM users WHERE id = ?")->execute([$userId]);
+
+            $message = 'Invite cancelled and records removed.';
+          }
+        }
+        break;
     }
   } catch (PDOException $e) {
     $error = 'Database error: ' . $e->getMessage();
@@ -195,6 +371,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Fetch data based on active tab
 $activeReps = [];
 $pendingApplications = [];
+$invitedReps = [];
 $assignmentRequests = [];
 $payoutQueue = [];
 
@@ -225,6 +402,20 @@ $pendingQuery = "
   ORDER BY sr.application_date DESC
 ";
 $pendingApplications = $pdo->query($pendingQuery)->fetchAll();
+
+// Invited Reps Query
+$invitedQuery = "
+  SELECT sr.*,
+    u.email, u.first_name, u.last_name, u.phone,
+    (SELECT rate FROM rep_commission_rates WHERE rep_id = sr.id LIMIT 1) as commission_rate,
+    iu.email as invited_by_email, iu.first_name as invited_by_first_name, iu.last_name as invited_by_last_name
+  FROM sales_reps sr
+  JOIN users u ON u.id = sr.user_id
+  LEFT JOIN users iu ON iu.id = sr.invited_by
+  WHERE sr.status = 'invited'
+  ORDER BY sr.created_at DESC
+";
+$invitedReps = $pdo->query($invitedQuery)->fetchAll();
 
 // Assignment Requests Query
 $assignmentQuery = "
@@ -335,6 +526,152 @@ HTML;
 }
 
 /**
+ * Send invite email to new rep
+ */
+function sendInviteEmail(PDO $pdo, string $repId, string $inviteToken, string $personalNote): void {
+  require_once __DIR__ . '/../api/lib/email_sender.php';
+
+  $stmt = $pdo->prepare("
+    SELECT u.email, u.first_name, u.last_name
+    FROM sales_reps sr
+    JOIN users u ON u.id = sr.user_id
+    WHERE sr.id = ?
+  ");
+  $stmt->execute([$repId]);
+  $rep = $stmt->fetch();
+
+  if (!$rep) return;
+
+  $fullName = trim($rep['first_name'] . ' ' . $rep['last_name']);
+  $inviteUrl = "https://collagendirect.health/rep-invite/{$inviteToken}";
+
+  $noteHtml = $personalNote ? <<<HTML
+<div style="background: #f0fdfa; border-left: 4px solid #0d9488; padding: 15px 20px; margin: 20px 0; border-radius: 0 8px 8px 0;">
+  <p style="color: #115e59; font-size: 14px; margin: 0; font-style: italic;">"{$personalNote}"</p>
+</div>
+HTML : '';
+
+  $bodyContent = <<<HTML
+<h2 style="color: #1f2937; font-size: 20px; font-weight: 600; margin: 0 0 20px 0;">
+  You're Invited to Join CollagenDirect
+</h2>
+
+<p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+  Hi {$fullName},
+</p>
+
+<p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+  You've been invited to join the CollagenDirect sales partner program. Complete your registration to start earning commissions on wound care products.
+</p>
+
+{$noteHtml}
+
+<div style="text-align: center; margin: 30px 0;">
+  <a href="{$inviteUrl}"
+     style="display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #0d9488 0%, #10b981 100%); color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">
+    Complete Your Registration
+  </a>
+</div>
+
+<p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+  <strong>What you'll need to do:</strong>
+</p>
+
+<ul style="color: #374151; font-size: 14px; line-height: 1.8; margin: 0 0 20px 20px;">
+  <li>Create your password</li>
+  <li>Sign the Sales Rep Agreement</li>
+  <li>Sign the Business Associate Agreement (BAA)</li>
+</ul>
+
+<p style="color: #6b7280; font-size: 14px; margin-top: 20px;">
+  This invite expires in 7 days. If you have any questions, contact us at <a href="mailto:partners@collagendirect.health" style="color: #0d9488;">partners@collagendirect.health</a>
+</p>
+
+<p style="color: #9ca3af; font-size: 12px; margin-top: 30px;">
+  If the button doesn't work, copy and paste this link into your browser:<br>
+  <a href="{$inviteUrl}" style="color: #0d9488; word-break: break-all;">{$inviteUrl}</a>
+</p>
+HTML;
+
+  $subject = "You're Invited to Join CollagenDirect";
+  $html = email_template($subject, $bodyContent);
+
+  send_email($rep['email'], $fullName, $subject, $html);
+}
+
+/**
+ * Send welcome email to directly-added rep with credentials
+ */
+function sendDirectAddWelcomeEmail(PDO $pdo, string $repId, string $tempPassword): void {
+  require_once __DIR__ . '/../api/lib/email_sender.php';
+
+  $stmt = $pdo->prepare("
+    SELECT u.email, u.first_name, u.last_name
+    FROM sales_reps sr
+    JOIN users u ON u.id = sr.user_id
+    WHERE sr.id = ?
+  ");
+  $stmt->execute([$repId]);
+  $rep = $stmt->fetch();
+
+  if (!$rep) return;
+
+  $fullName = trim($rep['first_name'] . ' ' . $rep['last_name']);
+  $loginUrl = "https://collagendirect.health/login";
+
+  $bodyContent = <<<HTML
+<h2 style="color: #1f2937; font-size: 20px; font-weight: 600; margin: 0 0 20px 0;">
+  Welcome to CollagenDirect!
+</h2>
+
+<p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+  Hi {$fullName},
+</p>
+
+<p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+  Your CollagenDirect sales representative account has been created and is now active. You can start using your dashboard immediately to manage clinics and track your commissions.
+</p>
+
+<div style="background: #f8fafc; border-radius: 8px; padding: 20px; margin: 20px 0;">
+  <p style="color: #6b7280; font-size: 14px; margin: 0 0 8px 0;"><strong>Your Login Credentials:</strong></p>
+  <p style="color: #374151; font-size: 14px; margin: 0 0 4px 0;">Email: <strong>{$rep['email']}</strong></p>
+  <p style="color: #374151; font-size: 14px; margin: 0;">Temporary Password: <strong style="font-family: monospace; background: #e2e8f0; padding: 2px 6px; border-radius: 4px;">{$tempPassword}</strong></p>
+</div>
+
+<p style="color: #dc2626; font-size: 14px; margin: 0 0 20px 0;">
+  <strong>Important:</strong> Please change your password after your first login for security.
+</p>
+
+<div style="text-align: center; margin: 30px 0;">
+  <a href="{$loginUrl}"
+     style="display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #0d9488 0%, #10b981 100%); color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">
+    Log In Now
+  </a>
+</div>
+
+<p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+  <strong>What you can do:</strong>
+</p>
+
+<ul style="color: #374151; font-size: 14px; line-height: 1.8; margin: 0 0 20px 20px;">
+  <li>View your dashboard and commission balance</li>
+  <li>Request clinic assignments</li>
+  <li>Track your earnings and payouts</li>
+  <li>Access your signed documents</li>
+</ul>
+
+<p style="color: #6b7280; font-size: 14px; margin-top: 20px;">
+  If you have any questions, contact us at <a href="mailto:partners@collagendirect.health" style="color: #0d9488;">partners@collagendirect.health</a>
+</p>
+HTML;
+
+  $subject = "Welcome to CollagenDirect - Your Account is Ready";
+  $html = email_template($subject, $bodyContent);
+
+  send_email($rep['email'], $fullName, $subject, $html);
+}
+
+/**
  * Send rejection email to applicant
  */
 function sendRejectionEmail(PDO $pdo, string $repId, string $reason): void {
@@ -388,9 +725,32 @@ HTML;
 ?>
 
 <!-- Page Header -->
-<div class="mb-6">
-  <h2 class="text-2xl font-bold text-gray-900">Rep Management</h2>
-  <p class="text-gray-600 mt-1">Manage sales representatives, applications, and commissions</p>
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h2 class="text-2xl font-bold text-gray-900">Rep Management</h2>
+    <p class="text-gray-600 mt-1">Manage sales representatives, applications, and commissions</p>
+  </div>
+  <div class="relative">
+    <button onclick="toggleAddRepDropdown()" class="btn btn-primary flex items-center gap-2">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+      </svg>
+      Add Rep
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+    </button>
+    <div id="addRepDropdown" class="hidden absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
+      <div class="py-1">
+        <button onclick="openInviteModal()" class="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100">
+          <div class="font-medium text-gray-900">Invite Rep</div>
+          <div class="text-xs text-gray-500">Send invite email, rep signs docs online</div>
+        </button>
+        <button onclick="openDirectAddModal()" class="w-full text-left px-4 py-3 hover:bg-gray-50">
+          <div class="font-medium text-gray-900">Add Rep Directly</div>
+          <div class="text-xs text-gray-500">Docs signed offline, activate immediately</div>
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <?php if ($message): ?>
@@ -413,26 +773,32 @@ HTML;
 
 <!-- Tab Navigation -->
 <div class="card mb-6">
-  <div class="flex border-b border-gray-200">
-    <a href="?tab=active" class="px-6 py-4 text-sm font-medium <?= $activeTab === 'active' ? 'text-teal-600 border-b-2 border-teal-600' : 'text-gray-500 hover:text-gray-700' ?>">
+  <div class="flex border-b border-gray-200 overflow-x-auto">
+    <a href="?tab=active" class="px-6 py-4 text-sm font-medium whitespace-nowrap <?= $activeTab === 'active' ? 'text-teal-600 border-b-2 border-teal-600' : 'text-gray-500 hover:text-gray-700' ?>">
       Active Reps
       <span class="ml-2 px-2 py-0.5 text-xs rounded-full <?= $activeTab === 'active' ? 'bg-teal-100 text-teal-700' : 'bg-gray-100 text-gray-600' ?>">
         <?= count(array_filter($activeReps, fn($r) => $r['status'] === 'active')) ?>
       </span>
     </a>
-    <a href="?tab=pending" class="px-6 py-4 text-sm font-medium <?= $activeTab === 'pending' ? 'text-teal-600 border-b-2 border-teal-600' : 'text-gray-500 hover:text-gray-700' ?>">
+    <a href="?tab=invited" class="px-6 py-4 text-sm font-medium whitespace-nowrap <?= $activeTab === 'invited' ? 'text-teal-600 border-b-2 border-teal-600' : 'text-gray-500 hover:text-gray-700' ?>">
+      Invited
+      <?php if (count($invitedReps) > 0): ?>
+        <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700"><?= count($invitedReps) ?></span>
+      <?php endif; ?>
+    </a>
+    <a href="?tab=pending" class="px-6 py-4 text-sm font-medium whitespace-nowrap <?= $activeTab === 'pending' ? 'text-teal-600 border-b-2 border-teal-600' : 'text-gray-500 hover:text-gray-700' ?>">
       Pending Applications
       <?php if (count($pendingApplications) > 0): ?>
         <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-700"><?= count($pendingApplications) ?></span>
       <?php endif; ?>
     </a>
-    <a href="?tab=assignments" class="px-6 py-4 text-sm font-medium <?= $activeTab === 'assignments' ? 'text-teal-600 border-b-2 border-teal-600' : 'text-gray-500 hover:text-gray-700' ?>">
+    <a href="?tab=assignments" class="px-6 py-4 text-sm font-medium whitespace-nowrap <?= $activeTab === 'assignments' ? 'text-teal-600 border-b-2 border-teal-600' : 'text-gray-500 hover:text-gray-700' ?>">
       Assignment Requests
       <?php if (count($assignmentRequests) > 0): ?>
         <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-700"><?= count($assignmentRequests) ?></span>
       <?php endif; ?>
     </a>
-    <a href="?tab=payouts" class="px-6 py-4 text-sm font-medium <?= $activeTab === 'payouts' ? 'text-teal-600 border-b-2 border-teal-600' : 'text-gray-500 hover:text-gray-700' ?>">
+    <a href="?tab=payouts" class="px-6 py-4 text-sm font-medium whitespace-nowrap <?= $activeTab === 'payouts' ? 'text-teal-600 border-b-2 border-teal-600' : 'text-gray-500 hover:text-gray-700' ?>">
       Commission Payouts
     </a>
   </div>
@@ -533,6 +899,91 @@ HTML;
                     </form>
                   <?php endif; ?>
                 </div>
+              </div>
+            </td>
+          </tr>
+        <?php endforeach; ?>
+      </tbody>
+    </table>
+  <?php endif; ?>
+</div>
+<?php endif; ?>
+
+<!-- Tab: Invited Reps -->
+<?php if ($activeTab === 'invited'): ?>
+<div class="card overflow-hidden">
+  <?php if (empty($invitedReps)): ?>
+    <div class="p-8 text-center">
+      <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+      </svg>
+      <h3 class="text-lg font-medium text-gray-900 mb-2">No Pending Invites</h3>
+      <p class="text-gray-500">Invited reps will appear here until they complete registration.</p>
+      <button onclick="openInviteModal()" class="btn btn-primary mt-4">
+        <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+        </svg>
+        Invite a Rep
+      </button>
+    </div>
+  <?php else: ?>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Contact</th>
+          <th>Commission Rate</th>
+          <th>Invited By</th>
+          <th>Sent</th>
+          <th>Expires</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php foreach ($invitedReps as $rep):
+          $isExpired = $rep['invite_token_expires_at'] && strtotime($rep['invite_token_expires_at']) < time();
+        ?>
+          <tr>
+            <td>
+              <div class="font-medium"><?= htmlspecialchars($rep['first_name'] . ' ' . $rep['last_name']) ?></div>
+              <?php if ($rep['company_name']): ?>
+                <div class="text-xs text-gray-500"><?= htmlspecialchars($rep['company_name']) ?></div>
+              <?php endif; ?>
+            </td>
+            <td>
+              <div class="text-sm"><?= htmlspecialchars($rep['email']) ?></div>
+              <div class="text-xs text-gray-500"><?= htmlspecialchars($rep['phone'] ?? '') ?></div>
+            </td>
+            <td><?= $rep['commission_rate'] ? number_format((float)$rep['commission_rate'] * 100, 1) . '%' : '25%' ?></td>
+            <td class="text-sm text-gray-600">
+              <?= $rep['invited_by_first_name'] ? htmlspecialchars($rep['invited_by_first_name'] . ' ' . $rep['invited_by_last_name']) : '-' ?>
+            </td>
+            <td class="text-sm text-gray-500">
+              <?= date('M j, Y', strtotime($rep['created_at'])) ?>
+            </td>
+            <td>
+              <?php if ($isExpired): ?>
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">Expired</span>
+              <?php else: ?>
+                <span class="text-sm text-gray-500"><?= date('M j, Y', strtotime($rep['invite_token_expires_at'])) ?></span>
+              <?php endif; ?>
+            </td>
+            <td>
+              <div class="flex gap-2">
+                <form method="POST" class="inline">
+                  <?= csrf_field() ?>
+                  <input type="hidden" name="action" value="resend_invite">
+                  <input type="hidden" name="rep_id" value="<?= $rep['id'] ?>">
+                  <button type="submit" class="btn text-xs" title="<?= $isExpired ? 'Send new invite' : 'Resend invite' ?>">
+                    <?= $isExpired ? 'Resend' : 'Resend' ?>
+                  </button>
+                </form>
+                <form method="POST" class="inline">
+                  <?= csrf_field() ?>
+                  <input type="hidden" name="action" value="cancel_invite">
+                  <input type="hidden" name="rep_id" value="<?= $rep['id'] ?>">
+                  <button type="submit" class="btn text-xs text-red-600" onclick="return confirm('Cancel this invite? This will remove the rep entirely.')">Cancel</button>
+                </form>
               </div>
             </td>
           </tr>
@@ -928,6 +1379,163 @@ HTML;
   </form>
 </dialog>
 
+<!-- Invite Rep Modal -->
+<dialog id="inviteModal" class="rounded-2xl w-full max-w-lg p-0 backdrop:bg-black/50">
+  <form method="POST" class="p-0">
+    <?= csrf_field() ?>
+    <input type="hidden" name="action" value="invite_rep">
+
+    <div class="p-6 border-b border-gray-200">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold text-gray-900">Invite Sales Rep</h3>
+        <button type="button" onclick="document.getElementById('inviteModal').close()" class="text-gray-400 hover:text-gray-600">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+      <p class="text-sm text-gray-500 mt-1">Send an invite email. They'll sign documents online.</p>
+    </div>
+
+    <div class="p-6 space-y-4">
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">First Name <span class="text-red-500">*</span></label>
+          <input type="text" name="invite_first_name" required class="w-full">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Last Name <span class="text-red-500">*</span></label>
+          <input type="text" name="invite_last_name" required class="w-full">
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Email <span class="text-red-500">*</span></label>
+        <input type="email" name="invite_email" required class="w-full">
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Phone <span class="text-red-500">*</span></label>
+        <input type="tel" name="invite_phone" required class="w-full" placeholder="(555) 555-5555">
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
+        <input type="text" name="invite_company_name" class="w-full" placeholder="Optional">
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Commission Rate</label>
+        <div class="flex items-center gap-2">
+          <input type="number" name="invite_commission_rate" value="25" step="1" min="0" max="100" class="w-24">
+          <span class="text-gray-600">%</span>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Personal Note</label>
+        <textarea name="invite_note" rows="2" class="w-full" placeholder="Optional message to include in the invite email..."></textarea>
+      </div>
+    </div>
+
+    <div class="p-6 border-t border-gray-200 bg-gray-50">
+      <div class="flex items-start gap-3 text-sm text-gray-600 mb-4">
+        <svg class="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>An email will be sent with a link to complete registration and sign required documents. The invite expires in 7 days.</span>
+      </div>
+      <div class="flex gap-3">
+        <button type="button" onclick="document.getElementById('inviteModal').close()" class="flex-1 btn">Cancel</button>
+        <button type="submit" class="flex-1 btn btn-primary">Send Invite</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<!-- Direct Add Rep Modal -->
+<dialog id="directAddModal" class="rounded-2xl w-full max-w-lg p-0 backdrop:bg-black/50">
+  <form method="POST" class="p-0">
+    <?= csrf_field() ?>
+    <input type="hidden" name="action" value="add_rep_directly">
+
+    <div class="p-6 border-b border-gray-200">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold text-gray-900">Add Rep Directly</h3>
+        <button type="button" onclick="document.getElementById('directAddModal').close()" class="text-gray-400 hover:text-gray-600">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+      <p class="text-sm text-gray-500 mt-1">For reps who signed documents offline/in-person.</p>
+    </div>
+
+    <div class="p-6 space-y-4">
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">First Name <span class="text-red-500">*</span></label>
+          <input type="text" name="direct_first_name" required class="w-full">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Last Name <span class="text-red-500">*</span></label>
+          <input type="text" name="direct_last_name" required class="w-full">
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Email <span class="text-red-500">*</span></label>
+        <input type="email" name="direct_email" required class="w-full">
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Phone <span class="text-red-500">*</span></label>
+        <input type="tel" name="direct_phone" required class="w-full" placeholder="(555) 555-5555">
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
+        <input type="text" name="direct_company_name" class="w-full" placeholder="Optional">
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Temporary Password <span class="text-red-500">*</span></label>
+        <div class="relative">
+          <input type="text" name="direct_temp_password" id="tempPassword" required minlength="8" class="w-full pr-24">
+          <button type="button" onclick="generatePassword()" class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-teal-600 hover:text-teal-700 font-medium">Generate</button>
+        </div>
+        <p class="text-xs text-gray-500 mt-1">Minimum 8 characters. Rep should change on first login.</p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Commission Rate</label>
+        <div class="flex items-center gap-2">
+          <input type="number" name="direct_commission_rate" value="25" step="1" min="0" max="100" class="w-24">
+          <span class="text-gray-600">%</span>
+        </div>
+      </div>
+
+      <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+        <label class="flex items-start gap-3 cursor-pointer">
+          <input type="checkbox" name="documents_confirmed" required class="mt-1">
+          <span class="text-sm text-amber-800">
+            <strong>I confirm</strong> that the Sales Rep Agreement and BAA have been signed offline and the original documents are on file.
+          </span>
+        </label>
+      </div>
+    </div>
+
+    <div class="p-6 border-t border-gray-200 bg-gray-50">
+      <div class="flex items-start gap-3 text-sm text-gray-600 mb-4">
+        <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>The rep will be activated immediately and receive login credentials via email.</span>
+      </div>
+      <div class="flex gap-3">
+        <button type="button" onclick="document.getElementById('directAddModal').close()" class="flex-1 btn">Cancel</button>
+        <button type="submit" class="flex-1 btn btn-primary">Create & Activate Rep</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
 <script>
 function toggleDropdown(id) {
   const dropdown = document.getElementById(id);
@@ -974,6 +1582,37 @@ function openPayoutModal(repId, name, balance) {
   document.getElementById('payoutBalance').textContent = '$' + balance.toFixed(2);
   document.getElementById('payoutAmount').value = balance.toFixed(2);
   document.getElementById('payoutModal').showModal();
+}
+
+// Add Rep dropdown functions
+function toggleAddRepDropdown() {
+  const dropdown = document.getElementById('addRepDropdown');
+  dropdown.classList.toggle('hidden');
+}
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('[onclick*="toggleAddRepDropdown"]') && !e.target.closest('#addRepDropdown')) {
+    document.getElementById('addRepDropdown')?.classList.add('hidden');
+  }
+});
+
+function openInviteModal() {
+  document.getElementById('addRepDropdown').classList.add('hidden');
+  document.getElementById('inviteModal').showModal();
+}
+
+function openDirectAddModal() {
+  document.getElementById('addRepDropdown').classList.add('hidden');
+  document.getElementById('directAddModal').showModal();
+}
+
+function generatePassword() {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
+  let password = '';
+  for (let i = 0; i < 12; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  document.getElementById('tempPassword').value = password;
 }
 </script>
 

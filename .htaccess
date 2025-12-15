@@ -19,6 +19,7 @@ RewriteRule ^logout/?$          logout/index.php          [L,QSA]
 RewriteRule ^portal/?$          portal/index.php          [L,QSA]
 RewriteRule ^partners/?$        partners/index.php        [L,QSA]
 RewriteRule ^become-a-rep/?$    become-a-rep/index.php    [L,QSA]
+RewriteRule ^rep-invite/([a-f0-9]+)/?$ rep-invite/index.php?token=$1 [L,QSA]
 
 # API endpoints your JS calls
 RewriteRule ^api/csrf\.php$   api/csrf.php   [L,QSA]
