@@ -276,12 +276,11 @@ function set_initial_commission_rate(
   ?string $setBy = null
 ): bool {
   try {
-    $id = bin2hex(random_bytes(16));
     $stmt = $pdo->prepare("
-      INSERT INTO rep_commission_rates (id, rep_id, rate, effective_date, set_by, notes, created_at)
-      VALUES (?, ?, ?, NULL, ?, 'Initial rate on approval', NOW())
+      INSERT INTO rep_commission_rates (rep_id, rate, effective_date, set_by, notes, created_at)
+      VALUES (?, ?, NULL, ?, 'Initial rate on approval', NOW())
     ");
-    $stmt->execute([$id, $repId, $rate, $setBy]);
+    $stmt->execute([$repId, $rate, $setBy]);
     return true;
   } catch (PDOException $e) {
     error_log("Error setting initial commission rate: " . $e->getMessage());

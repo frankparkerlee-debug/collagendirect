@@ -233,11 +233,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ")->execute([$repId, $userId, $companyName ?: null, $inviteToken, $inviteExpires, $admin['id']]);
 
         // Set commission rate
-        $rateId = bin2hex(random_bytes(16));
         $pdo->prepare("
-          INSERT INTO rep_commission_rates (id, rep_id, rate, effective_date, set_by, notes, created_at)
-          VALUES (?, ?, ?, NULL, ?, 'Set on invite', NOW())
-        ")->execute([$rateId, $repId, $commissionRate, $admin['id']]);
+          INSERT INTO rep_commission_rates (rep_id, rate, effective_date, set_by, notes, created_at)
+          VALUES (?, ?, NULL, ?, 'Set on invite', NOW())
+        ")->execute([$repId, $commissionRate, $admin['id']]);
 
         // Send invite email
         sendInviteEmail($pdo, $repId, $inviteToken, $personalNote);
@@ -299,11 +298,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ")->execute([$repId, $userId, $companyName ?: null, $admin['id']]);
 
         // Set commission rate
-        $rateId = bin2hex(random_bytes(16));
         $pdo->prepare("
-          INSERT INTO rep_commission_rates (id, rep_id, rate, effective_date, set_by, notes, created_at)
-          VALUES (?, ?, ?, CURRENT_DATE, ?, 'Set on direct add', NOW())
-        ")->execute([$rateId, $repId, $commissionRate, $admin['id']]);
+          INSERT INTO rep_commission_rates (rep_id, rate, effective_date, set_by, notes, created_at)
+          VALUES (?, ?, CURRENT_DATE, ?, 'Set on direct add', NOW())
+        ")->execute([$repId, $commissionRate, $admin['id']]);
 
         // Record offline attestation for documents
         $docTypes = ['rep_agreement', 'baa'];
