@@ -196,7 +196,7 @@ if (!$rep) {
   exit;
 }
 
-// Fetch current commission rate
+// Fetch current commission rate (defaults to 25% if not set)
 $rateQuery = "
   SELECT rate, effective_date, set_by, notes, created_at
   FROM rep_commission_rates
@@ -207,6 +207,11 @@ $rateQuery = "
 $rateStmt = $pdo->prepare($rateQuery);
 $rateStmt->execute([$repId]);
 $currentRate = $rateStmt->fetch();
+
+// Default to 25% if no rate is set
+if (!$currentRate) {
+  $currentRate = ['rate' => 0.25, 'effective_date' => null, 'set_by' => null, 'notes' => 'Default rate', 'created_at' => null];
+}
 
 // Fetch commission rate history
 // set_by can be either admin_users.id (integer) or users.id (UUID string)
@@ -428,10 +433,13 @@ $statusColors = [
     </div>
     <div class="mb-4">
       <div class="text-3xl font-bold text-teal-600">
-        <?= $currentRate ? number_format((float)$currentRate['rate'] * 100, 1) . '%' : 'Not Set' ?>
+        <?= number_format((float)$currentRate['rate'] * 100, 1) ?>%
+        <?php if (!$currentRate['created_at']): ?>
+          <span class="text-sm font-normal text-gray-400">(Default)</span>
+        <?php endif; ?>
       </div>
       <div class="text-sm text-gray-500">Current Commission Rate</div>
-      <?php if ($currentRate && $currentRate['effective_date']): ?>
+      <?php if ($currentRate['effective_date']): ?>
         <div class="text-xs text-gray-400 mt-1">Effective: <?= date('M j, Y', strtotime($currentRate['effective_date'])) ?></div>
       <?php endif; ?>
     </div>

@@ -146,6 +146,16 @@ $topClinicsStmt = $pdo->prepare("
 ");
 $topClinicsStmt->execute([$repId, $repId]);
 $topClinics = $topClinicsStmt->fetchAll();
+
+// Get signed agreements
+$signedDocsStmt = $pdo->prepare("
+  SELECT document_type, document_version, signed_at, signature_text
+  FROM rep_signed_documents
+  WHERE rep_id = ?
+  ORDER BY signed_at DESC
+");
+$signedDocsStmt->execute([$repId]);
+$signedDocs = $signedDocsStmt->fetchAll();
 ?>
 
 <!-- Welcome Section -->
@@ -416,6 +426,64 @@ $topClinics = $topClinicsStmt->fetchAll();
       </svg>
       <span class="text-sm font-medium text-gray-700">Request Clinic</span>
     </a>
+  </div>
+</div>
+
+<!-- Agreements & Compliance -->
+<div class="card p-6 mt-6">
+  <h3 class="text-lg font-semibold text-gray-900 mb-4">Agreements & Compliance</h3>
+
+  <!-- Policy Notice -->
+  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+    <div class="flex items-start gap-3">
+      <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+      </svg>
+      <div>
+        <p class="text-sm text-blue-800 font-medium">Agreement Terms</p>
+        <p class="text-sm text-blue-700 mt-1">By accessing and using the CollagenDirect platform, you acknowledge and agree to be bound by the Sales Representative Agreement and Business Associate Agreement (BAA). These agreements govern your commission structure, HIPAA compliance obligations, and conduct as a sales partner.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Signed Documents List -->
+  <?php if (!empty($signedDocs)): ?>
+    <div class="space-y-3">
+      <?php
+      $docNames = [
+        'rep_agreement' => 'Sales Representative Agreement',
+        'baa' => 'Business Associate Agreement (BAA)',
+        'nda' => 'Non-Disclosure Agreement',
+        'w9' => 'W-9 Tax Form'
+      ];
+      foreach ($signedDocs as $doc):
+        $docName = $docNames[$doc['document_type']] ?? ucfirst(str_replace('_', ' ', $doc['document_type']));
+      ?>
+        <div class="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+          <div class="flex items-center gap-3">
+            <span class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+              <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+              </svg>
+            </span>
+            <div>
+              <p class="text-sm font-medium text-gray-900"><?= htmlspecialchars($docName) ?></p>
+              <p class="text-xs text-gray-500">
+                Signed by <?= htmlspecialchars($doc['signature_text'] ?? '-') ?>
+                on <?= date('M j, Y', strtotime($doc['signed_at'])) ?>
+              </p>
+            </div>
+          </div>
+          <span class="text-xs text-gray-400">v<?= htmlspecialchars($doc['document_version']) ?></span>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  <?php else: ?>
+    <p class="text-sm text-gray-500">No signed documents on file. Please contact support if you need to sign required agreements.</p>
+  <?php endif; ?>
+
+  <div class="mt-4 pt-4 border-t border-gray-100 text-sm text-gray-500">
+    <p>Questions about your agreements? Contact <a href="mailto:partners@collagendirect.health" class="text-teal-600 hover:underline">partners@collagendirect.health</a></p>
   </div>
 </div>
 
