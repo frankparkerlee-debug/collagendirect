@@ -1,6 +1,10 @@
 <?php
 declare(strict_types=1);
 require __DIR__ . '/auth.php'; require_admin();
+
+// Sales reps cannot access shipments
+if (function_exists('deny_sales_rep')) deny_sales_rep();
+
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/lib/shipping.php';
 

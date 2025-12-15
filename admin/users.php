@@ -2,6 +2,10 @@
 declare(strict_types=1);
 require __DIR__ . '/auth.php';
 require_admin();
+
+// Sales reps cannot access admin settings
+if (function_exists('deny_sales_rep')) deny_sales_rep();
+
 require_once __DIR__ . '/../api/lib/email_notifications.php'; // Email notifications
 require_once __DIR__ . '/config.php'; // For Google Maps API key
 

@@ -7,6 +7,9 @@
 require_once __DIR__ . '/_header.php';
 require_once __DIR__ . '/db.php';
 
+// Sales reps cannot access practice pricing
+if (function_exists('deny_sales_rep')) deny_sales_rep();
+
 $selectedPractice = $_GET['practice_id'] ?? '';
 $message = '';
 $error = '';

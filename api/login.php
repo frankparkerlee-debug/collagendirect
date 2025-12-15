@@ -77,19 +77,35 @@ if ($isAdminUser) {
   ]]);
 }
 
-// Handle users table (physicians, practice_admin, superadmin)
+// Handle users table (physicians, practice_admin, superadmin, sales_rep)
 $_SESSION['user_id'] = $user['id'];
 
-// Set admin session ONLY for superadmin (CollagenDirect business users)
-// practice_admin is for practice managers and should NOT access /admin
+// Check if user is an active sales rep
 $userRole = $user['role'] ?? 'physician';
-if ($userRole === 'superadmin') {
+$isSalesRep = false;
+$repId = null;
+
+$repStmt = $pdo->prepare("SELECT id, status FROM sales_reps WHERE user_id = ? AND status = 'active'");
+$repStmt->execute([$user['id']]);
+$repRecord = $repStmt->fetch();
+if ($repRecord) {
+  $isSalesRep = true;
+  $repId = $repRecord['id'];
+  $userRole = 'sales_rep';
+}
+
+// Set admin session for superadmin or sales_rep
+// practice_admin is for practice managers and should NOT access /admin
+if ($userRole === 'superadmin' || $isSalesRep) {
   $_SESSION['admin'] = [
     'id' => $user['id'],
     'email' => $user['email'],
     'name' => trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')),
     'role' => $userRole
   ];
+  if ($isSalesRep) {
+    $_SESSION['admin']['rep_id'] = $repId;
+  }
 }
 
 // Always set persistent cookie (7 days) - session config handles this
@@ -110,6 +126,9 @@ if ($userRole === 'superadmin') {
   // Superadmins can access both portal and admin
   // Default to portal (they can navigate to admin if needed)
   $redirectUrl = '/portal/';
+} elseif ($isSalesRep) {
+  // Sales reps go to their dedicated portal
+  $redirectUrl = '/admin/rep/';
 }
 
 json_out(200, ['ok'=>true, 'redirect'=>$redirectUrl, 'user'=>[

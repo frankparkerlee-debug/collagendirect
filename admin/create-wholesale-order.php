@@ -14,6 +14,9 @@ require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/auth.php';
 
+// Sales reps have their own scoped wholesale order creation page
+if (function_exists('deny_sales_rep')) deny_sales_rep();
+
 // Get selected practice ID early for POST handling
 $selectedPracticeId = $_GET['practice_id'] ?? $_SESSION['admin_order_practice_id'] ?? '';
 if ($selectedPracticeId) {

@@ -18,6 +18,9 @@ require_once __DIR__ . '/../api/lib/timezone.php';
 
 // Require admin login
 if (function_exists('require_admin')) require_admin();
+
+// Sales reps cannot access delivery audit
+if (function_exists('deny_sales_rep')) deny_sales_rep();
 $admin = current_admin();
 $userRole = $admin['role'] ?? '';
 

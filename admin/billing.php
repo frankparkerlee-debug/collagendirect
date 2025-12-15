@@ -8,6 +8,9 @@ $bootstrap = __DIR__.'/_bootstrap.php'; if (is_file($bootstrap)) require_once $b
 $auth      = __DIR__ . '/auth.php';      if (is_file($auth)) require_once $auth;
 if (function_exists('require_admin')) require_admin();
 
+// Sales reps cannot access billing
+if (function_exists('deny_sales_rep')) deny_sales_rep();
+
 // Get current admin user and role
 $admin = current_admin();
 $adminRole = $admin['role'] ?? '';

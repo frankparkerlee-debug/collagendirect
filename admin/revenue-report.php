@@ -17,6 +17,9 @@ require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/lib/revenue_calculator.php';
 if (function_exists('require_admin')) require_admin();
 
+// Sales reps cannot access revenue report
+if (function_exists('deny_sales_rep')) deny_sales_rep();
+
 $admin = current_admin();
 $adminRole = $admin['role'] ?? '';
 
