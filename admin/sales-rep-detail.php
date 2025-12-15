@@ -215,13 +215,15 @@ if (!$currentRate) {
 
 // Fetch commission rate history
 // set_by can be either admin_users.id (integer) or users.id (UUID string)
-// Use CASE to prevent type cast evaluation when value is not numeric
+// Use subquery approach to completely avoid integer cast for UUID values
 $rateHistoryQuery = "
   SELECT rcr.*,
-    COALESCE(au.name, CONCAT(u.first_name, ' ', u.last_name)) as set_by_name
+    CASE
+      WHEN rcr.set_by ~ '^[0-9]+$' THEN (SELECT name FROM admin_users WHERE id = rcr.set_by::integer)
+      WHEN rcr.set_by IS NOT NULL THEN (SELECT CONCAT(first_name, ' ', last_name) FROM users WHERE id = rcr.set_by)
+      ELSE NULL
+    END as set_by_name
   FROM rep_commission_rates rcr
-  LEFT JOIN admin_users au ON rcr.set_by ~ '^[0-9]+$' AND au.id = CASE WHEN rcr.set_by ~ '^[0-9]+$' THEN rcr.set_by::integer ELSE NULL END
-  LEFT JOIN users u ON rcr.set_by IS NOT NULL AND rcr.set_by !~ '^[0-9]+$' AND u.id = rcr.set_by
   WHERE rcr.rep_id = ?
   ORDER BY rcr.created_at DESC
   LIMIT 20
