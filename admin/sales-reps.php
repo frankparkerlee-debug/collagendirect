@@ -151,7 +151,7 @@ $activeRepsQuery = "
     u.email, u.first_name, u.last_name, u.phone,
     (SELECT rate FROM rep_commission_rates WHERE rep_id = sr.id AND (effective_date IS NULL OR effective_date <= CURRENT_DATE) ORDER BY effective_date DESC NULLS LAST LIMIT 1) as current_rate,
     (SELECT COUNT(*) FROM users WHERE assigned_rep_id = sr.id) as clinic_count,
-    COALESCE((SELECT SUM(amount) FROM rep_commission_ledger WHERE rep_id = sr.id), 0) as total_commission,
+    COALESCE((SELECT SUM(commission_amount) FROM rep_commission_ledger WHERE rep_id = sr.id), 0) as total_commission,
     COALESCE((SELECT SUM(amount) FROM rep_commission_payouts WHERE rep_id = sr.id AND status = 'completed'), 0) as total_paid
   FROM sales_reps sr
   JOIN users u ON u.id = sr.user_id
@@ -196,14 +196,14 @@ $assignmentRequests = $pdo->query($assignmentQuery)->fetchAll();
 $payoutQuery = "
   SELECT sr.*,
     u.email, u.first_name, u.last_name,
-    COALESCE((SELECT SUM(amount) FROM rep_commission_ledger WHERE rep_id = sr.id), 0) as total_commission,
+    COALESCE((SELECT SUM(commission_amount) FROM rep_commission_ledger WHERE rep_id = sr.id), 0) as total_commission,
     COALESCE((SELECT SUM(amount) FROM rep_commission_payouts WHERE rep_id = sr.id AND status = 'completed'), 0) as total_paid,
     (SELECT MAX(paid_at) FROM rep_commission_payouts WHERE rep_id = sr.id AND status = 'completed') as last_payout_date,
     (SELECT amount FROM rep_commission_payouts WHERE rep_id = sr.id AND status = 'completed' ORDER BY paid_at DESC LIMIT 1) as last_payout_amount
   FROM sales_reps sr
   JOIN users u ON u.id = sr.user_id
   WHERE sr.status = 'active'
-  ORDER BY (COALESCE((SELECT SUM(amount) FROM rep_commission_ledger WHERE rep_id = sr.id), 0) - COALESCE((SELECT SUM(amount) FROM rep_commission_payouts WHERE rep_id = sr.id AND status = 'completed'), 0)) DESC
+  ORDER BY (COALESCE((SELECT SUM(commission_amount) FROM rep_commission_ledger WHERE rep_id = sr.id), 0) - COALESCE((SELECT SUM(amount) FROM rep_commission_payouts WHERE rep_id = sr.id AND status = 'completed'), 0)) DESC
 ";
 $payoutQueue = $pdo->query($payoutQuery)->fetchAll();
 

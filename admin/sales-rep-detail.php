@@ -162,7 +162,7 @@ $metricsQuery = "
     (SELECT COUNT(*) FROM users WHERE assigned_rep_id = :rep_id) as total_clinics,
     (SELECT COUNT(*) FROM orders o JOIN users u ON o.user_id = u.id WHERE u.assigned_rep_id = :rep_id) as total_orders,
     (SELECT COALESCE(SUM(o.total), 0) FROM orders o JOIN users u ON o.user_id = u.id WHERE u.assigned_rep_id = :rep_id AND o.status NOT IN ('cancelled', 'voided')) as total_revenue,
-    (SELECT COALESCE(SUM(amount), 0) FROM rep_commission_ledger WHERE rep_id = :rep_id) as total_commission
+    (SELECT COALESCE(SUM(commission_amount), 0) FROM rep_commission_ledger WHERE rep_id = :rep_id) as total_commission
 ";
 $metricsStmt = $pdo->prepare($metricsQuery);
 $metricsStmt->execute(['rep_id' => $repId]);
@@ -175,7 +175,7 @@ $ledgerQuery = "
     u.practice_name as clinic_name, u.first_name as clinic_first, u.last_name as clinic_last
   FROM rep_commission_ledger rcl
   LEFT JOIN orders o ON o.id = rcl.order_id
-  LEFT JOIN users u ON u.id = rcl.clinic_user_id
+  LEFT JOIN users u ON u.id = rcl.clinic_id
   WHERE rcl.rep_id = ?
   ORDER BY rcl.created_at DESC
   LIMIT 100
@@ -535,23 +535,26 @@ $statusColors = [
         <thead>
           <tr>
             <th>Date</th>
-            <th>Type</th>
-            <th>Description</th>
+            <th>Order Type</th>
             <th>Order</th>
             <th>Clinic</th>
-            <th>Amount</th>
+            <th>Collected</th>
+            <th>Rate</th>
+            <th>Commission</th>
+            <th>Status</th>
           </tr>
         </thead>
         <tbody>
-          <?php foreach ($ledgerEntries as $entry): ?>
+          <?php foreach ($ledgerEntries as $entry):
+            $statusColors = [
+              'pending' => 'bg-amber-100 text-amber-800',
+              'paid' => 'bg-green-100 text-green-800',
+              'voided' => 'bg-gray-100 text-gray-800',
+            ];
+          ?>
             <tr>
-              <td class="text-sm"><?= date('M j, Y', strtotime($entry['created_at'])) ?></td>
-              <td>
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium <?= $entry['type'] === 'credit' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' ?>">
-                  <?= ucfirst($entry['type']) ?>
-                </span>
-              </td>
-              <td class="text-sm"><?= htmlspecialchars($entry['description'] ?? '-') ?></td>
+              <td class="text-sm"><?= date('M j, Y', strtotime($entry['payment_date'])) ?></td>
+              <td class="text-sm"><?= ucfirst($entry['order_type']) ?></td>
               <td class="text-sm">
                 <?php if ($entry['order_number']): ?>
                   <a href="/admin/orders.php?id=<?= $entry['order_id'] ?>" class="text-teal-600 hover:underline">#<?= $entry['order_number'] ?></a>
@@ -560,8 +563,13 @@ $statusColors = [
                 <?php endif; ?>
               </td>
               <td class="text-sm"><?= htmlspecialchars($entry['clinic_name'] ?? ($entry['clinic_first'] . ' ' . $entry['clinic_last'])) ?></td>
-              <td class="font-medium <?= $entry['type'] === 'credit' ? 'text-green-600' : 'text-red-600' ?>">
-                <?= $entry['type'] === 'credit' ? '+' : '-' ?>$<?= number_format((float)$entry['amount'], 2) ?>
+              <td class="text-sm">$<?= number_format((float)$entry['collected_amount'], 2) ?></td>
+              <td class="text-sm"><?= number_format((float)$entry['commission_rate'] * 100, 1) ?>%</td>
+              <td class="font-medium text-green-600">+$<?= number_format((float)$entry['commission_amount'], 2) ?></td>
+              <td>
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium <?= $statusColors[$entry['status']] ?? 'bg-gray-100' ?>">
+                  <?= ucfirst($entry['status']) ?>
+                </span>
               </td>
             </tr>
           <?php endforeach; ?>
