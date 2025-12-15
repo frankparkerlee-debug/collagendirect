@@ -257,7 +257,7 @@ $payoutsQuery = "
   FROM rep_commission_payouts rcp
   LEFT JOIN admin_users au ON au.id = rcp.processed_by::integer
   WHERE rcp.rep_id = ?
-  ORDER BY rcp.paid_at DESC
+  ORDER BY rcp.payout_date DESC
   LIMIT 50
 ";
 $payoutsStmt = $pdo->prepare($payoutsQuery);
@@ -268,9 +268,7 @@ $payoutHistory = $payoutsStmt->fetchAll();
 $totalCommission = (float)($metrics['total_commission'] ?? 0);
 $totalPaid = 0;
 foreach ($payoutHistory as $p) {
-  if ($p['status'] === 'completed') {
-    $totalPaid += (float)$p['amount'];
-  }
+  $totalPaid += (float)$p['amount'];
 }
 $currentBalance = $totalCommission - $totalPaid;
 

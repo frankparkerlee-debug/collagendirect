@@ -232,10 +232,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           VALUES (?, ?, 'invited', ?, ?, ?, ?, NOW(), NOW(), NOW())
         ")->execute([$repId, $userId, $companyName ?: null, $inviteToken, $inviteExpires, $admin['id']]);
 
-        // Set commission rate
+        // Set commission rate (effective when invite is accepted)
         $pdo->prepare("
           INSERT INTO rep_commission_rates (rep_id, rate, effective_date, set_by, notes, created_at)
-          VALUES (?, ?, NULL, ?, 'Set on invite', NOW())
+          VALUES (?, ?, CURRENT_DATE, ?, 'Set on invite', NOW())
         ")->execute([$repId, $commissionRate, $admin['id']]);
 
         // Send invite email
