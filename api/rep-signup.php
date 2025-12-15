@@ -117,7 +117,7 @@ try {
   $stmt = $pdo->prepare("
     INSERT INTO rep_signed_documents (
       rep_id, document_type, document_version,
-      signature_name, signed_at, signed_ip, user_agent,
+      signature_text, signed_at, ip_address, user_agent,
       created_at
     ) VALUES (
       ?, 'rep_agreement', '1.0',
@@ -137,7 +137,7 @@ try {
   $stmt = $pdo->prepare("
     INSERT INTO rep_signed_documents (
       rep_id, document_type, document_version,
-      signature_name, signed_at, signed_ip, user_agent,
+      signature_text, signed_at, ip_address, user_agent,
       created_at
     ) VALUES (
       ?, 'baa', '1.0',

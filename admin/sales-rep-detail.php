@@ -501,7 +501,7 @@ $statusColors = [
           </div>
           <div class="flex items-center gap-4">
             <div class="text-right">
-              <div class="text-sm font-medium"><?= htmlspecialchars($doc['signer_name']) ?></div>
+              <div class="text-sm font-medium"><?= htmlspecialchars($doc['signature_text'] ?? '-') ?></div>
               <div class="text-xs text-gray-500">e-Signature</div>
             </div>
             <span class="text-green-600">

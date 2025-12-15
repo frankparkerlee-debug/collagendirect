@@ -89,16 +89,15 @@ try {
   // 3. Record signed rep agreement
   $pdo->prepare("
     INSERT INTO rep_signed_documents (
-      id, rep_id, document_type, document_version,
-      signature_name, signed_at, ip_address, user_agent, source,
+      rep_id, document_type, document_version,
+      signature_text, signed_at, ip_address, user_agent, source,
       created_at
     ) VALUES (
-      ?, ?, 'rep_agreement', '1.0',
+      ?, 'rep_agreement', '1.0',
       ?, ?, ?, ?, 'invite_completion',
       NOW()
     )
   ")->execute([
-    bin2hex(random_bytes(16)),
     $inviteData['rep_id'],
     $repAgreementSignature,
     $repAgreementSignedAt ? date('Y-m-d H:i:s', strtotime($repAgreementSignedAt)) : date('Y-m-d H:i:s'),
@@ -109,16 +108,15 @@ try {
   // 4. Record signed BAA
   $pdo->prepare("
     INSERT INTO rep_signed_documents (
-      id, rep_id, document_type, document_version,
-      signature_name, signed_at, ip_address, user_agent, source,
+      rep_id, document_type, document_version,
+      signature_text, signed_at, ip_address, user_agent, source,
       created_at
     ) VALUES (
-      ?, ?, 'baa', '1.0',
+      ?, 'baa', '1.0',
       ?, ?, ?, ?, 'invite_completion',
       NOW()
     )
   ")->execute([
-    bin2hex(random_bytes(16)),
     $inviteData['rep_id'],
     $baaSignature,
     $baaSignedAt ? date('Y-m-d H:i:s', strtotime($baaSignedAt)) : date('Y-m-d H:i:s'),
