@@ -197,11 +197,13 @@ if (!$rep) {
 }
 
 // Fetch current commission rate (defaults to 25% if not set)
+// Order by effective_date DESC (most recent effective date first), then by created_at DESC (most recently created)
+// This ensures if two rates have the same effective_date, the newer one wins
 $rateQuery = "
   SELECT rate, effective_date, set_by, notes, created_at
   FROM rep_commission_rates
   WHERE rep_id = ? AND (effective_date IS NULL OR effective_date <= CURRENT_DATE)
-  ORDER BY effective_date DESC NULLS LAST
+  ORDER BY effective_date DESC NULLS LAST, created_at DESC
   LIMIT 1
 ";
 $rateStmt = $pdo->prepare($rateQuery);
@@ -242,7 +244,7 @@ $docsStmt = $pdo->prepare($docsQuery);
 $docsStmt->execute([$repId]);
 $signedDocs = $docsStmt->fetchAll();
 
-// Fetch assigned clinics
+// Fetch assigned clinics (physicians only, exclude sales reps)
 $clinicsQuery = "
   SELECT u.id, u.first_name, u.last_name, u.practice_name, u.email, u.npi,
     u.rep_assignment_date, u.rep_assigned_by,
@@ -250,29 +252,33 @@ $clinicsQuery = "
     (SELECT COALESCE(SUM(product_price), 0) FROM orders WHERE user_id = u.id AND status NOT IN ('cancelled', 'voided')) as total_revenue
   FROM users u
   WHERE u.assigned_rep_id = ?
+    AND u.role IN ('physician', 'practice_admin')
+    AND u.id NOT IN (SELECT user_id FROM sales_reps WHERE user_id IS NOT NULL)
   ORDER BY u.rep_assignment_date DESC
 ";
 $clinicsStmt = $pdo->prepare($clinicsQuery);
 $clinicsStmt->execute([$repId]);
 $assignedClinics = $clinicsStmt->fetchAll();
 
-// Fetch available clinics (physicians not assigned to any rep)
+// Fetch available clinics (physicians not assigned to any rep, excluding sales reps)
 $availableClinicsQuery = "
   SELECT id, first_name, last_name, practice_name, email, npi
   FROM users
-  WHERE role = 'physician' AND (assigned_rep_id IS NULL OR assigned_rep_id = '')
+  WHERE role IN ('physician', 'practice_admin')
+    AND (assigned_rep_id IS NULL OR assigned_rep_id = '')
+    AND id NOT IN (SELECT user_id FROM sales_reps WHERE user_id IS NOT NULL)
   ORDER BY practice_name, last_name, first_name
   LIMIT 500
 ";
 $availableClinicsStmt = $pdo->query($availableClinicsQuery);
 $availableClinics = $availableClinicsStmt->fetchAll();
 
-// Performance metrics
+// Performance metrics (count only physician clinics, exclude sales reps)
 $metricsQuery = "
   SELECT
-    (SELECT COUNT(*) FROM users WHERE assigned_rep_id = :rep_id) as total_clinics,
-    (SELECT COUNT(*) FROM orders o JOIN users u ON o.user_id = u.id WHERE u.assigned_rep_id = :rep_id) as total_orders,
-    (SELECT COALESCE(SUM(o.product_price), 0) FROM orders o JOIN users u ON o.user_id = u.id WHERE u.assigned_rep_id = :rep_id AND o.status NOT IN ('cancelled', 'voided')) as total_revenue,
+    (SELECT COUNT(*) FROM users WHERE assigned_rep_id = :rep_id AND role IN ('physician', 'practice_admin') AND id NOT IN (SELECT user_id FROM sales_reps WHERE user_id IS NOT NULL)) as total_clinics,
+    (SELECT COUNT(*) FROM orders o JOIN users u ON o.user_id = u.id WHERE u.assigned_rep_id = :rep_id AND u.role IN ('physician', 'practice_admin')) as total_orders,
+    (SELECT COALESCE(SUM(o.product_price), 0) FROM orders o JOIN users u ON o.user_id = u.id WHERE u.assigned_rep_id = :rep_id AND u.role IN ('physician', 'practice_admin') AND o.status NOT IN ('cancelled', 'voided')) as total_revenue,
     (SELECT COALESCE(SUM(commission_amount), 0) FROM rep_commission_ledger WHERE rep_id = :rep_id) as total_commission
 ";
 $metricsStmt = $pdo->prepare($metricsQuery);

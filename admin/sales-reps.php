@@ -377,8 +377,8 @@ $payoutQueue = [];
 $activeRepsQuery = "
   SELECT sr.*,
     u.email, u.first_name, u.last_name, u.phone,
-    (SELECT rate FROM rep_commission_rates WHERE rep_id = sr.id AND (effective_date IS NULL OR effective_date <= CURRENT_DATE) ORDER BY effective_date DESC NULLS LAST LIMIT 1) as current_rate,
-    (SELECT COUNT(*) FROM users WHERE assigned_rep_id = sr.id) as clinic_count,
+    (SELECT rate FROM rep_commission_rates WHERE rep_id = sr.id AND (effective_date IS NULL OR effective_date <= CURRENT_DATE) ORDER BY effective_date DESC NULLS LAST, created_at DESC LIMIT 1) as current_rate,
+    (SELECT COUNT(*) FROM users WHERE assigned_rep_id = sr.id AND role IN ('physician', 'practice_admin') AND id NOT IN (SELECT user_id FROM sales_reps WHERE user_id IS NOT NULL)) as clinic_count,
     COALESCE((SELECT SUM(commission_amount) FROM rep_commission_ledger WHERE rep_id = sr.id), 0) as total_commission,
     COALESCE((SELECT SUM(amount) FROM rep_commission_payouts rcp WHERE rcp.rep_id = sr.id), 0) as total_paid
   FROM sales_reps sr
