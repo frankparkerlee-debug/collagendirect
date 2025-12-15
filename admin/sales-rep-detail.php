@@ -187,10 +187,13 @@ $rateStmt->execute([$repId]);
 $currentRate = $rateStmt->fetch();
 
 // Fetch commission rate history
+// set_by can be either admin_users.id (integer) or users.id (UUID string)
 $rateHistoryQuery = "
-  SELECT rcr.*, au.name as set_by_name
+  SELECT rcr.*,
+    COALESCE(au.name, CONCAT(u.first_name, ' ', u.last_name)) as set_by_name
   FROM rep_commission_rates rcr
-  LEFT JOIN admin_users au ON au.id = rcr.set_by::integer
+  LEFT JOIN admin_users au ON rcr.set_by ~ '^[0-9]+$' AND au.id = rcr.set_by::integer
+  LEFT JOIN users u ON rcr.set_by !~ '^[0-9]+$' AND u.id = rcr.set_by
   WHERE rcr.rep_id = ?
   ORDER BY rcr.created_at DESC
   LIMIT 20
@@ -252,10 +255,13 @@ $ledgerStmt->execute([$repId]);
 $ledgerEntries = $ledgerStmt->fetchAll();
 
 // Fetch payout history
+// processed_by can be either admin_users.id (integer) or users.id (UUID string)
 $payoutsQuery = "
-  SELECT rcp.*, au.name as processed_by_name
+  SELECT rcp.*,
+    COALESCE(au.name, CONCAT(u.first_name, ' ', u.last_name)) as processed_by_name
   FROM rep_commission_payouts rcp
-  LEFT JOIN admin_users au ON au.id = rcp.processed_by::integer
+  LEFT JOIN admin_users au ON rcp.processed_by ~ '^[0-9]+$' AND au.id = rcp.processed_by::integer
+  LEFT JOIN users u ON rcp.processed_by !~ '^[0-9]+$' AND u.id = rcp.processed_by
   WHERE rcp.rep_id = ?
   ORDER BY rcp.payout_date DESC
   LIMIT 50
