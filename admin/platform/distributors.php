@@ -60,7 +60,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         switch ($action) {
             case 'approve_rep':
                 $repId = $_POST['rep_id'] ?? '';
-                $commissionRate = floatval($_POST['commission_rate'] ?? 0.25);
+                // Form passes percentage (e.g., 25 for 25%), convert to decimal (0.25)
+                $commissionRate = floatval($_POST['commission_rate'] ?? 25) / 100;
 
                 if ($repId) {
                     $pdo->prepare("UPDATE sales_reps SET status = 'active', approved_date = NOW(), approved_by = ?, updated_at = NOW() WHERE id = ?")
