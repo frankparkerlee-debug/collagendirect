@@ -143,6 +143,8 @@ function legacy_permission_check(string $role, string $permissionKey): bool {
             'admin_settings.practice_users.*',
             'admin_settings.internal_users.*',
             'admin_settings.distributors.*',
+            'admin_settings.roles.view',
+            'admin_settings.access',
             'commission.*',
             'messages.*',
             'data_scope.all_practices'
@@ -348,4 +350,166 @@ function require_permission(string $permissionKey, string $minLevel = 'view', ?s
         http_response_code(403);
         die('Access denied: You do not have permission to access this resource.');
     }
+}
+
+/**
+ * Get effective permissions for a user (with caching)
+ *
+ * @param string|int $userId User ID
+ * @param string $role User role
+ * @return array Permission key => access level
+ */
+function get_effective_permissions($userId, string $role): array {
+    global $pdo;
+
+    // Check session cache first
+    $cacheKey = "user_perms_{$userId}";
+    if (isset($_SESSION[$cacheKey]) && is_array($_SESSION[$cacheKey])) {
+        return $_SESSION[$cacheKey];
+    }
+
+    $permissions = [];
+
+    try {
+        // Get role-based permissions
+        $stmt = $pdo->prepare("
+            SELECT p.key, rp.access_level
+            FROM role_permissions rp
+            JOIN permissions p ON p.id = rp.permission_id
+            WHERE rp.role = ?
+        ");
+        $stmt->execute([$role]);
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $permissions[$row['key']] = $row['access_level'];
+        }
+
+        // Apply user overrides
+        $stmt = $pdo->prepare("
+            SELECT p.key, upo.override_type, upo.access_level
+            FROM user_permission_overrides upo
+            JOIN permissions p ON p.id = upo.permission_id
+            WHERE upo.user_id = ?
+        ");
+        $stmt->execute([$userId]);
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            if ($row['override_type'] === 'revoke') {
+                $permissions[$row['key']] = 'none';
+            } elseif ($row['override_type'] === 'grant') {
+                $permissions[$row['key']] = $row['access_level'];
+            }
+        }
+
+        // Cache in session
+        $_SESSION[$cacheKey] = $permissions;
+
+    } catch (Exception $e) {
+        error_log("get_effective_permissions error: " . $e->getMessage());
+    }
+
+    return $permissions;
+}
+
+/**
+ * Clear user permission cache
+ *
+ * @param string|int|null $userId User ID (null clears all)
+ */
+function clear_permission_cache($userId = null): void {
+    if ($userId !== null) {
+        unset($_SESSION["user_perms_{$userId}"]);
+    } else {
+        // Clear all permission caches
+        foreach ($_SESSION as $key => $value) {
+            if (str_starts_with($key, 'user_perms_')) {
+                unset($_SESSION[$key]);
+            }
+        }
+    }
+}
+
+/**
+ * Check permission using cached effective permissions (faster for multiple checks)
+ *
+ * @param string $permissionKey
+ * @param string $minLevel
+ * @return bool
+ */
+function has_permission_cached(string $permissionKey, string $minLevel = 'view'): bool {
+    $admin = current_admin();
+    if (!$admin) {
+        return false;
+    }
+
+    $role = $admin['role'] ?? '';
+
+    // Superadmin always has full access
+    if ($role === 'superadmin') {
+        return true;
+    }
+
+    $userId = $admin['id'] ?? null;
+    if (!$userId) {
+        return false;
+    }
+
+    $permissions = get_effective_permissions($userId, $role);
+    $level = $permissions[$permissionKey] ?? 'none';
+
+    return meets_access_level($level, $minLevel);
+}
+
+/**
+ * Get user override count
+ *
+ * @param string|int $userId
+ * @return int
+ */
+function get_user_override_count($userId): int {
+    global $pdo;
+
+    try {
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM user_permission_overrides WHERE user_id = ?");
+        $stmt->execute([$userId]);
+        return (int)$stmt->fetchColumn();
+    } catch (Exception $e) {
+        return 0;
+    }
+}
+
+/**
+ * Check if user has any permission overrides
+ *
+ * @param string|int $userId
+ * @return bool
+ */
+function user_has_overrides($userId): bool {
+    return get_user_override_count($userId) > 0;
+}
+
+/**
+ * Get permission access level for display
+ *
+ * @param string $permissionKey
+ * @return string Access level (none, view, edit, full)
+ */
+function get_permission_level(string $permissionKey): string {
+    $admin = current_admin();
+    if (!$admin) {
+        return 'none';
+    }
+
+    $role = $admin['role'] ?? '';
+
+    // Superadmin always has full access
+    if ($role === 'superadmin') {
+        return 'full';
+    }
+
+    $userId = $admin['id'] ?? null;
+    if (!$userId) {
+        return 'none';
+    }
+
+    $permissions = get_effective_permissions($userId, $role);
+    return $permissions[$permissionKey] ?? 'none';
 }
