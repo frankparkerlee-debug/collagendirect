@@ -407,7 +407,7 @@ if ($adminRole === 'superadmin' || $adminRole === 'manufacturer') {
     $earnedStmt = $pdo->query("SELECT COALESCE(SUM(commission_amount), 0) as total FROM rep_commission_ledger");
     $totalCommissionEarned = (float)$earnedStmt->fetch()['total'];
 
-    $paidStmt = $pdo->query("SELECT COALESCE(SUM(amount), 0) as total FROM rep_commission_payouts WHERE status = 'completed'");
+    $paidStmt = $pdo->query("SELECT COALESCE(SUM(amount), 0) as total FROM rep_commission_payouts");
     $totalCommissionPaid = (float)$paidStmt->fetch()['total'];
 
     $totalUnpaidCommission = $totalCommissionEarned - $totalCommissionPaid;
@@ -419,7 +419,7 @@ if ($adminRole === 'superadmin' || $adminRole === 'manufacturer') {
       WHERE sr.status = 'active'
       AND (
         SELECT COALESCE(SUM(rcl.commission_amount), 0) - COALESCE(
-          (SELECT SUM(rcp.amount) FROM rep_commission_payouts rcp WHERE rcp.rep_id = sr.id AND rcp.status = 'completed'), 0
+          (SELECT SUM(rcp.amount) FROM rep_commission_payouts rcp WHERE rcp.rep_id = sr.id), 0
         )
         FROM rep_commission_ledger rcl WHERE rcl.rep_id = sr.id
       ) > 0.01

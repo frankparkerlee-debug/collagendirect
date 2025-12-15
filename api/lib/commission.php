@@ -221,7 +221,7 @@ function get_commission_balance(PDO $pdo, string $repId): array {
   $paidStmt = $pdo->prepare("
     SELECT COALESCE(SUM(amount), 0) as total
     FROM rep_commission_payouts
-    WHERE rep_id = ? AND status = 'completed'
+    WHERE rep_id = ?
   ");
   $paidStmt->execute([$repId]);
   $totalPaid = (float)$paidStmt->fetchColumn();

@@ -90,10 +90,10 @@ $currentRate = get_commission_rate($pdo, $repId);
 
 // Get last payout info
 $lastPayoutStmt = $pdo->prepare("
-  SELECT amount, paid_at, payment_method
+  SELECT amount, payout_date, payment_method
   FROM rep_commission_payouts
-  WHERE rep_id = ? AND status = 'completed'
-  ORDER BY paid_at DESC
+  WHERE rep_id = ?
+  ORDER BY payout_date DESC
   LIMIT 1
 ");
 $lastPayoutStmt->execute([$repId]);
@@ -255,7 +255,7 @@ $topClinics = $topClinicsStmt->fetchAll();
       <p class="text-sm text-gray-500 mb-1">Last Payout</p>
       <?php if ($lastPayout): ?>
         <p class="text-lg font-bold text-gray-900">$<?= number_format((float)$lastPayout['amount'], 2) ?></p>
-        <p class="text-xs text-gray-400"><?= date('M j, Y', strtotime($lastPayout['paid_at'])) ?></p>
+        <p class="text-xs text-gray-400"><?= date('M j, Y', strtotime($lastPayout['payout_date'])) ?></p>
       <?php else: ?>
         <p class="text-sm text-gray-400">No payouts yet</p>
       <?php endif; ?>

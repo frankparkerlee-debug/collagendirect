@@ -19,9 +19,9 @@ $summaryStmt = $pdo->prepare("
   SELECT
     COALESCE(SUM(amount), 0) as total_paid,
     COUNT(*) as payout_count,
-    MAX(paid_at) as last_payout
+    MAX(payout_date) as last_payout
   FROM rep_commission_payouts
-  WHERE rep_id = ? AND status = 'completed'
+  WHERE rep_id = ?
 ");
 $summaryStmt->execute([$repId]);
 $summary = $summaryStmt->fetch();
@@ -29,10 +29,10 @@ $summary = $summaryStmt->fetch();
 // Get payout history
 $payoutsStmt = $pdo->prepare("
   SELECT id, amount, payment_method, reference_number, period_start, period_end,
-         status, paid_at, notes, created_at
+         payout_date, notes, created_at
   FROM rep_commission_payouts
   WHERE rep_id = ?
-  ORDER BY created_at DESC
+  ORDER BY payout_date DESC
   LIMIT 100
 ");
 $payoutsStmt->execute([$repId]);
@@ -118,7 +118,7 @@ $payouts = $payoutsStmt->fetchAll();
         <?php foreach ($payouts as $payout): ?>
           <tr>
             <td>
-              <div class="text-sm font-medium"><?= date('M j, Y', strtotime($payout['paid_at'] ?: $payout['created_at'])) ?></div>
+              <div class="text-sm font-medium"><?= date('M j, Y', strtotime($payout['payout_date'] ?: $payout['created_at'])) ?></div>
             </td>
             <td>
               <?php if ($payout['period_start'] && $payout['period_end']): ?>
@@ -145,17 +145,8 @@ $payouts = $payoutsStmt->fetchAll();
               <?php endif; ?>
             </td>
             <td>
-              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
-                <?php
-                switch ($payout['status']) {
-                  case 'completed': echo 'bg-green-100 text-green-800'; break;
-                  case 'pending': echo 'bg-yellow-100 text-yellow-800'; break;
-                  case 'failed': echo 'bg-red-100 text-red-800'; break;
-                  default: echo 'bg-gray-100 text-gray-800';
-                }
-                ?>
-              ">
-                <?= ucfirst($payout['status']) ?>
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                Completed
               </span>
             </td>
           </tr>

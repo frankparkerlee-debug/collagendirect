@@ -40,7 +40,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'payouts-csv') {
     SELECT *
     FROM rep_commission_payouts
     WHERE rep_id = ?
-    ORDER BY paid_at DESC
+    ORDER BY payout_date DESC
   ";
   $exportStmt = $pdo->prepare($exportQuery);
   $exportStmt->execute([$repId]);
@@ -51,12 +51,12 @@ if (isset($_GET['export']) && $_GET['export'] === 'payouts-csv') {
       $period = date('M j, Y', strtotime($row['period_start'])) . ' - ' . date('M j, Y', strtotime($row['period_end']));
     }
     fputcsv($output, [
-      date('Y-m-d', strtotime($row['paid_at'])),
+      date('Y-m-d', strtotime($row['payout_date'])),
       number_format((float)$row['amount'], 2),
       ucfirst($row['payment_method'] ?? 'check'),
       $row['reference_number'] ?? '',
       $period,
-      ucfirst($row['status'] ?? 'completed'),
+      'Completed',
       $row['notes'] ?? ''
     ]);
   }
@@ -95,7 +95,7 @@ $payoutsStmt = $pdo->prepare("
   SELECT *
   FROM rep_commission_payouts
   WHERE rep_id = ?
-  ORDER BY paid_at DESC
+  ORDER BY payout_date DESC
   LIMIT 20
 ");
 $payoutsStmt->execute([$repId]);
@@ -354,21 +354,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'chang
         <tbody>
           <?php foreach ($payouts as $payout): ?>
             <tr class="border-t border-gray-100">
-              <td class="py-2"><?= date('M j, Y', strtotime($payout['paid_at'])) ?></td>
+              <td class="py-2"><?= date('M j, Y', strtotime($payout['payout_date'])) ?></td>
               <td class="py-2 text-right font-medium text-green-600">$<?= number_format((float)$payout['amount'], 2) ?></td>
               <td class="py-2"><?= ucfirst($payout['payment_method'] ?? 'check') ?></td>
               <td class="py-2"><?= htmlspecialchars($payout['reference_number'] ?? '-') ?></td>
               <td class="py-2">
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
-                  <?php
-                  switch ($payout['status']) {
-                    case 'completed': echo 'bg-green-100 text-green-800'; break;
-                    case 'pending': echo 'bg-yellow-100 text-yellow-800'; break;
-                    default: echo 'bg-gray-100 text-gray-800';
-                  }
-                  ?>
-                ">
-                  <?= ucfirst($payout['status'] ?? 'completed') ?>
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                  Completed
                 </span>
               </td>
             </tr>

@@ -135,7 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           if ($amount > $currentBalanceCheck + 0.01) { // Allow small rounding tolerance
             $error = 'Payout amount ($' . number_format($amount, 2) . ') exceeds available balance ($' . number_format($currentBalanceCheck, 2) . ')';
           } else {
-            $pdo->prepare("INSERT INTO rep_commission_payouts (rep_id, amount, payment_method, reference_number, period_start, period_end, status, paid_at, processed_by, notes, created_at) VALUES (?, ?, ?, ?, ?, ?, 'completed', NOW(), ?, ?, NOW())")
+            $pdo->prepare("INSERT INTO rep_commission_payouts (rep_id, amount, payment_method, reference_number, period_start, period_end, payout_date, processed_by, notes, created_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_DATE, ?, ?, NOW())")
                 ->execute([$repId, $amount, $paymentMethod, $referenceNumber ?: null, $periodStart ?: null, $periodEnd ?: null, $admin['id'], $notes ?: null]);
             $message = 'Payout of $' . number_format($amount, 2) . ' recorded successfully.';
           }

@@ -170,7 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           if ($amount > $currentBalance + 0.01) { // Allow small rounding tolerance
             $error = 'Payout amount ($' . number_format($amount, 2) . ') exceeds available balance ($' . number_format($currentBalance, 2) . ')';
           } else {
-            $pdo->prepare("INSERT INTO rep_commission_payouts (rep_id, amount, payment_method, reference_number, period_start, period_end, status, paid_at, processed_by, notes, created_at) VALUES (?, ?, ?, ?, ?, ?, 'completed', NOW(), ?, ?, NOW())")
+            $pdo->prepare("INSERT INTO rep_commission_payouts (rep_id, amount, payment_method, reference_number, period_start, period_end, payout_date, processed_by, notes, created_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_DATE, ?, ?, NOW())")
                 ->execute([$repId, $amount, $paymentMethod, $referenceNumber ?: null, $periodStart ?: null, $periodEnd ?: null, $admin['id'], $notes ?: null]);
 
             // Send notification to rep
@@ -205,7 +205,7 @@ $activeRepsQuery = "
     (SELECT rate FROM rep_commission_rates WHERE rep_id = sr.id AND (effective_date IS NULL OR effective_date <= CURRENT_DATE) ORDER BY effective_date DESC NULLS LAST LIMIT 1) as current_rate,
     (SELECT COUNT(*) FROM users WHERE assigned_rep_id = sr.id) as clinic_count,
     COALESCE((SELECT SUM(commission_amount) FROM rep_commission_ledger WHERE rep_id = sr.id), 0) as total_commission,
-    COALESCE((SELECT SUM(amount) FROM rep_commission_payouts rcp WHERE rcp.rep_id = sr.id AND rcp.status = 'completed'), 0) as total_paid
+    COALESCE((SELECT SUM(amount) FROM rep_commission_payouts rcp WHERE rcp.rep_id = sr.id), 0) as total_paid
   FROM sales_reps sr
   JOIN users u ON u.id = sr.user_id
   WHERE sr.status IN ('active', 'suspended', 'terminated')
@@ -250,13 +250,13 @@ $payoutQuery = "
   SELECT sr.*,
     u.email, u.first_name, u.last_name,
     COALESCE((SELECT SUM(commission_amount) FROM rep_commission_ledger WHERE rep_id = sr.id), 0) as total_commission,
-    COALESCE((SELECT SUM(amount) FROM rep_commission_payouts rcp WHERE rcp.rep_id = sr.id AND rcp.status = 'completed'), 0) as total_paid,
-    (SELECT MAX(paid_at) FROM rep_commission_payouts WHERE rep_id = sr.id AND status = 'completed') as last_payout_date,
-    (SELECT amount FROM rep_commission_payouts WHERE rep_id = sr.id AND status = 'completed' ORDER BY paid_at DESC LIMIT 1) as last_payout_amount
+    COALESCE((SELECT SUM(amount) FROM rep_commission_payouts rcp WHERE rcp.rep_id = sr.id), 0) as total_paid,
+    (SELECT MAX(payout_date) FROM rep_commission_payouts WHERE rep_id = sr.id) as last_payout_date,
+    (SELECT amount FROM rep_commission_payouts WHERE rep_id = sr.id ORDER BY payout_date DESC LIMIT 1) as last_payout_amount
   FROM sales_reps sr
   JOIN users u ON u.id = sr.user_id
   WHERE sr.status = 'active'
-  ORDER BY (COALESCE((SELECT SUM(commission_amount) FROM rep_commission_ledger WHERE rep_id = sr.id), 0) - COALESCE((SELECT SUM(amount) FROM rep_commission_payouts WHERE rep_id = sr.id AND status = 'completed'), 0)) DESC
+  ORDER BY (COALESCE((SELECT SUM(commission_amount) FROM rep_commission_ledger WHERE rep_id = sr.id), 0) - COALESCE((SELECT SUM(amount) FROM rep_commission_payouts WHERE rep_id = sr.id), 0)) DESC
 ";
 $payoutQueue = $pdo->query($payoutQuery)->fetchAll();
 
@@ -271,7 +271,7 @@ foreach ($payoutQueue as $rep) {
   }
 }
 
-$lastPayoutDate = $pdo->query("SELECT MAX(paid_at) as last_date FROM rep_commission_payouts WHERE status = 'completed'")->fetch()['last_date'];
+$lastPayoutDate = $pdo->query("SELECT MAX(payout_date) as last_date FROM rep_commission_payouts")->fetch()['last_date'];
 
 /**
  * Send approval email to rep
