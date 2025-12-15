@@ -278,8 +278,8 @@ try {
     $existingRolePerms = $pdo->query("SELECT COUNT(*) FROM role_permissions")->fetchColumn();
 
     if ($existingRolePerms == 0) {
-        // Get all permission IDs
-        $permissionIds = $pdo->query("SELECT id, key FROM permissions")->fetchAll(PDO::FETCH_KEY_PAIR);
+        // Get all permission IDs - key => id mapping
+        $permissionIds = $pdo->query("SELECT key, id FROM permissions")->fetchAll(PDO::FETCH_KEY_PAIR);
 
         // Define role permission mappings
         $rolePermissions = [];
