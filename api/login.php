@@ -138,9 +138,8 @@ setcookie(session_name(), session_id(), [
 // Determine redirect based on role
 $redirectUrl = '/portal/';
 if ($userRole === 'superadmin') {
-  // Superadmins can access both portal and admin
-  // Default to portal (they can navigate to admin if needed)
-  $redirectUrl = '/portal/';
+  // Superadmins can access both portal and admin - default to /admin
+  $redirectUrl = '/admin/';
 } elseif ($isSalesRep) {
   // Sales reps go to their dedicated portal
   $redirectUrl = '/admin/rep/';
