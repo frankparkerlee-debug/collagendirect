@@ -332,6 +332,34 @@ try {
   $todayCount = (int)$countStmt->fetchColumn();
   $referralOrderNumber = sprintf('RF-%s-%03d', $datePrefix, $todayCount + 1);
 
+  // 8) Calculate and store order values at creation time
+  // This ensures historical accuracy even if rates change later
+  $fpw_int = (int)($frequency ?? 1);
+  $qty_int = max(1, (int)($qty_per_change ?? 1));
+  $days_int = (int)($duration_days ?? 30);
+  $refills_int = 0; // Refills not typically set at initial order creation
+
+  // Get product details for calculation
+  $prodDetails = $pdo->prepare("SELECT pieces_per_box, cost_per_box, medicare_allowable FROM products WHERE id = ?");
+  $prodDetails->execute([$prod['id']]);
+  $prodInfo = $prodDetails->fetch(PDO::FETCH_ASSOC);
+  $pieces_per_box = max(1, (int)($prodInfo['pieces_per_box'] ?? 10));
+  $cost_per_box = (float)($prodInfo['cost_per_box'] ?? 0);
+  $medicare_rate = (float)($prodInfo['medicare_allowable'] ?? 0);
+
+  // Calculate pieces and boxes (referral order calculation)
+  if ($fpw_int === 0) $fpw_int = 1;
+  if ($days_int === 0) $days_int = 30;
+  $weeks = $days_int / 7.0;
+  $calc_total_pieces = (int)ceil($weeks * $fpw_int * $qty_int * (1 + $refills_int));
+  $calc_boxes_to_ship = (int)ceil($calc_total_pieces / $pieces_per_box);
+  $calc_billable_pieces = $calc_total_pieces;
+
+  // Calculate revenue and cost
+  $calc_cpt_rate = $medicare_rate > 0 ? $medicare_rate : (float)($prod['price_admin'] ?? 0) / $pieces_per_box;
+  $calc_expected_revenue = $calc_billable_pieces * $calc_cpt_rate;
+  $calc_expected_cost = $calc_boxes_to_ship * $cost_per_box;
+
   // Insert order FIRST (no file I/O yet)
   // Note: Draft orders have status='draft', submitted orders have status='pending'
   // Force cache refresh - 2024-11-18
@@ -346,7 +374,8 @@ try {
      rx_note_path, rx_note_mime, ins_card_path, ins_card_mime, id_card_path, id_card_mime,
      e_sign_user_id, e_sign_name, e_sign_title, e_sign_at, e_sign_ip,
      physician_id, physician_npi, physician_license,
-     review_status)
+     review_status,
+     total_pieces, boxes_to_ship, billable_pieces, expected_revenue, expected_cost, cpt_rate_used)
     VALUES
     (?,?,?,?,?,?,?,?,?,?,0,NOW(),NOW(),?,
      ?,?,?,?,?,?,
@@ -357,7 +386,8 @@ try {
      NULL,NULL,NULL,NULL,NULL,NULL,
      ?,?,?,?,?,
      ?,?,?,
-     ?)";
+     ?,
+     ?,?,?,?,?,?)";
 
   $pdo->prepare($sql)->execute([
     $order_id, $patient_id, $uid,
@@ -383,7 +413,10 @@ try {
     // physician (for multi-physician practices)
     $physician_id, $physician_npi, $physician_license,
     // review status
-    $review_status
+    $review_status,
+    // calculated values (stored at creation time for historical accuracy)
+    $calc_total_pieces, $calc_boxes_to_ship, $calc_billable_pieces,
+    $calc_expected_revenue, $calc_expected_cost, $calc_cpt_rate
   ]);
 
   // Create additional orders for secondary and additional products (multi-product support)

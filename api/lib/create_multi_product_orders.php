@@ -55,7 +55,7 @@ function create_multi_product_orders(
 
     // Create order for PRIMARY product (if not first wound)
     if (!$skip_primary && !empty($wound['product_id'])) {
-      $pr_primary = $pdo->prepare("SELECT id, name, price_admin, price_wholesale, pieces_per_box, {$hcpcsCol} as hcpcs_code FROM products WHERE id=? AND active=TRUE");
+      $pr_primary = $pdo->prepare("SELECT id, name, price_admin, price_wholesale, pieces_per_box, cost_per_box, medicare_allowable, {$hcpcsCol} as hcpcs_code FROM products WHERE id=? AND active=TRUE");
       $pr_primary->execute([$wound['product_id']]);
       $prod_primary = $pr_primary->fetch(PDO::FETCH_ASSOC);
 
@@ -69,7 +69,7 @@ function create_multi_product_orders(
 
     // Create order for SECONDARY product (if specified)
     if (!empty($wound['secondary_product_id'])) {
-      $pr_sec = $pdo->prepare("SELECT id, name, price_admin, price_wholesale, pieces_per_box, {$hcpcsCol} as hcpcs_code FROM products WHERE id=? AND active=TRUE");
+      $pr_sec = $pdo->prepare("SELECT id, name, price_admin, price_wholesale, pieces_per_box, cost_per_box, medicare_allowable, {$hcpcsCol} as hcpcs_code FROM products WHERE id=? AND active=TRUE");
       $pr_sec->execute([$wound['secondary_product_id']]);
       $prod_sec = $pr_sec->fetch(PDO::FETCH_ASSOC);
 
@@ -83,7 +83,7 @@ function create_multi_product_orders(
 
     // Create order for ADDITIONAL product (if specified)
     if (!empty($wound['additional_product_id'])) {
-      $pr_add = $pdo->prepare("SELECT id, name, price_admin, price_wholesale, pieces_per_box, {$hcpcsCol} as hcpcs_code FROM products WHERE id=? AND active=TRUE");
+      $pr_add = $pdo->prepare("SELECT id, name, price_admin, price_wholesale, pieces_per_box, cost_per_box, medicare_allowable, {$hcpcsCol} as hcpcs_code FROM products WHERE id=? AND active=TRUE");
       $pr_add->execute([$wound['additional_product_id']]);
       $prod_add = $pr_add->fetch(PDO::FETCH_ASSOC);
 
@@ -122,15 +122,36 @@ function create_single_product_order(
   $refills = $order_params['refills_allowed'];
 
   $pieces_per_box = max(1, (int)($product['pieces_per_box'] ?? 10));
-  $changes_per_day = $freq / 7.0;
-  $total_changes = $changes_per_day * $days;
-  $pieces_needed = $total_changes * $qty * (1 + $refills);
-  $boxes_needed = (int)ceil($pieces_needed / $pieces_per_box);
+
+  // Apply defaults if frequency is 0
+  if ($freq === 0) $freq = 1;
+
+  // Calculate pieces and boxes (matches revenue_calculator.php formula)
+  $weeks = $days / 7.0;
+  $total_pieces = (int)ceil($weeks * $freq * $qty * (1 + $refills));
+  $boxes_needed = (int)ceil($total_pieces / $pieces_per_box);
+  $billable_pieces = $total_pieces;
 
   // Calculate price per box (wholesale or CPT/Medicare rate)
   $price_per_box = $isWholesale
     ? (float)($product['price_wholesale'] ?? 0)
     : (float)($product['price_admin'] ?? 0);
+
+  // Get cost per box for profit calculation
+  $cost_per_box = (float)($product['cost_per_box'] ?? 0);
+
+  // Calculate expected revenue and cost
+  if ($isWholesale) {
+    // Wholesale: revenue = boxes * price_per_box
+    $cpt_rate_used = $price_per_box / max(1, $pieces_per_box);
+    $expected_revenue = $boxes_needed * $price_per_box;
+  } else {
+    // Referral: revenue = billable_pieces * medicare_rate
+    $medicare_rate = (float)($product['medicare_allowable'] ?? 0);
+    $cpt_rate_used = $medicare_rate > 0 ? $medicare_rate : $price_per_box / max(1, $pieces_per_box);
+    $expected_revenue = $billable_pieces * $cpt_rate_used;
+  }
+  $expected_cost = $boxes_needed * $cost_per_box;
 
   // Insert the order
   $ins = $pdo->prepare("
@@ -144,7 +165,8 @@ function create_single_product_order(
       wound_type, wound_stage, last_eval_date, start_date,
       frequency_per_week, qty_per_change, duration_days, refills_allowed,
       additional_instructions, wounds_data, cpt, billed_by,
-      order_group_id, product_type, wound_index
+      order_group_id, product_type, wound_index,
+      total_pieces, boxes_to_ship, billable_pieces, expected_revenue, expected_cost, cpt_rate_used
     ) VALUES (
       ?,?,?,?,?,?,?,?,?,?,?,
       ?,?,?,
@@ -154,7 +176,8 @@ function create_single_product_order(
       ?,?,?,?,
       ?,?,?,?,
       ?,?::jsonb,?,?,
-      ?,?,?
+      ?,?,?,
+      ?,?,?,?,?,?
     )
   ");
 
@@ -201,7 +224,14 @@ function create_single_product_order(
     $order_params['billed_by'],
     $order_group_id,
     $product_type,
-    $wound_idx
+    $wound_idx,
+    // Calculated values stored at creation time
+    $total_pieces,
+    $boxes_needed,
+    $billable_pieces,
+    $expected_revenue,
+    $expected_cost,
+    $cpt_rate_used
   ]);
 
   return 1;
