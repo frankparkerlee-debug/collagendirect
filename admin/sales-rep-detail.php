@@ -304,6 +304,7 @@ $availableClinics = $availableClinicsStmt->fetchAll();
 
 // Performance metrics (count only physician clinics, exclude sales reps)
 // total_revenue calculated from order pricing (consistent with revenue report)
+// collected_revenue and total_commission from commission ledger (actual payments)
 $metricsQuery = "
   SELECT
     (SELECT COUNT(*) FROM users WHERE assigned_rep_id = :rep_id AND role IN ('physician', 'practice_admin') AND id NOT IN (SELECT user_id FROM sales_reps WHERE user_id IS NOT NULL)) as total_clinics,
@@ -324,6 +325,7 @@ $metricsQuery = "
       AND u.role IN ('physician', 'practice_admin')
       AND o.status NOT IN ('cancelled', 'voided', 'rejected')
     ) as total_revenue,
+    (SELECT COALESCE(SUM(collected_amount), 0) FROM rep_commission_ledger WHERE rep_id = :rep_id) as collected_revenue,
     (SELECT COALESCE(SUM(commission_amount), 0) FROM rep_commission_ledger WHERE rep_id = :rep_id) as total_commission
 ";
 $metricsStmt = $pdo->prepare($metricsQuery);
@@ -528,6 +530,14 @@ $statusColors = [
       <div>
         <div class="text-2xl font-bold text-green-600">$<?= number_format((float)($metrics['total_revenue'] ?? 0), 2) ?></div>
         <div class="text-sm text-gray-500">Generated Revenue</div>
+      </div>
+      <div>
+        <div class="text-2xl font-bold text-blue-600">$<?= number_format((float)($metrics['collected_revenue'] ?? 0), 2) ?></div>
+        <div class="text-sm text-gray-500">Collected Revenue</div>
+      </div>
+      <div>
+        <div class="text-2xl font-bold text-purple-600">$<?= number_format((float)($metrics['total_commission'] ?? 0), 2) ?></div>
+        <div class="text-sm text-gray-500">Commission Earned</div>
       </div>
     </div>
   </div>

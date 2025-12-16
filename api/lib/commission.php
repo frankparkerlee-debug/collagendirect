@@ -64,13 +64,19 @@ function calculate_commission(
   // 3. Calculate commission
   $commissionAmount = $paymentAmount * $rate;
 
-  // 4. Create ledger entry (id is SERIAL, auto-generated)
+  // 4. Create or update ledger entry
+  // Use UPSERT to handle incremental payments on the same order
   $insertStmt = $pdo->prepare("
     INSERT INTO rep_commission_ledger (
       rep_id, order_id, order_type, payment_id, clinic_id,
       payment_date, collected_amount, commission_rate, commission_amount,
       status, created_at
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())
+    ON CONFLICT (rep_id, order_id) DO UPDATE SET
+      collected_amount = rep_commission_ledger.collected_amount + EXCLUDED.collected_amount,
+      commission_amount = rep_commission_ledger.commission_amount + EXCLUDED.commission_amount,
+      payment_date = EXCLUDED.payment_date,
+      status = 'pending'
     RETURNING id
   ");
   $insertStmt->execute([

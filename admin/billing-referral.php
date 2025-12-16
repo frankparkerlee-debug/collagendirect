@@ -115,7 +115,22 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     $serviceDate = new DateTime($row['created_at']);
     $daysSince = $now->diff($serviceDate)->days;
 
-    $billedAmount = (float)($row['insurance_billed'] ?? $row['product_price'] ?? 0);
+    // Calculate billed amount consistently with main view
+    $insuranceBilledValue = (float)($row['insurance_billed'] ?? 0);
+    if ($insuranceBilledValue > 0) {
+      $billedAmount = $insuranceBilledValue;
+    } else {
+      $piecesPerBox = max(1, (int)($row['pieces_per_box'] ?? 10));
+      $productPrice = (float)($row['product_price'] ?? 0);
+      $qtyPerChange = max(1, (int)($row['qty_per_change'] ?? 1));
+
+      if ($productPrice > 0 && $productPrice < 50) {
+        $billedAmount = $qtyPerChange * $piecesPerBox * $productPrice;
+      } else {
+        $billedAmount = $qtyPerChange * $productPrice;
+      }
+    }
+
     $allowedAmount = (float)($row['insurance_allowed'] ?? 0);
     $insurancePaid = (float)($row['insurance_paid'] ?? 0);
     $patientResp = (float)($row['patient_responsibility'] ?? 0);
@@ -375,8 +390,36 @@ try {
     $daysSince = $now->diff($serviceDate)->days;
     $order['days_since'] = $daysSince;
 
-    // Calculate amounts
-    $billed = (float)($order['insurance_billed'] ?? $order['product_price'] ?? 0);
+    // Calculate billed amount - use insurance_billed if set, otherwise calculate from order data
+    // For referral orders: qty_per_change = pieces per application, calculate total pieces needed
+    $insuranceBilledValue = (float)($order['insurance_billed'] ?? 0);
+
+    if ($insuranceBilledValue > 0) {
+      // Use explicitly set insurance_billed amount
+      $billed = $insuranceBilledValue;
+    } else {
+      // Calculate from order parameters (consistent with revenue report)
+      $piecesPerBox = max(1, (int)($order['pieces_per_box'] ?? 10));
+      $productPrice = (float)($order['product_price'] ?? 0);
+      $qtyPerChange = max(1, (int)($order['qty_per_change'] ?? 1));
+
+      // For referral orders: product_price is per-piece rate, qty_per_change is pieces per application
+      // Total billed = qty_per_change boxes × pieces_per_box × product_price
+      // Actually for referral: qty_per_change = pieces needed, product_price = per-piece rate
+      // So billed = qty_per_change × product_price × some factor
+
+      // Simpler: if product_price looks like per-piece rate (< $50), multiply by qty and pieces
+      // If product_price looks like total (> $100), use it directly
+      if ($productPrice > 0 && $productPrice < 50) {
+        // Per-piece pricing - calculate total for the order
+        // qty_per_change for referral = boxes ordered
+        $billed = $qtyPerChange * $piecesPerBox * $productPrice;
+      } else {
+        // Assume product_price is already the total or per-box price
+        $billed = $qtyPerChange * $productPrice;
+      }
+    }
+
     $insurancePaid = (float)($order['insurance_paid'] ?? 0);
     $patientPaid = (float)($order['patient_paid'] ?? 0);
     $adjustment = (float)($order['adjustment'] ?? 0);
@@ -655,6 +698,7 @@ include __DIR__.'/_header.php';
             <th class="py-3 px-4">Order #</th>
             <th class="py-3 px-4">Patient</th>
             <th class="py-3 px-4">Physician</th>
+            <th class="py-3 px-4">Product</th>
             <th class="py-3 px-4">Insurance</th>
             <th class="py-3 px-4">Service Date</th>
             <th class="py-3 px-4 text-right">Billed</th>
@@ -667,7 +711,7 @@ include __DIR__.'/_header.php';
         </thead>
         <tbody>
           <?php if (empty($orders)): ?>
-            <tr><td colspan="11" class="py-8 text-center text-slate-500">No orders found matching your filters.</td></tr>
+            <tr><td colspan="12" class="py-8 text-center text-slate-500">No orders found matching your filters.</td></tr>
           <?php else: ?>
             <?php foreach ($orders as $order): ?>
               <?php
@@ -690,6 +734,18 @@ include __DIR__.'/_header.php';
                   <div class="text-sm"><?=e($order['phys_last'] . ', ' . $order['phys_first'])?></div>
                   <?php if ($order['practice_name']): ?>
                     <div class="text-xs text-slate-500"><?=e($order['practice_name'])?></div>
+                  <?php endif; ?>
+                </td>
+                <td class="py-3 px-4">
+                  <?php
+                    $productName = $order['product_name'] ?: $order['product'] ?: 'Unknown';
+                    $qtyBoxes = max(1, (int)($order['qty_per_change'] ?? 1));
+                    $piecesPerBox = max(1, (int)($order['pieces_per_box'] ?? 10));
+                  ?>
+                  <div class="text-sm font-medium"><?=e($productName)?></div>
+                  <div class="text-xs text-slate-500"><?=$qtyBoxes?> box<?=$qtyBoxes > 1 ? 'es' : ''?> (<?=$qtyBoxes * $piecesPerBox?> pieces)</div>
+                  <?php if (!empty($order['hcpcs_code'])): ?>
+                    <div class="text-xs text-slate-400"><?=e($order['hcpcs_code'])?></div>
                   <?php endif; ?>
                 </td>
                 <td class="py-3 px-4">
@@ -723,7 +779,7 @@ include __DIR__.'/_header.php';
         <?php if (!empty($orders)): ?>
         <tfoot class="bg-slate-50 font-semibold">
           <tr>
-            <td colspan="5" class="py-3 px-4">Total (<?=count($orders)?> claims)</td>
+            <td colspan="6" class="py-3 px-4">Total (<?=count($orders)?> claims)</td>
             <td class="py-3 px-4 text-right">$<?=number_format($totalBilled, 2)?></td>
             <td class="py-3 px-4 text-right text-green-600">$<?=number_format($totalCollected, 2)?></td>
             <td class="py-3 px-4 text-right text-red-600">$<?=number_format($totalPending, 2)?></td>
