@@ -430,6 +430,8 @@ try {
       o.patient_responsibility, o.patient_paid, o.adjustment, o.write_off,
       o.collection_status, o.collection_notes,
       o.user_id,
+      o.total_pieces, o.boxes_to_ship, o.billable_pieces,
+      o.expected_revenue, o.expected_cost, o.cpt_rate_used,
       p.first_name as patient_first, p.last_name as patient_last,
       u.first_name as phys_first, u.last_name as phys_last, u.practice_name,
       u.assigned_rep_id, u.account_type,

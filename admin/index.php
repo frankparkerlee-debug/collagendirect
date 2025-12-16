@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/lib/revenue_calculator.php';
 $bootstrap = __DIR__.'/_bootstrap.php'; if (is_file($bootstrap)) require_once $bootstrap;
 $auth      = __DIR__ . '/auth.php'; if (is_file($auth)) require_once $auth;
 if (function_exists('require_admin')) require_admin();
@@ -70,20 +71,10 @@ if ($adminRole === 'superadmin' || $adminRole === 'manufacturer' || $adminRole =
    PROJECTED: Revenue from shipments still to be delivered (remaining)
 --------------------------------------------------- */
 $hasProducts = has_table($pdo,'products');
-$hasRates    = has_table($pdo,'reimbursement_rates');
 $hasShipRem  = has_column($pdo,'orders','shipments_remaining');
 
-// Prefetch reimbursement rates
-$rates = [];
-if ($hasRates) {
-  try {
-    foreach ($pdo->query("SELECT hcpcs_code, medicare_allowable FROM reimbursement_rates") as $r) {
-      $rates[$r['hcpcs_code']] = (float)$r['medicare_allowable'];
-    }
-  } catch (Throwable $e) {
-    error_log("[rates] ".$e->getMessage());
-  }
-}
+// Load reimbursement rates using shared function
+$rates = load_reimbursement_rates($pdo);
 
 $earnedRevenue = 0.0;
 $projectedRevenue = 0.0;
@@ -124,8 +115,15 @@ try {
       o.refills_allowed,
       o.qty_per_change,
       o.billed_by,
+      o.total_pieces,
+      o.boxes_to_ship,
+      o.billable_pieces,
+      o.expected_revenue,
+      o.expected_cost,
+      o.cpt_rate_used,
       " . ($hasShipRem ? "o.shipments_remaining," : "0 AS shipments_remaining,") . "
       u.practice_name,
+      u.account_type,
       pp.custom_price AS practice_custom_price,
       " . ($hasProducts ? "pr.name AS product_name, COALESCE(pr.hcpcs_code, o.cpt) AS cpt_code, pr.pieces_per_box, pr.price_wholesale, pr.price_admin, COALESCE(pp.cost_per_box, pr.cost_per_box, 0) AS cost_per_box" : "COALESCE(o.product, 'Unknown') AS product_name, o.cpt AS cpt_code, 10 AS pieces_per_box, 0 AS price_wholesale, 0 AS price_admin, 0 AS cost_per_box") . "
     FROM orders o
@@ -139,129 +137,31 @@ try {
   $stmt->execute($revenueParams);
 
   foreach ($stmt->fetchAll() as $order) {
-    // Check if this is a wholesale order
-    $billedBy = $order['billed_by'] ?? 'collagen_direct';
-    $isWholesale = ($billedBy === 'practice_dme');
+    // Use the canonical calculate_order_revenue() function for consistency
+    // This uses stored values if available, otherwise calculates
+    $calc = calculate_order_revenue($order, $rates);
 
-    $pieces_per_box = max(1, (int)($order['pieces_per_box'] ?? 10));
-    $cost_per_box = (float)($order['cost_per_box'] ?? 0);
+    $order_total = $calc['revenue'];
+    $order_cost = $calc['cost'];
+    $total_boxes = $calc['boxes'];
+    $isWholesale = $calc['is_wholesale'];
 
-    // Calculate boxes and revenue differently for wholesale vs referral orders
+    // Split between delivered and remaining based on shipments_remaining
+    $boxes_remaining = (int)($order['shipments_remaining'] ?? 0);
+    $boxes_delivered = max(0, $total_boxes - $boxes_remaining);
+
+    // Track boxes and costs by type
     if ($isWholesale) {
-      // WHOLESALE ORDERS:
-      // - qty_per_change contains number of BOXES (not pieces)
-      // - product_price contains PRACTICE-SPECIFIC price per PIECE (includes custom pricing/discounts)
-      // - Orders are one-time, not subscription-based
-
-      $total_boxes = max(1, (int)($order['qty_per_change'] ?? 1));
-
-      // Calculate price per box using practice-specific pricing
-      // The product_price field already contains the practice-specific per-piece price
-      // (includes custom pricing or discount percentages applied during order creation)
-      $product_price_per_piece = (float)($order['product_price'] ?? 0);
-
-      if ($product_price_per_piece > 0) {
-        // Use the practice-specific price stored in the order
-        // This is the actual amount the practice is paying per piece
-        $price_per_box = $product_price_per_piece * $pieces_per_box;
-      } else {
-        // Fallback: Use default wholesale price from products table
-        $price_per_box = (float)($order['price_wholesale'] ?? 0);
-        // If no price available, revenue = 0 (no hardcoded fallback)
-      }
-
-      // Calculate revenue: boxes × practice-specific price per box
-      // This ensures we're tracking what the practice actually pays, not base prices
-      $order_total = $total_boxes * $price_per_box;
-
-      // Wholesale orders are one-time, so all revenue is "earned" (no projected)
-      $boxes_remaining = 0;
-      $boxes_delivered = $total_boxes;
-
-      // Track wholesale costs and boxes
-      $order_cost = $total_boxes * $cost_per_box;
       $wholesaleBoxes += $total_boxes;
       $wholesaleCost += $order_cost;
     } else {
-      // REFERRAL ORDERS:
-      // - qty_per_change contains pieces per application/change
-      // - Uses frequency and duration to calculate total pieces needed
-      // - Billed at Medicare allowable rate per piece
-
-      // Get frequency and quantity
-      $fpw = (int)($order['frequency_per_week'] ?? 0);
-
-      // Fallback: parse legacy frequency text field if frequency_per_week is 0
-      if ($fpw === 0 && !empty($order['frequency'])) {
-        $fpw = patches_per_week($order['frequency']);
-      }
-
-      // Fallback: if still 0, assume daily (7x/week) for older orders
-      if ($fpw === 0) {
-        $fpw = 7; // Conservative default: daily changes
-      }
-
-      $qty = max(1, (int)($order['qty_per_change'] ?? 1));
-      $days = max(0, (int)($order['duration_days'] ?? 0));
-
-      // Fallback: default to 30 days if missing
-      if ($days === 0) {
-        $days = 30;
-      }
-
-      $refills = max(0, (int)($order['refills_allowed'] ?? 0));
-
-      // Step 1: Calculate total pieces needed
-      // Formula: (duration_days / 7) × frequency_per_week × qty_per_change
-      $weeks = $days / 7.0;
-      $total_pieces = $weeks * $fpw * $qty * (1 + $refills);
-
-      // Step 2: Calculate boxes needed (round up)
-      // Formula: ceil(total_pieces / pieces_per_box)
-      $total_boxes = (int)ceil($total_pieces / $pieces_per_box);
-
-      // Step 3: Calculate billable pieces = actual pieces needed (NOT box increments)
-      // Insurance reimburses for actual pieces used, not full boxes
-      // This matches the revenue_calculator.php calculation
-      $billable_pieces = (int)ceil($total_pieces);
-
-      // Get CPT rate (Medicare allowable per piece)
-      $cpt_rate_per_piece = 0.0;
-      $cpt = $order['cpt_code'] ?? '';
-      if ($hasRates && $cpt && isset($rates[$cpt]) && $rates[$cpt] > 0) {
-        // Use Medicare allowable rate from reimbursement_rates table
-        $cpt_rate_per_piece = $rates[$cpt];
-      } elseif ($hasProducts && !empty($order['price_admin']) && $order['price_admin'] > 0) {
-        // Fallback 1: Use price_admin from products table (Medicare allowable per piece)
-        $cpt_rate_per_piece = (float)$order['price_admin'];
-      } else {
-        // Fallback 2: use product_price (which is price per box on orders) ÷ pieces_per_box
-        // This gives us price per piece
-        $price_per_box = (float)($order['product_price'] ?? 0);
-
-        if ($price_per_box > 0 && $pieces_per_box > 0) {
-          // We have a price per box, divide by pieces to get per-piece rate
-          $cpt_rate_per_piece = $price_per_box / $pieces_per_box;
-        }
-        // If still no price, revenue = 0 (no hardcoded fallback)
-      }
-
-      // Total revenue based on billable pieces (rounded up to box increments)
-      $order_total = $billable_pieces * $cpt_rate_per_piece;
-
-      // Split between delivered and remaining based on shipments_remaining
-      $boxes_remaining = (int)($order['shipments_remaining'] ?? 0);
-      $boxes_delivered = max(0, $total_boxes - $boxes_remaining);
-
-      // Track referral costs and boxes
-      $order_cost = $total_boxes * $cost_per_box;
       $referralBoxes += $total_boxes;
       $referralCost += $order_cost;
     }
 
     // Track total boxes and costs
     $totalBoxes += $total_boxes;
-    $totalCost += ($order_cost ?? 0);
+    $totalCost += $order_cost;
 
     // Calculate earned (delivered) and projected (remaining) revenue
     // For both types: split revenue proportionally based on boxes delivered/remaining
@@ -280,7 +180,7 @@ try {
     $projectedRevenue += $order_projected;
     $totalRevenue += $order_total;
 
-    // Split revenue by order type (billedBy already set above)
+    // Split revenue by order type
     if ($isWholesale) {
       $wholesaleRevenue += $order_total;
     } else {
