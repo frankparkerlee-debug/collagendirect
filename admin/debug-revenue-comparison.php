@@ -22,6 +22,14 @@ $orders = $pdo->query("
         o.status,
         o.total_pieces,
         o.created_at,
+        o.frequency_per_week,
+        o.duration_days,
+        o.qty_per_change,
+        o.refills_allowed,
+        o.cpt_code,
+        o.hcpcs_code,
+        o.wounds_data,
+        COALESCE(o.billed_by, p.billed_by) as billed_by,
         p.name as product_name,
         p.id as product_id,
         p.pieces_per_box,
@@ -29,35 +37,49 @@ $orders = $pdo->query("
         p.price_admin,
         p.product_price,
         p.medicare_allowable,
-        COALESCE(o.billed_by, p.billed_by) as billed_by,
-        pr.name as practice_name,
-        pr.id as practice_id
+        p.cost_per_box,
+        p.hcpcs_code as product_hcpcs,
+        u.practice_name,
+        u.id as user_id,
+        u.account_type,
+        pp.custom_price as practice_custom_price
     FROM orders o
     JOIN products p ON o.product_id = p.id
-    LEFT JOIN practices pr ON o.practice_id = pr.id
+    LEFT JOIN users u ON o.user_id = u.id
+    LEFT JOIN practice_pricing pp ON pp.practice_id = u.id AND pp.product_id = p.id
     WHERE o.status IN ('completed', 'shipped', 'pending', 'approved')
     ORDER BY o.created_at DESC
     LIMIT 10
 ")->fetchAll(PDO::FETCH_ASSOC);
 
-// Load reimbursement rates (Dashboard method)
-$rates = [];
-$rateRows = $pdo->query("SELECT product_id, rate FROM reimbursement_rates WHERE effective_date <= CURRENT_DATE ORDER BY effective_date DESC")->fetchAll();
-foreach ($rateRows as $r) {
-    if (!isset($rates[$r['product_id']])) {
-        $rates[$r['product_id']] = (float)$r['rate'];
+// Load reimbursement rates for dashboard method (keyed by CPT/HCPCS)
+$dashboardRates = [];
+try {
+    $rateRows = $pdo->query("
+        SELECT DISTINCT hcpcs_code, medicare_allowable
+        FROM products
+        WHERE hcpcs_code IS NOT NULL AND hcpcs_code != '' AND medicare_allowable > 0
+    ")->fetchAll();
+    foreach ($rateRows as $r) {
+        $dashboardRates[$r['hcpcs_code']] = (float)$r['medicare_allowable'];
     }
+} catch (Exception $e) {
+    // Ignore
 }
 
-// Load practice custom pricing
-$practicePricing = [];
-$ppRows = $pdo->query("SELECT practice_id, product_id, custom_price FROM practice_pricing")->fetchAll();
-foreach ($ppRows as $pp) {
-    $practicePricing[$pp['practice_id']][$pp['product_id']] = (float)$pp['custom_price'];
+// Also try reimbursement_rates table if it exists
+try {
+    $rateRows = $pdo->query("SELECT product_id, rate FROM reimbursement_rates WHERE effective_date <= CURRENT_DATE ORDER BY effective_date DESC")->fetchAll();
+    foreach ($rateRows as $r) {
+        if (!isset($dashboardRates[$r['product_id']])) {
+            $dashboardRates['product_' . $r['product_id']] = (float)$r['rate'];
+        }
+    }
+} catch (Exception $e) {
+    // Table might not exist
 }
 
-// Load products for revenue_calculator
-$productsForCalc = load_products_for_revenue($pdo);
+// Load rates for revenue_calculator method
 $reimbursementRates = load_reimbursement_rates($pdo);
 ?>
 
@@ -92,19 +114,26 @@ $reimbursementRates = load_reimbursement_rates($pdo);
         </div>
     </div>
 
+    <?php if (empty($orders)): ?>
+        <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 1.5rem;">
+            <p style="color: #92400e;">No orders found matching the criteria (completed, shipped, pending, or approved status).</p>
+        </div>
+    <?php else: ?>
+
     <?php foreach ($orders as $order):
         $productId = $order['product_id'];
-        $practiceId = $order['practice_id'];
-        $piecesPerBox = (int)$order['pieces_per_box'];
+        $piecesPerBox = max(1, (int)$order['pieces_per_box']);
         $totalPieces = (float)$order['total_pieces'];
-        $isWholesale = $order['billed_by'] === 'practice_dme';
+        $billedBy = $order['billed_by'] ?? 'collagen_direct';
+        $accountType = $order['account_type'] ?? '';
+        $isWholesale = ($billedBy === 'practice_dme' || in_array($accountType, ['wholesale', 'dme_wholesale']));
 
         // ============ DASHBOARD METHOD ============
         $dashboardRevenue = 0;
         $dashboardExplanation = [];
 
         if ($isWholesale) {
-            $boxes = $piecesPerBox > 0 ? (int)ceil($totalPieces / $piecesPerBox) : 0;
+            $boxes = max(1, (int)($order['qty_per_change'] ?? 1));
             $pricePerBox = (float)($order['price_wholesale'] ?: $order['product_price']);
             $dashboardRevenue = $boxes * $pricePerBox;
             $dashboardExplanation = [
@@ -115,88 +144,51 @@ $reimbursementRates = load_reimbursement_rates($pdo);
                 'formula' => "{$boxes} boxes × \${$pricePerBox} = \$" . number_format($dashboardRevenue, 2)
             ];
         } else {
-            $billablePieces = (int)ceil($totalPieces);
-            // Dashboard rate lookup chain
-            $cptRate = $rates[$productId]
-                ?? (float)$order['price_admin']
-                ?? ($piecesPerBox > 0 ? (float)$order['product_price'] / $piecesPerBox : 0);
-            $dashboardRevenue = $billablePieces * $cptRate;
+            // Calculate total pieces from order data
+            $fpw = (int)($order['frequency_per_week'] ?? 0);
+            $qty = max(1, (int)($order['qty_per_change'] ?? 1));
+            $days = (int)($order['duration_days'] ?? 0);
+            $refills = max(0, (int)($order['refills_allowed'] ?? 0));
 
-            $rateSource = 'fallback (product_price/pieces)';
-            if (isset($rates[$productId])) {
-                $rateSource = 'reimbursement_rates table';
-            } elseif ($order['price_admin']) {
-                $rateSource = 'price_admin column';
+            if ($fpw === 0) $fpw = 1;
+            if ($days === 0) $days = 30;
+
+            $weeks = $days / 7.0;
+            $calcPieces = $weeks * $fpw * $qty * (1 + $refills);
+            $billablePieces = (int)ceil($calcPieces);
+
+            // Dashboard rate lookup chain
+            $cpt = $order['cpt_code'] ?? $order['hcpcs_code'] ?? $order['product_hcpcs'] ?? '';
+            $cptRate = 0;
+            $rateSource = 'none';
+
+            if ($cpt && isset($dashboardRates[$cpt])) {
+                $cptRate = $dashboardRates[$cpt];
+                $rateSource = "medicare_allowable (HCPCS: {$cpt})";
+            } elseif (!empty($order['price_admin']) && (float)$order['price_admin'] > 0) {
+                $cptRate = (float)$order['price_admin'];
+                $rateSource = 'price_admin';
+            } elseif ($piecesPerBox > 0 && (float)$order['product_price'] > 0) {
+                $cptRate = (float)$order['product_price'] / $piecesPerBox;
+                $rateSource = 'product_price / pieces_per_box';
             }
+
+            $dashboardRevenue = $billablePieces * $cptRate;
 
             $dashboardExplanation = [
                 'type' => 'Referral',
                 'billable_pieces' => $billablePieces,
                 'cpt_rate' => $cptRate,
                 'source' => $rateSource,
-                'formula' => "{$billablePieces} pieces × \${$cptRate} = \$" . number_format($dashboardRevenue, 2)
+                'formula' => "{$billablePieces} pieces × \$" . number_format($cptRate, 4) . " = \$" . number_format($dashboardRevenue, 2),
+                'calc_details' => "({$days}d / 7) × {$fpw}fpw × {$qty}qty × (1 + {$refills}refills) = " . number_format($calcPieces, 2) . " pieces"
             ];
         }
 
         // ============ REVENUE REPORT METHOD ============
-        $reportRevenue = calculate_order_revenue(
-            $order['id'],
-            $totalPieces,
-            $piecesPerBox,
-            $productId,
-            $practiceId,
-            $order['billed_by'],
-            $productsForCalc,
-            $reimbursementRates,
-            $practicePricing
-        );
-
-        // Reconstruct explanation for report method
-        $reportExplanation = [];
-        if ($isWholesale) {
-            $boxes = $piecesPerBox > 0 ? (int)ceil($totalPieces / $piecesPerBox) : 0;
-
-            // Check practice_pricing first
-            $customPrice = $practicePricing[$practiceId][$productId] ?? null;
-            if ($customPrice) {
-                $pricePerBox = $customPrice;
-                $source = 'practice_pricing (custom price)';
-            } elseif (isset($productsForCalc[$productId])) {
-                $prod = $productsForCalc[$productId];
-                if ($prod['product_price'] && $prod['pieces_per_box']) {
-                    $pricePerBox = (float)$prod['product_price'] * (int)$prod['pieces_per_box'];
-                    $source = 'product_price × pieces_per_box';
-                } else {
-                    $pricePerBox = (float)$prod['price_wholesale'];
-                    $source = 'price_wholesale';
-                }
-            } else {
-                $pricePerBox = 0;
-                $source = 'unknown';
-            }
-
-            $reportExplanation = [
-                'type' => 'Wholesale',
-                'boxes' => $boxes,
-                'price_per_box' => $pricePerBox,
-                'source' => $source,
-                'formula' => "{$boxes} boxes × \${$pricePerBox} = \$" . number_format($reportRevenue, 2)
-            ];
-        } else {
-            $billablePieces = (int)ceil($totalPieces);
-            $cptRate = $reimbursementRates[$productId]
-                ?? ($piecesPerBox > 0 ? (float)($productsForCalc[$productId]['product_price'] ?? 0) / $piecesPerBox : 0);
-
-            $rateSource = isset($reimbursementRates[$productId]) ? 'medicare_allowable' : 'product_price/pieces';
-
-            $reportExplanation = [
-                'type' => 'Referral',
-                'billable_pieces' => $billablePieces,
-                'cpt_rate' => $cptRate,
-                'source' => $rateSource,
-                'formula' => "{$billablePieces} pieces × \${$cptRate} = \$" . number_format($reportRevenue, 2)
-            ];
-        }
+        $reportResult = calculate_order_revenue($order, $reimbursementRates, true);
+        $reportRevenue = $reportResult['revenue'];
+        $reportSteps = $reportResult['calculation_steps'];
 
         $difference = $dashboardRevenue - $reportRevenue;
         $hasDiscrepancy = abs($difference) > 0.01;
@@ -210,7 +202,7 @@ $reimbursementRates = load_reimbursement_rates($pdo);
                 </h3>
                 <p style="font-size: 0.875rem; color: var(--muted);">
                     <?= e($order['practice_name'] ?? 'No Practice') ?> |
-                    <?= $order['total_pieces'] ?> pieces |
+                    <?= $order['total_pieces'] ?> total pieces |
                     Status: <?= ucfirst($order['status']) ?> |
                     <span style="padding: 0.125rem 0.5rem; background: <?= $isWholesale ? '#fef3c7' : '#dbeafe' ?>; border-radius: 4px; font-size: 0.75rem;">
                         <?= $isWholesale ? 'Wholesale' : 'Referral' ?>
@@ -219,11 +211,11 @@ $reimbursementRates = load_reimbursement_rates($pdo);
             </div>
             <?php if ($hasDiscrepancy): ?>
                 <span style="background: #fee2e2; color: #991b1b; padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.875rem; font-weight: 600;">
-                    ⚠️ Discrepancy: $<?= number_format(abs($difference), 2) ?>
+                    Discrepancy: $<?= number_format(abs($difference), 2) ?>
                 </span>
             <?php else: ?>
                 <span style="background: #d1fae5; color: #065f46; padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.875rem;">
-                    ✓ Match
+                    Match
                 </span>
             <?php endif; ?>
         </div>
@@ -239,7 +231,10 @@ $reimbursementRates = load_reimbursement_rates($pdo);
                         <p><strong>Price/Box:</strong> $<?= number_format($dashboardExplanation['price_per_box'], 2) ?></p>
                     <?php else: ?>
                         <p><strong>Billable Pieces:</strong> <?= $dashboardExplanation['billable_pieces'] ?></p>
-                        <p><strong>CPT Rate:</strong> $<?= number_format($dashboardExplanation['cpt_rate'], 2) ?></p>
+                        <p><strong>CPT Rate:</strong> $<?= number_format($dashboardExplanation['cpt_rate'], 4) ?></p>
+                        <?php if (!empty($dashboardExplanation['calc_details'])): ?>
+                            <p style="font-size: 0.75rem; color: #6b7280;"><strong>Calc:</strong> <?= $dashboardExplanation['calc_details'] ?></p>
+                        <?php endif; ?>
                     <?php endif; ?>
                     <p><strong>Rate Source:</strong> <?= $dashboardExplanation['source'] ?></p>
                     <p style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid #bfdbfe;">
@@ -255,18 +250,12 @@ $reimbursementRates = load_reimbursement_rates($pdo);
             <div style="background: #f0fdf4; border-radius: 6px; padding: 1rem;">
                 <h4 style="color: #16a34a; font-weight: 600; margin-bottom: 0.75rem;">Revenue Report Method</h4>
                 <div style="font-size: 0.875rem; color: var(--ink-light);">
-                    <p><strong>Type:</strong> <?= $reportExplanation['type'] ?></p>
-                    <?php if ($isWholesale): ?>
-                        <p><strong>Boxes:</strong> <?= $reportExplanation['boxes'] ?></p>
-                        <p><strong>Price/Box:</strong> $<?= number_format($reportExplanation['price_per_box'], 2) ?></p>
-                    <?php else: ?>
-                        <p><strong>Billable Pieces:</strong> <?= $reportExplanation['billable_pieces'] ?></p>
-                        <p><strong>CPT Rate:</strong> $<?= number_format($reportExplanation['cpt_rate'], 2) ?></p>
+                    <?php foreach ($reportSteps as $step): ?>
+                        <p><?= e($step) ?></p>
+                    <?php endforeach; ?>
+                    <?php if (empty($reportSteps)): ?>
+                        <p>No calculation steps available</p>
                     <?php endif; ?>
-                    <p><strong>Rate Source:</strong> <?= $reportExplanation['source'] ?></p>
-                    <p style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid #bbf7d0;">
-                        <strong>Formula:</strong> <?= $reportExplanation['formula'] ?>
-                    </p>
                 </div>
                 <p style="font-size: 1.25rem; font-weight: 700; color: #16a34a; margin-top: 0.75rem;">
                     $<?= number_format($reportRevenue, 2) ?>
@@ -284,14 +273,20 @@ $reimbursementRates = load_reimbursement_rates($pdo);
                     <tr><td style="padding: 0.25rem; border-bottom: 1px solid #ddd;"><strong>price_admin:</strong></td><td>$<?= number_format((float)$order['price_admin'], 2) ?></td></tr>
                     <tr><td style="padding: 0.25rem; border-bottom: 1px solid #ddd;"><strong>product_price:</strong></td><td>$<?= number_format((float)$order['product_price'], 2) ?></td></tr>
                     <tr><td style="padding: 0.25rem; border-bottom: 1px solid #ddd;"><strong>medicare_allowable:</strong></td><td>$<?= number_format((float)$order['medicare_allowable'], 2) ?></td></tr>
-                    <tr><td style="padding: 0.25rem; border-bottom: 1px solid #ddd;"><strong>reimbursement_rate (from table):</strong></td><td><?= isset($rates[$productId]) ? '$' . number_format($rates[$productId], 2) : 'N/A' ?></td></tr>
-                    <tr><td style="padding: 0.25rem;"><strong>practice_custom_price:</strong></td><td><?= isset($practicePricing[$practiceId][$productId]) ? '$' . number_format($practicePricing[$practiceId][$productId], 2) : 'N/A' ?></td></tr>
+                    <tr><td style="padding: 0.25rem; border-bottom: 1px solid #ddd;"><strong>HCPCS code:</strong></td><td><?= e($order['product_hcpcs'] ?? $order['hcpcs_code'] ?? 'N/A') ?></td></tr>
+                    <tr><td style="padding: 0.25rem; border-bottom: 1px solid #ddd;"><strong>frequency_per_week:</strong></td><td><?= $order['frequency_per_week'] ?? 'N/A' ?></td></tr>
+                    <tr><td style="padding: 0.25rem; border-bottom: 1px solid #ddd;"><strong>duration_days:</strong></td><td><?= $order['duration_days'] ?? 'N/A' ?></td></tr>
+                    <tr><td style="padding: 0.25rem; border-bottom: 1px solid #ddd;"><strong>qty_per_change:</strong></td><td><?= $order['qty_per_change'] ?? 'N/A' ?></td></tr>
+                    <tr><td style="padding: 0.25rem; border-bottom: 1px solid #ddd;"><strong>refills_allowed:</strong></td><td><?= $order['refills_allowed'] ?? 'N/A' ?></td></tr>
+                    <tr><td style="padding: 0.25rem; border-bottom: 1px solid #ddd;"><strong>billed_by:</strong></td><td><?= e($order['billed_by'] ?? 'N/A') ?></td></tr>
+                    <tr><td style="padding: 0.25rem;"><strong>practice_custom_price:</strong></td><td><?= $order['practice_custom_price'] ? '$' . number_format((float)$order['practice_custom_price'], 2) : 'N/A' ?></td></tr>
                 </table>
             </div>
         </details>
     </div>
 
     <?php endforeach; ?>
+    <?php endif; ?>
 
     <!-- Summary -->
     <div style="background: white; border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; margin-top: 2rem;">
@@ -307,8 +302,8 @@ $reimbursementRates = load_reimbursement_rates($pdo);
             <tbody>
                 <tr>
                     <td style="padding: 0.75rem; border-bottom: 1px solid var(--border);"><strong>Referral CPT Rate</strong></td>
-                    <td style="padding: 0.75rem; border-bottom: 1px solid var(--border);">reimbursement_rates → price_admin → product_price/pieces</td>
-                    <td style="padding: 0.75rem; border-bottom: 1px solid var(--border);">medicare_allowable → product_price/pieces</td>
+                    <td style="padding: 0.75rem; border-bottom: 1px solid var(--border);">medicare_allowable (by HCPCS) → price_admin → product_price/pieces</td>
+                    <td style="padding: 0.75rem; border-bottom: 1px solid var(--border);">medicare_allowable (by HCPCS) → product_price/pieces</td>
                 </tr>
                 <tr>
                     <td style="padding: 0.75rem; border-bottom: 1px solid var(--border);"><strong>Wholesale Price</strong></td>
@@ -317,8 +312,8 @@ $reimbursementRates = load_reimbursement_rates($pdo);
                 </tr>
                 <tr>
                     <td style="padding: 0.75rem; border-bottom: 1px solid var(--border);"><strong>Practice Custom Pricing</strong></td>
-                    <td style="padding: 0.75rem; border-bottom: 1px solid var(--border);">❌ Not checked</td>
-                    <td style="padding: 0.75rem; border-bottom: 1px solid var(--border);">✅ Checked first for wholesale</td>
+                    <td style="padding: 0.75rem; border-bottom: 1px solid var(--border);">Not checked</td>
+                    <td style="padding: 0.75rem; border-bottom: 1px solid var(--border);">Checked first for wholesale</td>
                 </tr>
             </tbody>
         </table>
