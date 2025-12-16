@@ -33,7 +33,7 @@ if (!function_exists('e')) {
 $dateFrom = $_GET['date_from'] ?? date('Y-01-01');
 $dateTo = $_GET['date_to'] ?? date('Y-m-d');
 $physicianId = $_GET['physician'] ?? '';
-$salesRepId = isset($_GET['sales_rep']) && $_GET['sales_rep'] !== '' ? (int)$_GET['sales_rep'] : null;
+$salesRepId = isset($_GET['sales_rep']) && $_GET['sales_rep'] !== '' ? $_GET['sales_rep'] : null;
 $orderType = $_GET['order_type'] ?? 'all';
 $exportFormat = $_GET['export'] ?? '';
 $viewMode = $_GET['view'] ?? 'summary'; // summary, detailed, export
@@ -316,7 +316,18 @@ try {
 /* ================= Get Sales Reps for Filter ================= */
 $salesReps = [];
 try {
-    $stmt = $pdo->query("SELECT id, name, email FROM admin_users WHERE role IN ('sales', 'admin', 'employee') ORDER BY name");
+    // Include both admin_users (internal sales) and sales_reps (distributors)
+    $stmt = $pdo->query("
+        SELECT id::text as id, name, 'internal' as rep_type
+        FROM admin_users
+        WHERE role IN ('sales', 'admin', 'employee')
+        UNION ALL
+        SELECT sr.id as id, CONCAT(u.first_name, ' ', u.last_name) as name, 'distributor' as rep_type
+        FROM sales_reps sr
+        JOIN users u ON u.id = sr.user_id
+        WHERE sr.status = 'active'
+        ORDER BY name
+    ");
     $salesReps = $stmt->fetchAll();
 } catch (Throwable $e) {
     error_log("[revenue-report] " . $e->getMessage());
@@ -467,12 +478,12 @@ include __DIR__ . '/_header.php';
                 </select>
             </div>
             <div>
-                <label class="text-xs text-slate-500 mb-1 block">Sales Rep</label>
+                <label class="text-xs text-slate-500 mb-1 block">Sales Rep / Distributor</label>
                 <select name="sales_rep" class="w-full border rounded-lg px-3 py-2 text-sm">
-                    <option value="">All Sales Reps</option>
+                    <option value="">All Reps & Distributors</option>
                     <?php foreach ($salesReps as $rep): ?>
-                        <option value="<?=e($rep['id'])?>" <?=$salesRepId===(int)$rep['id']?'selected':''?>>
-                            <?=e($rep['name'])?>
+                        <option value="<?=e($rep['id'])?>" <?=$salesRepId===$rep['id']?'selected':''?>>
+                            <?=e($rep['name'])?><?=$rep['rep_type'] === 'distributor' ? ' (Distributor)' : ''?>
                         </option>
                     <?php endforeach; ?>
                 </select>

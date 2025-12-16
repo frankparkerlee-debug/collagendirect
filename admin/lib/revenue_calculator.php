@@ -259,7 +259,15 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
         $params['physician_id'] = $physicianId;
     }
     if ($salesRepId !== null) {
-        $where .= " AND o.user_id IN (SELECT physician_user_id FROM admin_physicians WHERE admin_id = :sales_rep_id)";
+        // Support both admin_users (integer ID) and sales_reps (UUID string)
+        // Check if it's a UUID (contains letters) vs integer
+        if (preg_match('/[a-f]/i', (string)$salesRepId)) {
+            // Distributor (sales_reps.id is UUID)
+            $where .= " AND o.user_id IN (SELECT id FROM users WHERE assigned_rep_id = :sales_rep_id)";
+        } else {
+            // Internal admin (admin_users.id is integer)
+            $where .= " AND o.user_id IN (SELECT physician_user_id FROM admin_physicians WHERE admin_id = :sales_rep_id)";
+        }
         $params['sales_rep_id'] = $salesRepId;
     }
 

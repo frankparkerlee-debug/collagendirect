@@ -14,6 +14,7 @@ declare(strict_types=1);
 $bootstrap = __DIR__.'/_bootstrap.php'; if (is_file($bootstrap)) require_once $bootstrap;
 require_once __DIR__.'/db.php';
 require_once __DIR__.'/../api/lib/commission.php';
+require_once __DIR__.'/lib/revenue_calculator.php';
 $auth = __DIR__.'/auth.php'; if (is_file($auth)) { require_once $auth; if (function_exists('require_admin')) require_admin(); }
 
 // Sales reps cannot access billing
@@ -90,15 +91,16 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
 
   $sql = "
     SELECT
-      o.id, o.order_number, o.created_at, o.status,
-      o.product, o.product_price, o.qty_per_change,
+      o.id, o.order_number, o.created_at, o.status, o.billed_by,
+      o.product, o.product_price, o.qty_per_change, o.duration_days, o.refills_allowed,
+      o.frequency_per_week, o.wounds_data,
       o.insurer_name, o.member_id,
       o.insurance_billed, o.insurance_allowed, o.insurance_paid,
       o.patient_responsibility, o.patient_paid, o.adjustment, o.write_off,
       o.collection_status, o.collection_notes,
       p.first_name as patient_first, p.last_name as patient_last,
-      u.first_name as phys_first, u.last_name as phys_last, u.practice_name,
-      pr.name as product_name, pr.pieces_per_box
+      u.first_name as phys_first, u.last_name as phys_last, u.practice_name, u.account_type,
+      pr.name as product_name, pr.pieces_per_box, pr.hcpcs_code as cpt_code, pr.price_wholesale
     FROM orders o
     LEFT JOIN patients p ON o.patient_id = p.id
     LEFT JOIN users u ON o.user_id = u.id
@@ -115,20 +117,13 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     $serviceDate = new DateTime($row['created_at']);
     $daysSince = $now->diff($serviceDate)->days;
 
-    // Calculate billed amount consistently with main view
+    // Calculate billed amount using revenue calculator for consistency
     $insuranceBilledValue = (float)($row['insurance_billed'] ?? 0);
     if ($insuranceBilledValue > 0) {
       $billedAmount = $insuranceBilledValue;
     } else {
-      $piecesPerBox = max(1, (int)($row['pieces_per_box'] ?? 10));
-      $productPrice = (float)($row['product_price'] ?? 0);
-      $qtyPerChange = max(1, (int)($row['qty_per_change'] ?? 1));
-
-      if ($productPrice > 0 && $productPrice < 50) {
-        $billedAmount = $qtyPerChange * $piecesPerBox * $productPrice;
-      } else {
-        $billedAmount = $qtyPerChange * $productPrice;
-      }
+      $revenueCalc = calculate_order_revenue($row);
+      $billedAmount = $revenueCalc['revenue'];
     }
 
     $allowedAmount = (float)($row['insurance_allowed'] ?? 0);
@@ -228,19 +223,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
           // Calculate commission if there's a new payment
           if ($paymentDiff > 0) {
-            $commissionResult = calculate_commission(
-              $pdo,
-              $orderId,
-              'referral',
-              $order['user_id'],
-              $paymentDiff,
-              $paymentDate
-            );
+            try {
+              $commissionResult = calculate_commission(
+                $pdo,
+                $orderId,
+                'referral',
+                $order['user_id'],
+                $paymentDiff,
+                $paymentDate
+              );
 
-            if ($commissionResult) {
-              $_SESSION['success_msg'] = 'Collection updated. Commission of $' . number_format($commissionResult['commission_amount'], 2) . ' recorded.';
-            } else {
-              $_SESSION['success_msg'] = 'Collection updated successfully.';
+              if ($commissionResult) {
+                $_SESSION['success_msg'] = 'Collection updated. Commission of $' . number_format($commissionResult['commission_amount'], 2) . ' recorded for rep.';
+                error_log("[billing-referral] Commission recorded: order={$orderId}, rep={$commissionResult['rep_id']}, amount={$commissionResult['commission_amount']}");
+              } else {
+                // Check if physician has assigned rep
+                $repCheck = $pdo->prepare("SELECT assigned_rep_id FROM users WHERE id = ?");
+                $repCheck->execute([$order['user_id']]);
+                $assignedRep = $repCheck->fetchColumn();
+                if ($assignedRep) {
+                  $_SESSION['success_msg'] = 'Collection updated. Commission calculation failed - please check rate configuration.';
+                  error_log("[billing-referral] Commission failed: order={$orderId}, user={$order['user_id']}, rep={$assignedRep} - no rate found");
+                } else {
+                  $_SESSION['success_msg'] = 'Collection updated. No sales rep assigned to this physician.';
+                }
+              }
+            } catch (Exception $commErr) {
+              error_log("[billing-referral] Commission error: " . $commErr->getMessage());
+              $_SESSION['success_msg'] = 'Collection updated, but commission calculation failed: ' . $commErr->getMessage();
             }
           } else {
             $_SESSION['success_msg'] = 'Collection updated successfully.';
@@ -360,8 +370,9 @@ try {
 
   $sql = "
     SELECT
-      o.id, o.order_number, o.created_at, o.status,
+      o.id, o.order_number, o.created_at, o.status, o.billed_by,
       o.product, o.product_id, o.product_price, o.qty_per_change,
+      o.duration_days, o.refills_allowed, o.frequency_per_week, o.wounds_data,
       o.insurer_name, o.member_id, o.prior_auth,
       o.insurance_billed, o.insurance_allowed, o.insurance_paid,
       o.patient_responsibility, o.patient_paid, o.adjustment, o.write_off,
@@ -369,8 +380,8 @@ try {
       o.user_id,
       p.first_name as patient_first, p.last_name as patient_last,
       u.first_name as phys_first, u.last_name as phys_last, u.practice_name,
-      u.assigned_rep_id,
-      pr.name as product_name, pr.pieces_per_box, pr.hcpcs_code
+      u.assigned_rep_id, u.account_type,
+      pr.name as product_name, pr.pieces_per_box, pr.hcpcs_code, pr.hcpcs_code as cpt_code, pr.price_wholesale
     FROM orders o
     LEFT JOIN patients p ON o.patient_id = p.id
     LEFT JOIN users u ON o.user_id = u.id
@@ -390,35 +401,22 @@ try {
     $daysSince = $now->diff($serviceDate)->days;
     $order['days_since'] = $daysSince;
 
-    // Calculate billed amount - use insurance_billed if set, otherwise calculate from order data
-    // For referral orders: qty_per_change = pieces per application, calculate total pieces needed
+    // Calculate billed amount - use insurance_billed if set, otherwise use revenue calculator
     $insuranceBilledValue = (float)($order['insurance_billed'] ?? 0);
+
+    // Use revenue calculator for consistency across all reports
+    $revenueCalc = calculate_order_revenue($order);
 
     if ($insuranceBilledValue > 0) {
       // Use explicitly set insurance_billed amount
       $billed = $insuranceBilledValue;
     } else {
-      // Calculate from order parameters (consistent with revenue report)
-      $piecesPerBox = max(1, (int)($order['pieces_per_box'] ?? 10));
-      $productPrice = (float)($order['product_price'] ?? 0);
-      $qtyPerChange = max(1, (int)($order['qty_per_change'] ?? 1));
-
-      // For referral orders: product_price is per-piece rate, qty_per_change is pieces per application
-      // Total billed = qty_per_change boxes × pieces_per_box × product_price
-      // Actually for referral: qty_per_change = pieces needed, product_price = per-piece rate
-      // So billed = qty_per_change × product_price × some factor
-
-      // Simpler: if product_price looks like per-piece rate (< $50), multiply by qty and pieces
-      // If product_price looks like total (> $100), use it directly
-      if ($productPrice > 0 && $productPrice < 50) {
-        // Per-piece pricing - calculate total for the order
-        // qty_per_change for referral = boxes ordered
-        $billed = $qtyPerChange * $piecesPerBox * $productPrice;
-      } else {
-        // Assume product_price is already the total or per-box price
-        $billed = $qtyPerChange * $productPrice;
-      }
+      $billed = $revenueCalc['revenue'];
     }
+
+    // Store calculated quantities for display
+    $order['calculated_boxes'] = $revenueCalc['boxes'] ?? 1;
+    $order['calculated_pieces'] = $revenueCalc['pieces'] ?? $order['calculated_boxes'] * max(1, (int)($order['pieces_per_box'] ?? 10));
 
     $insurancePaid = (float)($order['insurance_paid'] ?? 0);
     $patientPaid = (float)($order['patient_paid'] ?? 0);
@@ -739,11 +737,11 @@ include __DIR__.'/_header.php';
                 <td class="py-3 px-4">
                   <?php
                     $productName = $order['product_name'] ?: $order['product'] ?: 'Unknown';
-                    $qtyBoxes = max(1, (int)($order['qty_per_change'] ?? 1));
-                    $piecesPerBox = max(1, (int)($order['pieces_per_box'] ?? 10));
+                    $calcBoxes = (int)($order['calculated_boxes'] ?? 1);
+                    $calcPieces = (int)($order['calculated_pieces'] ?? $calcBoxes * 10);
                   ?>
                   <div class="text-sm font-medium"><?=e($productName)?></div>
-                  <div class="text-xs text-slate-500"><?=$qtyBoxes?> box<?=$qtyBoxes > 1 ? 'es' : ''?> (<?=$qtyBoxes * $piecesPerBox?> pieces)</div>
+                  <div class="text-xs text-slate-500"><?=$calcBoxes?> box<?=$calcBoxes > 1 ? 'es' : ''?> (<?=$calcPieces?> pieces)</div>
                   <?php if (!empty($order['hcpcs_code'])): ?>
                     <div class="text-xs text-slate-400"><?=e($order['hcpcs_code'])?></div>
                   <?php endif; ?>
