@@ -21,7 +21,10 @@ if (function_exists('deny_sales_rep')) deny_sales_rep();
 // Get current admin user and role
 $admin = current_admin();
 $adminRole = $admin['role'] ?? '';
-$adminId = $admin['id'] ?? '';
+$adminIdRaw = $admin['id'] ?? '';
+// recorded_by column expects INTEGER (admin_users.id)
+// If admin ID is a UUID (superadmin from users table), don't store it
+$adminId = is_numeric($adminIdRaw) ? (int)$adminIdRaw : null;
 
 /* ================= Polyfills / safety ================= */
 if (!function_exists('e')) {

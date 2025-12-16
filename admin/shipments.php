@@ -7,6 +7,7 @@ if (function_exists('deny_sales_rep')) deny_sales_rep();
 
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/lib/shipping.php';
+require_once __DIR__ . '/lib/order_display.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   verify_csrf();
@@ -197,7 +198,7 @@ if ($dateTo !== '') {
 $whereClause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
 
 $sql = "
-  SELECT o.id, o.product, o.shipping_name, o.shipping_address, o.shipping_city,
+  SELECT o.id, o.order_number, o.product, o.shipping_name, o.shipping_address, o.shipping_city,
          o.shipping_state, o.shipping_zip,
          o.rx_note_name, o.rx_note_mime, o.status, o.created_at,
          o.billed_by, o.payment_type,
@@ -345,7 +346,7 @@ include __DIR__ . '/_header.php';
         <td class="py-3 px-2">
           <input type="checkbox" class="order-checkbox rounded" value="<?=e($r['id'])?>">
         </td>
-        <td class="py-3">#<?=e($r['id'])?></td>
+        <td class="py-3"><?=format_order_number_html($r)?></td>
         <td class="py-3">
           <span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold <?=$typeBadgeClass?>">
             <?=$orderType?>

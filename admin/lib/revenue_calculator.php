@@ -199,7 +199,7 @@ function load_reimbursement_rates(PDO $pdo): array {
  * @param bool $includeWholesale Whether to include wholesale orders (default: false for referral billing)
  * @return array Comprehensive metrics
  */
-function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '', ?string $physicianId = null, ?int $salesRepId = null, bool $includeWholesale = false): array {
+function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '', ?string $physicianId = null, string|int|null $salesRepId = null, bool $includeWholesale = false): array {
     $rates = load_reimbursement_rates($pdo);
 
     // Check if review_status column exists
@@ -258,17 +258,20 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
         $where .= " AND o.user_id = :physician_id";
         $params['physician_id'] = $physicianId;
     }
-    if ($salesRepId !== null) {
+    if ($salesRepId !== null && $salesRepId !== '') {
         // Support both admin_users (integer ID) and sales_reps (UUID string)
-        // Check if it's a UUID (contains letters) vs integer
-        if (preg_match('/[a-f]/i', (string)$salesRepId)) {
+        // Check if it's a UUID (contains non-numeric characters) vs integer
+        $repIdStr = (string)$salesRepId;
+        if (preg_match('/[^0-9]/', $repIdStr)) {
             // Distributor (sales_reps.id is UUID)
             $where .= " AND o.user_id IN (SELECT id FROM users WHERE assigned_rep_id = :sales_rep_id)";
+            $params['sales_rep_id'] = $repIdStr;
         } else {
             // Internal admin (admin_users.id is integer)
+            // Cast to integer for proper comparison
             $where .= " AND o.user_id IN (SELECT physician_user_id FROM admin_physicians WHERE admin_id = :sales_rep_id)";
+            $params['sales_rep_id'] = (int)$repIdStr;
         }
-        $params['sales_rep_id'] = $salesRepId;
     }
 
     // Check if products table exists (match dashboard pattern)

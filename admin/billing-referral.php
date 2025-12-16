@@ -101,7 +101,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
       o.collection_status, o.collection_notes,
       p.first_name as patient_first, p.last_name as patient_last,
       u.first_name as phys_first, u.last_name as phys_last, u.practice_name, u.account_type,
-      pr.name as product_name, pr.pieces_per_box, pr.hcpcs_code as cpt_code, pr.price_wholesale
+      pr.name as product_name, pr.pieces_per_box, pr.cost_per_box, pr.hcpcs_code as cpt_code, pr.price_wholesale
     FROM orders o
     LEFT JOIN patients p ON o.patient_id = p.id
     LEFT JOIN users u ON o.user_id = u.id
@@ -407,7 +407,7 @@ try {
       p.first_name as patient_first, p.last_name as patient_last,
       u.first_name as phys_first, u.last_name as phys_last, u.practice_name,
       u.assigned_rep_id, u.account_type,
-      pr.name as product_name, pr.pieces_per_box, pr.hcpcs_code, pr.hcpcs_code as cpt_code, pr.price_wholesale
+      pr.name as product_name, pr.pieces_per_box, pr.cost_per_box, pr.hcpcs_code, pr.hcpcs_code as cpt_code, pr.price_wholesale
     FROM orders o
     LEFT JOIN patients p ON o.patient_id = p.id
     LEFT JOIN users u ON o.user_id = u.id
