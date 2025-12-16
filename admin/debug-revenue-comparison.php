@@ -46,7 +46,7 @@ $orders = $pdo->query("
     FROM orders o
     JOIN products p ON o.product_id = p.id
     LEFT JOIN users u ON o.user_id = u.id
-    LEFT JOIN practice_pricing pp ON pp.practice_id = u.id AND pp.product_id = p.id
+    LEFT JOIN practice_pricing pp ON pp.user_id = u.id AND pp.product_id = p.id
     WHERE o.status IN ('completed', 'shipped', 'pending', 'approved')
     ORDER BY o.created_at DESC
     LIMIT 10
