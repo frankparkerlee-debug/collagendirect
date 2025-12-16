@@ -38,6 +38,37 @@ function calculate_order_revenue(array $order, array $rates = [], bool $includeS
     $isWholesale = ($billedBy === 'practice_dme' || in_array($accountType, ['wholesale', 'dme_wholesale']));
 
     $steps = [];
+
+    // Check if stored calculated values exist (preferred - ensures historical accuracy)
+    if (!empty($order['expected_revenue']) || !empty($order['boxes_to_ship'])) {
+        $revenue = (float)($order['expected_revenue'] ?? 0);
+        $totalBoxes = (int)($order['boxes_to_ship'] ?? 0);
+        $totalPieces = (int)($order['total_pieces'] ?? $order['billable_pieces'] ?? 0);
+        $order_cost = (float)($order['expected_cost'] ?? 0);
+        $cpt_rate = (float)($order['cpt_rate_used'] ?? 0);
+
+        if ($includeSteps) {
+            $steps[] = "Type: " . ($isWholesale ? 'Wholesale' : 'Referral') . " (using stored values)";
+            $steps[] = "Stored boxes: {$totalBoxes}";
+            $steps[] = "Stored pieces: {$totalPieces}";
+            $steps[] = "Stored revenue: \$" . number_format($revenue, 2);
+            $steps[] = "Stored cost: \$" . number_format($order_cost, 2);
+            $steps[] = "Stored rate: \$" . number_format($cpt_rate, 4) . "/piece";
+        }
+
+        return [
+            'revenue' => $revenue,
+            'cost' => $order_cost,
+            'profit' => $revenue - $order_cost,
+            'boxes' => $totalBoxes,
+            'pieces' => $totalPieces,
+            'cpt_rate' => $cpt_rate,
+            'is_wholesale' => $isWholesale,
+            'calculation_steps' => $steps
+        ];
+    }
+
+    // Fallback: Calculate values for legacy orders without stored values
     $revenue = 0;
     $totalBoxes = 0;
     $totalPieces = 0;
@@ -293,6 +324,7 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
     }
 
     // Fetch orders with all needed fields - use conditional column selection like dashboard
+    // Include stored calculated values for historical accuracy
     $sql = "
         SELECT
             o.id,
@@ -305,6 +337,12 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
             o.duration_days,
             o.refills_allowed,
             o.qty_per_change,
+            o.total_pieces,
+            o.boxes_to_ship,
+            o.billable_pieces,
+            o.expected_revenue,
+            o.expected_cost,
+            o.cpt_rate_used,
             " . ($hasWoundsData ? "o.wounds_data," : "NULL AS wounds_data,") . "
             o.insurer_name,
             o.icd10_primary,

@@ -72,11 +72,12 @@ foreach ($orders as $order) {
 
   // If it's a group, fetch all products
   if ($order['group_id']) {
-    // Fetch products for this group
+    // Fetch products for this group - include stored calculated values
     if (empty($grouped_orders[$display_id]['products'])) {
       $prod_stmt = $pdo->prepare("
         SELECT o.product, o.product_price, o.qty_per_change, o.id as order_id,
                o.frequency_per_week, o.duration_days, o.refills_allowed, o.billed_by,
+               o.boxes_to_ship, o.total_pieces,
                pr.pieces_per_box
         FROM orders o
         LEFT JOIN products pr ON pr.id = o.product_id
@@ -87,10 +88,11 @@ foreach ($orders as $order) {
       $grouped_orders[$display_id]['products'] = $prod_stmt->fetchAll(PDO::FETCH_ASSOC);
     }
   } else {
-    // Single product order - fetch additional fields for box calculation
+    // Single product order - fetch additional fields including stored calculated values
     $single_stmt = $pdo->prepare("
       SELECT o.product, o.product_price, o.qty_per_change, o.id as order_id,
              o.frequency_per_week, o.duration_days, o.refills_allowed, o.billed_by,
+             o.boxes_to_ship, o.total_pieces,
              pr.pieces_per_box
       FROM orders o
       LEFT JOIN products pr ON pr.id = o.product_id
@@ -319,16 +321,20 @@ foreach ($orders as $order) {
               </thead>
               <tbody>
                 <?php foreach ($order['products'] as $prod):
-                  // Calculate boxes to ship for referral orders
+                  // Use stored boxes_to_ship if available, otherwise calculate (fallback for legacy orders)
                   $isWholesale = ($prod['billed_by'] ?? '') === 'practice_dme';
                   $qty_per_change = (int)($prod['qty_per_change'] ?? 1);
 
-                  if ($isWholesale) {
-                    // Wholesale: qty_per_change is boxes
+                  if (!empty($prod['boxes_to_ship'])) {
+                    // Use stored value (calculated at order creation)
+                    $boxes_to_ship = (int)$prod['boxes_to_ship'];
+                    $qty_display = $isWholesale ? '-' : $qty_per_change;
+                  } elseif ($isWholesale) {
+                    // Wholesale fallback: qty_per_change is boxes
                     $boxes_to_ship = $qty_per_change;
                     $qty_display = '-';
                   } else {
-                    // Referral: calculate boxes from frequency, duration, qty
+                    // Referral fallback: calculate boxes from frequency, duration, qty
                     $fpw = (int)($prod['frequency_per_week'] ?? 0);
                     $days = (int)($prod['duration_days'] ?? 30);
                     $refills = max(0, (int)($prod['refills_allowed'] ?? 0));
