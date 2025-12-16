@@ -346,15 +346,21 @@ HTML;
 }
 
 /**
- * Send invitation email to rep (alias for send_rep_application_approved for invite workflow)
+ * Send invitation email to rep with onboarding link
+ *
+ * The invite URL routes to /rep-invite/?token=xxx where the rep will:
+ * 1. Set their password
+ * 2. Sign the Sales Rep Agreement
+ * 3. Sign the Business Associate Agreement (BAA)
  */
 function send_rep_invite(PDO $pdo, string $repEmail, string $repName, string $inviteToken, ?string $personalNote = null): bool {
-    $loginUrl = env('APP_URL', 'https://collagendirect.health') . '/admin/login.php';
+    // Important: Use the onboarding URL with the invite token, NOT the login page
+    $onboardingUrl = env('APP_URL', 'https://collagendirect.health') . '/rep-invite/?token=' . urlencode($inviteToken);
 
     $personalNoteHtml = $personalNote
         ? "<div style=\"background-color: #f0fdfa; border-left: 4px solid #14b8a6; padding: 15px 20px; margin: 20px 0;\">
             <p style=\"color: #0d9488; font-size: 14px; margin: 0; font-weight: 500;\">
-                <strong>Personal Note:</strong><br>{$personalNote}
+                <strong>Personal Note:</strong><br>" . htmlspecialchars($personalNote) . "
             </p>
            </div>"
         : '';
@@ -367,30 +373,34 @@ function send_rep_invite(PDO $pdo, string $repEmail, string $repName, string $in
 </p>
 
 <p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 15px 0;">
-    You've been invited to become a CollagenDirect Sales Representative. Your account has been created and is ready for you to access.
+    You've been invited to become a CollagenDirect Sales Representative. To get started, you'll need to complete a quick onboarding process.
 </p>
 
 {$personalNoteHtml}
 
 <p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 20px 0;">
-    Click the button below to log in and get started.
+    Click the button below to complete your setup:
 </p>
 
 <div style="text-align: center; margin: 30px 0;">
-    <a href="{$loginUrl}" style="display: inline-block; background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 15px;">
-        Log In to Your Portal
+    <a href="{$onboardingUrl}" style="display: inline-block; background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 15px;">
+        Complete Your Onboarding
     </a>
 </div>
 
 <div style="background-color: #f0fdfa; border-left: 4px solid #14b8a6; padding: 15px 20px; margin: 20px 0;">
     <p style="color: #0d9488; font-size: 14px; margin: 0; font-weight: 500;">
-        <strong>Getting Started:</strong><br>
-        • Onboard your first clinic from the Dashboard<br>
-        • Add physicians to your assigned clinics<br>
-        • Track your commissions in real-time<br>
-        • Access your signed documents anytime
+        <strong>What to Expect:</strong><br>
+        • Set your secure password<br>
+        • Review and sign the Sales Rep Agreement<br>
+        • Review and sign the Business Associate Agreement (BAA)<br>
+        • Get access to your distributor portal
     </p>
 </div>
+
+<p style="color: #94a3b8; font-size: 13px; line-height: 1.6; margin: 20px 0 0 0;">
+    <strong>Note:</strong> This invitation link expires in 7 days. If you need a new link, please contact your administrator.
+</p>
 
 <p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 20px 0 0 0;">
     We look forward to a successful partnership!
