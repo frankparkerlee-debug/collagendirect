@@ -47,7 +47,7 @@ if ($is_group) {
 
   // Fetch all orders in this group
   $orders_stmt = $pdo->prepare("
-    SELECT o.*, pr.name as product_name, pr.size
+    SELECT o.*, pr.name as product_name, pr.size, pr.pieces_per_box
     FROM orders o
     LEFT JOIN products pr ON pr.id = o.product_id
     WHERE o.order_group_id = ?
@@ -67,7 +67,7 @@ if ($is_group) {
       p.first_name, p.last_name, p.dob, p.mrn, p.phone, p.email,
       p.address as patient_address, p.city as patient_city,
       p.state as patient_state, p.zip as patient_zip,
-      pr.name as product_name, pr.size
+      pr.name as product_name, pr.size, pr.pieces_per_box
     FROM orders o
     JOIN patients p ON p.id = o.patient_id
     LEFT JOIN products pr ON pr.id = o.product_id
@@ -222,17 +222,43 @@ foreach ($order['products'] as $prod) {
             <tr>
               <th>Product</th>
               <th>Size</th>
-              <th>Quantity</th>
+              <th>Qty/Change</th>
+              <th>Boxes to Ship</th>
             </tr>
           </thead>
           <tbody>
-            <?php foreach ($order['products'] as $prod): ?>
+            <?php foreach ($order['products'] as $prod):
+              // Calculate boxes to ship for referral orders
+              $isWholesale = ($prod['billed_by'] ?? '') === 'practice_dme';
+              $qty_per_change = (int)($prod['qty_per_change'] ?? 1);
+
+              if ($isWholesale) {
+                // Wholesale: qty_per_change is boxes
+                $boxes_to_ship = $qty_per_change;
+                $qty_display = '-';
+              } else {
+                // Referral: calculate boxes from frequency, duration, qty
+                $fpw = (int)($prod['frequency_per_week'] ?? 0);
+                $days = (int)($prod['duration_days'] ?? 30);
+                $refills = max(0, (int)($prod['refills_allowed'] ?? 0));
+                $pieces_per_box = max(1, (int)($prod['pieces_per_box'] ?? 10));
+
+                if ($fpw === 0) $fpw = 1;
+                if ($days === 0) $days = 30;
+
+                $weeks = $days / 7.0;
+                $total_pieces = $weeks * $fpw * $qty_per_change * (1 + $refills);
+                $boxes_to_ship = (int)ceil($total_pieces / $pieces_per_box);
+                $qty_display = $qty_per_change;
+              }
+            ?>
               <tr>
                 <td style="font-weight: 500;">
                   <?= htmlspecialchars($prod['product'] ?? $prod['product_name'] ?? 'Unknown') ?>
                 </td>
                 <td><?= htmlspecialchars($prod['size'] ?? 'N/A') ?></td>
-                <td><?= htmlspecialchars($prod['qty_per_change'] ?? 'N/A') ?></td>
+                <td><?= $qty_display ?></td>
+                <td style="font-weight: 600; color: #10b981;"><?= $boxes_to_ship ?> box<?= $boxes_to_ship !== 1 ? 'es' : '' ?></td>
               </tr>
             <?php endforeach; ?>
           </tbody>

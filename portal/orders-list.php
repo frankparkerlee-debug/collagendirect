@@ -75,8 +75,11 @@ foreach ($orders as $order) {
     // Fetch products for this group
     if (empty($grouped_orders[$display_id]['products'])) {
       $prod_stmt = $pdo->prepare("
-        SELECT o.product, o.product_price, o.qty_per_change, o.id as order_id
+        SELECT o.product, o.product_price, o.qty_per_change, o.id as order_id,
+               o.frequency_per_week, o.duration_days, o.refills_allowed, o.billed_by,
+               pr.pieces_per_box
         FROM orders o
+        LEFT JOIN products pr ON pr.id = o.product_id
         WHERE o.order_group_id = ?
         ORDER BY o.created_at ASC
       ");
@@ -84,13 +87,17 @@ foreach ($orders as $order) {
       $grouped_orders[$display_id]['products'] = $prod_stmt->fetchAll(PDO::FETCH_ASSOC);
     }
   } else {
-    // Single product order
-    $grouped_orders[$display_id]['products'] = [[
-      'product' => $order['product'],
-      'product_price' => $order['product_price'],
-      'qty_per_change' => null,
-      'order_id' => $order['order_id']
-    ]];
+    // Single product order - fetch additional fields for box calculation
+    $single_stmt = $pdo->prepare("
+      SELECT o.product, o.product_price, o.qty_per_change, o.id as order_id,
+             o.frequency_per_week, o.duration_days, o.refills_allowed, o.billed_by,
+             pr.pieces_per_box
+      FROM orders o
+      LEFT JOIN products pr ON pr.id = o.product_id
+      WHERE o.id = ?
+    ");
+    $single_stmt->execute([$order['order_id']]);
+    $grouped_orders[$display_id]['products'] = [$single_stmt->fetch(PDO::FETCH_ASSOC)];
   }
 }
 ?>
@@ -306,17 +313,45 @@ foreach ($orders as $order) {
               <thead>
                 <tr style="border-bottom: 1px solid #e2e8f0;">
                   <th style="text-align: left; padding: 0.5rem; font-weight: 500; color: #64748b;">Product</th>
-                  <th style="text-align: left; padding: 0.5rem; font-weight: 500; color: #64748b;">Quantity</th>
+                  <th style="text-align: left; padding: 0.5rem; font-weight: 500; color: #64748b;">Qty/Change</th>
+                  <th style="text-align: left; padding: 0.5rem; font-weight: 500; color: #64748b;">Boxes to Ship</th>
                 </tr>
               </thead>
               <tbody>
-                <?php foreach ($order['products'] as $prod): ?>
+                <?php foreach ($order['products'] as $prod):
+                  // Calculate boxes to ship for referral orders
+                  $isWholesale = ($prod['billed_by'] ?? '') === 'practice_dme';
+                  $qty_per_change = (int)($prod['qty_per_change'] ?? 1);
+
+                  if ($isWholesale) {
+                    // Wholesale: qty_per_change is boxes
+                    $boxes_to_ship = $qty_per_change;
+                    $qty_display = '-';
+                  } else {
+                    // Referral: calculate boxes from frequency, duration, qty
+                    $fpw = (int)($prod['frequency_per_week'] ?? 0);
+                    $days = (int)($prod['duration_days'] ?? 30);
+                    $refills = max(0, (int)($prod['refills_allowed'] ?? 0));
+                    $pieces_per_box = max(1, (int)($prod['pieces_per_box'] ?? 10));
+
+                    if ($fpw === 0) $fpw = 1;
+                    if ($days === 0) $days = 30;
+
+                    $weeks = $days / 7.0;
+                    $total_pieces = $weeks * $fpw * $qty_per_change * (1 + $refills);
+                    $boxes_to_ship = (int)ceil($total_pieces / $pieces_per_box);
+                    $qty_display = $qty_per_change;
+                  }
+                ?>
                   <tr style="border-bottom: 1px solid #f1f5f9;">
                     <td style="padding: 0.5rem; font-weight: 500;">
-                      <?= htmlspecialchars($prod['product']) ?>
+                      <?= htmlspecialchars($prod['product'] ?? '') ?>
                     </td>
                     <td style="padding: 0.5rem;">
-                      <?= $prod['qty_per_change'] ?? 'N/A' ?>
+                      <?= $qty_display ?>
+                    </td>
+                    <td style="padding: 0.5rem; font-weight: 600; color: #10b981;">
+                      <?= $boxes_to_ship ?> box<?= $boxes_to_ship !== 1 ? 'es' : '' ?>
                     </td>
                   </tr>
                 <?php endforeach; ?>

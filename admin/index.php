@@ -220,9 +220,10 @@ try {
       // Formula: ceil(total_pieces / pieces_per_box)
       $total_boxes = (int)ceil($total_pieces / $pieces_per_box);
 
-      // Step 3: Calculate billable pieces (rounded to box increments)
-      // Example: Doctor orders 15 pieces, box has 10 → bill for 20 pieces (2 boxes × 10)
-      $billable_pieces = $total_boxes * $pieces_per_box;
+      // Step 3: Calculate billable pieces = actual pieces needed (NOT box increments)
+      // Insurance reimburses for actual pieces used, not full boxes
+      // This matches the revenue_calculator.php calculation
+      $billable_pieces = (int)ceil($total_pieces);
 
       // Get CPT rate (Medicare allowable per piece)
       $cpt_rate_per_piece = 0.0;
@@ -825,7 +826,7 @@ include __DIR__.'/_header.php';
       <div class="mt-4 pt-4 border-t text-xs text-slate-500">
         <p><strong>Calculation:</strong></p>
         <ul class="list-disc list-inside mt-1 space-y-1">
-          <li><strong>Referral:</strong> Billable pieces (rounded to box increments) × Medicare allowable rate per piece</li>
+          <li><strong>Referral:</strong> Actual pieces needed × Medicare allowable rate per piece</li>
           <li><strong>Wholesale:</strong> Total boxes × Wholesale price per box</li>
         </ul>
         <p class="mt-2">Based on active orders (excluding rejected and cancelled orders)</p>

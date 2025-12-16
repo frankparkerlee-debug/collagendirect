@@ -145,6 +145,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         break;
 
+      case 'edit_payout':
+        $payoutId = (int)($_POST['payout_id'] ?? 0);
+        $newAmount = floatval($_POST['new_amount'] ?? 0);
+        $adjustmentType = $_POST['adjustment_type'] ?? 'correction';
+        $adjustmentReason = trim($_POST['adjustment_reason'] ?? '');
+        $adjustmentNotes = trim($_POST['adjustment_notes'] ?? '');
+
+        if (!$payoutId) {
+          $error = 'Invalid payout ID.';
+        } elseif ($newAmount < 0) {
+          $error = 'Payout amount cannot be negative.';
+        } elseif (empty($adjustmentReason)) {
+          $error = 'Adjustment reason is required.';
+        } else {
+          // Get original payout
+          $origStmt = $pdo->prepare("SELECT amount FROM rep_commission_payouts WHERE id = ? AND rep_id = ?");
+          $origStmt->execute([$payoutId, $repId]);
+          $original = $origStmt->fetch();
+
+          if (!$original) {
+            $error = 'Payout not found.';
+          } else {
+            $originalAmount = (float)$original['amount'];
+            $adjustmentAmount = $newAmount - $originalAmount;
+
+            $pdo->beginTransaction();
+            try {
+              // Record adjustment in audit trail
+              $pdo->prepare("
+                INSERT INTO payout_adjustments (payout_id, adjustment_type, original_amount, new_amount, adjustment_amount, reason, notes, adjusted_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+              ")->execute([$payoutId, $adjustmentType, $originalAmount, $newAmount, $adjustmentAmount, $adjustmentReason, $adjustmentNotes ?: null, $admin['id']]);
+
+              // Update the payout amount
+              $pdo->prepare("UPDATE rep_commission_payouts SET amount = ?, notes = CONCAT(COALESCE(notes, ''), ?) WHERE id = ?")
+                  ->execute([$newAmount, "\n[Adjusted " . date('Y-m-d H:i') . ": " . $adjustmentType . "]", $payoutId]);
+
+              $pdo->commit();
+
+              $changeText = $adjustmentAmount >= 0 ? '+$' . number_format($adjustmentAmount, 2) : '-$' . number_format(abs($adjustmentAmount), 2);
+              $message = "Payout adjusted from \$" . number_format($originalAmount, 2) . " to \$" . number_format($newAmount, 2) . " ($changeText). Audit trail recorded.";
+            } catch (Exception $e) {
+              $pdo->rollBack();
+              throw $e;
+            }
+          }
+        }
+        break;
+
       case 'unassign_clinic':
         $clinicUserId = $_POST['clinic_user_id'] ?? '';
         if ($clinicUserId) {
@@ -378,6 +427,28 @@ $payoutsQuery .= " ORDER BY rcp.payout_date DESC LIMIT 100";
 $payoutsStmt = $pdo->prepare($payoutsQuery);
 $payoutsStmt->execute($payoutParams);
 $payoutHistory = $payoutsStmt->fetchAll();
+
+// Check if payout_adjustments table exists and fetch adjustment counts
+$hasAdjustmentsTable = false;
+$payoutAdjustmentCounts = [];
+try {
+  $checkAdjTable = $pdo->query("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'payout_adjustments')")->fetchColumn();
+  $hasAdjustmentsTable = (bool)$checkAdjTable;
+
+  if ($hasAdjustmentsTable && !empty($payoutHistory)) {
+    $payoutIds = array_column($payoutHistory, 'id');
+    if (!empty($payoutIds)) {
+      $placeholders = implode(',', array_fill(0, count($payoutIds), '?'));
+      $adjCountStmt = $pdo->prepare("SELECT payout_id, COUNT(*) as adj_count FROM payout_adjustments WHERE payout_id IN ($placeholders) GROUP BY payout_id");
+      $adjCountStmt->execute($payoutIds);
+      while ($row = $adjCountStmt->fetch()) {
+        $payoutAdjustmentCounts[$row['payout_id']] = (int)$row['adj_count'];
+      }
+    }
+  }
+} catch (Exception $e) {
+  // Ignore - table might not exist yet
+}
 
 // Get available years for filter dropdown
 $availableYearsStmt = $pdo->prepare("
@@ -1003,13 +1074,21 @@ $statusColors = [
             <th>Period</th>
             <th>Processed By</th>
             <th>Status</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          <?php foreach ($payoutHistory as $payout): ?>
+          <?php foreach ($payoutHistory as $payout):
+            $adjCount = $payoutAdjustmentCounts[$payout['id']] ?? 0;
+          ?>
             <tr>
               <td class="text-sm"><?= date('M j, Y', strtotime($payout['payout_date'])) ?></td>
-              <td class="font-medium">$<?= number_format((float)$payout['amount'], 2) ?></td>
+              <td class="font-medium">
+                $<?= number_format((float)$payout['amount'], 2) ?>
+                <?php if ($adjCount > 0): ?>
+                  <span class="text-xs text-amber-600 ml-1" title="<?= $adjCount ?> adjustment(s) made">(adjusted)</span>
+                <?php endif; ?>
+              </td>
               <td class="text-sm"><?= ucfirst($payout['payment_method']) ?></td>
               <td class="text-sm"><?= htmlspecialchars($payout['reference_number'] ?? '-') ?></td>
               <td class="text-sm text-gray-500">
@@ -1024,6 +1103,20 @@ $statusColors = [
                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
                   Completed
                 </span>
+              </td>
+              <td>
+                <button type="button"
+                        onclick="openEditPayoutModal(<?= $payout['id'] ?>, <?= number_format((float)$payout['amount'], 2, '.', '') ?>, '<?= date('M j, Y', strtotime($payout['payout_date'])) ?>')"
+                        class="text-teal-600 text-sm hover:underline">
+                  Edit
+                </button>
+                <?php if ($adjCount > 0): ?>
+                  <button type="button"
+                          onclick="viewPayoutHistory(<?= $payout['id'] ?>)"
+                          class="text-gray-500 text-sm hover:underline ml-2">
+                    History
+                  </button>
+                <?php endif; ?>
               </td>
             </tr>
           <?php endforeach; ?>
@@ -1185,6 +1278,95 @@ $statusColors = [
   </form>
 </dialog>
 
+<!-- Edit Payout Modal -->
+<dialog id="editPayoutModal" class="rounded-2xl w-full max-w-lg p-0 backdrop:bg-black/50">
+  <form method="POST" class="p-0">
+    <?= csrf_field() ?>
+    <input type="hidden" name="action" value="edit_payout">
+    <input type="hidden" name="payout_id" id="editPayoutId">
+
+    <div class="p-6 border-b border-gray-200">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold text-gray-900">Edit Payout</h3>
+        <button type="button" onclick="document.getElementById('editPayoutModal').close()" class="text-gray-400 hover:text-gray-600">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="p-6 space-y-4">
+      <div class="bg-gray-50 rounded-lg p-3">
+        <p class="text-sm text-gray-500">Editing payout from</p>
+        <p class="font-medium" id="editPayoutDate">-</p>
+        <p class="text-sm text-gray-500 mt-1">Current Amount</p>
+        <p class="text-xl font-bold text-gray-900" id="editPayoutOriginal">$0.00</p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Adjustment Type <span class="text-red-500">*</span></label>
+        <select name="adjustment_type" required class="w-full">
+          <option value="correction">Correction - General amount correction</option>
+          <option value="clawback">Clawback - Recovery of overpaid commission</option>
+          <option value="error_fix">Error Fix - Fix for data entry or calculation error</option>
+          <option value="reconciliation">Reconciliation - Match actual payment amount</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">New Amount <span class="text-red-500">*</span></label>
+        <input type="number" name="new_amount" id="editPayoutNewAmount" step="0.01" min="0" required class="w-full">
+        <p class="text-xs text-gray-500 mt-1">Enter 0 to void/cancel this payout</p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Reason for Adjustment <span class="text-red-500">*</span></label>
+        <textarea name="adjustment_reason" rows="2" required class="w-full" placeholder="Explain why this adjustment is being made..."></textarea>
+        <p class="text-xs text-gray-500 mt-1">Required for audit trail</p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Additional Notes (Optional)</label>
+        <textarea name="adjustment_notes" rows="2" class="w-full" placeholder="Any additional context..."></textarea>
+      </div>
+
+      <div class="bg-amber-50 border border-amber-200 rounded-lg p-3">
+        <div class="flex items-start gap-2">
+          <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+          <div>
+            <p class="text-sm font-medium text-amber-800">Audit Trail Notice</p>
+            <p class="text-xs text-amber-700 mt-0.5">This adjustment will be permanently recorded with your name, timestamp, and reason. This cannot be deleted.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="p-6 border-t border-gray-200 flex gap-3">
+      <button type="button" onclick="document.getElementById('editPayoutModal').close()" class="flex-1 btn">Cancel</button>
+      <button type="submit" class="flex-1 btn btn-primary">Save Adjustment</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Payout History Modal -->
+<dialog id="payoutHistoryModal" class="rounded-2xl w-full max-w-2xl p-0 backdrop:bg-black/50">
+  <div class="p-6 border-b border-gray-200">
+    <div class="flex items-center justify-between">
+      <h3 class="text-lg font-bold text-gray-900">Payout Adjustment History</h3>
+      <button type="button" onclick="document.getElementById('payoutHistoryModal').close()" class="text-gray-400 hover:text-gray-600">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+    </div>
+  </div>
+  <div class="p-6" id="payoutHistoryContent">
+    <p class="text-gray-500 text-center">Loading...</p>
+  </div>
+  <div class="p-6 border-t border-gray-200">
+    <button type="button" onclick="document.getElementById('payoutHistoryModal').close()" class="btn w-full">Close</button>
+  </div>
+</dialog>
+
 <script>
 // Store original options for filtering
 let originalClinicOptions = [];
@@ -1222,6 +1404,76 @@ document.getElementById('newRate')?.addEventListener('input', function() {
 
 function openPayoutModal() {
   document.getElementById('payoutModal').showModal();
+}
+
+function openEditPayoutModal(payoutId, currentAmount, payoutDate) {
+  document.getElementById('editPayoutId').value = payoutId;
+  document.getElementById('editPayoutDate').textContent = payoutDate;
+  document.getElementById('editPayoutOriginal').textContent = '$' + currentAmount.toFixed(2);
+  document.getElementById('editPayoutNewAmount').value = currentAmount.toFixed(2);
+  document.getElementById('editPayoutModal').showModal();
+}
+
+function viewPayoutHistory(payoutId) {
+  const content = document.getElementById('payoutHistoryContent');
+  content.innerHTML = '<p class="text-gray-500 text-center">Loading...</p>';
+  document.getElementById('payoutHistoryModal').showModal();
+
+  // Fetch adjustment history via AJAX
+  fetch('/api/admin/payout-history.php?payout_id=' + payoutId)
+    .then(response => response.json())
+    .then(data => {
+      if (data.error) {
+        content.innerHTML = '<p class="text-red-500 text-center">' + data.error + '</p>';
+        return;
+      }
+
+      if (!data.adjustments || data.adjustments.length === 0) {
+        content.innerHTML = '<p class="text-gray-500 text-center">No adjustment history found.</p>';
+        return;
+      }
+
+      let html = '<div class="space-y-4">';
+      data.adjustments.forEach(adj => {
+        const changeAmount = parseFloat(adj.adjustment_amount);
+        const changeClass = changeAmount >= 0 ? 'text-green-600' : 'text-red-600';
+        const changeSign = changeAmount >= 0 ? '+' : '';
+
+        html += `
+          <div class="border rounded-lg p-4">
+            <div class="flex items-start justify-between mb-2">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100">${adj.adjustment_type}</span>
+              <span class="text-xs text-gray-500">${adj.created_at}</span>
+            </div>
+            <div class="grid grid-cols-3 gap-4 text-sm mb-3">
+              <div>
+                <p class="text-gray-500">Original</p>
+                <p class="font-medium">$${parseFloat(adj.original_amount).toFixed(2)}</p>
+              </div>
+              <div>
+                <p class="text-gray-500">New</p>
+                <p class="font-medium">$${parseFloat(adj.new_amount).toFixed(2)}</p>
+              </div>
+              <div>
+                <p class="text-gray-500">Change</p>
+                <p class="font-medium ${changeClass}">${changeSign}$${Math.abs(changeAmount).toFixed(2)}</p>
+              </div>
+            </div>
+            <div class="text-sm">
+              <p class="text-gray-500">Reason:</p>
+              <p>${adj.reason}</p>
+            </div>
+            ${adj.notes ? `<div class="text-sm mt-2"><p class="text-gray-500">Notes:</p><p class="text-gray-600">${adj.notes}</p></div>` : ''}
+            <p class="text-xs text-gray-400 mt-2">Adjusted by: ${adj.adjusted_by_name || 'System'}</p>
+          </div>
+        `;
+      });
+      html += '</div>';
+      content.innerHTML = html;
+    })
+    .catch(err => {
+      content.innerHTML = '<p class="text-red-500 text-center">Failed to load history: ' + err.message + '</p>';
+    });
 }
 
 function exportLedger() {

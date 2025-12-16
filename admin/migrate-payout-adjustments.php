@@ -1,0 +1,228 @@
+<?php
+/**
+ * Migration: Create payout_adjustments table
+ *
+ * Allows tracking of payout edits, clawbacks, and corrections with full audit trail
+ */
+
+require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/_header.php';
+
+require_admin();
+
+$success = false;
+$error = null;
+$message = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['run_migration'])) {
+  try {
+    $pdo->beginTransaction();
+
+    // Check if table exists
+    $tableExists = $pdo->query("
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables
+        WHERE table_name = 'payout_adjustments'
+      )
+    ")->fetchColumn();
+
+    if (!$tableExists) {
+      // Create payout_adjustments table
+      $pdo->exec("
+        CREATE TABLE payout_adjustments (
+          id SERIAL PRIMARY KEY,
+          payout_id INTEGER NOT NULL,
+          adjustment_type VARCHAR(50) NOT NULL,
+          original_amount NUMERIC(12,2) NOT NULL,
+          new_amount NUMERIC(12,2) NOT NULL,
+          adjustment_amount NUMERIC(12,2) NOT NULL,
+          reason TEXT NOT NULL,
+          notes TEXT,
+          adjusted_by VARCHAR(64) NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (payout_id) REFERENCES rep_commission_payouts(id) ON DELETE CASCADE
+        )
+      ");
+
+      $pdo->exec("
+        CREATE INDEX idx_payout_adjustments_payout ON payout_adjustments(payout_id)
+      ");
+
+      $pdo->exec("
+        CREATE INDEX idx_payout_adjustments_date ON payout_adjustments(created_at)
+      ");
+
+      $pdo->exec("
+        COMMENT ON TABLE payout_adjustments IS 'Audit trail for payout edits, clawbacks, and corrections'
+      ");
+
+      $pdo->exec("
+        COMMENT ON COLUMN payout_adjustments.adjustment_type IS 'Type: correction, clawback, error_fix, reconciliation'
+      ");
+
+      $message = "✓ Created payout_adjustments table with indexes";
+    } else {
+      $message = "✓ Table payout_adjustments already exists";
+    }
+
+    $pdo->commit();
+    $success = true;
+
+  } catch (Exception $e) {
+    $pdo->rollBack();
+    $error = $e->getMessage();
+  }
+}
+
+// Get current table info
+$tableInfo = null;
+$adjustmentCount = 0;
+try {
+  $tableExists = $pdo->query("
+    SELECT EXISTS (
+      SELECT FROM information_schema.tables
+      WHERE table_name = 'payout_adjustments'
+    )
+  ")->fetchColumn();
+
+  if ($tableExists) {
+    $tableInfo = $pdo->query("
+      SELECT column_name, data_type, is_nullable, column_default
+      FROM information_schema.columns
+      WHERE table_name = 'payout_adjustments'
+      ORDER BY ordinal_position
+    ")->fetchAll(PDO::FETCH_ASSOC);
+
+    $adjustmentCount = $pdo->query("SELECT COUNT(*) FROM payout_adjustments")->fetchColumn();
+  }
+} catch (Exception $e) {
+  // Ignore error
+}
+?>
+
+<div style="max-width: 1200px; margin: 0 auto; padding: 2rem;">
+  <h1 style="font-size: 1.875rem; font-weight: 700; color: var(--ink); margin-bottom: 0.5rem;">
+    Create payout_adjustments Table
+  </h1>
+  <p style="color: var(--muted); font-size: 0.875rem; margin-bottom: 2rem;">
+    This migration creates the payout_adjustments table for tracking edits, clawbacks, and corrections with full audit trail
+  </p>
+
+  <?php if ($success): ?>
+    <div style="padding: 1rem; background: #d1fae5; border: 1px solid #10b981; border-radius: 6px; margin-bottom: 2rem;">
+      <strong style="color: #065f46;"><?= nl2br($message) ?></strong>
+    </div>
+  <?php endif; ?>
+
+  <?php if ($error): ?>
+    <div style="padding: 1rem; background: #fee; border: 1px solid #dc3545; border-radius: 6px; margin-bottom: 2rem; color: #991b1b;">
+      <strong>Migration Failed:</strong><br><?= htmlspecialchars($error) ?>
+    </div>
+  <?php endif; ?>
+
+  <!-- Feature Description -->
+  <div style="background: white; border: 1px solid var(--border); border-radius: 8px; padding: 2rem; margin-bottom: 2rem;">
+    <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem;">
+      Payout Adjustment Tracking
+    </h2>
+    <p style="color: var(--ink-light); margin-bottom: 1rem;">
+      This feature allows admins to edit payouts while maintaining a complete audit trail of all changes.
+    </p>
+    <ul style="list-style: disc; margin-left: 1.5rem; color: var(--ink-light); line-height: 1.75;">
+      <li>Track all payout adjustments (corrections, clawbacks, error fixes)</li>
+      <li>Record original and new amounts with difference calculation</li>
+      <li>Require reason/explanation for every adjustment</li>
+      <li>Store who made the adjustment and when</li>
+      <li>View full adjustment history for any payout</li>
+    </ul>
+    <div style="margin-top: 1.5rem; padding: 1rem; background: #fef3c7; border-radius: 6px;">
+      <strong style="color: #92400e;">Adjustment Types:</strong>
+      <ul style="list-style: disc; margin-left: 1.5rem; color: #92400e; margin-top: 0.5rem;">
+        <li><strong>correction</strong> - General amount correction</li>
+        <li><strong>clawback</strong> - Recovery of overpaid commission</li>
+        <li><strong>error_fix</strong> - Fix for data entry or calculation error</li>
+        <li><strong>reconciliation</strong> - Adjustment to match actual payment</li>
+      </ul>
+    </div>
+  </div>
+
+  <?php if (!$tableInfo && !$success): ?>
+    <div style="background: white; border: 1px solid var(--border); border-radius: 8px; padding: 2rem; margin-bottom: 2rem;">
+      <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: #991b1b;">
+        ⚠️ Table Missing
+      </h2>
+      <p style="color: var(--ink-light); margin-bottom: 1.5rem;">
+        The <code style="background: #f8f9fa; padding: 0.25rem 0.5rem; border-radius: 4px;">payout_adjustments</code> table does not exist.
+        This table is required for tracking payout edits with audit trail.
+      </p>
+
+      <form method="POST">
+        <button type="submit" name="run_migration" value="1"
+                style="padding: 0.875rem 2rem; font-size: 1rem; font-weight: 600; background: var(--brand); color: white; border: none; border-radius: 6px; cursor: pointer;">
+          Run Migration
+        </button>
+      </form>
+    </div>
+  <?php elseif ($tableInfo): ?>
+    <!-- Current Schema -->
+    <div style="background: white; border: 1px solid var(--border); border-radius: 8px; padding: 2rem;">
+      <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1.5rem;">
+        Current payout_adjustments Table Schema
+      </h2>
+
+      <div style="padding: 1rem; background: #d1fae5; border: 1px solid #10b981; border-radius: 6px; margin-bottom: 1.5rem; color: #065f46;">
+        Total Adjustments Recorded: <strong><?= $adjustmentCount ?></strong>
+      </div>
+
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+          <thead>
+            <tr style="background: #f8f9fa; border-bottom: 2px solid var(--border);">
+              <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: var(--muted); text-transform: uppercase; font-size: 0.75rem;">
+                Column Name
+              </th>
+              <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: var(--muted); text-transform: uppercase; font-size: 0.75rem;">
+                Data Type
+              </th>
+              <th style="padding: 0.75rem; text-align: center; font-weight: 600; color: var(--muted); text-transform: uppercase; font-size: 0.75rem;">
+                Nullable
+              </th>
+              <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: var(--muted); text-transform: uppercase; font-size: 0.75rem;">
+                Default
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php foreach ($tableInfo as $col): ?>
+              <tr style="border-bottom: 1px solid var(--border);">
+                <td style="padding: 0.75rem;">
+                  <code style="background: #f8f9fa; padding: 0.25rem 0.5rem; border-radius: 4px;">
+                    <?= htmlspecialchars($col['column_name']) ?>
+                  </code>
+                </td>
+                <td style="padding: 0.75rem; color: var(--ink-light);">
+                  <?= htmlspecialchars($col['data_type']) ?>
+                </td>
+                <td style="padding: 0.75rem; text-align: center;">
+                  <?= $col['is_nullable'] === 'YES' ? '✓' : '✗' ?>
+                </td>
+                <td style="padding: 0.75rem; color: var(--muted); font-size: 0.8125rem;">
+                  <?= $col['column_default'] ? htmlspecialchars($col['column_default']) : '-' ?>
+                </td>
+              </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-top: 1.5rem;">
+        <a href="/admin/platform/distributors.php" class="btn" style="background: var(--brand); color: white; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; display: inline-block;">
+          Go to Distributors →
+        </a>
+      </div>
+    </div>
+  <?php endif; ?>
+</div>
+
+<?php require_once __DIR__ . '/_footer.php'; ?>
