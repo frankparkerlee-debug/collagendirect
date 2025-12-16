@@ -15,6 +15,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/lib/revenue_calculator.php';
+require_once __DIR__ . '/lib/order_display.php';
 if (function_exists('require_admin')) require_admin();
 
 // Sales reps cannot access revenue report
@@ -947,7 +948,7 @@ include __DIR__ . '/_header.php';
                     <?php else: ?>
                         <?php foreach (array_slice($metrics['orders'], 0, 100) as $idx => $order): ?>
                         <tr class="hover:bg-slate-50 cursor-pointer" onclick="toggleCalc('calc-<?=$idx?>')">
-                            <td class="py-2 px-4 font-mono text-xs"><?=e(substr($order['id'], 0, 8))?></td>
+                            <td class="py-2 px-4 font-mono text-xs"><?=format_order_number_html($order)?></td>
                             <td class="py-2 px-4 text-xs"><?=date('m/d/Y', strtotime($order['created_at']))?></td>
                             <td class="py-2 px-4 text-xs"><?=e($order['practice_name'] ?: 'N/A')?></td>
                             <td class="py-2 px-4 text-xs"><?=e($order['product_name'] ?: 'Unknown')?></td>

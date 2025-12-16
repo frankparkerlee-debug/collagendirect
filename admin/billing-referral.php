@@ -15,6 +15,7 @@ $bootstrap = __DIR__.'/_bootstrap.php'; if (is_file($bootstrap)) require_once $b
 require_once __DIR__.'/db.php';
 require_once __DIR__.'/../api/lib/commission.php';
 require_once __DIR__.'/lib/revenue_calculator.php';
+require_once __DIR__.'/lib/order_display.php';
 $auth = __DIR__.'/auth.php'; if (is_file($auth)) { require_once $auth; if (function_exists('require_admin')) require_admin(); }
 
 // Sales reps cannot access billing
@@ -135,7 +136,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     $balance = $billedAmount - $insurancePaid - $patientPaid - $adjustment - $writeOff;
 
     fputcsv($output, [
-      $row['order_number'] ?: 'RF-' . substr($row['id'], 0, 8),
+      get_order_identifier($row),
       trim($row['patient_first'] . ' ' . $row['patient_last']),
       trim($row['phys_first'] . ' ' . $row['phys_last']),
       $row['insurer_name'] ?? '',
@@ -180,8 +181,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       try {
         $pdo->beginTransaction();
 
-        // Get order details for commission calculation
-        $orderStmt = $pdo->prepare("SELECT user_id, insurance_paid as prev_insurance_paid, patient_paid as prev_patient_paid FROM orders WHERE id = ?");
+        // Get order details for commission calculation (include product data for revenue calc)
+        $orderStmt = $pdo->prepare("
+          SELECT o.user_id, o.insurance_paid as prev_insurance_paid, o.patient_paid as prev_patient_paid,
+                 o.collection_status as prev_status, o.insurance_billed, o.billed_by,
+                 o.product_price, o.qty_per_change, o.duration_days, o.frequency_per_week, o.refills_allowed,
+                 pr.pieces_per_box, u.account_type
+          FROM orders o
+          LEFT JOIN products pr ON pr.id = o.product_id
+          LEFT JOIN users u ON u.id = o.user_id
+          WHERE o.id = ?
+        ");
         $orderStmt->execute([$orderId]);
         $order = $orderStmt->fetch();
 
@@ -190,6 +200,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           $prevTotal = (float)($order['prev_insurance_paid'] ?? 0) + (float)($order['prev_patient_paid'] ?? 0);
           $newTotal = ($insurancePaid ?? 0) + ($patientPaid ?? 0);
           $paymentDiff = $newTotal - $prevTotal;
+
+          // If status is changing to 'collected' but no payment amounts entered, use billed amount
+          $isNewlyCollected = ($collectionStatus === 'collected' && ($order['prev_status'] ?? '') !== 'collected');
+          if ($isNewlyCollected && $paymentDiff <= 0 && $newTotal <= 0) {
+            // Calculate the expected revenue for this order
+            $revenueCalc = calculate_order_revenue($order);
+            $estimatedPayment = (float)($order['insurance_billed'] ?? 0);
+            if ($estimatedPayment <= 0) {
+              $estimatedPayment = $revenueCalc['revenue'];
+            }
+            if ($estimatedPayment > 0) {
+              $insurancePaid = $estimatedPayment;
+              $newTotal = $estimatedPayment;
+              $paymentDiff = $newTotal - $prevTotal;
+            }
+          }
 
           // Update order with collection data
           $updateStmt = $pdo->prepare("
@@ -719,7 +745,7 @@ include __DIR__.'/_header.php';
               <tr class="border-t hover:bg-slate-50">
                 <td class="py-3 px-4">
                   <a href="/admin/orders.php?id=<?=e($order['id'])?>" class="font-medium text-brand hover:underline">
-                    <?=e($order['order_number'] ?: 'RF-' . substr($order['id'], 0, 8))?>
+                    <?=format_order_number_html($order)?>
                   </a>
                   <?php if ($hasRep): ?>
                     <span class="ml-1 text-xs text-purple-600" title="Has assigned rep">&#x2605;</span>

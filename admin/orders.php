@@ -3,6 +3,8 @@
 declare(strict_types=1);
 $bootstrap = __DIR__.'/_bootstrap.php'; if (is_file($bootstrap)) require_once $bootstrap;
 require_once __DIR__.'/db.php';
+require_once __DIR__.'/lib/order_display.php';
+require_once __DIR__.'/lib/revenue_calculator.php';
 $auth = __DIR__.'/auth.php'; if (is_file($auth)) { require_once $auth; if (function_exists('require_admin')) require_admin(); }
 
 // Sales reps have scoped orders view - redirect to rep portal
@@ -476,10 +478,16 @@ $sql = "
          dc.order_product_snapshot AS delivery_order_product_snapshot,
          dc.order_physician_snapshot AS delivery_order_physician_snapshot,
          dc.order_physician_npi_snapshot AS delivery_order_physician_npi_snapshot,
-         dc.order_date_snapshot AS delivery_order_date_snapshot
+         dc.order_date_snapshot AS delivery_order_date_snapshot,
+         pr.pieces_per_box,
+         pr.cost_per_box,
+         pr.price_wholesale,
+         u.account_type
   FROM orders o
   LEFT JOIN patients p ON p.id=o.patient_id
   LEFT JOIN delivery_confirmations dc ON dc.order_id=o.id
+  LEFT JOIN products pr ON pr.id=o.product_id
+  LEFT JOIN users u ON u.id=o.user_id
   $whereClause
   ORDER BY o.created_at DESC LIMIT 1000
 ";
@@ -583,7 +591,7 @@ if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"
       <?php foreach ($rows as $r): ?>
       <tr class="border-b hover:bg-slate-50">
         <td class="py-3"><?=e(trim(($r['first_name']??'').' '.($r['last_name']??'')) ?: '—')?></td>
-        <td class="py-3">#<?=e($r['display_order_id'])?></td>
+        <td class="py-3"><?=format_order_number_html($r)?></td>
         <td class="py-3">
           <?php
             $label = $r['product'] ?? '';
@@ -601,7 +609,18 @@ if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"
             }
           ?>
         </td>
-        <td class="py-3"><?=e(array_key_exists('quantity',$r)?($r['quantity'] ?? 1):1)?></td>
+        <td class="py-3">
+          <?php
+            // Use revenue calculator for consistent quantity display
+            $calc = calculate_order_revenue($r);
+            $calcBoxes = $calc['boxes'];
+            $calcPieces = $calc['pieces'];
+            echo $calcBoxes . ' box' . ($calcBoxes > 1 ? 'es' : '');
+            if ($calcPieces > 0) {
+              echo ' <span class="text-xs text-slate-500">(' . $calcPieces . ' pc)</span>';
+            }
+          ?>
+        </td>
         <td class="py-3">
           <span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold
             <?php $s=$r['status']??''; echo $s==='approved'?'bg-green-100 text-green-700':($s==='submitted'||$s==='pending'?'bg-yellow-100 text-yellow-800':($s==='rejected'?'bg-rose-100 text-rose-700':($s==='in_transit'?'bg-amber-100 text-amber-800':($s==='delivered'?'bg-teal-100 text-teal-700':'bg-gray-100 text-gray-700')))); ?>">
@@ -614,7 +633,7 @@ if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"
           if (!empty($r['delivery_confirmed_at'])) {
             // GREEN: Patient confirmed delivery - CLICKABLE for audit details
             $dcData = json_encode([
-              'order_id' => substr($r['id'], 0, 8),
+              'order_id' => get_order_identifier($r),
               'patient_name' => $r['first_name'] . ' ' . $r['last_name'],
               'confirmed_at' => date('m/d/Y g:i A', strtotime($r['delivery_confirmed_at'])),
               'confirmation_method' => $r['delivery_confirmation_method'] ?: 'web_link',

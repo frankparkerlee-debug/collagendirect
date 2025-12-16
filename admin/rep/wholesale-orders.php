@@ -6,6 +6,7 @@
  */
 declare(strict_types=1);
 require __DIR__ . '/_header.php';
+require_once __DIR__ . '/../lib/order_display.php';
 
 $repId = $admin['rep_id'] ?? null;
 if (!$repId) {
@@ -151,7 +152,7 @@ $statuses = ['submitted', 'approved', 'in_production', 'shipped', 'delivered', '
         <?php foreach ($orders as $order): ?>
           <tr>
             <td>
-              <span class="font-mono text-sm"><?= htmlspecialchars(substr($order['id'], 0, 8)) ?></span>
+              <span class="font-mono text-sm"><?= format_order_number_html($order) ?></span>
             </td>
             <td>
               <div class="font-medium"><?= htmlspecialchars($order['patient_first'] . ' ' . $order['patient_last']) ?></div>

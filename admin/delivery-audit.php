@@ -15,6 +15,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/../api/lib/timezone.php';
+require_once __DIR__ . '/lib/order_display.php';
 
 // Require admin login
 if (function_exists('require_admin')) require_admin();
@@ -281,9 +282,9 @@ if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"
                     <?php foreach ($records as $r): ?>
                         <tr class="hover:bg-slate-50">
                             <td class="px-4 py-3">
-                                <a href="/admin/orders.php?search=<?= e(substr($r['order_id'], 0, 8)) ?>"
+                                <a href="/admin/orders.php?search=<?= e(get_order_identifier(['id' => $r['order_id']])) ?>"
                                    class="font-mono text-teal-600 hover:underline">
-                                    #<?= e(substr($r['order_id'], 0, 8)) ?>
+                                    <?= format_order_number_html(['id' => $r['order_id']]) ?>
                                 </a>
                             </td>
                             <td class="px-4 py-3">

@@ -6,6 +6,7 @@
  */
 declare(strict_types=1);
 require __DIR__ . '/_header.php';
+require_once __DIR__ . '/../lib/order_display.php';
 
 $repId = $admin['rep_id'] ?? null;
 if (!$repId) {
@@ -170,7 +171,7 @@ $totalPages = ceil($totalEntries / $perPage);
               <div class="text-sm"><?= date('M j, Y', strtotime($entry['created_at'])) ?></div>
             </td>
             <td>
-              <span class="font-mono text-sm"><?= htmlspecialchars(substr($entry['order_id'], 0, 8)) ?></span>
+              <span class="font-mono text-sm"><?= format_order_number_html(['id' => $entry['order_id']]) ?></span>
               <?php if ($entry['product']): ?>
                 <div class="text-xs text-gray-500"><?= htmlspecialchars($entry['product']) ?></div>
               <?php endif; ?>

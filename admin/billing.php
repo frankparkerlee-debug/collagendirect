@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/lib/revenue_calculator.php';
+require_once __DIR__ . '/lib/order_display.php';
 $bootstrap = __DIR__.'/_bootstrap.php'; if (is_file($bootstrap)) require_once $bootstrap;
 $auth      = __DIR__ . '/auth.php';      if (is_file($auth)) require_once $auth;
 if (function_exists('require_admin')) require_admin();
@@ -357,10 +358,8 @@ include __DIR__.'/_header.php';
           $orderUrl = '/admin/order.pdf.php?id=' . rawurlencode($group['primary_order_id']) . '&csrf=' . rawurlencode($_SESSION['csrf'] ?? '');
           $downloadAllUrl = '/admin/download-all.php?id=' . rawurlencode($group['primary_order_id']) . '&csrf=' . rawurlencode($_SESSION['csrf'] ?? '');
 
-          // Determine display order number - use order_group_id if it's a real group, otherwise short UUID
-          $displayOrderNum = str_starts_with($group['group_id'], 'single_')
-            ? substr($group['primary_order_id'], 0, 8)
-            : substr($group['group_id'], 0, 8);
+          // Use centralized order number helper for consistency
+          $displayOrderNum = get_order_identifier(['id' => $group['primary_order_id'], 'order_number' => $group['order_number'] ?? null]);
 
           // Combine statuses for display
           $statusList = array_keys($group['statuses']);
