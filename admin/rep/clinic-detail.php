@@ -56,11 +56,11 @@ $recentOrders = $ordersStmt->fetchAll();
 $linkedPhysicians = [];
 if ($clinic['role'] === 'practice_admin') {
   $physStmt = $pdo->prepare("
-    SELECT pp.*, u.email as user_email, u.status as user_status
+    SELECT pp.*
     FROM practice_physicians pp
-    LEFT JOIN users u ON u.id = pp.physician_id
-    WHERE pp.practice_admin_id = ?
-    ORDER BY pp.last_name, pp.first_name
+    WHERE pp.practice_user_id = ?
+    AND pp.is_active = TRUE
+    ORDER BY pp.physician_name
   ");
   $physStmt->execute([$clinicId]);
   $linkedPhysicians = $physStmt->fetchAll();
@@ -320,15 +320,16 @@ $statusColors = [
         <ul class="divide-y">
           <?php foreach ($linkedPhysicians as $phys): ?>
             <li class="p-4">
-              <div class="font-medium text-sm"><?= htmlspecialchars($phys['first_name'] . ' ' . $phys['last_name']) ?></div>
-              <?php if ($phys['physician_npi']): ?>
-                <div class="text-xs text-gray-500">NPI: <?= htmlspecialchars($phys['physician_npi']) ?></div>
+              <div class="font-medium text-sm"><?= htmlspecialchars($phys['physician_name']) ?></div>
+              <?php if (!empty($phys['npi'])): ?>
+                <div class="text-xs text-gray-500">NPI: <?= htmlspecialchars($phys['npi']) ?></div>
               <?php endif; ?>
-              <?php if ($phys['user_status']): ?>
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium mt-1 <?= $phys['user_status'] === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' ?>">
-                  <?= ucfirst($phys['user_status']) ?>
-                </span>
+              <?php if (!empty($phys['license_number'])): ?>
+                <div class="text-xs text-gray-500">License: <?= htmlspecialchars($phys['license_number']) ?></div>
               <?php endif; ?>
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium mt-1 bg-green-100 text-green-800">
+                Active
+              </span>
             </li>
           <?php endforeach; ?>
         </ul>

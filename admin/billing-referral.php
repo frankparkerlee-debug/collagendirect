@@ -104,11 +104,14 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
       o.collection_status, o.collection_notes,
       p.first_name as patient_first, p.last_name as patient_last,
       u.first_name as phys_first, u.last_name as phys_last, u.practice_name, u.account_type,
-      pr.name as product_name, pr.pieces_per_box, pr.cost_per_box, pr.hcpcs_code as cpt_code, pr.price_wholesale
+      pr.name as product_name, pr.pieces_per_box, COALESCE(pp.cost_per_box, pr.cost_per_box, 0) as cost_per_box,
+      pr.hcpcs_code as cpt_code, pr.price_wholesale,
+      pp.custom_price as practice_custom_price
     FROM orders o
     LEFT JOIN patients p ON o.patient_id = p.id
     LEFT JOIN users u ON o.user_id = u.id
     LEFT JOIN products pr ON o.product_id = pr.id
+    LEFT JOIN practice_pricing pp ON pp.user_id = o.user_id AND pp.product_id = o.product_id
     WHERE $whereClause
     ORDER BY o.created_at DESC
   ";
@@ -189,10 +192,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           SELECT o.user_id, o.insurance_paid as prev_insurance_paid, o.patient_paid as prev_patient_paid,
                  o.collection_status as prev_status, o.insurance_billed, o.billed_by,
                  o.product_price, o.qty_per_change, o.duration_days, o.frequency_per_week, o.refills_allowed,
-                 pr.pieces_per_box, u.account_type
+                 o.wounds_data,
+                 pr.pieces_per_box, pr.hcpcs_code as cpt_code, pr.price_wholesale,
+                 COALESCE(pp.cost_per_box, pr.cost_per_box, 0) as cost_per_box,
+                 pp.custom_price as practice_custom_price,
+                 u.account_type
           FROM orders o
           LEFT JOIN products pr ON pr.id = o.product_id
           LEFT JOIN users u ON u.id = o.user_id
+          LEFT JOIN practice_pricing pp ON pp.user_id = o.user_id AND pp.product_id = o.product_id
           WHERE o.id = ?
         ");
         $orderStmt->execute([$orderId]);
@@ -425,11 +433,14 @@ try {
       p.first_name as patient_first, p.last_name as patient_last,
       u.first_name as phys_first, u.last_name as phys_last, u.practice_name,
       u.assigned_rep_id, u.account_type,
-      pr.name as product_name, pr.pieces_per_box, pr.cost_per_box, pr.hcpcs_code, pr.hcpcs_code as cpt_code, pr.price_wholesale
+      pr.name as product_name, pr.pieces_per_box, COALESCE(pp.cost_per_box, pr.cost_per_box, 0) as cost_per_box,
+      pr.hcpcs_code, pr.hcpcs_code as cpt_code, pr.price_wholesale,
+      pp.custom_price as practice_custom_price
     FROM orders o
     LEFT JOIN patients p ON o.patient_id = p.id
     LEFT JOIN users u ON o.user_id = u.id
     LEFT JOIN products pr ON o.product_id = pr.id
+    LEFT JOIN practice_pricing pp ON pp.user_id = o.user_id AND pp.product_id = o.product_id
     WHERE $whereClause
     ORDER BY o.created_at DESC
   ";

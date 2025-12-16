@@ -349,8 +349,11 @@ $ledgerStmt = $pdo->prepare($ledgerQuery);
 $ledgerStmt->execute([$repId]);
 $ledgerEntries = $ledgerStmt->fetchAll();
 
-// Fetch payout history
+// Fetch payout history with optional date filtering
 // processed_by can be either admin_users.id (integer) or users.id (UUID string)
+$payoutMonth = $_GET['payout_month'] ?? '';
+$payoutYear = $_GET['payout_year'] ?? '';
+
 $payoutsQuery = "
   SELECT rcp.*,
     COALESCE(au.name, CONCAT(u.first_name, ' ', u.last_name)) as processed_by_name
@@ -358,12 +361,33 @@ $payoutsQuery = "
   LEFT JOIN admin_users au ON rcp.processed_by ~ '^[0-9]+$' AND au.id = rcp.processed_by::integer
   LEFT JOIN users u ON rcp.processed_by !~ '^[0-9]+$' AND u.id = rcp.processed_by
   WHERE rcp.rep_id = ?
-  ORDER BY rcp.payout_date DESC
-  LIMIT 50
 ";
+$payoutParams = [$repId];
+
+if ($payoutMonth && $payoutYear) {
+  $payoutsQuery .= " AND EXTRACT(MONTH FROM rcp.payout_date) = ? AND EXTRACT(YEAR FROM rcp.payout_date) = ?";
+  $payoutParams[] = (int)$payoutMonth;
+  $payoutParams[] = (int)$payoutYear;
+} elseif ($payoutYear) {
+  $payoutsQuery .= " AND EXTRACT(YEAR FROM rcp.payout_date) = ?";
+  $payoutParams[] = (int)$payoutYear;
+}
+
+$payoutsQuery .= " ORDER BY rcp.payout_date DESC LIMIT 100";
+
 $payoutsStmt = $pdo->prepare($payoutsQuery);
-$payoutsStmt->execute([$repId]);
+$payoutsStmt->execute($payoutParams);
 $payoutHistory = $payoutsStmt->fetchAll();
+
+// Get available years for filter dropdown
+$availableYearsStmt = $pdo->prepare("
+  SELECT DISTINCT EXTRACT(YEAR FROM payout_date)::INTEGER as year
+  FROM rep_commission_payouts
+  WHERE rep_id = ?
+  ORDER BY year DESC
+");
+$availableYearsStmt->execute([$repId]);
+$availablePayoutYears = $availableYearsStmt->fetchAll(PDO::FETCH_COLUMN);
 
 // Calculate current balance
 $totalCommission = (float)($metrics['total_commission'] ?? 0);
@@ -936,10 +960,36 @@ $statusColors = [
 
 <!-- Section 7: Payout History -->
 <div class="card mb-6" id="payouts">
-  <div class="p-6 border-b">
+  <div class="p-6 border-b flex flex-wrap items-center justify-between gap-4">
     <h3 class="text-lg font-semibold">Payout History</h3>
+    <!-- Date Filter -->
+    <form method="GET" class="flex items-center gap-2">
+      <input type="hidden" name="id" value="<?= htmlspecialchars($repId) ?>">
+      <select name="payout_month" class="text-sm py-1.5">
+        <option value="">All Months</option>
+        <?php for ($m = 1; $m <= 12; $m++): ?>
+          <option value="<?= $m ?>" <?= $payoutMonth == $m ? 'selected' : '' ?>><?= date('F', mktime(0, 0, 0, $m, 1)) ?></option>
+        <?php endfor; ?>
+      </select>
+      <select name="payout_year" class="text-sm py-1.5">
+        <option value="">All Years</option>
+        <?php
+        $years = $availablePayoutYears ?: [date('Y')];
+        if (!in_array(date('Y'), $years)) array_unshift($years, (int)date('Y'));
+        foreach ($years as $y):
+        ?>
+          <option value="<?= $y ?>" <?= $payoutYear == $y ? 'selected' : '' ?>><?= $y ?></option>
+        <?php endforeach; ?>
+      </select>
+      <button type="submit" class="btn btn-sm">Filter</button>
+      <?php if ($payoutMonth || $payoutYear): ?>
+        <a href="?id=<?= urlencode($repId) ?>#payouts" class="text-xs text-gray-500 hover:underline">Clear</a>
+      <?php endif; ?>
+    </form>
   </div>
-  <?php if (empty($payoutHistory)): ?>
+  <?php if (empty($payoutHistory) && ($payoutMonth || $payoutYear)): ?>
+    <div class="p-6 text-center text-gray-500">No payouts found for the selected period.</div>
+  <?php elseif (empty($payoutHistory)): ?>
     <div class="p-6 text-center text-gray-500">No payouts recorded yet.</div>
   <?php else: ?>
     <div class="overflow-x-auto">
@@ -971,8 +1021,8 @@ $statusColors = [
               </td>
               <td class="text-sm"><?= htmlspecialchars($payout['processed_by_name'] ?? 'System') ?></td>
               <td>
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium <?= $payout['status'] === 'completed' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800' ?>">
-                  <?= ucfirst($payout['status']) ?>
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                  Completed
                 </span>
               </td>
             </tr>

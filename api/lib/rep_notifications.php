@@ -346,6 +346,129 @@ HTML;
 }
 
 /**
+ * Send invitation email to rep (alias for send_rep_application_approved for invite workflow)
+ */
+function send_rep_invite(PDO $pdo, string $repEmail, string $repName, string $inviteToken, ?string $personalNote = null): bool {
+    $loginUrl = env('APP_URL', 'https://collagendirect.health') . '/admin/login.php';
+
+    $personalNoteHtml = $personalNote
+        ? "<div style=\"background-color: #f0fdfa; border-left: 4px solid #14b8a6; padding: 15px 20px; margin: 20px 0;\">
+            <p style=\"color: #0d9488; font-size: 14px; margin: 0; font-weight: 500;\">
+                <strong>Personal Note:</strong><br>{$personalNote}
+            </p>
+           </div>"
+        : '';
+
+    $body = <<<HTML
+<h2 style="color: #1e293b; margin: 0 0 20px 0; font-size: 22px;">You're Invited to Join CollagenDirect!</h2>
+
+<p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 15px 0;">
+    Dear {$repName},
+</p>
+
+<p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 15px 0;">
+    You've been invited to become a CollagenDirect Sales Representative. Your account has been created and is ready for you to access.
+</p>
+
+{$personalNoteHtml}
+
+<p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 20px 0;">
+    Click the button below to log in and get started.
+</p>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{$loginUrl}" style="display: inline-block; background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 15px;">
+        Log In to Your Portal
+    </a>
+</div>
+
+<div style="background-color: #f0fdfa; border-left: 4px solid #14b8a6; padding: 15px 20px; margin: 20px 0;">
+    <p style="color: #0d9488; font-size: 14px; margin: 0; font-weight: 500;">
+        <strong>Getting Started:</strong><br>
+        • Onboard your first clinic from the Dashboard<br>
+        • Add physicians to your assigned clinics<br>
+        • Track your commissions in real-time<br>
+        • Access your signed documents anytime
+    </p>
+</div>
+
+<p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 20px 0 0 0;">
+    We look forward to a successful partnership!
+</p>
+HTML;
+
+    $html = email_template('Welcome to CollagenDirect!', $body);
+    return send_email($repEmail, $repName, 'You\'re Invited to Join CollagenDirect!', $html);
+}
+
+/**
+ * Send notification to rep: Application Approved (alias for backwards compatibility)
+ */
+function send_rep_approved(PDO $pdo, string $repEmail, string $repName): bool {
+    return send_rep_application_approved($pdo, $repEmail, $repName);
+}
+
+/**
+ * Send notification to rep: Application Rejected (alias for backwards compatibility)
+ */
+function send_rep_rejected(PDO $pdo, string $repEmail, string $repName, ?string $reason = null): bool {
+    return send_rep_application_rejected($pdo, $repEmail, $repName, $reason);
+}
+
+/**
+ * Send W9 request email to rep
+ */
+function send_rep_w9_request(PDO $pdo, string $repEmail, string $repName, int $taxYear, ?string $message = null): bool {
+    $portalUrl = env('APP_URL', 'https://collagendirect.health') . '/admin/rep/';
+
+    $messageHtml = $message
+        ? "<div style=\"background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px 20px; margin: 20px 0;\">
+            <p style=\"color: #92400e; font-size: 14px; margin: 0;\">
+                <strong>Note from Admin:</strong><br>{$message}
+            </p>
+           </div>"
+        : '';
+
+    $body = <<<HTML
+<h2 style="color: #1e293b; margin: 0 0 20px 0; font-size: 22px;">W-9 Form Required</h2>
+
+<p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 15px 0;">
+    Dear {$repName},
+</p>
+
+<p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 15px 0;">
+    We need you to submit a W-9 form for tax year <strong>{$taxYear}</strong>. This is required for commission payouts and tax reporting purposes.
+</p>
+
+{$messageHtml}
+
+<p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 20px 0;">
+    Please log in to your portal and upload your completed W-9 form at your earliest convenience.
+</p>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{$portalUrl}" style="display: inline-block; background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 15px;">
+        Submit W-9 Form
+    </a>
+</div>
+
+<div style="background-color: #f8fafc; border-left: 4px solid #64748b; padding: 15px 20px; margin: 20px 0;">
+    <p style="color: #475569; font-size: 14px; margin: 0;">
+        <strong>Why is this needed?</strong><br>
+        The W-9 form provides your tax identification information which is required by the IRS before we can process commission payments to you.
+    </p>
+</div>
+
+<p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 20px 0 0 0;">
+    Thank you for your prompt attention to this matter.
+</p>
+HTML;
+
+    $html = email_template('W-9 Form Required - CollagenDirect', $body);
+    return send_email($repEmail, $repName, "W-9 Form Required for Tax Year {$taxYear}", $html);
+}
+
+/**
  * Send notification to admin: New Assignment Request
  */
 function send_admin_new_assignment_request(PDO $pdo, string $repName, string $clinicName): bool {

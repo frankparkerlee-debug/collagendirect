@@ -244,19 +244,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'request_w9':
                 $repId = $_POST['rep_id'] ?? '';
                 if ($repId) {
-                    // Send W9 request email
-                    if (function_exists('send_generic_email')) {
-                        $repStmt = $pdo->prepare("SELECT u.email, u.first_name FROM sales_reps sr JOIN users u ON u.id = sr.user_id WHERE sr.id = ?");
-                        $repStmt->execute([$repId]);
-                        $rep = $repStmt->fetch();
-                        if ($rep) {
-                            send_generic_email(
-                                $rep['email'],
-                                "W9 Form Required - CollagenDirect",
-                                "Hi {$rep['first_name']},\n\nWe need you to submit your W9 form to process your commission payouts.\n\nPlease log in to your distributor portal, go to My Account > Documents, and upload your completed W9 form.\n\nIf you need a blank W9 form, you can download it from the IRS website: https://www.irs.gov/pub/irs-pdf/fw9.pdf\n\nThank you,\nCollagenDirect Team"
-                            );
-                            $message = 'W9 request email sent to ' . $rep['first_name'] . '.';
+                    // Send W9 request email using the dedicated function
+                    require_once __DIR__ . '/../../api/lib/rep_notifications.php';
+                    $repStmt = $pdo->prepare("SELECT u.email, u.first_name, u.last_name FROM sales_reps sr JOIN users u ON u.id = sr.user_id WHERE sr.id = ?");
+                    $repStmt->execute([$repId]);
+                    $rep = $repStmt->fetch();
+                    if ($rep) {
+                        $taxYear = (int)date('Y');
+                        if (send_rep_w9_request($pdo, $rep['email'], $rep['first_name'] . ' ' . $rep['last_name'], $taxYear)) {
+                            $message = 'W9 request email sent to ' . htmlspecialchars($rep['first_name']) . '.';
+                        } else {
+                            $error = 'Unable to send W9 request email. Please check email configuration.';
                         }
+                    } else {
+                        $error = 'Distributor not found.';
                     }
                 }
                 break;
@@ -680,7 +681,7 @@ function sendDistributorInviteEmail($pdo, $repId, $inviteToken, $personalNote) {
                         <div class="text-xs text-gray-500"><?= htmlspecialchars($w9['email']) ?></div>
                     </td>
                     <td class="py-3 px-4 text-gray-600"><?= htmlspecialchars($w9['company_name'] ?? '-') ?></td>
-                    <td class="py-3 px-4"><?= htmlspecialchars($w9['tax_year']) ?></td>
+                    <td class="py-3 px-4"><?= htmlspecialchars((string)$w9['tax_year']) ?></td>
                     <td class="py-3 px-4 text-gray-500 text-xs"><?= date('M j, Y g:i A', strtotime($w9['submitted_at'])) ?></td>
                     <td class="py-3 px-4">
                         <a href="/<?= htmlspecialchars($w9['file_path']) ?>" target="_blank" class="text-blue-600 hover:underline text-xs flex items-center gap-1">
