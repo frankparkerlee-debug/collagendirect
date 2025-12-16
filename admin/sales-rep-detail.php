@@ -155,8 +155,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       case 'assign_clinic':
         $clinicUserId = $_POST['clinic_user_id'] ?? '';
         if ($clinicUserId) {
-          // Verify clinic exists and is a physician
-          $checkStmt = $pdo->prepare("SELECT id, first_name, last_name, practice_name FROM users WHERE id = ? AND role = 'physician'");
+          // Verify clinic exists and is a physician or practice_admin
+          $checkStmt = $pdo->prepare("SELECT id, first_name, last_name, practice_name FROM users WHERE id = ? AND role IN ('physician', 'practice_admin')");
           $checkStmt->execute([$clinicUserId]);
           $clinic = $checkStmt->fetch();
 
@@ -275,11 +275,12 @@ $docsStmt->execute([$repId]);
 $signedDocs = $docsStmt->fetchAll();
 
 // Fetch assigned clinics (physicians only, exclude sales reps)
+// Per-clinic revenue uses collected_amount from commission ledger (actual payments collected)
 $clinicsQuery = "
   SELECT u.id, u.first_name, u.last_name, u.practice_name, u.email, u.npi,
     u.rep_assignment_date, u.rep_assigned_by,
     (SELECT COUNT(*) FROM orders WHERE user_id = u.id) as order_count,
-    (SELECT COALESCE(SUM(product_price), 0) FROM orders WHERE user_id = u.id AND status NOT IN ('cancelled', 'voided')) as total_revenue
+    (SELECT COALESCE(SUM(rcl.collected_amount), 0) FROM rep_commission_ledger rcl WHERE rcl.clinic_id = u.id AND rcl.rep_id = ?) as total_revenue
   FROM users u
   WHERE u.assigned_rep_id = ?
     AND u.role IN ('physician', 'practice_admin')
@@ -287,7 +288,7 @@ $clinicsQuery = "
   ORDER BY u.rep_assignment_date DESC
 ";
 $clinicsStmt = $pdo->prepare($clinicsQuery);
-$clinicsStmt->execute([$repId]);
+$clinicsStmt->execute([$repId, $repId]); // First for revenue subquery, second for assigned_rep_id
 $assignedClinics = $clinicsStmt->fetchAll();
 
 // Fetch available clinics (physicians not assigned to any rep, excluding sales reps)
@@ -304,11 +305,12 @@ $availableClinicsStmt = $pdo->query($availableClinicsQuery);
 $availableClinics = $availableClinicsStmt->fetchAll();
 
 // Performance metrics (count only physician clinics, exclude sales reps)
+// total_revenue uses collected_amount from commission ledger for accuracy (actual payments collected)
 $metricsQuery = "
   SELECT
     (SELECT COUNT(*) FROM users WHERE assigned_rep_id = :rep_id AND role IN ('physician', 'practice_admin') AND id NOT IN (SELECT user_id FROM sales_reps WHERE user_id IS NOT NULL)) as total_clinics,
     (SELECT COUNT(*) FROM orders o JOIN users u ON o.user_id = u.id WHERE u.assigned_rep_id = :rep_id AND u.role IN ('physician', 'practice_admin')) as total_orders,
-    (SELECT COALESCE(SUM(o.product_price), 0) FROM orders o JOIN users u ON o.user_id = u.id WHERE u.assigned_rep_id = :rep_id AND u.role IN ('physician', 'practice_admin') AND o.status NOT IN ('cancelled', 'voided')) as total_revenue,
+    (SELECT COALESCE(SUM(collected_amount), 0) FROM rep_commission_ledger WHERE rep_id = :rep_id) as total_revenue,
     (SELECT COALESCE(SUM(commission_amount), 0) FROM rep_commission_ledger WHERE rep_id = :rep_id) as total_commission
 ";
 $metricsStmt = $pdo->prepare($metricsQuery);

@@ -324,10 +324,11 @@ $assignmentRequests = [];
 $payoutData = [];
 
 // Active distributors
+// Commission rate query matches sales-rep-detail.php: effective_date <= today, order by effective_date DESC then created_at DESC
 $activeReps = $pdo->query("
     SELECT sr.*, u.first_name, u.last_name, u.email, u.phone,
            (SELECT COUNT(*) FROM users WHERE assigned_rep_id = sr.id) as clinic_count,
-           (SELECT rate FROM rep_commission_rates WHERE rep_id = sr.id AND (end_date IS NULL OR end_date > CURRENT_DATE) ORDER BY effective_date DESC LIMIT 1) as commission_rate
+           (SELECT rate FROM rep_commission_rates WHERE rep_id = sr.id AND (effective_date IS NULL OR effective_date <= CURRENT_DATE) ORDER BY effective_date DESC NULLS LAST, created_at DESC LIMIT 1) as commission_rate
     FROM sales_reps sr
     JOIN users u ON u.id = sr.user_id
     WHERE sr.status = 'active'
