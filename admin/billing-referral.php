@@ -31,6 +31,9 @@ if (!function_exists('e')) {
   function e($v){ return htmlspecialchars((string)$v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
 }
 
+// Load reimbursement rates for consistent revenue calculation
+$reimbursementRates = load_reimbursement_rates($pdo);
+
 /* ================= CSV Export ================= */
 if (isset($_GET['export']) && $_GET['export'] === 'csv') {
   header('Content-Type: text/csv; charset=utf-8');
@@ -123,7 +126,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     if ($insuranceBilledValue > 0) {
       $billedAmount = $insuranceBilledValue;
     } else {
-      $revenueCalc = calculate_order_revenue($row);
+      $revenueCalc = calculate_order_revenue($row, $reimbursementRates);
       $billedAmount = $revenueCalc['revenue'];
     }
 
@@ -205,7 +208,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           $isNewlyCollected = ($collectionStatus === 'collected' && ($order['prev_status'] ?? '') !== 'collected');
           if ($isNewlyCollected && $paymentDiff <= 0 && $newTotal <= 0) {
             // Calculate the expected revenue for this order
-            $revenueCalc = calculate_order_revenue($order);
+            $revenueCalc = calculate_order_revenue($order, $reimbursementRates);
             $estimatedPayment = (float)($order['insurance_billed'] ?? 0);
             if ($estimatedPayment <= 0) {
               $estimatedPayment = $revenueCalc['revenue'];
@@ -248,8 +251,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           $pdo->commit();
 
           // Calculate commission if there's a new payment
+          error_log("[billing-referral] Payment diff check: paymentDiff={$paymentDiff}, newTotal={$newTotal}, prevTotal={$prevTotal}, insurancePaid=" . ($insurancePaid ?? 'null') . ", patientPaid=" . ($patientPaid ?? 'null'));
+
           if ($paymentDiff > 0) {
             try {
+              error_log("[billing-referral] Calling calculate_commission: orderId={$orderId}, userId={$order['user_id']}, paymentDiff={$paymentDiff}");
+
               $commissionResult = calculate_commission(
                 $pdo,
                 $orderId,
@@ -263,15 +270,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['success_msg'] = 'Collection updated. Commission of $' . number_format($commissionResult['commission_amount'], 2) . ' recorded for rep.';
                 error_log("[billing-referral] Commission recorded: order={$orderId}, rep={$commissionResult['rep_id']}, amount={$commissionResult['commission_amount']}");
               } else {
-                // Check if physician has assigned rep
+                // Check if physician has assigned rep via assigned_rep_id
                 $repCheck = $pdo->prepare("SELECT assigned_rep_id FROM users WHERE id = ?");
                 $repCheck->execute([$order['user_id']]);
                 $assignedRep = $repCheck->fetchColumn();
+
+                // Also check admin_physicians
+                $adminCheck = $pdo->prepare("SELECT ap.admin_id, au.email as admin_email FROM admin_physicians ap JOIN admin_users au ON au.id = ap.admin_id WHERE ap.physician_user_id = ?");
+                $adminCheck->execute([$order['user_id']]);
+                $adminPhys = $adminCheck->fetch();
+
                 if ($assignedRep) {
                   $_SESSION['success_msg'] = 'Collection updated. Commission calculation failed - please check rate configuration.';
-                  error_log("[billing-referral] Commission failed: order={$orderId}, user={$order['user_id']}, rep={$assignedRep} - no rate found");
+                  error_log("[billing-referral] Commission failed: order={$orderId}, user={$order['user_id']}, assigned_rep={$assignedRep} - no rate found");
+                } elseif ($adminPhys) {
+                  $_SESSION['success_msg'] = 'Collection updated. Internal admin found but no linked sales_reps profile.';
+                  error_log("[billing-referral] Commission failed: order={$orderId}, user={$order['user_id']}, admin_id={$adminPhys['admin_id']}, admin_email={$adminPhys['admin_email']} - no sales_reps profile linked");
                 } else {
                   $_SESSION['success_msg'] = 'Collection updated. No sales rep assigned to this physician.';
+                  error_log("[billing-referral] No rep: order={$orderId}, user={$order['user_id']} - neither assigned_rep_id nor admin_physicians found");
                 }
               }
             } catch (Exception $commErr) {
@@ -280,6 +297,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
           } else {
             $_SESSION['success_msg'] = 'Collection updated successfully.';
+            error_log("[billing-referral] No commission: paymentDiff={$paymentDiff} <= 0");
           }
         }
       } catch (Exception $e) {
@@ -431,7 +449,7 @@ try {
     $insuranceBilledValue = (float)($order['insurance_billed'] ?? 0);
 
     // Use revenue calculator for consistency across all reports
-    $revenueCalc = calculate_order_revenue($order);
+    $revenueCalc = calculate_order_revenue($order, $reimbursementRates);
 
     if ($insuranceBilledValue > 0) {
       // Use explicitly set insurance_billed amount
