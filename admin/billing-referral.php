@@ -125,7 +125,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     $balance = $billedAmount - $insurancePaid - $patientPaid - $adjustment - $writeOff;
 
     fputcsv($output, [
-      $row['order_number'] ?? $row['id'],
+      $row['order_number'] ?: 'RF-' . substr($row['id'], 0, 8),
       trim($row['patient_first'] . ' ' . $row['patient_last']),
       trim($row['phys_first'] . ' ' . $row['phys_last']),
       $row['insurer_name'] ?? '',
@@ -677,7 +677,7 @@ include __DIR__.'/_header.php';
               <tr class="border-t hover:bg-slate-50">
                 <td class="py-3 px-4">
                   <a href="/admin/orders.php?id=<?=e($order['id'])?>" class="font-medium text-brand hover:underline">
-                    <?=e($order['order_number'] ?? substr($order['id'], 0, 8))?>
+                    <?=e($order['order_number'] ?: 'RF-' . substr($order['id'], 0, 8))?>
                   </a>
                   <?php if ($hasRep): ?>
                     <span class="ml-1 text-xs text-purple-600" title="Has assigned rep">&#x2605;</span>

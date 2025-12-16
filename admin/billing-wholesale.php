@@ -417,13 +417,15 @@ try {
 
   if ($filterStatus) {
     if ($filterStatus === 'unpaid') {
-      $whereConditions[] = "(o.paid_at IS NULL AND o.invoice_status NOT IN ('paid', 'void'))";
+      // Handle NULL invoice_status as unpaid
+      $whereConditions[] = "(o.paid_at IS NULL AND (o.invoice_status IS NULL OR o.invoice_status NOT IN ('paid', 'void')))";
     } elseif ($filterStatus === 'paid') {
       $whereConditions[] = "(o.paid_at IS NOT NULL OR o.invoice_status = 'paid')";
     } elseif ($filterStatus === 'partial') {
       $whereConditions[] = "o.invoice_status = 'partial'";
     } elseif ($filterStatus === 'overdue') {
-      $whereConditions[] = "(o.invoice_status = 'overdue' OR (o.due_date < CURRENT_DATE AND o.paid_at IS NULL AND o.invoice_status NOT IN ('paid', 'void')))";
+      // Handle NULL invoice_status
+      $whereConditions[] = "(o.invoice_status = 'overdue' OR (o.due_date < CURRENT_DATE AND o.paid_at IS NULL AND (o.invoice_status IS NULL OR o.invoice_status NOT IN ('paid', 'void'))))";
     } elseif ($filterStatus === 'collections') {
       $whereConditions[] = "o.collection_flag = TRUE";
     } elseif ($filterStatus === 'void') {

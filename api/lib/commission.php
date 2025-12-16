@@ -64,17 +64,16 @@ function calculate_commission(
   // 3. Calculate commission
   $commissionAmount = $paymentAmount * $rate;
 
-  // 4. Create ledger entry
-  $entryId = bin2hex(random_bytes(16));
+  // 4. Create ledger entry (id is SERIAL, auto-generated)
   $insertStmt = $pdo->prepare("
     INSERT INTO rep_commission_ledger (
-      id, rep_id, order_id, order_type, payment_id, clinic_id,
+      rep_id, order_id, order_type, payment_id, clinic_id,
       payment_date, collected_amount, commission_rate, commission_amount,
       status, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())
+    RETURNING id
   ");
   $insertStmt->execute([
-    $entryId,
     $repId,
     $orderId,
     $orderType,
@@ -85,6 +84,7 @@ function calculate_commission(
     $rate,
     $commissionAmount
   ]);
+  $entryId = $insertStmt->fetchColumn();
 
   return [
     'entry_id' => $entryId,
@@ -168,17 +168,16 @@ function reverse_commission(
   // 2. Calculate reversal amount (negative)
   $reversalAmount = -abs($refundAmount * $rate);
 
-  // 3. Create reversal ledger entry
-  $entryId = bin2hex(random_bytes(16));
+  // 3. Create reversal ledger entry (id is SERIAL, auto-generated)
   $insertStmt = $pdo->prepare("
     INSERT INTO rep_commission_ledger (
-      id, rep_id, order_id, order_type, payment_id, clinic_id,
+      rep_id, order_id, order_type, payment_id, clinic_id,
       payment_date, collected_amount, commission_rate, commission_amount,
       status, notes, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, NOW())
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, NOW())
+    RETURNING id
   ");
   $insertStmt->execute([
-    $entryId,
     $repId,
     $orderId,
     $orderType,
@@ -190,6 +189,7 @@ function reverse_commission(
     $reversalAmount,     // Negative commission
     $notes ?: 'Payment reversal/refund'
   ]);
+  $entryId = $insertStmt->fetchColumn();
 
   return [
     'entry_id' => $entryId,
