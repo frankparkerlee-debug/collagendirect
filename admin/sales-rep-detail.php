@@ -7,6 +7,7 @@
  */
 declare(strict_types=1);
 require __DIR__ . '/_header.php';
+require_once __DIR__ . '/lib/order_display.php';
 
 // Check permissions
 $allowedRoles = ['superadmin', 'manufacturer'];
@@ -335,7 +336,7 @@ $metrics = $metricsStmt->fetch();
 // Fetch commission ledger
 $ledgerQuery = "
   SELECT rcl.*,
-    o.id as order_number,
+    o.id as order_uuid, o.order_number,
     u.practice_name as clinic_name, u.first_name as clinic_first, u.last_name as clinic_last
   FROM rep_commission_ledger rcl
   LEFT JOIN orders o ON o.id = rcl.order_id
@@ -910,8 +911,8 @@ $statusColors = [
               <td class="text-sm"><?= date('M j, Y', strtotime($entry['payment_date'])) ?></td>
               <td class="text-sm"><?= ucfirst($entry['order_type']) ?></td>
               <td class="text-sm">
-                <?php if ($entry['order_number']): ?>
-                  <a href="/admin/orders.php?id=<?= $entry['order_id'] ?>" class="text-teal-600 hover:underline">#<?= $entry['order_number'] ?></a>
+                <?php if ($entry['order_uuid']): ?>
+                  <a href="/admin/orders.php?id=<?= htmlspecialchars($entry['order_id']) ?>" class="text-teal-600 hover:underline"><?= format_order_number_html(['id' => $entry['order_uuid'], 'order_number' => $entry['order_number']]) ?></a>
                 <?php else: ?>
                   -
                 <?php endif; ?>

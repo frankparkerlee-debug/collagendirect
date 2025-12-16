@@ -6,6 +6,8 @@
  */
 declare(strict_types=1);
 require __DIR__ . '/_header.php';
+require_once __DIR__ . '/../lib/revenue_calculator.php';
+require_once __DIR__ . '/../lib/order_display.php';
 
 $repId = $admin['rep_id'] ?? null;
 if (!$repId) {
@@ -31,14 +33,22 @@ $clinicsStmt = $pdo->prepare("
 $clinicsStmt->execute([$repId]);
 $clinics = $clinicsStmt->fetchAll();
 
+// Load reimbursement rates for revenue calculation
+$reimbursementRates = load_reimbursement_rates($pdo);
+
 // Build orders query - SCOPED to assigned clinics only
 $query = "
-  SELECT o.id, o.status, o.created_at, o.product, o.payment_type, o.amount_due,
+  SELECT o.id, o.order_number, o.status, o.created_at, o.product, o.payment_type, o.amount_due,
+         o.billed_by, o.product_price, o.qty_per_change, o.duration_days, o.refills_allowed,
+         o.frequency_per_week, o.wounds_data,
          p.first_name as patient_first, p.last_name as patient_last,
-         u.id as clinic_id, u.practice_name, u.first_name as phys_first, u.last_name as phys_last
+         u.id as clinic_id, u.practice_name, u.first_name as phys_first, u.last_name as phys_last,
+         u.account_type,
+         pr.pieces_per_box, pr.cost_per_box, pr.hcpcs_code as cpt_code, pr.price_wholesale
   FROM orders o
   JOIN patients p ON p.id = o.patient_id
   JOIN users u ON u.id = o.user_id
+  LEFT JOIN products pr ON pr.id = o.product_id
   WHERE u.assigned_rep_id = ?
   AND o.status NOT IN ('draft')
   AND o.deleted_at IS NULL
@@ -144,18 +154,28 @@ $statuses = ['submitted', 'under_review', 'approved', 'in_production', 'shipped'
     <table>
       <thead>
         <tr>
+          <th>Order</th>
           <th>Patient</th>
           <th>Clinic</th>
           <th>Product</th>
           <th>Type</th>
           <th>Status</th>
-          <th>Amount</th>
+          <th>Revenue</th>
           <th>Created</th>
         </tr>
       </thead>
       <tbody>
-        <?php foreach ($orders as $order): ?>
+        <?php foreach ($orders as $order):
+          // Calculate revenue using the revenue calculator
+          $revenueCalc = calculate_order_revenue($order, $reimbursementRates);
+          $orderRevenue = $revenueCalc['revenue'];
+          // Use amount_due if set (wholesale), otherwise calculated revenue (referral)
+          $displayAmount = (float)($order['amount_due'] ?? 0) > 0 ? (float)$order['amount_due'] : $orderRevenue;
+        ?>
           <tr>
+            <td>
+              <div class="font-medium text-teal-600"><?= format_order_number_html($order) ?></div>
+            </td>
             <td>
               <div class="font-medium"><?= htmlspecialchars($order['patient_first'] . ' ' . $order['patient_last']) ?></div>
             </td>
@@ -189,8 +209,8 @@ $statuses = ['submitted', 'under_review', 'approved', 'in_production', 'shipped'
               </span>
             </td>
             <td>
-              <?php if ($order['amount_due']): ?>
-                $<?= number_format((float)$order['amount_due'], 2) ?>
+              <?php if ($displayAmount > 0): ?>
+                <span class="font-medium">$<?= number_format($displayAmount, 2) ?></span>
               <?php else: ?>
                 <span class="text-gray-400">-</span>
               <?php endif; ?>
