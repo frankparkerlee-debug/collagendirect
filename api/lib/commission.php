@@ -33,9 +33,32 @@ function calculate_commission(
   ?string $paymentId = null
 ): ?array {
   // 1. Get clinic's assigned rep
+  // First check assigned_rep_id (external distributors)
   $repStmt = $pdo->prepare("SELECT assigned_rep_id FROM users WHERE id = ?");
   $repStmt->execute([$clinicId]);
   $repId = $repStmt->fetchColumn();
+
+  // If no external rep assigned, check admin_physicians for internal admins
+  // Internal admins have their ID stored in admin_physicians.admin_id (integer from admin_users)
+  // Check if this admin has a linked sales_reps profile via their email
+  if (!$repId) {
+    $adminStmt = $pdo->prepare("
+      SELECT ap.admin_id, sr.id as sales_rep_id
+      FROM admin_physicians ap
+      JOIN admin_users au ON au.id = ap.admin_id
+      LEFT JOIN users u ON u.email = au.email
+      LEFT JOIN sales_reps sr ON sr.user_id = u.id
+      WHERE ap.physician_user_id = ?
+      LIMIT 1
+    ");
+    $adminStmt->execute([$clinicId]);
+    $adminRow = $adminStmt->fetch();
+
+    if ($adminRow && $adminRow['sales_rep_id']) {
+      // Use sales_rep_id if admin has a linked sales_reps profile (via email match)
+      $repId = $adminRow['sales_rep_id'];
+    }
+  }
 
   if (!$repId) {
     // No rep assigned, no commission
@@ -125,9 +148,29 @@ function reverse_commission(
   ?string $notes = null
 ): ?array {
   // 1. Get clinic's assigned rep (at time of reversal)
+  // First check assigned_rep_id (external distributors)
   $repStmt = $pdo->prepare("SELECT assigned_rep_id FROM users WHERE id = ?");
   $repStmt->execute([$clinicId]);
   $repId = $repStmt->fetchColumn();
+
+  // If no external rep, check admin_physicians for internal admins
+  if (!$repId) {
+    $adminStmt = $pdo->prepare("
+      SELECT ap.admin_id, sr.id as sales_rep_id
+      FROM admin_physicians ap
+      JOIN admin_users au ON au.id = ap.admin_id
+      LEFT JOIN users u ON u.email = au.email
+      LEFT JOIN sales_reps sr ON sr.user_id = u.id
+      WHERE ap.physician_user_id = ?
+      LIMIT 1
+    ");
+    $adminStmt->execute([$clinicId]);
+    $adminRow = $adminStmt->fetch();
+
+    if ($adminRow && $adminRow['sales_rep_id']) {
+      $repId = $adminRow['sales_rep_id'];
+    }
+  }
 
   if (!$repId) {
     // No rep assigned, check if there's an original commission entry

@@ -7,6 +7,7 @@
 declare(strict_types=1);
 require __DIR__ . '/_header.php';
 require_once __DIR__ . '/../../api/lib/commission.php';
+require_once __DIR__ . '/../lib/order_display.php';
 
 // Get rep_id from session
 $repId = $admin['rep_id'] ?? null;
@@ -101,7 +102,7 @@ $lastPayout = $lastPayoutStmt->fetch();
 
 // Get recent orders from assigned clinics
 $recentOrdersStmt = $pdo->prepare("
-  SELECT o.id, o.status, o.created_at, o.product,
+  SELECT o.id, o.order_number, o.status, o.created_at, o.product,
          p.first_name as patient_first, p.last_name as patient_last,
          u.practice_name, u.first_name as phys_first, u.last_name as phys_last
   FROM orders o
@@ -293,6 +294,9 @@ $signedDocs = $signedDocsStmt->fetchAll();
           <?php foreach ($recentOrders as $order): ?>
             <div class="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
               <div>
+                <a href="/admin/rep/orders.php?id=<?= htmlspecialchars($order['id']) ?>" class="text-xs font-medium text-teal-600 hover:underline">
+                  <?= format_order_number_html($order) ?>
+                </a>
                 <p class="text-sm font-medium text-gray-900">
                   <?= htmlspecialchars($order['patient_first'] . ' ' . $order['patient_last']) ?>
                 </p>
