@@ -59,9 +59,11 @@ $isPracticeAdmin = in_array($userRole, ['practice_admin', 'superadmin']);
 // Users created via admin/employee-rep portal won't have these signed initially
 $needsAgreements = empty($user['agree_msa']) || empty($user['agree_baa']);
 $isSignAgreementsPage = ($_GET['page'] ?? '') === 'sign-agreements';
+$isSignAgreementsAction = ($_GET['action'] ?? '') === 'sign_agreements';
 
 // Redirect to agreement signing page if not already there
-if ($needsAgreements && !$isSignAgreementsPage) {
+// Allow the sign_agreements API action to proceed without redirect
+if ($needsAgreements && !$isSignAgreementsPage && !$isSignAgreementsAction) {
   header('Location: /portal/index.php?page=sign-agreements');
   exit;
 }
