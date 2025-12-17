@@ -41,7 +41,9 @@ $repFilter = $_GET['rep'] ?? '';
 /* Sales role can see all physicians (not just assigned) and can create new ones */
 $physQuery = "
   SELECT u.id, u.first_name, u.last_name, u.email, u.account_type, u.status, u.created_at, u.role, u.practice_name,
-         u.assigned_rep_id,
+         u.assigned_rep_id, u.phone, u.address, u.city, u.state, u.zip, u.npi, u.ptan, u.license, u.license_state, u.license_expiry,
+         u.is_referral_only, u.has_dme_license, u.is_hybrid,
+         u.agree_msa, u.agree_baa, u.sign_name, u.sign_title, u.sign_date, u.signed_ip,
          CASE WHEN sr.id IS NOT NULL THEN CONCAT(rep_user.first_name, ' ', rep_user.last_name) ELSE NULL END as rep_name
   FROM users u
   LEFT JOIN sales_reps sr ON sr.id = u.assigned_rep_id
@@ -660,6 +662,120 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                   <button type="button" onclick="toggleUserDetails('user-<?=e($u['id'])?>')" class="bg-slate-200 rounded px-4 py-2 text-sm">Cancel</button>
                 </div>
               </form>
+
+              <!-- Signed Agreements Section -->
+              <div class="mt-6 pt-6 border-t">
+                <div class="font-semibold text-sm mb-3">Signed Agreements</div>
+                <?php if (!empty($u['agree_msa']) && !empty($u['agree_baa'])): ?>
+                  <div class="bg-green-50 border border-green-200 rounded p-3 mb-3">
+                    <div class="flex items-center gap-2 text-green-700 font-medium text-sm mb-2">
+                      <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                      Agreements Signed
+                    </div>
+                    <div class="text-xs text-green-600 space-y-1">
+                      <div><strong>Signed By:</strong> <?=e($u['sign_name'] ?? 'N/A')?><?php if ($u['sign_title']): ?>, <?=e($u['sign_title'])?><?php endif; ?></div>
+                      <div><strong>Date:</strong> <?=e($u['sign_date'] ? date('M j, Y g:i A', strtotime($u['sign_date'])) : 'N/A')?></div>
+                      <?php if ($u['signed_ip']): ?><div><strong>IP Address:</strong> <?=e($u['signed_ip'])?></div><?php endif; ?>
+                    </div>
+                  </div>
+
+                  <!-- Expandable Agreement Text -->
+                  <div class="space-y-3">
+                    <details class="border rounded">
+                      <summary class="px-3 py-2 bg-slate-100 cursor-pointer text-sm font-medium hover:bg-slate-200">
+                        View Terms of Service (MSA)
+                      </summary>
+                      <div class="p-3 text-xs text-slate-700 max-h-64 overflow-y-auto bg-white" style="white-space: pre-wrap; font-family: inherit;">
+<strong>MASTER SERVICE AGREEMENT</strong>
+
+This Master Service Agreement ("Agreement") governs your use of CollagenDirect services.
+
+<strong>1. SERVICES</strong>
+CollagenDirect provides a platform connecting healthcare providers with medical supply fulfillment services for wound care products including collagen dressings and related supplies.
+
+<strong>2. PROVIDER RESPONSIBILITIES</strong>
+- Maintain valid medical licenses and credentials
+- Ensure proper patient documentation and medical necessity
+- Comply with all applicable healthcare regulations
+- Submit accurate patient and order information
+- Maintain patient confidentiality per HIPAA requirements
+
+<strong>3. ORDERING AND FULFILLMENT</strong>
+- Orders are processed upon receipt of complete documentation
+- Shipping times vary based on product availability and location
+- CollagenDirect reserves the right to verify orders before processing
+
+<strong>4. BILLING AND PAYMENT</strong>
+- Referral orders: Billed directly to patient insurance or patient
+- Wholesale orders: Billed to practice per agreed pricing terms
+- Payment terms are Net 30 unless otherwise specified
+
+<strong>5. COMPLIANCE</strong>
+Both parties agree to comply with all applicable federal and state laws, including but not limited to HIPAA, Anti-Kickback Statute, and Stark Law.
+
+<strong>6. LIMITATION OF LIABILITY</strong>
+CollagenDirect's liability is limited to the cost of products provided. In no event shall CollagenDirect be liable for indirect, consequential, or punitive damages.
+
+<strong>7. TERM AND TERMINATION</strong>
+This agreement remains in effect until terminated by either party with 30 days written notice.
+                      </div>
+                    </details>
+
+                    <details class="border rounded">
+                      <summary class="px-3 py-2 bg-slate-100 cursor-pointer text-sm font-medium hover:bg-slate-200">
+                        View Business Associate Agreement (BAA)
+                      </summary>
+                      <div class="p-3 text-xs text-slate-700 max-h-64 overflow-y-auto bg-white" style="white-space: pre-wrap; font-family: inherit;">
+<strong>BUSINESS ASSOCIATE AGREEMENT</strong>
+
+This Business Associate Agreement ("BAA") is entered into pursuant to HIPAA requirements.
+
+<strong>1. DEFINITIONS</strong>
+- "Protected Health Information" (PHI) has the meaning set forth in 45 CFR 160.103
+- "Business Associate" refers to CollagenDirect
+- "Covered Entity" refers to the healthcare provider using CollagenDirect services
+
+<strong>2. PERMITTED USES AND DISCLOSURES</strong>
+Business Associate may use or disclose PHI only as necessary to:
+- Perform services under this Agreement
+- Comply with legal requirements
+- Support treatment, payment, or healthcare operations
+
+<strong>3. SAFEGUARDS</strong>
+Business Associate agrees to:
+- Implement appropriate administrative, physical, and technical safeguards
+- Ensure workforce compliance with PHI protection requirements
+- Report any security incidents or breaches promptly
+
+<strong>4. INDIVIDUAL RIGHTS</strong>
+Business Associate will:
+- Provide access to PHI upon request within 30 days
+- Make amendments to PHI as directed
+- Provide accounting of disclosures as required
+
+<strong>5. BREACH NOTIFICATION</strong>
+Business Associate will notify Covered Entity of any breach of unsecured PHI within 60 days of discovery.
+
+<strong>6. TERM AND TERMINATION</strong>
+This BAA remains in effect concurrent with the Master Service Agreement. Upon termination, Business Associate will return or destroy all PHI.
+
+<strong>7. COMPLIANCE</strong>
+Both parties agree to comply with applicable HIPAA Privacy and Security Rules.
+                      </div>
+                    </details>
+                  </div>
+                <?php else: ?>
+                  <div class="bg-amber-50 border border-amber-200 rounded p-3">
+                    <div class="flex items-center gap-2 text-amber-700 font-medium text-sm">
+                      <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                      Agreements Not Yet Signed
+                    </div>
+                    <div class="text-xs text-amber-600 mt-1">
+                      This provider has not completed the Terms of Service and Business Associate Agreement.
+                    </div>
+                  </div>
+                <?php endif; ?>
+              </div>
 
               <?php if (($u['role'] ?? '') === 'practice_admin'): ?>
               <!-- Practice Locations Section -->
