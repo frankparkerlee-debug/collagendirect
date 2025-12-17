@@ -4942,6 +4942,21 @@ if ($page==='logout'){
       min-height: 28px !important;
     }
   }
+
+  /* Ensure details/summary elements work properly */
+  details > summary {
+    list-style: none;
+  }
+  details > summary::-webkit-details-marker {
+    display: none;
+  }
+  details[open] > summary ~ * {
+    animation: details-show 0.2s ease-in-out;
+  }
+  @keyframes details-show {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 </style>
 </head>
 <body>
@@ -6619,27 +6634,59 @@ function initProfileAutocomplete(addressId, cityId, stateId, zipId) {
           <?php endif; ?>
 
           <div class="space-y-3">
-            <div class="flex items-start gap-3 p-4 bg-slate-50 rounded-lg border-l-4 border-green-500">
-              <svg class="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-              <div class="flex-1">
-                <h3 class="font-medium">Business Associate Agreement (BAA)</h3>
-                <p class="text-sm text-slate-600 mt-1">HIPAA-compliant agreement for handling protected health information</p>
-                <p class="text-xs text-green-700 mt-2"><strong>Status:</strong> Signed during registration</p>
+            <!-- Terms of Service (MSA) -->
+            <details class="group border border-slate-200 rounded-lg">
+              <summary class="flex items-center justify-between cursor-pointer p-4 bg-slate-50 hover:bg-slate-100 select-none">
+                <div class="flex items-center gap-3">
+                  <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <div>
+                    <h3 class="font-medium">Terms of Service (Master Service Agreement)</h3>
+                    <p class="text-xs text-green-700"><strong>Status:</strong> <?= !empty($user['agree_msa']) ? 'Signed' : 'Not Signed' ?></p>
+                  </div>
+                </div>
+                <svg class="w-5 h-5 text-slate-400 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </summary>
+              <div class="p-4 bg-white text-sm text-slate-700 space-y-3 border-t border-slate-200">
+                <p><strong>1. Services.</strong> CollagenDirect provides a platform for ordering and managing collagen-based wound care products for healthcare providers.</p>
+                <p><strong>2. Use of Platform.</strong> You agree to use the platform only for legitimate medical purposes and in compliance with all applicable laws and regulations.</p>
+                <p><strong>3. Account Security.</strong> You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account.</p>
+                <p><strong>4. Billing & Payment.</strong> For referral orders, insurance billing is handled by CollagenDirect. For wholesale orders, payment terms are net 30 unless otherwise agreed.</p>
+                <p><strong>5. Compliance.</strong> You agree to comply with all healthcare regulations including HIPAA, state medical board requirements, and CMS guidelines.</p>
+                <p><strong>6. Limitation of Liability.</strong> CollagenDirect shall not be liable for any indirect, incidental, special, or consequential damages arising from the use of the platform.</p>
+                <p><strong>7. Termination.</strong> Either party may terminate this agreement with 30 days written notice. All outstanding obligations survive termination.</p>
               </div>
-            </div>
+            </details>
 
-            <div class="flex items-start gap-3 p-4 bg-slate-50 rounded-lg border-l-4 border-green-500">
-              <svg class="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-              <div class="flex-1">
-                <h3 class="font-medium">Master Services & Supply Agreement</h3>
-                <p class="text-sm text-slate-600 mt-1">Wholesale ordering and payment terms agreement</p>
-                <p class="text-xs text-green-700 mt-2"><strong>Status:</strong> Signed during registration</p>
+            <!-- Business Associate Agreement (BAA) -->
+            <details class="group border border-slate-200 rounded-lg">
+              <summary class="flex items-center justify-between cursor-pointer p-4 bg-slate-50 hover:bg-slate-100 select-none">
+                <div class="flex items-center gap-3">
+                  <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <div>
+                    <h3 class="font-medium">Business Associate Agreement (BAA)</h3>
+                    <p class="text-xs text-green-700"><strong>Status:</strong> <?= !empty($user['agree_baa']) ? 'Signed' : 'Not Signed' ?></p>
+                  </div>
+                </div>
+                <svg class="w-5 h-5 text-slate-400 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </summary>
+              <div class="p-4 bg-white text-sm text-slate-700 space-y-3 border-t border-slate-200">
+                <p><strong>Purpose.</strong> This Business Associate Agreement ("BAA") establishes the terms under which CollagenDirect ("Business Associate") may receive, create, use, maintain, or transmit Protected Health Information ("PHI") on behalf of the healthcare provider ("Covered Entity").</p>
+                <p><strong>Permitted Uses.</strong> Business Associate may use PHI solely for the purpose of providing services to Covered Entity, including order processing, insurance billing, and patient coordination.</p>
+                <p><strong>Safeguards.</strong> Business Associate agrees to implement appropriate administrative, physical, and technical safeguards to protect PHI in accordance with HIPAA Security Rule requirements.</p>
+                <p><strong>Breach Notification.</strong> Business Associate will notify Covered Entity of any breach of unsecured PHI within 60 days of discovery.</p>
+                <p><strong>Subcontractors.</strong> Business Associate will ensure that any subcontractors with access to PHI agree to the same restrictions and conditions.</p>
+                <p><strong>Access to PHI.</strong> Business Associate will make PHI available to Covered Entity or patients as required by HIPAA.</p>
+                <p><strong>Term.</strong> This BAA shall remain in effect for as long as Business Associate has access to PHI.</p>
               </div>
-            </div>
+            </details>
           </div>
         </div>
 
