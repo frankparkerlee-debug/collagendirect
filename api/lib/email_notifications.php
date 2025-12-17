@@ -253,6 +253,70 @@ HTML;
 }
 
 /**
+ * 3b. Employee Sales Rep Welcome Email
+ * Audience: New employee sales reps
+ * Trigger: Admin creates new employee sales rep account with rep portal access
+ *
+ * Includes login credentials, sales training link, and employee manual.
+ */
+function send_employee_rep_welcome_email(string $email, string $fullName, string $tempPassword): bool {
+  // Try SMTP first
+  $smtpHost = env('SMTP_HOST');
+  if ($smtpHost) {
+    error_log("[email] Using SMTP for employee rep welcome email to $email");
+
+    $subject = 'Welcome to CollagenDirect - Your Sales Rep Account';
+    $bodyContent = <<<HTML
+      <h2 style="color: #1e293b; margin: 0 0 20px 0;">Welcome to the CollagenDirect Team!</h2>
+      <p style="color: #475569; line-height: 1.6; margin: 0 0 15px 0;">
+        Hello <strong>$fullName</strong>,
+      </p>
+      <p style="color: #475569; line-height: 1.6; margin: 0 0 15px 0;">
+        Your CollagenDirect Employee Sales Rep account has been created. You now have access to the Sales Rep Portal
+        where you can manage your clinics, track orders, and earn commissions.
+      </p>
+
+      <div style="background-color: #eef2ff; border: 1px solid #c7d2fe; border-radius: 8px; padding: 20px; margin: 25px 0;">
+        <p style="margin: 0 0 10px 0; font-weight: 600; color: #4338ca;">Your Login Credentials:</p>
+        <p style="margin: 0 0 5px 0; color: #475569;"><strong>Email:</strong> $email</p>
+        <p style="margin: 0; color: #475569;"><strong>Temporary Password:</strong> $tempPassword</p>
+      </div>
+
+      <p style="color: #475569; line-height: 1.6; margin: 0 0 20px 0;">
+        For security, please change your password after your first login.
+      </p>
+
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="https://collagendirect.health/admin/employee-rep/" style="display: inline-block; background: linear-gradient(135deg, #4f46e5, #6366f1); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600;">
+          Login to Sales Portal
+        </a>
+      </div>
+
+      <div style="background-color: #fefce8; border: 1px solid #fde047; border-radius: 8px; padding: 20px; margin: 25px 0;">
+        <p style="margin: 0 0 15px 0; font-weight: 600; color: #854d0e;">Getting Started Resources:</p>
+        <ul style="margin: 0; padding-left: 20px; color: #475569;">
+          <li style="margin-bottom: 8px;"><a href="https://collagendirect.health/training/sales" style="color: #4f46e5;">Sales Training Course</a> - Complete onboarding training</li>
+          <li style="margin-bottom: 8px;"><a href="https://collagendirect.health/docs/sales-manual" style="color: #4f46e5;">Sales Rep Manual</a> - Product info and sales guidelines</li>
+          <li style="margin-bottom: 8px;"><a href="https://collagendirect.health/docs/commission-guide" style="color: #4f46e5;">Commission Guide</a> - Understanding your earnings</li>
+        </ul>
+      </div>
+
+      <p style="color: #64748b; font-size: 14px; margin: 20px 0 0 0;">
+        If you have any questions, please contact your manager or email <a href="mailto:support@collagendirect.health" style="color: #4f46e5;">support@collagendirect.health</a>.
+      </p>
+HTML;
+
+    $html = email_template($subject, $bodyContent);
+    $result = send_email($email, $fullName, $subject, $html);
+    if ($result) return true;
+    error_log("[email] SMTP failed for employee rep welcome email");
+  }
+
+  // Fallback: use the physician account created template as it has similar structure
+  return send_physician_account_created_email($email, $fullName, $tempPassword);
+}
+
+/**
  * 4. Order Received Confirmation (Patient)
  * Template: SG_TMPL_ORDER_RECEIVED
  * Audience: Patients

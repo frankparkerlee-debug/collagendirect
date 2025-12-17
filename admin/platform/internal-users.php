@@ -94,10 +94,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new Exception('Password is required');
                 }
 
+                // Handle Employee Salesperson specific settings
+                $hasRepView = false;
+                if ($role === 'sales') {
+                    $hasRepView = isset($_POST['enable_rep_portal']);
+                }
+
                 // Insert user
                 $stmt = $pdo->prepare("
-                    INSERT INTO admin_users (name, email, phone, role, password_hash, status, require_pw_change, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+                    INSERT INTO admin_users (name, email, phone, role, password_hash, status, require_pw_change, has_rep_view, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
                 ");
                 $stmt->execute([
                     $name,
@@ -106,23 +112,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $role,
                     password_hash($password, PASSWORD_DEFAULT),
                     $status,
-                    $requirePwChange ? 1 : 0
+                    $requirePwChange ? 1 : 0,
+                    $hasRepView ? 1 : 0
                 ]);
                 $newUserId = $pdo->lastInsertId();
 
-                // Handle Employee Salesperson specific settings
-                if ($role === 'sales' && isset($_POST['commission_eligible'])) {
-                    $commissionRate = floatval($_POST['commission_rate'] ?? 25) / 100;
-                    // Store commission settings (using admin_permissions for now)
+                // Handle Employee Salesperson commission rates
+                if ($role === 'sales' && $hasRepView) {
+                    $directRate = floatval($_POST['direct_commission_rate'] ?? 15) / 100;
+                    $overrideRate = floatval($_POST['override_commission_rate'] ?? 5) / 100;
+
+                    // Insert direct commission rate
                     $pdo->prepare("
-                        INSERT INTO admin_permissions (admin_user_id, permission_key, granted, granted_by, granted_at)
-                        VALUES (?, 'commission.eligible', TRUE, ?, NOW())
-                        ON CONFLICT (admin_user_id, permission_key) DO UPDATE SET granted = TRUE
-                    ")->execute([$newUserId, $admin['id']]);
+                        INSERT INTO employee_rep_commission_rates (admin_user_id, rate_type, commission_rate, effective_date, created_by)
+                        VALUES (?, 'direct', ?, CURRENT_DATE, ?)
+                    ")->execute([$newUserId, $directRate, $admin['id']]);
+
+                    // Insert distributor override rate
+                    $pdo->prepare("
+                        INSERT INTO employee_rep_commission_rates (admin_user_id, rate_type, commission_rate, effective_date, created_by)
+                        VALUES (?, 'distributor_override', ?, CURRENT_DATE, ?)
+                    ")->execute([$newUserId, $overrideRate, $admin['id']]);
                 }
 
                 // Send welcome email
-                $emailSent = send_physician_account_created_email($email, $name, $password);
+                $emailSent = false;
+                if ($role === 'sales' && $hasRepView) {
+                    $emailSent = send_employee_rep_welcome_email($email, $name, $password);
+                } else {
+                    $emailSent = send_physician_account_created_email($email, $name, $password);
+                }
 
                 $msg = 'Internal user created successfully';
                 if ($emailSent) {
@@ -171,12 +190,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new Exception('You cannot change your own role');
                 }
 
+                // Handle Employee Salesperson specific settings
+                $hasRepView = false;
+                if ($role === 'sales') {
+                    $hasRepView = isset($_POST['enable_rep_portal']);
+                }
+
                 $stmt = $pdo->prepare("
                     UPDATE admin_users
-                    SET name = ?, phone = ?, role = ?, status = ?, updated_at = NOW()
+                    SET name = ?, phone = ?, role = ?, status = ?, has_rep_view = ?, updated_at = NOW()
                     WHERE id = ?
                 ");
-                $stmt->execute([$name, $phone ?: null, $role, $status, $userId]);
+                $stmt->execute([$name, $phone ?: null, $role, $status, $hasRepView ? 1 : 0, $userId]);
+
+                // Handle commission rates for sales role
+                if ($role === 'sales' && $hasRepView) {
+                    $directRate = floatval($_POST['direct_commission_rate'] ?? 15) / 100;
+                    $overrideRate = floatval($_POST['override_commission_rate'] ?? 5) / 100;
+
+                    // Check if direct rate exists and update or insert
+                    $existingDirect = $pdo->prepare("SELECT id FROM employee_rep_commission_rates WHERE admin_user_id = ? AND rate_type = 'direct' AND end_date IS NULL");
+                    $existingDirect->execute([$userId]);
+                    if ($existingDirect->fetch()) {
+                        $pdo->prepare("UPDATE employee_rep_commission_rates SET commission_rate = ? WHERE admin_user_id = ? AND rate_type = 'direct' AND end_date IS NULL")
+                            ->execute([$directRate, $userId]);
+                    } else {
+                        $pdo->prepare("INSERT INTO employee_rep_commission_rates (admin_user_id, rate_type, commission_rate, effective_date, created_by) VALUES (?, 'direct', ?, CURRENT_DATE, ?)")
+                            ->execute([$userId, $directRate, $admin['id']]);
+                    }
+
+                    // Check if override rate exists and update or insert
+                    $existingOverride = $pdo->prepare("SELECT id FROM employee_rep_commission_rates WHERE admin_user_id = ? AND rate_type = 'distributor_override' AND end_date IS NULL");
+                    $existingOverride->execute([$userId]);
+                    if ($existingOverride->fetch()) {
+                        $pdo->prepare("UPDATE employee_rep_commission_rates SET commission_rate = ? WHERE admin_user_id = ? AND rate_type = 'distributor_override' AND end_date IS NULL")
+                            ->execute([$overrideRate, $userId]);
+                    } else {
+                        $pdo->prepare("INSERT INTO employee_rep_commission_rates (admin_user_id, rate_type, commission_rate, effective_date, created_by) VALUES (?, 'distributor_override', ?, CURRENT_DATE, ?)")
+                            ->execute([$userId, $overrideRate, $admin['id']]);
+                    }
+                }
 
                 $msg = 'User updated successfully';
                 break;
@@ -374,13 +427,16 @@ if ($search) {
 $whereClause = implode(' AND ', $whereConditions);
 
 $usersQuery = "
-    SELECT id, name, email, phone, role, status, created_at,
-           COALESCE(last_login_at, created_at) as last_activity
-    FROM admin_users
+    SELECT au.id, au.name, au.email, au.phone, au.role, au.status, au.created_at,
+           COALESCE(au.last_login_at, au.created_at) as last_activity,
+           au.has_rep_view,
+           (SELECT commission_rate FROM employee_rep_commission_rates WHERE admin_user_id = au.id AND rate_type = 'direct' AND (end_date IS NULL OR end_date >= CURRENT_DATE) ORDER BY effective_date DESC LIMIT 1) as direct_rate,
+           (SELECT commission_rate FROM employee_rep_commission_rates WHERE admin_user_id = au.id AND rate_type = 'distributor_override' AND (end_date IS NULL OR end_date >= CURRENT_DATE) ORDER BY effective_date DESC LIMIT 1) as override_rate
+    FROM admin_users au
     WHERE $whereClause
     ORDER BY
-        CASE status WHEN 'active' THEN 0 WHEN 'suspended' THEN 1 ELSE 2 END,
-        created_at DESC
+        CASE au.status WHEN 'active' THEN 0 WHEN 'suspended' THEN 1 ELSE 2 END,
+        au.created_at DESC
     LIMIT 300
 ";
 $usersStmt = $pdo->prepare($usersQuery);
@@ -656,23 +712,32 @@ $statusDisplay = [
             </div>
 
             <!-- Employee Salesperson Options (hidden by default) -->
-            <div id="add-sales-options" class="hidden bg-gray-50 border rounded-lg p-4">
-                <h4 class="font-medium text-sm text-gray-700 mb-3">Employee Salesperson Settings</h4>
-                <div class="space-y-3">
+            <div id="add-sales-options" class="hidden bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+                <h4 class="font-medium text-sm text-indigo-800 mb-3">Employee Sales Rep Portal</h4>
+                <div class="space-y-4">
                     <label class="flex items-center">
-                        <input type="checkbox" name="commission_eligible" id="add-commission-eligible"
-                               onchange="toggleCommissionRate('add')" class="rounded">
-                        <span class="ml-2 text-sm">Commission Eligible</span>
+                        <input type="checkbox" name="enable_rep_portal" id="add-enable-rep-portal"
+                               onchange="toggleCommissionFields('add')" class="rounded text-indigo-600">
+                        <span class="ml-2 text-sm font-medium">Enable Sales Rep Portal Access</span>
                     </label>
-                    <div id="add-commission-rate-field" class="hidden">
-                        <label class="block text-sm text-gray-600 mb-1">Commission Rate (%)</label>
-                        <input type="number" name="commission_rate" value="25" min="0" max="100" step="0.1"
-                               class="w-24 border rounded-lg px-3 py-2 text-sm">
+                    <p class="text-xs text-gray-600 -mt-2 ml-6">Allows this employee to manage their own clinics and distributors</p>
+
+                    <div id="add-commission-fields" class="hidden space-y-3 pl-6 border-l-2 border-indigo-200">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm text-gray-700 mb-1">Direct Commission Rate (%)</label>
+                                <input type="number" name="direct_commission_rate" value="15" min="0" max="100" step="0.1"
+                                       class="w-full border rounded-lg px-3 py-2 text-sm">
+                                <p class="text-xs text-gray-500 mt-1">For clinics they onboard directly</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-700 mb-1">Override Commission Rate (%)</label>
+                                <input type="number" name="override_commission_rate" value="5" min="0" max="100" step="0.1"
+                                       class="w-full border rounded-lg px-3 py-2 text-sm">
+                                <p class="text-xs text-gray-500 mt-1">For distributors they manage</p>
+                            </div>
+                        </div>
                     </div>
-                    <label class="flex items-center">
-                        <input type="checkbox" name="can_manage_distributors" checked class="rounded">
-                        <span class="ml-2 text-sm">Can Manage Distributors</span>
-                    </label>
                 </div>
             </div>
 
@@ -776,19 +841,31 @@ $statusDisplay = [
             </div>
 
             <!-- Employee Salesperson Options -->
-            <div id="edit-sales-options" class="hidden bg-gray-50 border rounded-lg p-4">
-                <h4 class="font-medium text-sm text-gray-700 mb-3">Employee Salesperson Settings</h4>
-                <div class="space-y-3">
+            <div id="edit-sales-options" class="hidden bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+                <h4 class="font-medium text-sm text-indigo-800 mb-3">Employee Sales Rep Portal</h4>
+                <div class="space-y-4">
                     <label class="flex items-center">
-                        <input type="checkbox" name="commission_eligible" id="edit-commission-eligible"
-                               onchange="toggleCommissionRate('edit')" class="rounded">
-                        <span class="ml-2 text-sm">Commission Eligible</span>
+                        <input type="checkbox" name="enable_rep_portal" id="edit-enable-rep-portal"
+                               onchange="toggleCommissionFields('edit')" class="rounded text-indigo-600">
+                        <span class="ml-2 text-sm font-medium">Enable Sales Rep Portal Access</span>
                     </label>
-                    <div id="edit-commission-rate-field" class="hidden">
-                        <label class="block text-sm text-gray-600 mb-1">Commission Rate (%)</label>
-                        <input type="number" name="commission_rate" id="edit-commission-rate" value="25"
-                               min="0" max="100" step="0.1"
-                               class="w-24 border rounded-lg px-3 py-2 text-sm">
+                    <p class="text-xs text-gray-600 -mt-2 ml-6">Allows this employee to manage their own clinics and distributors</p>
+
+                    <div id="edit-commission-fields" class="hidden space-y-3 pl-6 border-l-2 border-indigo-200">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm text-gray-700 mb-1">Direct Commission Rate (%)</label>
+                                <input type="number" name="direct_commission_rate" id="edit-direct-rate" value="15" min="0" max="100" step="0.1"
+                                       class="w-full border rounded-lg px-3 py-2 text-sm">
+                                <p class="text-xs text-gray-500 mt-1">For clinics they onboard directly</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-700 mb-1">Override Commission Rate (%)</label>
+                                <input type="number" name="override_commission_rate" id="edit-override-rate" value="5" min="0" max="100" step="0.1"
+                                       class="w-full border rounded-lg px-3 py-2 text-sm">
+                                <p class="text-xs text-gray-500 mt-1">For distributors they manage</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -891,15 +968,15 @@ function toggleSalesOptions(prefix) {
     }
 }
 
-// Toggle commission rate field
-function toggleCommissionRate(prefix) {
-    const eligible = document.getElementById(prefix + '-commission-eligible').checked;
-    const field = document.getElementById(prefix + '-commission-rate-field');
+// Toggle commission fields based on rep portal checkbox
+function toggleCommissionFields(prefix) {
+    const enabled = document.getElementById(prefix + '-enable-rep-portal').checked;
+    const fields = document.getElementById(prefix + '-commission-fields');
 
-    if (eligible) {
-        field.classList.remove('hidden');
+    if (enabled) {
+        fields.classList.remove('hidden');
     } else {
-        field.classList.add('hidden');
+        fields.classList.add('hidden');
     }
 }
 
@@ -920,6 +997,22 @@ function openEditModal(user) {
 
     // Toggle sales options
     toggleSalesOptions('edit');
+
+    // Handle rep portal settings for sales role
+    if (user.role === 'sales') {
+        const repPortalCheckbox = document.getElementById('edit-enable-rep-portal');
+        if (repPortalCheckbox) {
+            repPortalCheckbox.checked = user.has_rep_view == 1;
+            toggleCommissionFields('edit');
+        }
+        // Set commission rates if available
+        if (user.direct_rate) {
+            document.getElementById('edit-direct-rate').value = (user.direct_rate * 100).toFixed(1);
+        }
+        if (user.override_rate) {
+            document.getElementById('edit-override-rate').value = (user.override_rate * 100).toFixed(1);
+        }
+    }
 
     // Store user ID for reset password
     document.getElementById('reset-user-id').value = user.id;

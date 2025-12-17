@@ -7,7 +7,8 @@
 declare(strict_types=1);
 require __DIR__ . '/_header.php';
 
-$adminId = $admin['id'];
+// Ensure adminId is an integer (admin_users.id is INTEGER, not VARCHAR)
+$adminId = (int)$admin['id'];
 
 $message = '';
 $error = '';

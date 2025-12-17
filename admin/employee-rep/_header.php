@@ -12,10 +12,16 @@ require_once __DIR__ . '/../auth.php';
 $admin = current_admin();
 
 // Ensure only employee sales reps with rep view can access this portal
-if (!$admin || !isset($_SESSION['admin']) || empty($admin['has_rep_view'])) {
+// IMPORTANT: Only admin_users (with INTEGER ids) can access this portal, not users table users
+// The has_rep_view flag is only set for admin_users from the login flow
+if (!$admin || !isset($_SESSION['admin']) || empty($_SESSION['admin']['has_rep_view'])) {
   header('Location: /admin/');
   exit;
 }
+
+// Use the session data directly to ensure we have the INTEGER id from admin_users
+// This prevents using a VARCHAR users.id when a superadmin or sales_rep somehow accesses this page
+$admin = $_SESSION['admin'];
 
 // Get managed distributors count
 $managedDistributorsStmt = $pdo->prepare("
