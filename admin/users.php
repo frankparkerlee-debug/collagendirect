@@ -683,41 +683,33 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                   <div class="space-y-3">
                     <details class="border rounded">
                       <summary class="px-3 py-2 bg-slate-100 cursor-pointer text-sm font-medium hover:bg-slate-200">
-                        View Terms of Service (MSA)
+                        View MD DME Product and Services Agreement
                       </summary>
-                      <div class="p-3 text-xs text-slate-700 max-h-64 overflow-y-auto bg-white" style="white-space: pre-wrap; font-family: inherit;">
-<strong>MASTER SERVICE AGREEMENT</strong>
+                      <div class="p-3 text-xs text-slate-700 max-h-80 overflow-y-auto bg-white">
+                        <p class="text-center mb-3"><strong>COLLAGENDIRECT / MD DME PRODUCT AND SERVICES AGREEMENT</strong><br>Version 2025-10-29</p>
+                        <p class="mb-2">This Product and Services Agreement ("Agreement") is entered into by and between (1) MD DME, LLC ("MD DME"), a Texas limited liability company, and (2) the physician practice, clinic, or provider organization whose authorized representative is accepting this Agreement ("Client").</p>
+                        <p class="mb-2"><strong>Effective Date.</strong> This Agreement becomes effective on the date the Client (or its authorized representative) registers or is provisioned within the CollagenDirect Provider Portal and affirmatively accepts this Agreement.</p>
 
-This Master Service Agreement ("Agreement") governs your use of CollagenDirect services.
+                        <p class="font-semibold mt-3 mb-1">1. Relationship Between MD DME, Client, and CollagenDirect</p>
+                        <p class="mb-2">CollagenDirect provides a secure ordering portal and workflow tools. CollagenDirect does not manufacture, dispense, fulfill, ship, bill, or collect payment for Products, and is not the supplier of record. MD DME is a licensed DME supplier solely responsible for fulfillment, shipment, documentation, and billing/collection for Products.</p>
 
-<strong>1. SERVICES</strong>
-CollagenDirect provides a platform connecting healthcare providers with medical supply fulfillment services for wound care products including collagen dressings and related supplies.
+                        <p class="font-semibold mt-3 mb-1">2. Product and Services Models</p>
+                        <p class="mb-1"><strong>a. Option A – Physician-Billed Orders:</strong> MD DME supplies Products; Client bills payors through Client's own DME entity and insurance contracts.</p>
+                        <p class="mb-2"><strong>b. Option B – MD DME-Billed Orders:</strong> MD DME fulfills, ships, and bills payors under MD DME's supplier credentials.</p>
 
-<strong>2. PROVIDER RESPONSIBILITIES</strong>
-- Maintain valid medical licenses and credentials
-- Ensure proper patient documentation and medical necessity
-- Comply with all applicable healthcare regulations
-- Submit accurate patient and order information
-- Maintain patient confidentiality per HIPAA requirements
+                        <p class="font-semibold mt-3 mb-1">3. Client Responsibilities</p>
+                        <p class="mb-2">Client is solely responsible for: clinical appropriateness and medical necessity; accuracy of coding and claim data; maintaining all source documents, medical records, and audit trails; maintaining accurate logs of all products provided to patients.</p>
 
-<strong>3. ORDERING AND FULFILLMENT</strong>
-- Orders are processed upon receipt of complete documentation
-- Shipping times vary based on product availability and location
-- CollagenDirect reserves the right to verify orders before processing
+                        <p class="font-semibold mt-3 mb-1">4. MD DME Responsibilities</p>
+                        <p class="mb-2">MD DME will: provide Product specifications and training support; receive and review orders for completeness; pick, pack, and ship Products; ship within 24 hours (excluding weekends); provide tracking and proof of delivery.</p>
 
-<strong>4. BILLING AND PAYMENT</strong>
-- Referral orders: Billed directly to patient insurance or patient
-- Wholesale orders: Billed to practice per agreed pricing terms
-- Payment terms are Net 30 unless otherwise specified
+                        <p class="font-semibold mt-3 mb-1">5. Financial Terms</p>
+                        <p class="mb-2">For Option A: Shipments 1st–15th → payment due 15th of following month. Shipments 16th–end → payment due 1st of following month. Late invoices accrue 2% APR. MD DME may suspend fulfillment for invoices 30+ days past due.</p>
 
-<strong>5. COMPLIANCE</strong>
-Both parties agree to comply with all applicable federal and state laws, including but not limited to HIPAA, Anti-Kickback Statute, and Stark Law.
+                        <p class="font-semibold mt-3 mb-1">6–17. Additional Terms</p>
+                        <p class="mb-2">Includes: Compliance requirements, 1-year term with auto-renewal, non-exclusivity, termination rights, confidentiality, HIPAA incorporation, limitation of liability, indemnification, Texas governing law, force majeure, assignment restrictions, and electronic execution provisions.</p>
 
-<strong>6. LIMITATION OF LIABILITY</strong>
-CollagenDirect's liability is limited to the cost of products provided. In no event shall CollagenDirect be liable for indirect, consequential, or punitive damages.
-
-<strong>7. TERM AND TERMINATION</strong>
-This agreement remains in effect until terminated by either party with 30 days written notice.
+                        <p class="text-center mt-3"><strong>END OF AGREEMENT</strong></p>
                       </div>
                     </details>
 
@@ -725,42 +717,36 @@ This agreement remains in effect until terminated by either party with 30 days w
                       <summary class="px-3 py-2 bg-slate-100 cursor-pointer text-sm font-medium hover:bg-slate-200">
                         View Business Associate Agreement (BAA)
                       </summary>
-                      <div class="p-3 text-xs text-slate-700 max-h-64 overflow-y-auto bg-white" style="white-space: pre-wrap; font-family: inherit;">
-<strong>BUSINESS ASSOCIATE AGREEMENT</strong>
+                      <div class="p-3 text-xs text-slate-700 max-h-80 overflow-y-auto bg-white">
+                        <p class="text-center mb-3"><strong>COLLAGEN DIRECT BUSINESS ASSOCIATE AGREEMENT</strong></p>
+                        <p class="mb-2">This Business Associate Agreement ("Agreement") is entered into by and between the "Covered Entity" and CollagenDirect ("Business Associate"), effective as of the date the Covered Entity creates or is provisioned with an account on the CollagenDirect Provider Portal.</p>
+                        <p class="mb-2">The Parties enter this Agreement to comply with HIPAA, HITECH, and the Privacy, Security, Breach Notification, and Enforcement Rules at 45 C.F.R. Parts 160 and 164.</p>
 
-This Business Associate Agreement ("BAA") is entered into pursuant to HIPAA requirements.
+                        <p class="font-semibold mt-3 mb-1">1. Definitions</p>
+                        <p class="mb-2">Includes standard HIPAA definitions: Administrative/Physical/Technical Safeguards, Breach, Business Associate, Covered Entity, Designated Record Set, HIPAA Rules, Individual, PHI, Privacy Rule, Security Rule, Security Incident, and Unsecured PHI.</p>
 
-<strong>1. DEFINITIONS</strong>
-- "Protected Health Information" (PHI) has the meaning set forth in 45 CFR 160.103
-- "Business Associate" refers to CollagenDirect
-- "Covered Entity" refers to the healthcare provider using CollagenDirect services
+                        <p class="font-semibold mt-3 mb-1">2. Obligations of Business Associate</p>
+                        <p class="mb-2">Business Associate will: not use/disclose PHI except as permitted; implement appropriate safeguards; mitigate harmful effects of violations; report breaches within 10 business days; ensure subcontractor compliance; make records available to Secretary; document disclosures for accounting; provide PHI access and amendments as required.</p>
 
-<strong>2. PERMITTED USES AND DISCLOSURES</strong>
-Business Associate may use or disclose PHI only as necessary to:
-- Perform services under this Agreement
-- Comply with legal requirements
-- Support treatment, payment, or healthcare operations
+                        <p class="font-semibold mt-3 mb-1">3. HIPAA Security Rule Requirements</p>
+                        <p class="mb-2">Business Associate will implement Administrative, Physical, and Technical Safeguards; ensure subcontractor compliance; cooperate in breach mitigation; make policies available for compliance determination.</p>
 
-<strong>3. SAFEGUARDS</strong>
-Business Associate agrees to:
-- Implement appropriate administrative, physical, and technical safeguards
-- Ensure workforce compliance with PHI protection requirements
-- Report any security incidents or breaches promptly
+                        <p class="font-semibold mt-3 mb-1">4. HITECH Requirements</p>
+                        <p class="mb-2">Business Associate will not sell PHI; will track disclosures; limit uses to "minimum necessary"; report material breaches; acknowledges direct liability for civil/criminal penalties.</p>
 
-<strong>4. INDIVIDUAL RIGHTS</strong>
-Business Associate will:
-- Provide access to PHI upon request within 30 days
-- Make amendments to PHI as directed
-- Provide accounting of disclosures as required
+                        <p class="font-semibold mt-3 mb-1">5. Permitted Uses and Disclosures</p>
+                        <p class="mb-2">Business Associate may use PHI to: perform services and operate Portal; for proper management/administration; for data aggregation on behalf of Covered Entity's healthcare operations.</p>
 
-<strong>5. BREACH NOTIFICATION</strong>
-Business Associate will notify Covered Entity of any breach of unsecured PHI within 60 days of discovery.
+                        <p class="font-semibold mt-3 mb-1">6. Obligations of Covered Entity</p>
+                        <p class="mb-2">Covered Entity will: provide Notice of Privacy Practices; inform of permission changes; notify of use/disclosure restrictions; obtain required authorizations before disclosing PHI.</p>
 
-<strong>6. TERM AND TERMINATION</strong>
-This BAA remains in effect concurrent with the Master Service Agreement. Upon termination, Business Associate will return or destroy all PHI.
+                        <p class="font-semibold mt-3 mb-1">7. Term and Termination</p>
+                        <p class="mb-2">Effective until PHI is returned/destroyed. Termination for cause with 30-day cure period. Upon termination, return or destroy all PHI.</p>
 
-<strong>7. COMPLIANCE</strong>
-Both parties agree to comply with applicable HIPAA Privacy and Security Rules.
+                        <p class="font-semibold mt-3 mb-1">8. Miscellaneous</p>
+                        <p class="mb-2">Includes: regulatory references, amendment provisions, survival of obligations, interpretation rules, Texas governing law/venue (Bexar County), and electronic execution provisions.</p>
+
+                        <p class="text-center mt-3"><strong>END OF AGREEMENT</strong></p>
                       </div>
                     </details>
                   </div>
