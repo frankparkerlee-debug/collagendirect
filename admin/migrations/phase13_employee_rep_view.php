@@ -59,9 +59,9 @@ function tableExists(PDO $pdo, string $tableName): bool {
 // ============================================================
 
 try {
-    // Add managed_by_admin_id column to sales_reps
+    // Add managed_by_admin_id column to sales_reps (admin_users.id is INTEGER)
     if (!columnExists($pdo, 'sales_reps', 'managed_by_admin_id')) {
-        $pdo->exec("ALTER TABLE sales_reps ADD COLUMN managed_by_admin_id VARCHAR(64) REFERENCES admin_users(id) ON DELETE SET NULL");
+        $pdo->exec("ALTER TABLE sales_reps ADD COLUMN managed_by_admin_id INTEGER REFERENCES admin_users(id) ON DELETE SET NULL");
         $pdo->exec("CREATE INDEX idx_sales_reps_managed_by ON sales_reps(managed_by_admin_id)");
         $pdo->exec("COMMENT ON COLUMN sales_reps.managed_by_admin_id IS 'Employee sales rep (admin_user) who manages this distributor'");
         $results[] = "Added column: sales_reps.managed_by_admin_id";
@@ -98,7 +98,7 @@ try {
         $pdo->exec("
             CREATE TABLE employee_rep_commission_rates (
                 id SERIAL PRIMARY KEY,
-                admin_user_id VARCHAR(64) NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
+                admin_user_id INTEGER NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
                 rate_type VARCHAR(30) NOT NULL DEFAULT 'direct',
                 commission_rate DECIMAL(5,4) NOT NULL DEFAULT 0.15,
                 effective_date DATE NOT NULL DEFAULT CURRENT_DATE,
@@ -136,7 +136,7 @@ try {
         $pdo->exec("
             CREATE TABLE employee_rep_ledger (
                 id SERIAL PRIMARY KEY,
-                admin_user_id VARCHAR(64) NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
+                admin_user_id INTEGER NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
                 order_id VARCHAR(64) REFERENCES orders(id) ON DELETE SET NULL,
                 clinic_id VARCHAR(64) REFERENCES users(id) ON DELETE SET NULL,
                 distributor_id VARCHAR(64) REFERENCES sales_reps(id) ON DELETE SET NULL,
@@ -175,9 +175,9 @@ try {
 // ============================================================
 
 try {
-    // For direct physician accounts assigned to employee sales reps
+    // For direct physician accounts assigned to employee sales reps (admin_users.id is INTEGER)
     if (!columnExists($pdo, 'users', 'employee_rep_id')) {
-        $pdo->exec("ALTER TABLE users ADD COLUMN employee_rep_id VARCHAR(64) REFERENCES admin_users(id) ON DELETE SET NULL");
+        $pdo->exec("ALTER TABLE users ADD COLUMN employee_rep_id INTEGER REFERENCES admin_users(id) ON DELETE SET NULL");
         $pdo->exec("CREATE INDEX idx_users_employee_rep ON users(employee_rep_id)");
         $pdo->exec("COMMENT ON COLUMN users.employee_rep_id IS 'Employee sales rep (admin_user) directly assigned to this physician/clinic'");
         $results[] = "Added column: users.employee_rep_id";
