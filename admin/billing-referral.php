@@ -131,12 +131,17 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     $daysSince = $now->diff($serviceDate)->days;
 
     // Calculate billed amount using revenue calculator for consistency
+    $revenueCalc = calculate_order_revenue($row, $reimbursementRates);
+    $expectedRevenue = $revenueCalc['revenue'];
+
+    // Bug fix: Only use insurance_billed if it differs from product_price (per-piece rate)
     $insuranceBilledValue = (float)($row['insurance_billed'] ?? 0);
-    if ($insuranceBilledValue > 0) {
+    $productPrice = (float)($row['product_price'] ?? 0);
+
+    if ($insuranceBilledValue > 0 && abs($insuranceBilledValue - $productPrice) > 0.01) {
       $billedAmount = $insuranceBilledValue;
     } else {
-      $revenueCalc = calculate_order_revenue($row, $reimbursementRates);
-      $billedAmount = $revenueCalc['revenue'];
+      $billedAmount = $expectedRevenue;
     }
 
     $allowedAmount = (float)($row['insurance_allowed'] ?? 0);
@@ -481,17 +486,25 @@ try {
     $daysSince = $now->diff($serviceDate)->days;
     $order['days_since'] = $daysSince;
 
-    // Calculate billed amount - use insurance_billed if set, otherwise use revenue calculator
-    $insuranceBilledValue = (float)($order['insurance_billed'] ?? 0);
-
-    // Use revenue calculator for consistency across all reports
+    // Calculate billed amount using revenue calculator
     $revenueCalc = calculate_order_revenue($order, $reimbursementRates);
+    $expectedRevenue = $revenueCalc['revenue'];
 
-    if ($insuranceBilledValue > 0) {
-      // Use explicitly set insurance_billed amount
+    // Check if insurance_billed was explicitly set to a valid total amount
+    // Bug fix: Previously, insurance_billed defaulted to product_price (per-piece rate)
+    // which is incorrect. We should use expected_revenue unless insurance_billed
+    // was intentionally set to something different AND reasonable (> product_price)
+    $insuranceBilledValue = (float)($order['insurance_billed'] ?? 0);
+    $productPrice = (float)($order['product_price'] ?? 0);
+
+    // Use insurance_billed only if it's been set to something other than the per-piece rate
+    // (which indicates it was intentionally overridden, not just the buggy default)
+    if ($insuranceBilledValue > 0 && abs($insuranceBilledValue - $productPrice) > 0.01) {
+      // insurance_billed was explicitly set to a different value
       $billed = $insuranceBilledValue;
     } else {
-      $billed = $revenueCalc['revenue'];
+      // Use calculated expected revenue
+      $billed = $expectedRevenue;
     }
 
     // Store calculated quantities for display
@@ -978,7 +991,8 @@ function openEditModal(order) {
   document.getElementById('edit_patient_display').textContent =
     (order.patient_first || '') + ' ' + (order.patient_last || '') + ' - ' + (order.insurer_name || 'No insurance');
 
-  document.getElementById('edit_insurance_billed').value = order.insurance_billed || order.product_price || '';
+  // Default to expected_revenue (total), not product_price (per-piece rate)
+  document.getElementById('edit_insurance_billed').value = order.insurance_billed || order.expected_revenue || '';
   document.getElementById('edit_insurance_allowed').value = order.insurance_allowed || '';
   document.getElementById('edit_insurance_paid').value = order.insurance_paid || '';
   document.getElementById('edit_patient_responsibility').value = order.patient_responsibility || '';
