@@ -121,7 +121,7 @@ function is_employee_sales_rep(): bool {
 }
 
 // Get employee rep's managed distributors
-function get_managed_distributors(PDO $pdo, string $adminUserId): array {
+function get_managed_distributors(PDO $pdo, int|string $adminUserId): array {
   $stmt = $pdo->prepare("
     SELECT sr.*, u.email, u.first_name, u.last_name
     FROM sales_reps sr
@@ -135,7 +135,7 @@ function get_managed_distributors(PDO $pdo, string $adminUserId): array {
 }
 
 // Get employee rep's direct physician accounts
-function get_direct_physician_accounts(PDO $pdo, string $adminUserId): array {
+function get_direct_physician_accounts(PDO $pdo, int|string $adminUserId): array {
   $stmt = $pdo->prepare("
     SELECT u.id, u.email, u.first_name, u.last_name, u.practice_name, u.role,
            u.rep_assignment_date
@@ -149,7 +149,7 @@ function get_direct_physician_accounts(PDO $pdo, string $adminUserId): array {
 }
 
 // Get employee rep commission rate
-function get_employee_rep_rate(PDO $pdo, string $adminUserId, string $rateType = 'direct'): float {
+function get_employee_rep_rate(PDO $pdo, int|string $adminUserId, string $rateType = 'direct'): float {
   $stmt = $pdo->prepare("
     SELECT commission_rate
     FROM employee_rep_commission_rates
@@ -166,7 +166,7 @@ function get_employee_rep_rate(PDO $pdo, string $adminUserId, string $rateType =
 }
 
 // Get employee rep commission balance
-function get_employee_rep_balance(PDO $pdo, string $adminUserId): array {
+function get_employee_rep_balance(PDO $pdo, int|string $adminUserId): array {
   $stmt = $pdo->prepare("
     SELECT
       COALESCE(SUM(commission_amount), 0) as total_earned,

@@ -55,6 +55,17 @@ $isReferralOnly = (bool)($user['is_referral_only'] ?? false);
 $userRole = $user['role'] ?? 'physician';
 $isPracticeAdmin = in_array($userRole, ['practice_admin', 'superadmin']);
 
+// Check if user needs to sign BAA and Terms (agreement check)
+// Users created via admin/employee-rep portal won't have these signed initially
+$needsAgreements = empty($user['agree_msa']) || empty($user['agree_baa']);
+$isSignAgreementsPage = ($_GET['page'] ?? '') === 'sign-agreements';
+
+// Redirect to agreement signing page if not already there
+if ($needsAgreements && !$isSignAgreementsPage) {
+  header('Location: /portal/index.php?page=sign-agreements');
+  exit;
+}
+
 /* ------------ Upload roots (keep structure) ------------ */
 // Use persistent disk on Render, fallback to local uploads for development
 if (is_dir('/opt/render/project/src/uploads')) {
@@ -754,6 +765,48 @@ function formatPhone(?string $phone): string {
    ============================================================ */
 $action = $_GET['action'] ?? null;
 if ($action) {
+
+  // Sign Agreements action - special case: allowed even without agreements signed
+  if ($action === 'sign_agreements') {
+    header('Content-Type: application/json');
+
+    // Get signature data from POST
+    $signName = trim((string)($_POST['sign_name'] ?? ''));
+    $signTitle = trim((string)($_POST['sign_title'] ?? ''));
+    $agreeMSA = !empty($_POST['agree_msa']);
+    $agreeBAA = !empty($_POST['agree_baa']);
+
+    if (!$signName || !$signTitle) {
+      echo json_encode(['ok' => false, 'error' => 'Please provide your name and title for the signature']);
+      exit;
+    }
+
+    if (!$agreeMSA || !$agreeBAA) {
+      echo json_encode(['ok' => false, 'error' => 'You must accept both the Terms of Service and Business Associate Agreement']);
+      exit;
+    }
+
+    // Capture IP address for audit trail
+    $signedIp = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? null;
+    if ($signedIp && strpos($signedIp, ',') !== false) {
+      $signedIp = trim(explode(',', $signedIp)[0]);
+    }
+
+    try {
+      $updateStmt = $pdo->prepare("
+        UPDATE users
+        SET agree_msa = TRUE, agree_baa = TRUE, sign_name = ?, sign_title = ?, sign_date = CURRENT_DATE, signed_ip = ?, updated_at = NOW()
+        WHERE id = ?
+      ");
+      $updateStmt->execute([$signName, $signTitle, $signedIp, $userId]);
+
+      echo json_encode(['ok' => true, 'message' => 'Agreements signed successfully']);
+    } catch (PDOException $e) {
+      error_log("Error signing agreements for user $userId: " . $e->getMessage());
+      echo json_encode(['ok' => false, 'error' => 'An error occurred. Please try again.']);
+    }
+    exit;
+  }
 
   if ($action==='metrics'){
     $productId = trim((string)($_GET['product_id'] ?? ''));
@@ -5049,7 +5102,171 @@ if ($page==='logout'){
     </div>
 
     <main class="content-area">
-<?php if ($page==='dashboard'): ?>
+<?php if ($page==='sign-agreements'): ?>
+  <!-- Sign Agreements Page - Required for users created outside of self-registration -->
+  <div class="max-w-3xl mx-auto">
+    <div class="card p-8">
+      <div class="text-center mb-8">
+        <div class="w-16 h-16 mx-auto mb-4 bg-amber-100 rounded-full flex items-center justify-center">
+          <svg class="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900 mb-2">Agreement Required</h1>
+        <p class="text-gray-600">Before you can access the CollagenDirect platform, please review and sign the following agreements.</p>
+      </div>
+
+      <form id="agreements-form" class="space-y-6">
+        <!-- Terms of Service (MSA) -->
+        <div class="border border-gray-200 rounded-lg overflow-hidden">
+          <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
+            <h2 class="font-semibold text-gray-900">Terms of Service (Master Service Agreement)</h2>
+          </div>
+          <div class="p-4 max-h-48 overflow-y-auto text-sm text-gray-600 bg-white">
+            <p class="mb-3"><strong>1. Services.</strong> CollagenDirect provides a platform for ordering and managing collagen-based wound care products for healthcare providers.</p>
+            <p class="mb-3"><strong>2. Use of Platform.</strong> You agree to use the platform only for legitimate medical purposes and in compliance with all applicable laws and regulations.</p>
+            <p class="mb-3"><strong>3. Account Security.</strong> You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account.</p>
+            <p class="mb-3"><strong>4. Billing & Payment.</strong> For referral orders, insurance billing is handled by CollagenDirect. For wholesale orders, payment terms are net 30 unless otherwise agreed.</p>
+            <p class="mb-3"><strong>5. Compliance.</strong> You agree to comply with all healthcare regulations including HIPAA, state medical board requirements, and CMS guidelines.</p>
+            <p class="mb-3"><strong>6. Limitation of Liability.</strong> CollagenDirect shall not be liable for any indirect, incidental, special, or consequential damages arising from the use of the platform.</p>
+            <p><strong>7. Termination.</strong> Either party may terminate this agreement with 30 days written notice. All outstanding obligations survive termination.</p>
+          </div>
+          <div class="px-4 py-3 bg-gray-50 border-t border-gray-200">
+            <label class="flex items-center cursor-pointer">
+              <input type="checkbox" name="agree_msa" id="agree_msa" class="w-4 h-4 text-brand border-gray-300 rounded focus:ring-brand">
+              <span class="ml-3 text-sm font-medium text-gray-700">I have read and agree to the Terms of Service</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Business Associate Agreement (BAA) -->
+        <div class="border border-gray-200 rounded-lg overflow-hidden">
+          <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
+            <h2 class="font-semibold text-gray-900">Business Associate Agreement (BAA)</h2>
+          </div>
+          <div class="p-4 max-h-48 overflow-y-auto text-sm text-gray-600 bg-white">
+            <p class="mb-3"><strong>Purpose.</strong> This Business Associate Agreement ("BAA") establishes the terms under which CollagenDirect ("Business Associate") may receive, create, use, maintain, or transmit Protected Health Information ("PHI") on behalf of the healthcare provider ("Covered Entity").</p>
+            <p class="mb-3"><strong>Permitted Uses.</strong> Business Associate may use PHI solely for the purpose of providing services to Covered Entity, including order processing, insurance billing, and patient coordination.</p>
+            <p class="mb-3"><strong>Safeguards.</strong> Business Associate agrees to implement appropriate administrative, physical, and technical safeguards to protect PHI in accordance with HIPAA Security Rule requirements.</p>
+            <p class="mb-3"><strong>Breach Notification.</strong> Business Associate will notify Covered Entity of any breach of unsecured PHI within 60 days of discovery.</p>
+            <p class="mb-3"><strong>Subcontractors.</strong> Business Associate will ensure that any subcontractors with access to PHI agree to the same restrictions and conditions.</p>
+            <p class="mb-3"><strong>Access to PHI.</strong> Business Associate will make PHI available to Covered Entity or patients as required by HIPAA.</p>
+            <p><strong>Term.</strong> This BAA shall remain in effect for as long as Business Associate has access to PHI.</p>
+          </div>
+          <div class="px-4 py-3 bg-gray-50 border-t border-gray-200">
+            <label class="flex items-center cursor-pointer">
+              <input type="checkbox" name="agree_baa" id="agree_baa" class="w-4 h-4 text-brand border-gray-300 rounded focus:ring-brand">
+              <span class="ml-3 text-sm font-medium text-gray-700">I have read and agree to the Business Associate Agreement</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Electronic Signature -->
+        <div class="border border-gray-200 rounded-lg p-4 bg-blue-50">
+          <h3 class="font-semibold text-gray-900 mb-4">Electronic Signature</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Your Full Name <span class="text-red-500">*</span></label>
+              <input type="text" name="sign_name" id="sign_name" required
+                     placeholder="e.g., John Smith, MD"
+                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Your Title <span class="text-red-500">*</span></label>
+              <input type="text" name="sign_title" id="sign_title" required
+                     placeholder="e.g., Physician, Practice Manager"
+                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
+            </div>
+          </div>
+          <p class="text-xs text-gray-500 mt-3">
+            By typing your name above, you acknowledge that this constitutes your electronic signature and has the same legal effect as a handwritten signature.
+          </p>
+        </div>
+
+        <!-- Error/Success Messages -->
+        <div id="agreements-error" class="hidden p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm"></div>
+        <div id="agreements-success" class="hidden p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm"></div>
+
+        <!-- Submit Button -->
+        <div class="flex justify-center">
+          <button type="submit" id="submit-agreements-btn" class="btn btn-primary px-8 py-3 text-base">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            Sign & Continue to Dashboard
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+  document.getElementById('agreements-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const errorDiv = document.getElementById('agreements-error');
+    const successDiv = document.getElementById('agreements-success');
+    const submitBtn = document.getElementById('submit-agreements-btn');
+
+    errorDiv.classList.add('hidden');
+    successDiv.classList.add('hidden');
+
+    const agreeMSA = document.getElementById('agree_msa').checked;
+    const agreeBAA = document.getElementById('agree_baa').checked;
+    const signName = document.getElementById('sign_name').value.trim();
+    const signTitle = document.getElementById('sign_title').value.trim();
+
+    if (!agreeMSA || !agreeBAA) {
+      errorDiv.textContent = 'Please accept both agreements to continue.';
+      errorDiv.classList.remove('hidden');
+      return;
+    }
+
+    if (!signName || !signTitle) {
+      errorDiv.textContent = 'Please provide your full name and title.';
+      errorDiv.classList.remove('hidden');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Processing...';
+
+    try {
+      const formData = new FormData();
+      formData.append('agree_msa', '1');
+      formData.append('agree_baa', '1');
+      formData.append('sign_name', signName);
+      formData.append('sign_title', signTitle);
+
+      const response = await fetch('/portal/index.php?action=sign_agreements', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+
+      if (result.ok) {
+        successDiv.textContent = 'Agreements signed successfully! Redirecting to dashboard...';
+        successDiv.classList.remove('hidden');
+        setTimeout(() => {
+          window.location.href = '/portal/index.php?page=dashboard';
+        }, 1500);
+      } else {
+        errorDiv.textContent = result.error || 'An error occurred. Please try again.';
+        errorDiv.classList.remove('hidden');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Sign & Continue to Dashboard';
+      }
+    } catch (err) {
+      errorDiv.textContent = 'Network error. Please check your connection and try again.';
+      errorDiv.classList.remove('hidden');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Sign & Continue to Dashboard';
+    }
+  });
+  </script>
+
+<?php elseif ($page==='dashboard'): ?>
   <!-- Stat Cards -->
   <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
     <a href="?page=patients" class="card no-underline cursor-pointer transition-all hover:shadow-2xl hover:scale-105 hover:-translate-y-1" style="text-decoration: none; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: none; padding: 1.5rem; border-radius: 16px; position: relative; overflow: hidden;">
