@@ -5260,10 +5260,21 @@ if ($page==='logout'){
         body: formData
       });
 
+      // Check if response is actually JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        // Session likely expired - redirect to login
+        if (response.status === 401 || response.redirected) {
+          window.location.href = '/login?next=/portal/index.php?page=sign-agreements';
+          return;
+        }
+        throw new Error('Server returned non-JSON response. Please refresh the page and try again.');
+      }
+
       const result = await response.json();
 
       if (result.ok) {
-        successDiv.textContent = 'Agreements signed successfully! Redirecting to dashboard...';
+        successDiv.textContent = 'Agreements signed successfully! Redirecting...';
         successDiv.classList.remove('hidden');
         setTimeout(() => {
           window.location.href = '/portal/index.php?page=dashboard';
@@ -5275,7 +5286,8 @@ if ($page==='logout'){
         submitBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Sign & Continue to Dashboard';
       }
     } catch (err) {
-      errorDiv.textContent = 'Network error. Please check your connection and try again.';
+      console.error('Sign agreements error:', err);
+      errorDiv.textContent = err.message || 'Network error. Please check your connection and try again.';
       errorDiv.classList.remove('hidden');
       submitBtn.disabled = false;
       submitBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Sign & Continue to Dashboard';
@@ -5284,6 +5296,48 @@ if ($page==='logout'){
   </script>
 
 <?php elseif ($page==='dashboard'): ?>
+  <?php
+  // Check if profile is incomplete (missing NPI or license for physicians/practice admins)
+  $profileIncomplete = false;
+  $missingFields = [];
+
+  if (empty($user['npi'])) {
+    $profileIncomplete = true;
+    $missingFields[] = 'NPI Number';
+  }
+  if (empty($user['license'])) {
+    $profileIncomplete = true;
+    $missingFields[] = 'Medical License Number';
+  }
+  if (empty($user['license_state'])) {
+    $profileIncomplete = true;
+    $missingFields[] = 'License State';
+  }
+  ?>
+
+  <?php if ($profileIncomplete): ?>
+  <!-- Profile Completion Banner -->
+  <div class="mb-6 p-4 rounded-xl" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: 1px solid #f59e0b;">
+    <div class="flex items-start gap-4">
+      <div style="width: 48px; height: 48px; background: #f59e0b; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+        <svg style="width: 24px; height: 24px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+        </svg>
+      </div>
+      <div class="flex-1">
+        <h3 style="font-weight: 700; color: #92400e; font-size: 1rem; margin-bottom: 0.25rem;">Complete Your Profile</h3>
+        <p style="color: #a16207; font-size: 0.875rem; margin-bottom: 0.75rem;">
+          To submit orders, please complete your profile information. Missing: <strong><?= implode(', ', $missingFields) ?></strong>
+        </p>
+        <a href="?page=profile" class="btn btn-primary" style="background: #f59e0b; border-color: #f59e0b;">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+          Complete Profile
+        </a>
+      </div>
+    </div>
+  </div>
+  <?php endif; ?>
+
   <!-- Stat Cards -->
   <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
     <a href="?page=patients" class="card no-underline cursor-pointer transition-all hover:shadow-2xl hover:scale-105 hover:-translate-y-1" style="text-decoration: none; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: none; padding: 1.5rem; border-radius: 16px; position: relative; overflow: hidden;">

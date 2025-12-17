@@ -29,11 +29,10 @@ function send_registration_welcome_email(array $userData): bool {
   $portalAccess = '';
   $trainingMaterials = "
 **Training & Support Resources:**
-- Getting Started Guide: https://docs.collagendirect.health/getting-started
-- Video Tutorials: https://docs.collagendirect.health/videos
-- Order Creation Walkthrough: https://docs.collagendirect.health/orders
-- Billing & Documentation: https://docs.collagendirect.health/billing
-- FAQs: https://docs.collagendirect.health/faq";
+- Portal Training Guide: https://collagendirect.health/portal-guide/
+- Video Tutorials: https://collagendirect.health/portal-guide/#videos
+- Order Creation Walkthrough: https://collagendirect.health/portal-guide/#orders
+- FAQs: https://collagendirect.health/portal-guide/#faq";
 
   switch ($userType) {
     case 'practice_admin':
@@ -142,7 +141,7 @@ $nextSteps
 $trainingMaterials
 
 **Need Help?**
-- Portal Support: https://docs.collagendirect.health
+- Portal Training Guide: https://collagendirect.health/portal-guide/
 - Email: support@collagendirect.health
 - Phone: (888) 415-6880
 - Live Chat: Available in your portal

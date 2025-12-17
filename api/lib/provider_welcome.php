@@ -22,11 +22,10 @@ function send_provider_welcome_email(string $email, string $name, string $role, 
   $setupInstructions = '';
   $trainingMaterials = "
 **Training & Support Resources:**
-- Getting Started Guide: https://docs.collagendirect.health/getting-started
-- Video Tutorials: https://docs.collagendirect.health/videos
-- Order Creation Walkthrough: https://docs.collagendirect.health/orders
-- Billing & Documentation: https://docs.collagendirect.health/billing
-- FAQs: https://docs.collagendirect.health/faq";
+- Portal Training Guide: https://collagendirect.health/portal-guide/
+- Video Tutorials: https://collagendirect.health/portal-guide/#videos
+- Order Creation Walkthrough: https://collagendirect.health/portal-guide/#orders
+- FAQs: https://collagendirect.health/portal-guide/#faq";
 
   switch (strtolower($role)) {
     case 'practice owner':

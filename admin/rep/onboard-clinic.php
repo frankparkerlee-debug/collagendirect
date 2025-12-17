@@ -6,6 +6,7 @@
  */
 declare(strict_types=1);
 require __DIR__ . '/_header.php';
+require_once __DIR__ . '/../../api/lib/provider_welcome.php';
 
 $repId = $admin['rep_id'] ?? null;
 if (!$repId) {
@@ -23,18 +24,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   $providerType = $_POST['provider_type'] ?? 'practice';
   $email = trim($_POST['email'] ?? '');
-  $password = $_POST['password'] ?? '';
   $firstName = trim($_POST['first_name'] ?? '');
   $lastName = trim($_POST['last_name'] ?? '');
   $accountType = $_POST['account_type'] ?? 'referral';
 
+  // Generate a secure temporary password (12 chars, mixed case + numbers)
+  $tempPassword = substr(str_shuffle('abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789'), 0, 12);
+
   // Validate required fields
-  if (!$email || !$password || !$firstName || !$lastName) {
+  if (!$email || !$firstName || !$lastName) {
     $error = 'Please fill in all required fields.';
   } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     $error = 'Please enter a valid email address.';
-  } elseif (strlen($password) < 8) {
-    $error = 'Password must be at least 8 characters.';
   } else {
     // Check if email already exists
     $checkStmt = $pdo->prepare("SELECT id, assigned_rep_id, practice_name, first_name, last_name FROM users WHERE email = ?");
@@ -111,14 +112,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             created_at, updated_at
           ) VALUES (?,LOWER(?),?,?,?,?,?,?,?,?,?,'practice_admin','practice_admin',?,'active',TRUE,?,?,?,?,NOW(),'self_onboard',?,NOW(),NOW())
         ")->execute([
-          $userId, $email, password_hash($password, PASSWORD_DEFAULT), $firstName, $lastName, $practiceName,
+          $userId, $email, password_hash($tempPassword, PASSWORD_DEFAULT), $firstName, $lastName, $practiceName,
           $address, $city, $state, $zip, $phone,
           $dbAccountType,
           $isReferralOnly, $hasDmeLicense, $isHybrid,
           $repId, $admin['id']
         ]);
 
-        $message = 'Practice "' . htmlspecialchars($practiceName ?: $firstName . ' ' . $lastName) . '" has been created and assigned to you.';
+        // Send welcome email with temporary password
+        $fullName = trim($firstName . ' ' . $lastName);
+        $emailSent = send_provider_welcome_email($email, $fullName, 'practice_admin', $tempPassword);
+
+        $message = 'Practice "' . htmlspecialchars($practiceName ?: $fullName) . '" has been created and assigned to you.';
+        if ($emailSent) {
+          $message .= ' A welcome email with login credentials has been sent to ' . htmlspecialchars($email) . '.';
+        } else {
+          $message .= ' <span class="text-amber-600">Note: Welcome email could not be sent. Temporary password: <code class="bg-gray-100 px-2 py-1 rounded font-mono">' . htmlspecialchars($tempPassword) . '</code></span>';
+        }
       } else {
         // Creating a physician
         $npi = preg_replace('/\D/', '', $_POST['npi'] ?? '');
@@ -135,14 +145,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             created_at, updated_at
           ) VALUES (?,LOWER(?),?,?,?,?,?,?,'physician','physician',?,'active',?,?,?,?,NOW(),'self_onboard',?,NOW(),NOW())
         ")->execute([
-          $userId, $email, password_hash($password, PASSWORD_DEFAULT), $firstName, $lastName,
+          $userId, $email, password_hash($tempPassword, PASSWORD_DEFAULT), $firstName, $lastName,
           $npi ?: null, $license ?: null, $licenseState,
           $dbAccountType,
           $isReferralOnly, $hasDmeLicense, $isHybrid,
           $repId, $admin['id']
         ]);
 
-        $message = 'Physician "' . htmlspecialchars($firstName . ' ' . $lastName) . '" has been created and assigned to you.';
+        // Send welcome email with temporary password
+        $fullName = trim($firstName . ' ' . $lastName);
+        $emailSent = send_provider_welcome_email($email, $fullName, 'physician', $tempPassword);
+
+        $message = 'Physician "' . htmlspecialchars($fullName) . '" has been created and assigned to you.';
+        if ($emailSent) {
+          $message .= ' A welcome email with login credentials has been sent to ' . htmlspecialchars($email) . '.';
+        } else {
+          $message .= ' <span class="text-amber-600">Note: Welcome email could not be sent. Temporary password: <code class="bg-gray-100 px-2 py-1 rounded font-mono">' . htmlspecialchars($tempPassword) . '</code></span>';
+        }
       }
     } catch (PDOException $e) {
       error_log("Onboard clinic error: " . $e->getMessage());
@@ -264,13 +283,10 @@ $states = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN'
         <label class="block text-sm font-medium text-gray-700 mb-1">Last Name <span class="text-red-500">*</span></label>
         <input type="text" name="last_name" required value="<?= htmlspecialchars($_POST['last_name'] ?? '') ?>">
       </div>
-      <div>
+      <div class="md:col-span-2">
         <label class="block text-sm font-medium text-gray-700 mb-1">Email <span class="text-red-500">*</span></label>
         <input type="email" name="email" required value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Password <span class="text-red-500">*</span></label>
-        <input type="password" name="password" required minlength="8" placeholder="Min 8 characters">
+        <p class="text-xs text-gray-500 mt-1">A welcome email with a temporary password will be sent to this address.</p>
       </div>
     </div>
   </div>
