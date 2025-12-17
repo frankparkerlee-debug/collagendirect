@@ -25,7 +25,7 @@ $errors = [];
 try {
     // Find Alina in admin_users
     $stmt = $pdo->prepare("SELECT id, name, email, role, has_rep_view FROM admin_users WHERE email = ?");
-    $stmt->execute(['alinaherrera29@gmail.com']);
+    $stmt->execute(['alina.herrera@collagendirect.health']);
     $alina = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$alina) {
