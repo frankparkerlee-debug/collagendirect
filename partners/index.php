@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Partner With CollagenDirect — Sales Rep Program</title>
-  <meta name="description" content="Join the CollagenDirect sales partner program. Earn 25% commission on FDA-cleared wound care products. Apply now to become a sales representative.">
+  <meta name="description" content="Join the CollagenDirect sales partner program. Earn market-leading commission on FDA-cleared wound care products. Apply now to become a distribution partner.">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -89,7 +89,7 @@
         </h1>
 
         <p class="text-lg lg:text-xl text-gray-600 leading-relaxed max-w-2xl mx-auto mb-8">
-          Build a rewarding career in healthcare sales. Represent FDA-cleared wound care products with industry-leading commissions and full sales support.
+          Help physicians improve patient outcomes with FDA-cleared wound care products—while earning market-leading commissions through a clean, compliant ordering process.
         </p>
 
         <div class="flex flex-col sm:flex-row gap-4 justify-center mb-12">
@@ -107,8 +107,8 @@
         <!-- Key Stats -->
         <div class="grid grid-cols-3 gap-6 max-w-2xl mx-auto">
           <div class="text-center">
-            <div class="text-3xl lg:text-4xl font-black bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent mb-1">25%</div>
-            <div class="text-xs text-gray-600 font-medium">Commission Rate</div>
+            <div class="text-3xl lg:text-4xl font-black bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent mb-1">Top</div>
+            <div class="text-xs text-gray-600 font-medium">Commission Rates</div>
           </div>
           <div class="text-center">
             <div class="text-3xl lg:text-4xl font-black bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent mb-1">98%</div>
@@ -134,7 +134,7 @@
           Why Partner With Us?
         </h2>
         <p class="text-xl text-gray-600">
-          Join a growing team of healthcare sales professionals earning competitive commissions on proven wound care products.
+          We provide clinical and sales support to help distributors grow their business with proven wound care products.
         </p>
       </div>
 
@@ -146,9 +146,9 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
           </div>
-          <h3 class="text-xl font-black text-gray-900 mb-3">25% Commission</h3>
+          <h3 class="text-xl font-black text-gray-900 mb-3">Market-Leading Commission</h3>
           <p class="text-gray-600 leading-relaxed">
-            Earn 25% commission on collected revenue from every order placed by your referred physicians.
+            Earn competitive commission on collected revenue from every order placed by your referred physicians.
           </p>
         </div>
 
@@ -159,9 +159,9 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"></path>
             </svg>
           </div>
-          <h3 class="text-xl font-black text-gray-900 mb-3">Sales Support</h3>
+          <h3 class="text-xl font-black text-gray-900 mb-3">Clinical & Sales Support</h3>
           <p class="text-gray-600 leading-relaxed">
-            Full training, marketing materials, and dedicated support to help you succeed.
+            Dedicated clinical education, marketing materials, and sales support to help you grow your business.
           </p>
         </div>
 
@@ -271,7 +271,7 @@
           <div class="bg-white rounded-2xl p-6 border border-gray-200 h-full">
             <div class="w-10 h-10 bg-gradient-to-br from-emerald-500 to-green-500 rounded-xl flex items-center justify-center text-white font-black text-lg mb-4">5</div>
             <h3 class="text-lg font-bold text-gray-900 mb-2">Earn Commission</h3>
-            <p class="text-sm text-gray-600">Receive 25% commission on all collected revenue from your accounts.</p>
+            <p class="text-sm text-gray-600">Receive market-leading commission on all collected revenue from your accounts.</p>
           </div>
         </div>
       </div>
@@ -347,13 +347,13 @@
         <div class="relative">
           <div class="bg-gradient-to-br from-teal-50 to-emerald-50 rounded-3xl p-10 border border-teal-100">
             <div class="text-center mb-8">
-              <div class="text-6xl font-black bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent mb-2">$150k+</div>
-              <p class="text-gray-600 font-semibold">Average Annual Earnings Potential</p>
+              <div class="text-5xl font-black bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent mb-2">High Earning Potential</div>
+              <p class="text-gray-600 font-semibold">Grow Your Business With Us</p>
             </div>
             <div class="space-y-4">
               <div class="flex justify-between items-center py-3 border-b border-teal-100">
                 <span class="text-gray-700">Commission Rate</span>
-                <span class="font-bold text-teal-600">25%</span>
+                <span class="font-bold text-teal-600">Market-Leading</span>
               </div>
               <div class="flex justify-between items-center py-3 border-b border-teal-100">
                 <span class="text-gray-700">Payment Frequency</span>
@@ -407,7 +407,7 @@
             </svg>
           </summary>
           <div class="px-6 pb-6 text-gray-600">
-            You earn 25% commission on collected revenue from orders placed by physicians you've onboarded. Commission is calculated after insurance reimbursement is received. You can track all earnings in real-time through your sales rep dashboard.
+            You earn commission on collected revenue from orders placed by physicians you've onboarded. Commission is calculated after insurance reimbursement is received and rates are clearly outlined in your agreement. You can track all earnings in real-time through your sales rep dashboard with full compensation transparency.
           </div>
         </details>
 
@@ -431,7 +431,7 @@
             </svg>
           </summary>
           <div class="px-6 pb-6 text-gray-600">
-            We provide comprehensive onboarding training covering product knowledge, clinical applications, reimbursement, and sales techniques. You'll also receive marketing materials, sample kits, and ongoing support from our sales team.
+            We provide dedicated clinical and sales support to help you grow your business. This includes comprehensive product training, clinical education resources, marketing materials, sample kits, and ongoing assistance from our team. Our goal is to help distributors succeed with the tools and knowledge they need.
           </div>
         </details>
 
@@ -458,10 +458,10 @@
 
     <div class="relative max-w-5xl mx-auto px-6 lg:px-8 text-center">
       <h2 class="text-4xl lg:text-5xl font-black text-white mb-6 leading-tight">
-        Ready to Start Earning?
+        Ready to Partner With Us?
       </h2>
       <p class="text-xl text-slate-300 mb-12 leading-relaxed max-w-3xl mx-auto">
-        Join our growing network of sales professionals and start building your healthcare sales career today.
+        Join our network of distribution partners and offer your physicians a compliant, transparent way to order wound care products—backed by our clinical and sales support.
       </p>
 
       <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
