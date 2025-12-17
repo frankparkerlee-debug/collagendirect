@@ -61,8 +61,14 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     'Days Since Service'
   ]);
 
-  // Build query for export
-  $whereConditions = ["o.payment_type = 'insurance' OR (o.billed_by IS NULL AND u.account_type = 'referral')"];
+  // Build query for export - same filter as main page
+  $whereConditions = ["(
+    o.payment_type = 'insurance'
+    OR o.billed_by = 'collagen_direct'
+    OR (o.billed_by IS NULL AND u.account_type = 'referral')
+  )"];
+  $whereConditions[] = "(o.billed_by IS NULL OR o.billed_by != 'practice_dme')";
+  $whereConditions[] = "(u.account_type IS NULL OR u.account_type NOT IN ('wholesale', 'dme_wholesale'))";
   $whereConditions[] = "o.status NOT IN ('rejected', 'cancelled', 'voided')";
   $params = [];
 
@@ -349,7 +355,13 @@ try {
     SELECT DISTINCT u.id, u.first_name, u.last_name, u.practice_name
     FROM users u
     INNER JOIN orders o ON o.user_id = u.id
-    WHERE (o.payment_type = 'insurance' OR (o.billed_by IS NULL AND u.account_type = 'referral'))
+    WHERE (
+      o.payment_type = 'insurance'
+      OR o.billed_by = 'collagen_direct'
+      OR (o.billed_by IS NULL AND u.account_type = 'referral')
+    )
+    AND (o.billed_by IS NULL OR o.billed_by != 'practice_dme')
+    AND (u.account_type IS NULL OR u.account_type NOT IN ('wholesale', 'dme_wholesale'))
     ORDER BY u.last_name, u.first_name
   ");
   $physicians = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -380,7 +392,18 @@ $totalPending = 0.0;
 
 try {
   // Referral orders = insurance-billed orders (not wholesale)
-  $whereConditions = ["(o.payment_type = 'insurance' OR (o.billed_by IS NULL AND u.account_type = 'referral'))"];
+  // Include orders where:
+  // 1. payment_type = 'insurance' (explicit insurance billing)
+  // 2. billed_by = 'collagen_direct' (we bill insurance on behalf of practice)
+  // 3. billed_by IS NULL AND account_type = 'referral' (legacy referral orders)
+  // Exclude wholesale orders (billed_by = 'practice_dme' or account_type IN ('wholesale', 'dme_wholesale'))
+  $whereConditions = ["(
+    o.payment_type = 'insurance'
+    OR o.billed_by = 'collagen_direct'
+    OR (o.billed_by IS NULL AND u.account_type = 'referral')
+  )"];
+  $whereConditions[] = "(o.billed_by IS NULL OR o.billed_by != 'practice_dme')";
+  $whereConditions[] = "(u.account_type IS NULL OR u.account_type NOT IN ('wholesale', 'dme_wholesale'))";
   $whereConditions[] = "o.status NOT IN ('rejected', 'cancelled', 'voided')";
   $params = [];
 
