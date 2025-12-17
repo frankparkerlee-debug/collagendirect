@@ -701,6 +701,7 @@ unset($order); // Break reference
                   prod.pieces_per_box,
                   prod.price_wholesale,
                   prod.name as product_name,
+                  prod.size as product_size,
                   pp.custom_price,
                   pp.discount_percentage
                 FROM orders o
@@ -725,6 +726,7 @@ unset($order); // Break reference
                   prod.pieces_per_box,
                   prod.price_wholesale,
                   prod.name as product_name,
+                  prod.size as product_size,
                   pp.custom_price,
                   pp.discount_percentage
                 FROM orders o
@@ -790,8 +792,15 @@ unset($order); // Break reference
                   }
                 ?>
                   <tr>
+                    <?php
+                      // Build product label with size for fulfillment clarity
+                      $productLabel = $item['product_name'] ?? $item['product'] ?? 'N/A';
+                      if (!empty($item['product_size'])) {
+                        $productLabel .= ' (' . $item['product_size'] . ')';
+                      }
+                    ?>
                     <td style="font-weight: 500; color: #1e293b;">
-                      <?= htmlspecialchars($item['product_name'] ?? $item['product'] ?? 'N/A') ?>
+                      <?= htmlspecialchars($productLabel) ?>
                       <?php if ($hasDiscount && $discountPercent > 0): ?>
                         <span class="discount-badge"><?= number_format($discountPercent, 1) ?>% off</span>
                       <?php endif; ?>

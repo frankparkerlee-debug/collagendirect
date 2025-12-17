@@ -31,10 +31,12 @@ $totalPages = ceil($totalOrders / $perPage);
 $ordersStmt = $pdo->prepare("
   SELECT o.id, o.order_number, o.status, o.created_at, o.expected_revenue, o.product,
          p.first_name as patient_first, p.last_name as patient_last,
-         u.practice_name, u.first_name as phys_first, u.last_name as phys_last
+         u.practice_name, u.first_name as phys_first, u.last_name as phys_last,
+         pr.name as product_name, pr.size as product_size
   FROM orders o
   JOIN patients p ON p.id = o.patient_id
   JOIN users u ON u.id = o.user_id
+  LEFT JOIN products pr ON pr.id = o.product_id
   WHERE u.employee_rep_id = ?
   AND o.status NOT IN ('draft')
   ORDER BY o.created_at DESC
@@ -94,7 +96,14 @@ $orders = $ordersStmt->fetchAll();
               </div>
             </td>
             <td class="py-4 px-4">
-              <div class="text-sm text-gray-600"><?= htmlspecialchars($order['product'] ?? '-') ?></div>
+              <?php
+                // Build product label with size for fulfillment clarity
+                $productLabel = $order['product_name'] ?? $order['product'] ?? '-';
+                if (!empty($order['product_size'])) {
+                  $productLabel .= ' (' . $order['product_size'] . ')';
+                }
+              ?>
+              <div class="text-sm text-gray-600"><?= htmlspecialchars($productLabel) ?></div>
             </td>
             <td class="py-4 px-4 text-center">
               <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium

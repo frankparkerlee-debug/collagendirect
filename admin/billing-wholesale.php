@@ -478,7 +478,8 @@ try {
       u.default_payment_terms,
       pr.pieces_per_box,
       pr.price_wholesale,
-      pr.name as product_name
+      pr.name as product_name,
+      pr.size as product_size
     FROM orders o
     LEFT JOIN users u ON o.user_id = u.id
     LEFT JOIN products pr ON o.product_id = pr.id
@@ -530,9 +531,15 @@ try {
     $unitPrice = (float)($inv['unit_price'] ?? $inv['price_wholesale'] ?? 0);
     $itemValue = $boxes * $unitPrice * $piecesPerBox;
 
+    // Build product label with size for fulfillment clarity
+    $productLabel = $inv['product_name'] ?? $inv['product'] ?? 'Unknown Product';
+    if (!empty($inv['product_size'])) {
+      $productLabel .= ' (' . $inv['product_size'] . ')';
+    }
+
     $groupedInvoices[$orderNum]['items'][] = [
       'id' => $inv['id'],
-      'product' => $inv['product_name'] ?? $inv['product'],
+      'product' => $productLabel,
       'boxes' => $boxes,
       'unit_price' => $unitPrice,
       'pieces_per_box' => $piecesPerBox,

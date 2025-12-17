@@ -364,9 +364,15 @@ if (!$hasBilledBy) {
       $unit_price = (float)($order['unit_price'] ?? $order['price_wholesale'] ?? 0);
       $item_value = $boxes * ($unit_price * $pieces_per_box);
 
+      // Build product label with size for fulfillment clarity
+      $productLabel = $order['product_name'] ?? $order['product'] ?? 'Unknown Product';
+      if (!empty($order['product_size'])) {
+        $productLabel .= ' (' . $order['product_size'] . ')';
+      }
+
       $groupedOrders[$orderNum]['items'][] = [
         'id' => $order['id'],
-        'product' => $order['product'],
+        'product' => $productLabel,
         'product_id' => $order['product_id'],
         'boxes' => $boxes,
         'pieces_per_box' => $pieces_per_box,

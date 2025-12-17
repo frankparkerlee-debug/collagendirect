@@ -41,7 +41,7 @@ try {
             p.first_name, p.last_name, p.phone AS patient_phone, p.address, p.city, p.state, p.zip,
             u.first_name AS doc_first, u.last_name AS doc_last, u.practice_name, u.address AS practice_address,
             u.city AS practice_city, u.state AS practice_state, u.zip AS practice_zip, u.phone AS practice_phone,
-            pr.pieces_per_box, pr.price_wholesale, pr.name AS product_name,
+            pr.pieces_per_box, pr.price_wholesale, pr.name AS product_name, pr.size AS product_size,
             pp.custom_price AS practice_custom_price,
             pp.discount_percentage AS practice_discount_percentage
           FROM orders o
@@ -139,8 +139,14 @@ foreach ($orders as $order) {
 
   $line_total = $boxes * $price_per_box;
 
+  // Build product label with size for fulfillment clarity
+  $productLabel = $order['product_name'] ?? $order['product'] ?? 'Product';
+  if (!empty($order['product_size'])) {
+    $productLabel .= ' (' . $order['product_size'] . ')';
+  }
+
   $patient_groups[$patient_name]['products'][] = [
-    'product' => $order['product'] ?? 'Product',
+    'product' => $productLabel,
     'boxes' => $boxes,
     'price_per_box' => $price_per_box,
     'line_total' => $line_total

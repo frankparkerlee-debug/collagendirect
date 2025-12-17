@@ -36,10 +36,12 @@ $clinics = $clinicsStmt->fetchAll();
 $query = "
   SELECT o.id, o.status, o.created_at, o.product, o.amount_due,
          p.first_name as patient_first, p.last_name as patient_last,
-         u.id as clinic_id, u.practice_name, u.first_name as phys_first, u.last_name as phys_last
+         u.id as clinic_id, u.practice_name, u.first_name as phys_first, u.last_name as phys_last,
+         pr.name as product_name, pr.size as product_size
   FROM orders o
   JOIN patients p ON p.id = o.patient_id
   JOIN users u ON u.id = o.user_id
+  LEFT JOIN products pr ON pr.id = o.product_id
   WHERE u.assigned_rep_id = ?
   AND o.payment_type = 'wholesale'
   AND o.status NOT IN ('draft')
@@ -161,7 +163,14 @@ $statuses = ['submitted', 'approved', 'in_production', 'shipped', 'delivered', '
               <div class="text-sm"><?= htmlspecialchars($order['practice_name'] ?: $order['phys_first'] . ' ' . $order['phys_last']) ?></div>
             </td>
             <td>
-              <div class="text-sm"><?= htmlspecialchars($order['product'] ?: '-') ?></div>
+              <?php
+                // Build product label with size for fulfillment clarity
+                $productLabel = $order['product_name'] ?? $order['product'] ?? '-';
+                if (!empty($order['product_size'])) {
+                  $productLabel .= ' (' . $order['product_size'] . ')';
+                }
+              ?>
+              <div class="text-sm"><?= htmlspecialchars($productLabel) ?></div>
             </td>
             <td>
               <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
