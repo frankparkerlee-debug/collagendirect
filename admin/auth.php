@@ -6,9 +6,10 @@ require __DIR__ . '/db.php';
 function current_admin() {
   // ADMIN PORTAL ACCESS RULES (/admin):
   // 1. Super Admin (parker@collagendirect.health) - from users table with role='superadmin'
-  // 2. Employees - from admin_users table with role='employee' or 'admin'
+  // 2. Employees - from admin_users table with role='employee' or 'admin' or 'sales'
   // 3. Manufacturer - from admin_users table with role='manufacturer'
   // 4. Sales Rep - from users table with active sales_reps profile
+  // 5. Employee Sales Rep - from admin_users with has_rep_view=true (can access /admin/rep/ portal)
   //
   // IMPORTANT: practice_admin users are practice managers and should ONLY access /portal
   // They should NEVER access /admin portal - they belong in the physician portal
@@ -102,4 +103,79 @@ function deny_sales_rep(): void {
     header('Location: /admin/rep/');
     exit;
   }
+}
+
+// Check if current admin_user has employee rep view enabled
+function has_employee_rep_view(): bool {
+  $admin = current_admin();
+  if (!$admin || !isset($_SESSION['admin'])) {
+    return false;
+  }
+  return !empty($admin['has_rep_view']);
+}
+
+// Check if user is an employee sales rep (admin_user with role='sales')
+function is_employee_sales_rep(): bool {
+  $admin = current_admin();
+  return $admin && isset($_SESSION['admin']) && ($admin['role'] ?? '') === 'sales';
+}
+
+// Get employee rep's managed distributors
+function get_managed_distributors(PDO $pdo, string $adminUserId): array {
+  $stmt = $pdo->prepare("
+    SELECT sr.*, u.email, u.first_name, u.last_name
+    FROM sales_reps sr
+    JOIN users u ON u.id = sr.user_id
+    WHERE sr.managed_by_admin_id = ?
+    AND sr.status = 'active'
+    ORDER BY u.last_name, u.first_name
+  ");
+  $stmt->execute([$adminUserId]);
+  return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// Get employee rep's direct physician accounts
+function get_direct_physician_accounts(PDO $pdo, string $adminUserId): array {
+  $stmt = $pdo->prepare("
+    SELECT u.id, u.email, u.first_name, u.last_name, u.practice_name, u.role,
+           u.rep_assignment_date
+    FROM users u
+    WHERE u.employee_rep_id = ?
+    AND u.role IN ('physician', 'practice_admin')
+    ORDER BY u.last_name, u.first_name
+  ");
+  $stmt->execute([$adminUserId]);
+  return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// Get employee rep commission rate
+function get_employee_rep_rate(PDO $pdo, string $adminUserId, string $rateType = 'direct'): float {
+  $stmt = $pdo->prepare("
+    SELECT commission_rate
+    FROM employee_rep_commission_rates
+    WHERE admin_user_id = ?
+    AND rate_type = ?
+    AND effective_date <= CURRENT_DATE
+    AND (end_date IS NULL OR end_date >= CURRENT_DATE)
+    ORDER BY effective_date DESC
+    LIMIT 1
+  ");
+  $stmt->execute([$adminUserId, $rateType]);
+  $result = $stmt->fetch(PDO::FETCH_ASSOC);
+  return $result ? (float)$result['commission_rate'] : ($rateType === 'direct' ? 0.15 : 0.05);
+}
+
+// Get employee rep commission balance
+function get_employee_rep_balance(PDO $pdo, string $adminUserId): array {
+  $stmt = $pdo->prepare("
+    SELECT
+      COALESCE(SUM(commission_amount), 0) as total_earned,
+      COALESCE(SUM(CASE WHEN source_type = 'direct' THEN commission_amount ELSE 0 END), 0) as direct_earned,
+      COALESCE(SUM(CASE WHEN source_type = 'distributor_override' THEN commission_amount ELSE 0 END), 0) as override_earned
+    FROM employee_rep_ledger
+    WHERE admin_user_id = ?
+    AND commission_amount > 0
+  ");
+  $stmt->execute([$adminUserId]);
+  return $stmt->fetch(PDO::FETCH_ASSOC) ?: ['total_earned' => 0, 'direct_earned' => 0, 'override_earned' => 0];
 }

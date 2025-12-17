@@ -241,23 +241,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           $error = 'Unable to send W9 request email.';
         }
         break;
+
+      case 'assign_manager':
+        $managerId = $_POST['manager_id'] ?? '';
+        if ($managerId === '') {
+          // Unassign manager
+          $pdo->prepare("UPDATE sales_reps SET managed_by_admin_id = NULL, updated_at = NOW() WHERE id = ?")->execute([$repId]);
+          $message = 'Manager assignment removed.';
+        } else {
+          // Verify manager exists and has rep view
+          $managerStmt = $pdo->prepare("SELECT id, name FROM admin_users WHERE id = ? AND (role = 'sales' OR has_rep_view = TRUE)");
+          $managerStmt->execute([$managerId]);
+          $manager = $managerStmt->fetch();
+          if ($manager) {
+            $pdo->prepare("UPDATE sales_reps SET managed_by_admin_id = ?, updated_at = NOW() WHERE id = ?")->execute([$managerId, $repId]);
+            $message = 'Manager assigned: ' . $manager['name'];
+          } else {
+            $error = 'Invalid manager selected.';
+          }
+        }
+        break;
     }
   } catch (PDOException $e) {
     $error = 'Database error: ' . $e->getMessage();
   }
 }
 
-// Fetch rep details (including Phase 11 business profile fields)
+// Fetch rep details (including Phase 11 business profile fields and manager info)
 $repQuery = "
   SELECT sr.*,
-    u.email, u.first_name, u.last_name, u.phone, u.created_at as user_created_at
+    u.email, u.first_name, u.last_name, u.phone, u.created_at as user_created_at,
+    mgr.name as manager_name, mgr.email as manager_email
   FROM sales_reps sr
   JOIN users u ON u.id = sr.user_id
+  LEFT JOIN admin_users mgr ON mgr.id = sr.managed_by_admin_id
   WHERE sr.id = ?
 ";
 $repStmt = $pdo->prepare($repQuery);
 $repStmt->execute([$repId]);
 $rep = $repStmt->fetch();
+
+// Fetch available managers (employee sales reps with rep view)
+$managersStmt = $pdo->query("
+  SELECT id, name, email
+  FROM admin_users
+  WHERE (role = 'sales' OR has_rep_view = TRUE)
+  AND id IS NOT NULL
+  ORDER BY name
+");
+$availableManagers = $managersStmt->fetchAll();
 
 if (!$rep) {
   header('Location: /admin/platform/distributors.php');
@@ -636,6 +668,48 @@ $statusColors = [
         <div class="text-sm text-gray-500">Commission Earned</div>
       </div>
     </div>
+  </div>
+
+  <!-- Manager Assignment -->
+  <div class="card p-6">
+    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Manager Assignment</h3>
+    <div class="mb-4">
+      <?php if ($rep['managed_by_admin_id']): ?>
+        <div class="flex items-center gap-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+          <div class="w-10 h-10 rounded-full bg-purple-600 text-white flex items-center justify-center font-semibold">
+            <?php
+            $mgrParts = explode(' ', $rep['manager_name'] ?? '');
+            echo strtoupper(substr($mgrParts[0] ?? '', 0, 1) . substr($mgrParts[1] ?? '', 0, 1));
+            ?>
+          </div>
+          <div>
+            <div class="font-medium text-gray-900"><?= htmlspecialchars($rep['manager_name']) ?></div>
+            <div class="text-xs text-gray-500"><?= htmlspecialchars($rep['manager_email']) ?></div>
+          </div>
+        </div>
+        <p class="text-xs text-gray-500 mt-2">This distributor earns override commission for <?= htmlspecialchars($rep['manager_name']) ?>.</p>
+      <?php else: ?>
+        <div class="p-3 bg-gray-50 rounded-lg border border-gray-200 text-gray-500 text-sm">
+          No manager assigned
+        </div>
+        <p class="text-xs text-gray-400 mt-2">Assign a manager to earn override commission on this distributor's accounts.</p>
+      <?php endif; ?>
+    </div>
+
+    <form method="post" class="space-y-3">
+      <?= csrf_field() ?>
+      <input type="hidden" name="action" value="assign_manager">
+      <label class="block text-sm font-medium text-gray-700">Change Manager</label>
+      <select name="manager_id" class="w-full">
+        <option value="">-- No Manager --</option>
+        <?php foreach ($availableManagers as $mgr): ?>
+          <option value="<?= htmlspecialchars($mgr['id']) ?>" <?= $rep['managed_by_admin_id'] === $mgr['id'] ? 'selected' : '' ?>>
+            <?= htmlspecialchars($mgr['name']) ?> (<?= htmlspecialchars($mgr['email']) ?>)
+          </option>
+        <?php endforeach; ?>
+      </select>
+      <button type="submit" class="btn btn-primary w-full">Update Manager</button>
+    </form>
   </div>
 </div>
 

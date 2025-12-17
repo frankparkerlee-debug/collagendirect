@@ -26,7 +26,7 @@ $adminUser = null;
 
 // If not found in users table, check admin_users table (employees, manufacturer)
 if (!$user) {
-  $stmt = $pdo->prepare("SELECT id, password_hash, name, email, role FROM admin_users WHERE email=? LIMIT 1");
+  $stmt = $pdo->prepare("SELECT id, password_hash, name, email, role, has_rep_view FROM admin_users WHERE email=? LIMIT 1");
   $stmt->execute([$email]);
   $adminUser = $stmt->fetch();
   if ($adminUser) {
@@ -55,7 +55,8 @@ if ($isAdminUser) {
     'id' => $adminUser['id'],
     'email' => $adminUser['email'],
     'name' => $adminUser['name'],
-    'role' => $adminUser['role']
+    'role' => $adminUser['role'],
+    'has_rep_view' => !empty($adminUser['has_rep_view'])
   ];
 
   // Always set persistent cookie
@@ -69,11 +70,18 @@ if ($isAdminUser) {
     'samesite' => $params['samesite'] ?? 'Lax'
   ]);
 
-  json_out(200, ['ok'=>true, 'redirect'=>'/admin/', 'user'=>[
+  // Employee sales reps with rep view go to employee-rep portal
+  $redirect = '/admin/';
+  if (!empty($adminUser['has_rep_view'])) {
+    $redirect = '/admin/employee-rep/';
+  }
+
+  json_out(200, ['ok'=>true, 'redirect'=>$redirect, 'user'=>[
     'id'=>$adminUser['id'],
     'email'=>$adminUser['email'],
     'name'=>$adminUser['name'],
-    'role'=>$adminUser['role']
+    'role'=>$adminUser['role'],
+    'has_rep_view'=>!empty($adminUser['has_rep_view'])
   ]]);
 }
 
