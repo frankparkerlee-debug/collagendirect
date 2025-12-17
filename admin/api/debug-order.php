@@ -36,6 +36,7 @@ $stmt = $pdo->prepare("
         o.expected_revenue,
         o.expected_cost,
         o.cpt_rate_used,
+        o.insurance_billed,
         o.wounds_data,
         p.pieces_per_box,
         p.cost_per_box,
@@ -107,7 +108,16 @@ echo json_encode([
         'boxes_to_ship' => $order['boxes_to_ship'],
         'total_pieces' => $order['total_pieces'],
         'billable_pieces' => $order['billable_pieces'],
-        'cpt_rate_used' => $order['cpt_rate_used']
+        'cpt_rate_used' => $order['cpt_rate_used'],
+        'insurance_billed' => $order['insurance_billed']
+    ],
+
+    'billing_referral_logic' => [
+        'insurance_billed_value' => (float)($order['insurance_billed'] ?? 0),
+        'will_use_insurance_billed' => ((float)($order['insurance_billed'] ?? 0)) > 0,
+        'displayed_billed_amount' => ((float)($order['insurance_billed'] ?? 0)) > 0
+            ? (float)$order['insurance_billed']
+            : (float)$order['expected_revenue']
     ],
 
     'order_parameters' => [
