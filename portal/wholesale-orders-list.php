@@ -15,6 +15,10 @@ if (!isset($user) || !is_array($user)) {
 }
 
 $userId = $user['id'];
+$userRole = $user['role'] ?? 'physician';
+$isPracticeAdmin = in_array($userRole, ['practice_admin', 'superadmin']);
+// Only practice admins/managers can see financial information
+$canViewFinancials = $isPracticeAdmin;
 
 // Check if order_number column exists
 $hasOrderNumber = false;
@@ -242,10 +246,14 @@ unset($order); // Break reference
   padding: 1rem 1.25rem;
   cursor: pointer;
   display: grid;
-  grid-template-columns: 150px 1fr 100px 120px 100px auto;
+  grid-template-columns: 150px 1fr 100px 100px auto;
   gap: 1rem;
   align-items: center;
   transition: background 0.15s;
+}
+
+.invoice-header.with-financials {
+  grid-template-columns: 150px 1fr 100px 120px 100px auto;
 }
 
 .invoice-header:hover {
@@ -480,10 +488,10 @@ unset($order); // Break reference
   <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem;">
     <div>
       <h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; color: #1e293b;">
-        Wholesale Orders & Invoices
+        Wholesale Orders<?= $canViewFinancials ? ' & Invoices' : '' ?>
       </h1>
       <p style="color: #64748b; font-size: 0.875rem;">
-        View and manage your wholesale orders - each order is your invoice
+        <?= $canViewFinancials ? 'View and manage your wholesale orders and invoices' : 'View and track your wholesale product orders' ?>
       </p>
     </div>
     <a href="?page=wholesale&tab=create" class="btn-primary">
@@ -497,21 +505,23 @@ unset($order); // Break reference
   <!-- Summary Stats -->
   <div class="stats-grid">
     <div class="stat-card">
-      <div class="stat-label">Total Invoices</div>
+      <div class="stat-label">Total Orders</div>
       <div class="stat-value"><?= $totalOrders ?></div>
     </div>
     <div class="stat-card amber">
-      <div class="stat-label">Pending</div>
+      <div class="stat-label">In Progress</div>
       <div class="stat-value"><?= $pendingCount ?></div>
     </div>
     <div class="stat-card blue">
-      <div class="stat-label">Completed</div>
+      <div class="stat-label">Delivered</div>
       <div class="stat-value"><?= $completedCount ?></div>
     </div>
+    <?php if ($canViewFinancials): ?>
     <div class="stat-card green">
-      <div class="stat-label">Total Spent</div>
+      <div class="stat-label">Total Invoiced</div>
       <div class="stat-value">$<?= number_format($totalSpent, 2) ?></div>
     </div>
+    <?php endif; ?>
   </div>
 
   <!-- Orders/Invoices List -->
@@ -564,10 +574,10 @@ unset($order); // Break reference
       ?>
         <div class="invoice-card" onclick="toggleInvoice(this, event)" data-order-number="<?= $orderNumber ?>">
           <!-- Invoice Header (Collapsed View) -->
-          <div class="invoice-header">
-            <!-- Invoice Number -->
+          <div class="invoice-header<?= $canViewFinancials ? ' with-financials' : '' ?>">
+            <!-- Order Number -->
             <div>
-              <div style="font-size: 0.7rem; color: #64748b; margin-bottom: 0.25rem; text-transform: uppercase; letter-spacing: 0.05em;">Invoice #</div>
+              <div style="font-size: 0.7rem; color: #64748b; margin-bottom: 0.25rem; text-transform: uppercase; letter-spacing: 0.05em;">Order #</div>
               <div style="font-weight: 600; font-size: 0.875rem; color: #1e293b;">
                 <?= $orderNumber ?>
               </div>
@@ -577,9 +587,6 @@ unset($order); // Break reference
             <div>
               <div style="font-weight: 600; font-size: 0.875rem; color: #1e293b; margin-bottom: 0.25rem;">
                 <?= $orderDate ?>
-                <span style="font-size: 0.75rem; color: <?= $agingColor ?>; font-weight: 500; margin-left: 0.5rem;">
-                  (<?= $daysOld ?> day<?= $daysOld !== 1 ? 's' : '' ?> old<?= $isOverdue ? ' - OVERDUE' : '' ?>)
-                </span>
               </div>
               <div style="font-size: 0.75rem; color: #64748b;">
                 <?= $productCount ?> item<?= $productCount !== 1 ? 's' : '' ?>
@@ -595,13 +602,15 @@ unset($order); // Break reference
               <div style="font-size: 0.65rem; color: #64748b; text-transform: uppercase;">Items</div>
             </div>
 
-            <!-- Total Amount -->
+            <?php if ($canViewFinancials): ?>
+            <!-- Total Amount (Practice Managers Only) -->
             <div style="text-align: right;">
               <div style="font-size: 0.7rem; color: #64748b; margin-bottom: 0.25rem; text-transform: uppercase;">Total</div>
               <div style="font-weight: 700; font-size: 1.125rem; color: #10b981;">
                 $<?= number_format($totalCost, 2) ?>
               </div>
             </div>
+            <?php endif; ?>
 
             <!-- Status -->
             <div>
@@ -747,12 +756,14 @@ unset($order); // Break reference
             <table class="invoice-items-table">
               <thead>
                 <tr>
-                  <th style="width: 35%;">Item Description</th>
-                  <th style="width: 20%;">Patient</th>
-                  <th class="text-center" style="width: 10%;">Boxes</th>
-                  <th class="text-center" style="width: 10%;">Pcs/Box</th>
+                  <th style="width: <?= $canViewFinancials ? '35%' : '45%' ?>;">Item Description</th>
+                  <th style="width: <?= $canViewFinancials ? '20%' : '30%' ?>;">Patient</th>
+                  <th class="text-center" style="width: <?= $canViewFinancials ? '10%' : '12%' ?>;">Boxes</th>
+                  <th class="text-center" style="width: <?= $canViewFinancials ? '10%' : '13%' ?>;">Pcs/Box</th>
+                  <?php if ($canViewFinancials): ?>
                   <th class="text-right" style="width: 12%;">Unit Price</th>
                   <th class="text-right" style="width: 13%;">Amount</th>
+                  <?php endif; ?>
                 </tr>
               </thead>
               <tbody>
@@ -801,7 +812,7 @@ unset($order); // Break reference
                     ?>
                     <td style="font-weight: 500; color: #1e293b;">
                       <?= htmlspecialchars($productLabel) ?>
-                      <?php if ($hasDiscount && $discountPercent > 0): ?>
+                      <?php if ($canViewFinancials && $hasDiscount && $discountPercent > 0): ?>
                         <span class="discount-badge"><?= number_format($discountPercent, 1) ?>% off</span>
                       <?php endif; ?>
                     </td>
@@ -819,15 +830,18 @@ unset($order); // Break reference
                     <td class="text-center" style="color: #64748b;">
                       <?= $piecesPerBox ?>
                     </td>
+                    <?php if ($canViewFinancials): ?>
                     <td class="text-right" style="color: #64748b;">
                       $<?= number_format($pricePerBox, 2) ?>
                     </td>
                     <td class="text-right" style="font-weight: 600; color: #1e293b;">
                       $<?= number_format($lineTotal, 2) ?>
                     </td>
+                    <?php endif; ?>
                   </tr>
                 <?php endforeach; ?>
               </tbody>
+              <?php if ($canViewFinancials): ?>
               <tfoot>
                 <?php if ($totalDiscount > 0): ?>
                   <tr style="border-bottom: 1px solid #e2e8f0;">
@@ -850,9 +864,11 @@ unset($order); // Break reference
                   </td>
                 </tr>
               </tfoot>
+              <?php endif; ?>
             </table>
 
             <!-- Actions -->
+            <?php if ($canViewFinancials): ?>
             <div class="invoice-actions">
               <a
                 href="/portal/wholesale-order.pdf.php?order_group=<?= urlencode($orderNumber) ?>&csrf=<?= htmlspecialchars($_SESSION['csrf'] ?? '') ?>"
@@ -865,6 +881,7 @@ unset($order); // Break reference
                 Download PDF Invoice
               </a>
             </div>
+            <?php endif; ?>
           </div>
         </div>
       <?php endforeach; ?>
@@ -877,14 +894,16 @@ unset($order); // Break reference
       <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
       </svg>
-      About Wholesale Invoices
+      About Wholesale Orders
     </h3>
     <ul style="margin: 0; padding-left: 1.5rem; color: #475569; font-size: 0.875rem; line-height: 1.7;">
-      <li style="margin-bottom: 0.5rem;">Each wholesale order is your invoice - click to expand and view full details</li>
-      <li style="margin-bottom: 0.5rem;">Invoices show your practice-specific discounted pricing automatically</li>
+      <li style="margin-bottom: 0.5rem;">Click any order to expand and view full details including products and patients</li>
+      <li style="margin-bottom: 0.5rem;">Orders are tracked from submission through delivery</li>
+      <?php if ($canViewFinancials): ?>
       <li style="margin-bottom: 0.5rem;">Download PDF invoices for your accounting records</li>
-      <li style="margin-bottom: 0.5rem;">All prices shown reflect any custom pricing or percentage discounts configured for your practice</li>
-      <li>Contact support if you have questions about your pricing or need to request custom pricing</li>
+      <li style="margin-bottom: 0.5rem;">Pricing shown reflects your practice-specific discounts</li>
+      <?php endif; ?>
+      <li>Contact support if you have questions about your orders</li>
     </ul>
   </div>
 </div>
