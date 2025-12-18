@@ -55,26 +55,49 @@ $isReferralOnly = (bool)($user['is_referral_only'] ?? false);
 $userRole = $user['role'] ?? 'physician';
 $isPracticeAdmin = in_array($userRole, ['practice_admin', 'superadmin']);
 
-// Check if user needs to sign BAA and Terms (agreement check)
-// Users created via admin/employee-rep portal won't have these signed initially
-$needsAgreements = empty($user['agree_msa']) || empty($user['agree_baa']);
-$isSignAgreementsPage = ($_GET['page'] ?? '') === 'sign-agreements';
-$isSignAgreementsAction = ($_GET['action'] ?? '') === 'sign_agreements';
+// ============================================================================
+// ONBOARDING REQUIREMENTS CHECK
+// ============================================================================
+// Practice Admins need: 1) Signed agreements, 2) Complete profile, 3) At least one location
+// Employee Physicians need: 1) Complete profile only (no agreements, no location)
+// ============================================================================
+
+// Check what onboarding steps are needed
+$needsAgreements = $isPracticeAdmin && (empty($user['agree_msa']) || empty($user['agree_baa']));
+$needsProfile = empty($user['npi']) || empty($user['license']) || empty($user['license_state']);
+
+// Check if practice has at least one location (only for practice admins)
+$needsLocation = false;
+if ($isPracticeAdmin) {
+  try {
+    $locStmt = $pdo->prepare("SELECT COUNT(*) FROM practice_locations WHERE user_id = ? AND is_active = TRUE");
+    $locStmt->execute([$userId]);
+    $locationCount = (int)$locStmt->fetchColumn();
+    $needsLocation = ($locationCount === 0);
+  } catch (PDOException $e) {
+    // Table might not exist yet - that's OK, we'll handle it gracefully
+    $needsLocation = false;
+  }
+}
+
+// Determine if onboarding is needed
+$needsOnboarding = $needsAgreements || $needsProfile || $needsLocation;
+$isOnboardingPage = ($_GET['page'] ?? '') === 'onboarding';
+$isSignAgreementsPage = ($_GET['page'] ?? '') === 'sign-agreements'; // Keep for backward compat
+$isOnboardingAction = in_array($_GET['action'] ?? '', ['sign_agreements', 'onboarding.save_profile', 'onboarding.save_location']);
 $hasAnyAction = !empty($_GET['action']);
 
-// Redirect to agreement signing page if not already there
-// Allow the sign_agreements API action to proceed without redirect
-// For other API actions, return JSON error instead of HTML redirect
-if ($needsAgreements && !$isSignAgreementsPage && !$isSignAgreementsAction) {
+// Redirect to onboarding page if needed
+if ($needsOnboarding && !$isOnboardingPage && !$isSignAgreementsPage && !$isOnboardingAction) {
   // If this is an API request (has action parameter), return JSON error
   if ($hasAnyAction) {
     http_response_code(403);
     header('Content-Type: application/json');
-    echo json_encode(['ok' => false, 'error' => 'Please sign the required agreements first', 'redirect' => '/portal/index.php?page=sign-agreements']);
+    echo json_encode(['ok' => false, 'error' => 'Please complete onboarding first', 'redirect' => '/portal/index.php?page=onboarding']);
     exit;
   }
-  // Otherwise redirect to sign-agreements page
-  header('Location: /portal/index.php?page=sign-agreements');
+  // Otherwise redirect to onboarding page
+  header('Location: /portal/index.php?page=onboarding');
   exit;
 }
 
@@ -815,6 +838,131 @@ if ($action) {
       echo json_encode(['ok' => true, 'message' => 'Agreements signed successfully']);
     } catch (PDOException $e) {
       error_log("Error signing agreements for user $userId: " . $e->getMessage());
+      echo json_encode(['ok' => false, 'error' => 'An error occurred. Please try again.']);
+    }
+    exit;
+  }
+
+  // Save Profile action - for onboarding wizard
+  if ($action === 'onboarding.save_profile') {
+    header('Content-Type: application/json');
+
+    $npi = trim((string)($_POST['npi'] ?? ''));
+    $license = trim((string)($_POST['license'] ?? ''));
+    $licenseState = trim((string)($_POST['license_state'] ?? ''));
+    $credential = trim((string)($_POST['credential'] ?? ''));
+
+    // Validation
+    if (!$npi || !preg_match('/^\d{10}$/', $npi)) {
+      echo json_encode(['ok' => false, 'error' => 'Please enter a valid 10-digit NPI number']);
+      exit;
+    }
+
+    if (!$license) {
+      echo json_encode(['ok' => false, 'error' => 'Please enter your medical license number']);
+      exit;
+    }
+
+    if (!$licenseState || strlen($licenseState) !== 2) {
+      echo json_encode(['ok' => false, 'error' => 'Please select your license state']);
+      exit;
+    }
+
+    try {
+      $updateStmt = $pdo->prepare("
+        UPDATE users
+        SET npi = ?, license = ?, license_state = ?, credential = ?, updated_at = NOW()
+        WHERE id = ?
+      ");
+      $updateStmt->execute([$npi, $license, strtoupper($licenseState), $credential ?: null, $userId]);
+
+      echo json_encode(['ok' => true, 'message' => 'Profile saved successfully']);
+    } catch (PDOException $e) {
+      error_log("Error saving profile for user $userId: " . $e->getMessage());
+      echo json_encode(['ok' => false, 'error' => 'An error occurred. Please try again.']);
+    }
+    exit;
+  }
+
+  // Save Location action - for onboarding wizard (practice admins only)
+  if ($action === 'onboarding.save_location') {
+    header('Content-Type: application/json');
+
+    // Only practice admins can add locations
+    if (!$isPracticeAdmin) {
+      echo json_encode(['ok' => false, 'error' => 'Only practice administrators can add locations']);
+      exit;
+    }
+
+    $locationName = trim((string)($_POST['location_name'] ?? ''));
+    $address1 = trim((string)($_POST['address1'] ?? ''));
+    $address2 = trim((string)($_POST['address2'] ?? ''));
+    $city = trim((string)($_POST['city'] ?? ''));
+    $state = trim((string)($_POST['state'] ?? ''));
+    $zip = trim((string)($_POST['zip'] ?? ''));
+    $phone = trim((string)($_POST['phone'] ?? ''));
+    $fax = trim((string)($_POST['fax'] ?? ''));
+    $isPrimary = !empty($_POST['is_primary']);
+
+    // Validation
+    if (!$locationName) {
+      echo json_encode(['ok' => false, 'error' => 'Please enter a location name']);
+      exit;
+    }
+    if (!$address1) {
+      echo json_encode(['ok' => false, 'error' => 'Please enter the street address']);
+      exit;
+    }
+    if (!$city) {
+      echo json_encode(['ok' => false, 'error' => 'Please enter the city']);
+      exit;
+    }
+    if (!$state || strlen($state) !== 2) {
+      echo json_encode(['ok' => false, 'error' => 'Please select the state']);
+      exit;
+    }
+    if (!$zip || !preg_match('/^\d{5}(-\d{4})?$/', $zip)) {
+      echo json_encode(['ok' => false, 'error' => 'Please enter a valid ZIP code']);
+      exit;
+    }
+
+    try {
+      // If this is the primary location, unset any existing primary
+      if ($isPrimary) {
+        $pdo->prepare("UPDATE practice_locations SET is_primary = FALSE WHERE user_id = ?")->execute([$userId]);
+      }
+
+      // Combine address lines for storage
+      $fullAddress = $address1;
+      if ($address2) {
+        $fullAddress .= ', ' . $address2;
+      }
+
+      $insertStmt = $pdo->prepare("
+        INSERT INTO practice_locations (
+          user_id, location_name, address, city, state, zip, phone,
+          is_primary, is_active, created_at, updated_at
+        ) VALUES (
+          ?, ?, ?, ?, ?, ?, ?,
+          ?, TRUE, NOW(), NOW()
+        )
+      ");
+      $insertStmt->execute([
+        $userId,
+        $locationName,
+        $fullAddress,
+        $city,
+        strtoupper($state),
+        $zip,
+        $phone ?: null,
+        $isPrimary
+      ]);
+
+      $locationId = $pdo->lastInsertId();
+
+      echo json_encode(['ok' => true, 'message' => 'Location added successfully', 'location_id' => $locationId]);
+    } catch (PDOException $e) {
+      error_log("Error saving location for user $userId: " . $e->getMessage());
       echo json_encode(['ok' => false, 'error' => 'An error occurred. Please try again.']);
     }
     exit;
@@ -5129,7 +5277,595 @@ if ($page==='logout'){
     </div>
 
     <main class="content-area">
-<?php if ($page==='sign-agreements'): ?>
+<?php if ($page==='onboarding'): ?>
+  <!-- Unified Onboarding Wizard -->
+  <?php
+  // Determine which steps are needed for this user
+  $onboardingSteps = [];
+  $stepNumber = 1;
+
+  if ($isPracticeAdmin && (empty($user['agree_msa']) || empty($user['agree_baa']))) {
+    $onboardingSteps[] = [
+      'id' => 'agreements',
+      'number' => $stepNumber++,
+      'title' => 'Sign Agreements',
+      'description' => 'Review and sign required agreements',
+      'completed' => false
+    ];
+  }
+
+  $profileComplete = !empty($user['npi']) && !empty($user['license']) && !empty($user['license_state']);
+  $onboardingSteps[] = [
+    'id' => 'profile',
+    'number' => $stepNumber++,
+    'title' => 'Complete Profile',
+    'description' => 'Add your professional credentials',
+    'completed' => $profileComplete
+  ];
+
+  if ($isPracticeAdmin) {
+    // Check if location exists
+    $hasLocation = false;
+    try {
+      $locCheck = $pdo->prepare("SELECT COUNT(*) FROM practice_locations WHERE user_id = ? AND is_active = TRUE");
+      $locCheck->execute([$userId]);
+      $hasLocation = (int)$locCheck->fetchColumn() > 0;
+    } catch (PDOException $e) {
+      $hasLocation = false;
+    }
+
+    $onboardingSteps[] = [
+      'id' => 'location',
+      'number' => $stepNumber++,
+      'title' => 'Add Location',
+      'description' => 'Add your practice location',
+      'completed' => $hasLocation
+    ];
+  }
+
+  // Determine current step (first incomplete step)
+  $currentStepId = 'profile';
+  foreach ($onboardingSteps as $step) {
+    if (!$step['completed']) {
+      $currentStepId = $step['id'];
+      break;
+    }
+  }
+
+  $totalSteps = count($onboardingSteps);
+  ?>
+
+  <div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <div class="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style="background: linear-gradient(135deg, #0d9488 0%, #10b981 100%);">
+        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+      </div>
+      <h1 class="text-2xl font-bold text-gray-900 mb-2">Welcome to CollagenDirect</h1>
+      <p class="text-gray-600">Complete the following steps to get started</p>
+    </div>
+
+    <!-- Progress Steps -->
+    <div class="mb-8">
+      <div class="flex items-center justify-center gap-4">
+        <?php foreach ($onboardingSteps as $index => $step): ?>
+          <div class="flex items-center">
+            <div id="step-indicator-<?= $step['id'] ?>"
+                 class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all
+                        <?= $step['completed'] ? 'bg-green-500 text-white' : ($step['id'] === $currentStepId ? 'bg-brand text-white' : 'bg-gray-200 text-gray-500') ?>">
+              <?php if ($step['completed']): ?>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+              <?php else: ?>
+                <?= $step['number'] ?>
+              <?php endif; ?>
+            </div>
+            <span class="ml-2 text-sm font-medium <?= $step['id'] === $currentStepId ? 'text-gray-900' : 'text-gray-500' ?>"><?= htmlspecialchars($step['title']) ?></span>
+          </div>
+          <?php if ($index < count($onboardingSteps) - 1): ?>
+            <div class="w-12 h-0.5 bg-gray-200"></div>
+          <?php endif; ?>
+        <?php endforeach; ?>
+      </div>
+    </div>
+
+    <!-- Step Content -->
+    <div class="card p-8">
+      <!-- Error/Success Messages -->
+      <div id="onboarding-error" class="hidden mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm"></div>
+      <div id="onboarding-success" class="hidden mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm"></div>
+
+      <?php
+      // Check if agreements step exists and is not completed
+      $showAgreements = false;
+      foreach ($onboardingSteps as $step) {
+        if ($step['id'] === 'agreements' && !$step['completed']) {
+          $showAgreements = true;
+          break;
+        }
+      }
+      ?>
+
+      <!-- Step 1: Agreements (Practice Admins Only) -->
+      <div id="step-agreements" class="<?= $showAgreements && $currentStepId === 'agreements' ? '' : 'hidden' ?>">
+        <h2 class="text-xl font-semibold text-gray-900 mb-2">Review & Sign Agreements</h2>
+        <p class="text-gray-600 mb-6">Please review and accept the following agreements to continue.</p>
+
+        <form id="agreements-form-wizard" class="space-y-6">
+          <!-- MD DME Product and Services Agreement (MSA) -->
+          <div class="border border-gray-200 rounded-lg overflow-hidden">
+            <div class="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+              <h3 class="font-semibold text-gray-900">MD DME Product and Services Agreement</h3>
+              <button type="button" onclick="toggleAgreement('msa')" class="text-brand text-sm hover:underline">View Full Agreement</button>
+            </div>
+            <div id="msa-content" class="hidden p-4 max-h-64 overflow-y-auto text-sm text-gray-600 bg-white">
+              <p class="mb-3">This Product and Services Agreement establishes the relationship between MD DME, LLC (the DME supplier) and your practice for wound care product fulfillment and billing services.</p>
+              <p class="mb-3"><strong>Key Terms:</strong></p>
+              <ul class="list-disc ml-6 mb-3 space-y-1">
+                <li>MD DME is the licensed DME supplier responsible for fulfillment, shipment, and billing</li>
+                <li>CollagenDirect provides the ordering portal and workflow tools only</li>
+                <li>Your practice is responsible for clinical decisions and medical necessity documentation</li>
+                <li>Payment terms: Net 15 from shipment date for physician-billed orders</li>
+                <li>Either party may terminate with 30 days written notice</li>
+              </ul>
+              <p class="text-xs text-gray-500">Full agreement text available upon request.</p>
+            </div>
+            <div class="px-4 py-3 bg-gray-50 border-t border-gray-200">
+              <label class="flex items-center cursor-pointer">
+                <input type="checkbox" name="agree_msa" id="wizard_agree_msa" class="w-4 h-4 text-brand border-gray-300 rounded focus:ring-brand">
+                <span class="ml-3 text-sm font-medium text-gray-700">I have read and agree to the MD DME Product and Services Agreement</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Business Associate Agreement (BAA) -->
+          <div class="border border-gray-200 rounded-lg overflow-hidden">
+            <div class="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+              <h3 class="font-semibold text-gray-900">Business Associate Agreement (HIPAA BAA)</h3>
+              <button type="button" onclick="toggleAgreement('baa')" class="text-brand text-sm hover:underline">View Full Agreement</button>
+            </div>
+            <div id="baa-content" class="hidden p-4 max-h-64 overflow-y-auto text-sm text-gray-600 bg-white">
+              <p class="mb-3">This Business Associate Agreement ensures HIPAA compliance for the handling of Protected Health Information (PHI) through the CollagenDirect platform.</p>
+              <p class="mb-3"><strong>Key Terms:</strong></p>
+              <ul class="list-disc ml-6 mb-3 space-y-1">
+                <li>CollagenDirect will implement reasonable safeguards to protect PHI</li>
+                <li>PHI will only be used for treatment, payment, and healthcare operations</li>
+                <li>Security incidents and breaches will be reported within 10 business days</li>
+                <li>PHI will be returned or destroyed upon termination</li>
+              </ul>
+              <p class="text-xs text-gray-500">Full agreement text available upon request.</p>
+            </div>
+            <div class="px-4 py-3 bg-gray-50 border-t border-gray-200">
+              <label class="flex items-center cursor-pointer">
+                <input type="checkbox" name="agree_baa" id="wizard_agree_baa" class="w-4 h-4 text-brand border-gray-300 rounded focus:ring-brand">
+                <span class="ml-3 text-sm font-medium text-gray-700">I have read and agree to the Business Associate Agreement</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Electronic Signature -->
+          <div class="border border-gray-200 rounded-lg p-4 bg-blue-50">
+            <h3 class="font-semibold text-gray-900 mb-4">Electronic Signature</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Your Full Name <span class="text-red-500">*</span></label>
+                <input type="text" name="sign_name" id="wizard_sign_name" required
+                       value="<?= htmlspecialchars(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')) ?>"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Your Title <span class="text-red-500">*</span></label>
+                <input type="text" name="sign_title" id="wizard_sign_title" required
+                       placeholder="e.g., Physician, Practice Manager"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-end">
+            <button type="submit" id="btn-save-agreements" class="btn btn-primary px-6 py-2.5">
+              Continue
+              <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+              </svg>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Step 2: Profile -->
+      <div id="step-profile" class="<?= $currentStepId === 'profile' ? '' : 'hidden' ?>">
+        <h2 class="text-xl font-semibold text-gray-900 mb-2">Complete Your Professional Profile</h2>
+        <p class="text-gray-600 mb-6">Please provide your credentials to enable compliant ordering.</p>
+
+        <form id="profile-form-wizard" class="space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">NPI Number <span class="text-red-500">*</span></label>
+              <input type="text" name="npi" id="wizard_npi" required maxlength="10" pattern="\d{10}"
+                     value="<?= htmlspecialchars($user['npi'] ?? '') ?>"
+                     placeholder="10-digit NPI"
+                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
+              <p class="text-xs text-gray-500 mt-1">Your 10-digit National Provider Identifier</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Credential</label>
+              <select name="credential" id="wizard_credential" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
+                <option value="">Select credential...</option>
+                <option value="MD" <?= ($user['credential'] ?? '') === 'MD' ? 'selected' : '' ?>>MD - Doctor of Medicine</option>
+                <option value="DO" <?= ($user['credential'] ?? '') === 'DO' ? 'selected' : '' ?>>DO - Doctor of Osteopathic Medicine</option>
+                <option value="DPM" <?= ($user['credential'] ?? '') === 'DPM' ? 'selected' : '' ?>>DPM - Doctor of Podiatric Medicine</option>
+                <option value="PA" <?= ($user['credential'] ?? '') === 'PA' ? 'selected' : '' ?>>PA - Physician Assistant</option>
+                <option value="NP" <?= ($user['credential'] ?? '') === 'NP' ? 'selected' : '' ?>>NP - Nurse Practitioner</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Medical License Number <span class="text-red-500">*</span></label>
+              <input type="text" name="license" id="wizard_license" required
+                     value="<?= htmlspecialchars($user['license'] ?? '') ?>"
+                     placeholder="License number"
+                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">License State <span class="text-red-500">*</span></label>
+              <select name="license_state" id="wizard_license_state" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
+                <option value="">Select state...</option>
+                <?php
+                $states = ['AL'=>'Alabama','AK'=>'Alaska','AZ'=>'Arizona','AR'=>'Arkansas','CA'=>'California','CO'=>'Colorado','CT'=>'Connecticut','DE'=>'Delaware','FL'=>'Florida','GA'=>'Georgia','HI'=>'Hawaii','ID'=>'Idaho','IL'=>'Illinois','IN'=>'Indiana','IA'=>'Iowa','KS'=>'Kansas','KY'=>'Kentucky','LA'=>'Louisiana','ME'=>'Maine','MD'=>'Maryland','MA'=>'Massachusetts','MI'=>'Michigan','MN'=>'Minnesota','MS'=>'Mississippi','MO'=>'Missouri','MT'=>'Montana','NE'=>'Nebraska','NV'=>'Nevada','NH'=>'New Hampshire','NJ'=>'New Jersey','NM'=>'New Mexico','NY'=>'New York','NC'=>'North Carolina','ND'=>'North Dakota','OH'=>'Ohio','OK'=>'Oklahoma','OR'=>'Oregon','PA'=>'Pennsylvania','RI'=>'Rhode Island','SC'=>'South Carolina','SD'=>'South Dakota','TN'=>'Tennessee','TX'=>'Texas','UT'=>'Utah','VT'=>'Vermont','VA'=>'Virginia','WA'=>'Washington','WV'=>'West Virginia','WI'=>'Wisconsin','WY'=>'Wyoming','DC'=>'District of Columbia'];
+                foreach ($states as $code => $name):
+                ?>
+                  <option value="<?= $code ?>" <?= ($user['license_state'] ?? '') === $code ? 'selected' : '' ?>><?= $name ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+          </div>
+
+          <div class="flex justify-between">
+            <?php if ($showAgreements): ?>
+            <button type="button" onclick="showStep('agreements')" class="btn btn-outline px-6 py-2.5">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+              </svg>
+              Back
+            </button>
+            <?php else: ?>
+            <div></div>
+            <?php endif; ?>
+            <button type="submit" id="btn-save-profile" class="btn btn-primary px-6 py-2.5">
+              <?= $isPracticeAdmin ? 'Continue' : 'Complete Setup' ?>
+              <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+              </svg>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Step 3: Location (Practice Admins Only) -->
+      <?php if ($isPracticeAdmin): ?>
+      <div id="step-location" class="<?= $currentStepId === 'location' ? '' : 'hidden' ?>">
+        <h2 class="text-xl font-semibold text-gray-900 mb-2">Add Practice Location</h2>
+        <p class="text-gray-600 mb-6">Add at least one practice location for compliant order fulfillment.</p>
+
+        <form id="location-form-wizard" class="space-y-6">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Location Name <span class="text-red-500">*</span></label>
+            <input type="text" name="location_name" id="wizard_location_name" required
+                   placeholder="e.g., Main Office, Downtown Clinic"
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Street Address <span class="text-red-500">*</span></label>
+              <input type="text" name="address1" id="wizard_address1" required
+                     placeholder="123 Main Street"
+                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Suite / Unit (Optional)</label>
+              <input type="text" name="address2" id="wizard_address2"
+                     placeholder="Suite 100"
+                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">City <span class="text-red-500">*</span></label>
+              <input type="text" name="city" id="wizard_city" required
+                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">State <span class="text-red-500">*</span></label>
+              <select name="state" id="wizard_state" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
+                <option value="">Select state...</option>
+                <?php foreach ($states as $code => $name): ?>
+                  <option value="<?= $code ?>"><?= $name ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">ZIP Code <span class="text-red-500">*</span></label>
+              <input type="text" name="zip" id="wizard_zip" required pattern="\d{5}(-\d{4})?"
+                     placeholder="12345"
+                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Phone (Optional)</label>
+              <input type="tel" name="phone" id="wizard_phone"
+                     placeholder="(555) 123-4567"
+                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
+            </div>
+          </div>
+
+          <div class="px-4 py-3 bg-gray-50 rounded-lg">
+            <label class="flex items-center cursor-pointer">
+              <input type="checkbox" name="is_primary" id="wizard_is_primary" checked class="w-4 h-4 text-brand border-gray-300 rounded focus:ring-brand">
+              <span class="ml-3 text-sm font-medium text-gray-700">Set as primary location</span>
+            </label>
+          </div>
+
+          <div class="flex justify-between">
+            <button type="button" onclick="showStep('profile')" class="btn btn-outline px-6 py-2.5">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+              </svg>
+              Back
+            </button>
+            <button type="submit" id="btn-save-location" class="btn btn-primary px-6 py-2.5">
+              Complete Setup
+              <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+            </button>
+          </div>
+        </form>
+      </div>
+      <?php endif; ?>
+    </div>
+  </div>
+
+  <script>
+  // Toggle agreement content visibility
+  function toggleAgreement(type) {
+    const content = document.getElementById(type + '-content');
+    content.classList.toggle('hidden');
+  }
+
+  // Show a specific step
+  function showStep(stepId) {
+    document.querySelectorAll('[id^="step-"]:not([id^="step-indicator"])').forEach(el => {
+      if (el.id.startsWith('step-') && !el.id.includes('indicator')) {
+        el.classList.add('hidden');
+      }
+    });
+    const stepEl = document.getElementById('step-' + stepId);
+    if (stepEl) stepEl.classList.remove('hidden');
+
+    // Update step indicators
+    document.querySelectorAll('[id^="step-indicator-"]').forEach(el => {
+      el.classList.remove('bg-brand', 'text-white');
+      el.classList.add('bg-gray-200', 'text-gray-500');
+    });
+    const indicator = document.getElementById('step-indicator-' + stepId);
+    if (indicator && !indicator.classList.contains('bg-green-500')) {
+      indicator.classList.remove('bg-gray-200', 'text-gray-500');
+      indicator.classList.add('bg-brand', 'text-white');
+    }
+  }
+
+  // Mark step as complete
+  function markStepComplete(stepId) {
+    const indicator = document.getElementById('step-indicator-' + stepId);
+    if (indicator) {
+      indicator.classList.remove('bg-brand', 'bg-gray-200', 'text-gray-500');
+      indicator.classList.add('bg-green-500', 'text-white');
+      indicator.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+    }
+  }
+
+  // Show error message
+  function showError(message) {
+    const errorDiv = document.getElementById('onboarding-error');
+    errorDiv.textContent = message;
+    errorDiv.classList.remove('hidden');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // Hide messages
+  function hideMessages() {
+    document.getElementById('onboarding-error').classList.add('hidden');
+    document.getElementById('onboarding-success').classList.add('hidden');
+  }
+
+  // Agreements form submission
+  const agreementsForm = document.getElementById('agreements-form-wizard');
+  if (agreementsForm) {
+    agreementsForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      hideMessages();
+
+      const agreeMSA = document.getElementById('wizard_agree_msa').checked;
+      const agreeBAA = document.getElementById('wizard_agree_baa').checked;
+      const signName = document.getElementById('wizard_sign_name').value.trim();
+      const signTitle = document.getElementById('wizard_sign_title').value.trim();
+
+      if (!agreeMSA || !agreeBAA) {
+        showError('Please accept both agreements to continue.');
+        return;
+      }
+      if (!signName || !signTitle) {
+        showError('Please provide your full name and title.');
+        return;
+      }
+
+      const btn = document.getElementById('btn-save-agreements');
+      btn.disabled = true;
+      btn.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Saving...';
+
+      try {
+        const formData = new FormData();
+        formData.append('agree_msa', '1');
+        formData.append('agree_baa', '1');
+        formData.append('sign_name', signName);
+        formData.append('sign_title', signTitle);
+
+        const response = await fetch('/portal/index.php?action=sign_agreements', {
+          method: 'POST',
+          body: formData
+        });
+        const result = await response.json();
+
+        if (result.ok) {
+          markStepComplete('agreements');
+          showStep('profile');
+        } else {
+          showError(result.error || 'An error occurred. Please try again.');
+        }
+      } catch (err) {
+        showError('Network error. Please try again.');
+      }
+
+      btn.disabled = false;
+      btn.innerHTML = 'Continue <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>';
+    });
+  }
+
+  // Profile form submission
+  document.getElementById('profile-form-wizard').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    hideMessages();
+
+    const npi = document.getElementById('wizard_npi').value.trim();
+    const license = document.getElementById('wizard_license').value.trim();
+    const licenseState = document.getElementById('wizard_license_state').value;
+    const credential = document.getElementById('wizard_credential').value;
+
+    if (!npi || !/^\d{10}$/.test(npi)) {
+      showError('Please enter a valid 10-digit NPI number.');
+      return;
+    }
+    if (!license) {
+      showError('Please enter your medical license number.');
+      return;
+    }
+    if (!licenseState) {
+      showError('Please select your license state.');
+      return;
+    }
+
+    const btn = document.getElementById('btn-save-profile');
+    btn.disabled = true;
+    btn.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Saving...';
+
+    try {
+      const formData = new FormData();
+      formData.append('npi', npi);
+      formData.append('license', license);
+      formData.append('license_state', licenseState);
+      formData.append('credential', credential);
+
+      const response = await fetch('/portal/index.php?action=onboarding.save_profile', {
+        method: 'POST',
+        body: formData
+      });
+      const result = await response.json();
+
+      if (result.ok) {
+        markStepComplete('profile');
+        <?php if ($isPracticeAdmin): ?>
+        showStep('location');
+        <?php else: ?>
+        // Employee physician - onboarding complete
+        window.location.href = '/portal/index.php?page=dashboard';
+        <?php endif; ?>
+      } else {
+        showError(result.error || 'An error occurred. Please try again.');
+      }
+    } catch (err) {
+      showError('Network error. Please try again.');
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '<?= $isPracticeAdmin ? "Continue" : "Complete Setup" ?> <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>';
+  });
+
+  <?php if ($isPracticeAdmin): ?>
+  // Location form submission
+  document.getElementById('location-form-wizard').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    hideMessages();
+
+    const locationName = document.getElementById('wizard_location_name').value.trim();
+    const address1 = document.getElementById('wizard_address1').value.trim();
+    const address2 = document.getElementById('wizard_address2').value.trim();
+    const city = document.getElementById('wizard_city').value.trim();
+    const state = document.getElementById('wizard_state').value;
+    const zip = document.getElementById('wizard_zip').value.trim();
+    const phone = document.getElementById('wizard_phone').value.trim();
+    const isPrimary = document.getElementById('wizard_is_primary').checked;
+
+    if (!locationName) {
+      showError('Please enter a location name.');
+      return;
+    }
+    if (!address1) {
+      showError('Please enter the street address.');
+      return;
+    }
+    if (!city) {
+      showError('Please enter the city.');
+      return;
+    }
+    if (!state) {
+      showError('Please select the state.');
+      return;
+    }
+    if (!zip || !/^\d{5}(-\d{4})?$/.test(zip)) {
+      showError('Please enter a valid ZIP code.');
+      return;
+    }
+
+    const btn = document.getElementById('btn-save-location');
+    btn.disabled = true;
+    btn.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Saving...';
+
+    try {
+      const formData = new FormData();
+      formData.append('location_name', locationName);
+      formData.append('address1', address1);
+      formData.append('address2', address2);
+      formData.append('city', city);
+      formData.append('state', state);
+      formData.append('zip', zip);
+      formData.append('phone', phone);
+      formData.append('is_primary', isPrimary ? '1' : '0');
+
+      const response = await fetch('/portal/index.php?action=onboarding.save_location', {
+        method: 'POST',
+        body: formData
+      });
+      const result = await response.json();
+
+      if (result.ok) {
+        markStepComplete('location');
+        // Onboarding complete - redirect to dashboard
+        window.location.href = '/portal/index.php?page=dashboard';
+      } else {
+        showError(result.error || 'An error occurred. Please try again.');
+      }
+    } catch (err) {
+      showError('Network error. Please try again.');
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = 'Complete Setup <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+  });
+  <?php endif; ?>
+  </script>
+
+<?php elseif ($page==='sign-agreements'): ?>
   <!-- Sign Agreements Page - Required for users created outside of self-registration -->
   <div class="max-w-3xl mx-auto">
     <div class="card p-8">
