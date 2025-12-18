@@ -123,11 +123,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $fullName = trim($firstName . ' ' . $lastName);
         $emailSent = send_provider_welcome_email($email, $fullName, 'practice_admin', $tempPassword);
 
-        $message = 'Practice "' . htmlspecialchars($practiceName ?: $fullName) . '" has been created and assigned to you.';
         if ($emailSent) {
-          $message .= ' A welcome email with login credentials has been sent to ' . htmlspecialchars($email) . '.';
+          $message = 'Practice "' . htmlspecialchars($practiceName ?: $fullName) . '" has been created and assigned to you. A welcome email with login credentials has been sent to ' . htmlspecialchars($email) . '.';
         } else {
-          $message .= ' <span class="text-amber-600">Note: Welcome email could not be sent. Temporary password: <code class="bg-gray-100 px-2 py-1 rounded font-mono">' . htmlspecialchars($tempPassword) . '</code></span>';
+          $message = 'Practice "' . htmlspecialchars($practiceName ?: $fullName) . '" has been created and assigned to you. <span class="text-amber-600">Warning: Welcome email could not be sent - please contact support.</span>';
         }
       } else {
         // Creating a physician
@@ -156,11 +155,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $fullName = trim($firstName . ' ' . $lastName);
         $emailSent = send_provider_welcome_email($email, $fullName, 'physician', $tempPassword);
 
-        $message = 'Physician "' . htmlspecialchars($fullName) . '" has been created and assigned to you.';
         if ($emailSent) {
-          $message .= ' A welcome email with login credentials has been sent to ' . htmlspecialchars($email) . '.';
+          $message = 'Physician "' . htmlspecialchars($fullName) . '" has been created and assigned to you. A welcome email with login credentials has been sent to ' . htmlspecialchars($email) . '.';
         } else {
-          $message .= ' <span class="text-amber-600">Note: Welcome email could not be sent. Temporary password: <code class="bg-gray-100 px-2 py-1 rounded font-mono">' . htmlspecialchars($tempPassword) . '</code></span>';
+          $message = 'Physician "' . htmlspecialchars($fullName) . '" has been created and assigned to you. <span class="text-amber-600">Warning: Welcome email could not be sent - please contact support.</span>';
         }
       }
     } catch (PDOException $e) {

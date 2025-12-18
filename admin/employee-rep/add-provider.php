@@ -11,7 +11,7 @@
  */
 declare(strict_types=1);
 require __DIR__ . '/_header.php';
-require_once __DIR__ . '/../../api/lib/email_notifications.php';
+require_once __DIR__ . '/../../api/lib/provider_welcome.php';
 
 // Ensure adminId is an integer (admin_users.id is INTEGER, not VARCHAR)
 $adminId = (int)$admin['id'];
@@ -37,18 +37,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   $providerType = $_POST['provider_type'] ?? 'practice';
   $email = trim($_POST['email'] ?? '');
-  $password = $_POST['password'] ?? '';
   $firstName = trim($_POST['first_name'] ?? '');
   $lastName = trim($_POST['last_name'] ?? '');
   $accountType = $_POST['account_type'] ?? 'referral';
 
+  // Generate a secure temporary password (12 chars, mixed case + numbers)
+  $tempPassword = substr(str_shuffle('abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789'), 0, 12);
+
   // Validate required fields
-  if (!$email || !$password || !$firstName || !$lastName) {
+  if (!$email || !$firstName || !$lastName) {
     $error = 'Please fill in all required fields.';
   } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     $error = 'Please enter a valid email address.';
-  } elseif (strlen($password) < 8) {
-    $error = 'Password must be at least 8 characters.';
   } else {
     // Check if email already exists
     $checkStmt = $pdo->prepare("SELECT id, employee_rep_id, practice_name, first_name, last_name FROM users WHERE email = ?");
@@ -144,7 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             created_at, updated_at
           ) VALUES (?,LOWER(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'practice_admin','practice_admin',?,'active',TRUE,?,?,?,?,NOW(),'employee_onboard',?,NOW(),NOW())
         ")->execute([
-          $userId, $email, password_hash($password, PASSWORD_DEFAULT), $firstName, $lastName, $practiceName,
+          $userId, $email, password_hash($tempPassword, PASSWORD_DEFAULT), $firstName, $lastName, $practiceName,
           $address, $city, $state, $zip, $phone, $taxId ?: null,
           $npi ?: null, $ptan ?: null, $license ?: null, $licenseState, $licenseExpiry,
           $dmeNumber ?: null, $dmeState, $dmeExpiry,
@@ -167,15 +167,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $pdo->commit();
 
-        // Send welcome email
+        // Send welcome email with temp password
         $fullName = $firstName . ' ' . $lastName;
-        $emailSent = send_physician_account_created_email($email, $fullName, $password);
+        $emailSent = send_provider_welcome_email($email, $fullName, 'practice_admin', $tempPassword);
 
         $displayName = $practiceName ?: $fullName;
         if ($emailSent) {
-          $message = 'Practice "' . htmlspecialchars($displayName) . '" created successfully. Welcome email sent. Provider must sign BAA & Terms before using the platform.';
+          $message = 'Practice "' . htmlspecialchars($displayName) . '" created successfully. Welcome email with login credentials sent to provider.';
         } else {
-          $message = 'Practice "' . htmlspecialchars($displayName) . '" created successfully. Note: Welcome email could not be sent - please share credentials manually. Provider must sign BAA & Terms before using the platform.';
+          $message = 'Practice "' . htmlspecialchars($displayName) . '" created successfully. Warning: Welcome email could not be sent - contact support.';
         }
 
       } elseif ($providerType === 'physician_to_practice') {
@@ -206,7 +206,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             created_at, updated_at
           ) VALUES (?,LOWER(?),?,?,?,?,?,?,?,?,'physician','physician',?,'active',?,?,?,?,NOW(),'employee_onboard',?,NOW(),NOW())
         ")->execute([
-          $userId, $email, password_hash($password, PASSWORD_DEFAULT), $firstName, $lastName,
+          $userId, $email, password_hash($tempPassword, PASSWORD_DEFAULT), $firstName, $lastName,
           $npi ?: null, $ptan ?: null, $license ?: null, $licenseState, $licenseExpiry,
           $dbAccountType,
           $isReferralOnly, $hasDmeLicense, $isHybrid,
@@ -223,14 +223,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $pdo->commit();
 
-        // Send welcome email
+        // Send welcome email with temp password
         $fullName = $firstName . ' ' . $lastName;
-        $emailSent = send_physician_account_created_email($email, $fullName, $password);
+        $emailSent = send_provider_welcome_email($email, $fullName, 'physician', $tempPassword);
 
         if ($emailSent) {
-          $message = 'Physician "' . htmlspecialchars($fullName) . '" added to practice. Welcome email sent. Provider must sign BAA & Terms before using the platform.';
+          $message = 'Physician "' . htmlspecialchars($fullName) . '" added to practice. Welcome email with login credentials sent to provider.';
         } else {
-          $message = 'Physician "' . htmlspecialchars($fullName) . '" added to practice. Note: Welcome email could not be sent - please share credentials manually. Provider must sign BAA & Terms before using the platform.';
+          $message = 'Physician "' . htmlspecialchars($fullName) . '" added to practice. Warning: Welcome email could not be sent - contact support.';
         }
 
       } else {
@@ -246,7 +246,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             created_at, updated_at
           ) VALUES (?,LOWER(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,'physician','physician',?,'active',?,?,?,?,NOW(),'employee_onboard',?,NOW(),NOW())
         ")->execute([
-          $userId, $email, password_hash($password, PASSWORD_DEFAULT), $firstName, $lastName,
+          $userId, $email, password_hash($tempPassword, PASSWORD_DEFAULT), $firstName, $lastName,
           $address, $city, $state, $zip, $phone, $taxId ?: null,
           $npi ?: null, $ptan ?: null, $license ?: null, $licenseState, $licenseExpiry,
           $dbAccountType,
@@ -256,14 +256,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $pdo->commit();
 
-        // Send welcome email
+        // Send welcome email with temp password
         $fullName = $firstName . ' ' . $lastName;
-        $emailSent = send_physician_account_created_email($email, $fullName, $password);
+        $emailSent = send_provider_welcome_email($email, $fullName, 'physician', $tempPassword);
 
         if ($emailSent) {
-          $message = 'Physician "' . htmlspecialchars($fullName) . '" created successfully. Welcome email sent. Provider must sign BAA & Terms before using the platform.';
+          $message = 'Physician "' . htmlspecialchars($fullName) . '" created successfully. Welcome email with login credentials sent to provider.';
         } else {
-          $message = 'Physician "' . htmlspecialchars($fullName) . '" created successfully. Note: Welcome email could not be sent - please share credentials manually. Provider must sign BAA & Terms before using the platform.';
+          $message = 'Physician "' . htmlspecialchars($fullName) . '" created successfully. Warning: Welcome email could not be sent - contact support.';
         }
       }
 
@@ -418,10 +418,7 @@ $states = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN'
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Email <span class="text-red-500">*</span></label>
         <input type="email" name="email" required value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Password <span class="text-red-500">*</span></label>
-        <input type="password" name="password" required minlength="8" placeholder="Min 8 characters">
+        <p class="text-xs text-gray-500 mt-1">Temporary password will be emailed to provider</p>
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
