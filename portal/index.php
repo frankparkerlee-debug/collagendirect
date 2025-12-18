@@ -5482,7 +5482,7 @@ if ($page==='logout'){
         <p class="text-gray-600 mb-6">Please provide your credentials to enable compliant ordering.</p>
 
         <form id="profile-form-wizard" class="space-y-6">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">NPI Number <span class="text-red-500">*</span></label>
               <input type="text" name="npi" id="wizard_npi" required maxlength="10" pattern="\d{10}"
