@@ -389,6 +389,140 @@ $user_name = explode('@', $user_email)[0];
       </div>
     </div>
 
+    <!-- Your Sales Tools -->
+    <div class="bg-white rounded-3xl shadow-xl p-10 mb-10">
+      <h2 class="text-3xl font-black text-gray-900 mb-8">Your Sales Tools & Dashboard</h2>
+
+      <div class="grid md:grid-cols-2 gap-6 mb-8">
+        <div class="border-2 border-brand-teal rounded-xl p-6 bg-teal-50">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 bg-brand-teal rounded-xl flex items-center justify-center text-white text-xl">📊</div>
+            <div>
+              <h3 class="font-black text-lg">Sales Rep Portal</h3>
+              <p class="text-xs text-gray-500">collagendirect.health/admin</p>
+            </div>
+          </div>
+          <ul class="space-y-2 text-sm text-gray-700">
+            <li>• View your assigned clinics and their order history</li>
+            <li>• Create wholesale orders for your accounts</li>
+            <li>• Track commissions and performance metrics</li>
+            <li>• Onboard new physician accounts</li>
+          </ul>
+          <a href="/admin/" class="inline-flex items-center gap-2 mt-4 text-brand-teal font-semibold text-sm hover:underline">
+            Open Sales Dashboard →
+          </a>
+        </div>
+
+        <div class="border-2 border-gray-300 rounded-xl p-6">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-2xl">🏥</div>
+            <div>
+              <h3 class="font-black text-lg">Physician Portal Demo</h3>
+              <p class="text-xs text-gray-500">Show this to physicians</p>
+            </div>
+          </div>
+          <ul class="space-y-2 text-sm text-gray-700">
+            <li>• 2-minute ordering process</li>
+            <li>• Automatic insurance verification</li>
+            <li>• Real-time order tracking</li>
+            <li>• Digital documentation storage</li>
+          </ul>
+          <a href="/portal-guide.php" class="inline-flex items-center gap-2 mt-4 text-brand-teal font-semibold text-sm hover:underline">
+            View Physician Portal Guide →
+          </a>
+        </div>
+      </div>
+
+      <div class="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-4">
+        <p class="text-sm font-bold text-yellow-900 mb-1">Pro Tip: Live Demo Sells</p>
+        <p class="text-sm text-yellow-800">Instead of just talking about the portal, pull it up on your phone or laptop during meetings. A 60-second demo of the ordering process is worth 10 minutes of explanation.</p>
+      </div>
+    </div>
+
+    <!-- Weekly Activity Tracker -->
+    <div class="bg-white rounded-3xl shadow-xl p-10 mb-10">
+      <h2 class="text-3xl font-black text-gray-900 mb-8">Weekly Activity Tracker</h2>
+      <p class="text-gray-600 mb-6">Track these numbers each week to stay on target:</p>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-gray-100">
+              <th class="text-left p-3 font-bold">Activity</th>
+              <th class="text-center p-3 font-bold">Target</th>
+              <th class="text-center p-3 font-bold">Mon</th>
+              <th class="text-center p-3 font-bold">Tue</th>
+              <th class="text-center p-3 font-bold">Wed</th>
+              <th class="text-center p-3 font-bold">Thu</th>
+              <th class="text-center p-3 font-bold">Fri</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b">
+              <td class="p-3">Cold Calls Made</td>
+              <td class="text-center p-3 font-bold text-brand-teal">20/day</td>
+              <td class="text-center p-3"><input type="text" class="w-12 p-1 border rounded text-center" placeholder="0"></td>
+              <td class="text-center p-3"><input type="text" class="w-12 p-1 border rounded text-center" placeholder="0"></td>
+              <td class="text-center p-3"><input type="text" class="w-12 p-1 border rounded text-center" placeholder="0"></td>
+              <td class="text-center p-3"><input type="text" class="w-12 p-1 border rounded text-center" placeholder="0"></td>
+              <td class="text-center p-3"><input type="text" class="w-12 p-1 border rounded text-center" placeholder="0"></td>
+            </tr>
+            <tr class="border-b">
+              <td class="p-3">Meetings Booked</td>
+              <td class="text-center p-3 font-bold text-brand-teal">3/week</td>
+              <td class="text-center p-3"><input type="text" class="w-12 p-1 border rounded text-center" placeholder="0"></td>
+              <td class="text-center p-3"><input type="text" class="w-12 p-1 border rounded text-center" placeholder="0"></td>
+              <td class="text-center p-3"><input type="text" class="w-12 p-1 border rounded text-center" placeholder="0"></td>
+              <td class="text-center p-3"><input type="text" class="w-12 p-1 border rounded text-center" placeholder="0"></td>
+              <td class="text-center p-3"><input type="text" class="w-12 p-1 border rounded text-center" placeholder="0"></td>
+            </tr>
+            <tr class="border-b">
+              <td class="p-3">In-Person Meetings</td>
+              <td class="text-center p-3 font-bold text-brand-teal">3/week</td>
+              <td class="text-center p-3"><input type="text" class="w-12 p-1 border rounded text-center" placeholder="0"></td>
+              <td class="text-center p-3"><input type="text" class="w-12 p-1 border rounded text-center" placeholder="0"></td>
+              <td class="text-center p-3"><input type="text" class="w-12 p-1 border rounded text-center" placeholder="0"></td>
+              <td class="text-center p-3"><input type="text" class="w-12 p-1 border rounded text-center" placeholder="0"></td>
+              <td class="text-center p-3"><input type="text" class="w-12 p-1 border rounded text-center" placeholder="0"></td>
+            </tr>
+            <tr class="border-b">
+              <td class="p-3">New Registrations</td>
+              <td class="text-center p-3 font-bold text-brand-teal">2/week</td>
+              <td class="text-center p-3"><input type="text" class="w-12 p-1 border rounded text-center" placeholder="0"></td>
+              <td class="text-center p-3"><input type="text" class="w-12 p-1 border rounded text-center" placeholder="0"></td>
+              <td class="text-center p-3"><input type="text" class="w-12 p-1 border rounded text-center" placeholder="0"></td>
+              <td class="text-center p-3"><input type="text" class="w-12 p-1 border rounded text-center" placeholder="0"></td>
+              <td class="text-center p-3"><input type="text" class="w-12 p-1 border rounded text-center" placeholder="0"></td>
+            </tr>
+            <tr>
+              <td class="p-3">First Orders Placed</td>
+              <td class="text-center p-3 font-bold text-brand-teal">1/week</td>
+              <td class="text-center p-3"><input type="text" class="w-12 p-1 border rounded text-center" placeholder="0"></td>
+              <td class="text-center p-3"><input type="text" class="w-12 p-1 border rounded text-center" placeholder="0"></td>
+              <td class="text-center p-3"><input type="text" class="w-12 p-1 border rounded text-center" placeholder="0"></td>
+              <td class="text-center p-3"><input type="text" class="w-12 p-1 border rounded text-center" placeholder="0"></td>
+              <td class="text-center p-3"><input type="text" class="w-12 p-1 border rounded text-center" placeholder="0"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-4 mt-6">
+        <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+          <p class="text-2xl font-black text-green-700">100</p>
+          <p class="text-xs text-green-600">Calls/Week Target</p>
+        </div>
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+          <p class="text-2xl font-black text-blue-700">3-5</p>
+          <p class="text-xs text-blue-600">Meetings/Week Target</p>
+        </div>
+        <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 text-center">
+          <p class="text-2xl font-black text-purple-700">2+</p>
+          <p class="text-xs text-purple-600">Registrations/Week Target</p>
+        </div>
+      </div>
+    </div>
+
     <!-- Next Steps -->
     <div class="bg-white rounded-3xl shadow-xl p-10 text-center">
       <h2 class="text-3xl font-black text-gray-900 mb-6">Ready to Start Selling?</h2>
@@ -405,6 +539,19 @@ $user_name = explode('@', $user_email)[0];
         <a href="battle-cards.php" class="px-8 py-4 bg-white border-2 border-gray-300 text-gray-900 font-bold rounded-xl hover:border-brand-teal transition">
           Competitive Battle Cards
         </a>
+      </div>
+
+      <div class="mt-8 pt-8 border-t border-gray-200">
+        <p class="text-sm text-gray-500 mb-4">Additional Resources</p>
+        <div class="flex flex-wrap gap-4 justify-center text-sm">
+          <a href="product-training.php" class="text-brand-teal hover:underline">Product Deep Dive</a>
+          <span class="text-gray-300">|</span>
+          <a href="objections.php" class="text-brand-teal hover:underline">Objection Handling</a>
+          <span class="text-gray-300">|</span>
+          <a href="hipaa-training.php" class="text-brand-teal hover:underline">HIPAA Training</a>
+          <span class="text-gray-300">|</span>
+          <a href="/distributor-guide.php" class="text-brand-teal hover:underline">Distributor Guide</a>
+        </div>
       </div>
     </div>
 

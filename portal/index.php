@@ -84,7 +84,7 @@ if ($isPracticeAdmin) {
 $needsOnboarding = $needsAgreements || $needsProfile || $needsLocation;
 $isOnboardingPage = ($_GET['page'] ?? '') === 'onboarding';
 $isSignAgreementsPage = ($_GET['page'] ?? '') === 'sign-agreements'; // Keep for backward compat
-$isOnboardingAction = in_array($_GET['action'] ?? '', ['sign_agreements', 'onboarding.save_profile', 'onboarding.save_location', 'notifications']);
+$isOnboardingAction = in_array($_GET['action'] ?? '', ['sign_agreements', 'onboarding.save_profile', 'onboarding.save_location', 'onboarding.save_physician', 'notifications']);
 $hasAnyAction = !empty($_GET['action']);
 
 // Redirect to onboarding page if needed
@@ -963,6 +963,78 @@ if ($action) {
       echo json_encode(['ok' => true, 'message' => 'Location added successfully', 'location_id' => $locationId]);
     } catch (PDOException $e) {
       error_log("Error saving location for user $userId: " . $e->getMessage());
+      echo json_encode(['ok' => false, 'error' => 'An error occurred. Please try again.']);
+    }
+    exit;
+  }
+
+  // Save physician during onboarding (for practice admins adding additional physicians)
+  if ($action === 'onboarding.save_physician') {
+    header('Content-Type: application/json');
+
+    // Only practice admins can add physicians
+    if ($userRole !== 'practice_admin') {
+      echo json_encode(['ok' => false, 'error' => 'Only practice administrators can add physicians']);
+      exit;
+    }
+
+    $firstName = trim($_POST['first_name'] ?? '');
+    $lastName = trim($_POST['last_name'] ?? '');
+    $npi = trim($_POST['npi'] ?? '');
+    $credential = trim($_POST['credential'] ?? '');
+    $license = trim($_POST['license'] ?? '');
+    $licenseState = trim($_POST['license_state'] ?? '');
+
+    // Build physician name from first and last name
+    $physicianName = trim("$firstName $lastName");
+    if ($credential) {
+      $physicianName .= ", $credential";
+    }
+
+    // Validation
+    if (!$firstName || !$lastName) {
+      echo json_encode(['ok' => false, 'error' => 'Physician first and last name are required']);
+      exit;
+    }
+    if (!$npi || !preg_match('/^\d{10}$/', $npi)) {
+      echo json_encode(['ok' => false, 'error' => 'Valid 10-digit NPI is required']);
+      exit;
+    }
+
+    try {
+      $stmt = $pdo->prepare("
+        INSERT INTO practice_physicians (
+          practice_user_id, physician_name, npi, license_number, state,
+          is_active, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, TRUE, NOW(), NOW())
+      ");
+      $stmt->execute([
+        $userId,
+        $physicianName,
+        $npi,
+        $license ?: null,
+        $licenseState ?: null
+      ]);
+
+      $physicianId = $pdo->lastInsertId();
+
+      echo json_encode([
+        'ok' => true,
+        'message' => 'Physician added successfully',
+        'physician_id' => $physicianId,
+        'physician' => [
+          'id' => $physicianId,
+          'name' => $physicianName,
+          'first_name' => $firstName,
+          'last_name' => $lastName,
+          'npi' => $npi,
+          'credential' => $credential,
+          'license' => $license,
+          'license_state' => $licenseState
+        ]
+      ]);
+    } catch (PDOException $e) {
+      error_log("Error saving physician for user $userId: " . $e->getMessage());
       echo json_encode(['ok' => false, 'error' => 'An error occurred. Please try again.']);
     }
     exit;
@@ -5547,80 +5619,189 @@ if ($page==='logout'){
       <!-- Step 3: Location (Practice Admins Only) -->
       <?php if ($isPracticeAdmin): ?>
       <div id="step-location" class="<?= $currentStepId === 'location' ? '' : 'hidden' ?>">
-        <h2 class="text-xl font-semibold text-gray-900 mb-2">Add Practice Location</h2>
-        <p class="text-gray-600 mb-6">Add at least one practice location for compliant order fulfillment.</p>
+        <h2 class="text-xl font-semibold text-gray-900 mb-2">Add Practice Locations</h2>
+        <p class="text-gray-600 mb-6">Add at least one practice location for compliant order fulfillment. You can add more locations later.</p>
 
-        <form id="location-form-wizard" class="space-y-6">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Location Name <span class="text-red-500">*</span></label>
-            <input type="text" name="location_name" id="wizard_location_name" required
-                   placeholder="e.g., Main Office, Downtown Clinic"
-                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
+        <!-- Saved Locations List -->
+        <div id="saved-locations-list" class="mb-6 hidden">
+          <h3 class="text-sm font-semibold text-gray-700 mb-3">Saved Locations</h3>
+          <div id="saved-locations-container" class="space-y-2"></div>
+        </div>
+
+        <!-- Location Form -->
+        <div id="location-form-container" class="border border-gray-200 rounded-lg p-6 bg-gray-50">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold text-gray-900" id="location-form-title">Primary Location</h3>
+            <span class="text-xs text-gray-500">Start typing an address to search</span>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="md:col-span-2">
-              <label class="block text-sm font-medium text-gray-700 mb-1">Street Address <span class="text-red-500">*</span></label>
-              <input type="text" name="address1" id="wizard_address1" required
-                     placeholder="123 Main Street"
+          <form id="location-form-wizard" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Location Name <span class="text-red-500">*</span></label>
+              <input type="text" name="location_name" id="wizard_location_name" required
+                     placeholder="e.g., Main Office, Downtown Clinic"
                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
             </div>
-            <div class="md:col-span-2">
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Street Address <span class="text-red-500">*</span></label>
+              <input type="text" name="address1" id="wizard_address1" required autocomplete="off"
+                     placeholder="Start typing to search..."
+                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
+              <p class="text-xs text-gray-500 mt-1">Powered by Google Places</p>
+            </div>
+
+            <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Suite / Unit (Optional)</label>
               <input type="text" name="address2" id="wizard_address2"
                      placeholder="Suite 100"
                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">City <span class="text-red-500">*</span></label>
-              <input type="text" name="city" id="wizard_city" required
-                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">City <span class="text-red-500">*</span></label>
+                <input type="text" name="city" id="wizard_city" required
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">State <span class="text-red-500">*</span></label>
+                <select name="state" id="wizard_state" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
+                  <option value="">Select...</option>
+                  <?php foreach ($states as $code => $name): ?>
+                    <option value="<?= $code ?>"><?= $name ?></option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">ZIP <span class="text-red-500">*</span></label>
+                <input type="text" name="zip" id="wizard_zip" required pattern="\d{5}(-\d{4})?"
+                       placeholder="12345"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
+              </div>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">State <span class="text-red-500">*</span></label>
-              <select name="state" id="wizard_state" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
-                <option value="">Select state...</option>
-                <?php foreach ($states as $code => $name): ?>
-                  <option value="<?= $code ?>"><?= $name ?></option>
-                <?php endforeach; ?>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">ZIP Code <span class="text-red-500">*</span></label>
-              <input type="text" name="zip" id="wizard_zip" required pattern="\d{5}(-\d{4})?"
-                     placeholder="12345"
-                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
-            </div>
+
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Phone (Optional)</label>
               <input type="tel" name="phone" id="wizard_phone"
                      placeholder="(555) 123-4567"
                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
             </div>
+
+            <div class="px-4 py-3 bg-white rounded-lg border border-gray-200">
+              <label class="flex items-center cursor-pointer">
+                <input type="checkbox" name="is_primary" id="wizard_is_primary" checked class="w-4 h-4 text-brand border-gray-300 rounded focus:ring-brand">
+                <span class="ml-3 text-sm font-medium text-gray-700">Set as primary location</span>
+              </label>
+            </div>
+
+            <div class="flex gap-3">
+              <button type="submit" id="btn-save-location" class="btn btn-primary flex-1">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Save Location
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Add Another Location Button -->
+        <div id="add-another-location-container" class="mt-4 hidden">
+          <button type="button" id="btn-add-another-location" class="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-brand hover:text-brand transition-colors flex items-center justify-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            Add Another Location (Optional)
+          </button>
+        </div>
+
+        <!-- Optional: Add Physicians Section -->
+        <div class="mt-8 pt-6 border-t border-gray-200">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="font-semibold text-gray-900">Additional Physicians (Optional)</h3>
+              <p class="text-sm text-gray-500">Add other physicians who will be placing orders</p>
+            </div>
+            <button type="button" id="btn-toggle-physicians" class="text-brand text-sm hover:underline">
+              + Add Physician
+            </button>
           </div>
 
-          <div class="px-4 py-3 bg-gray-50 rounded-lg">
-            <label class="flex items-center cursor-pointer">
-              <input type="checkbox" name="is_primary" id="wizard_is_primary" checked class="w-4 h-4 text-brand border-gray-300 rounded focus:ring-brand">
-              <span class="ml-3 text-sm font-medium text-gray-700">Set as primary location</span>
-            </label>
-          </div>
+          <!-- Added Physicians List -->
+          <div id="added-physicians-list" class="space-y-2 mb-4 hidden"></div>
 
-          <div class="flex justify-between">
-            <button type="button" onclick="showStep('profile')" class="btn btn-outline px-6 py-2.5">
-              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-              </svg>
-              Back
-            </button>
-            <button type="submit" id="btn-save-location" class="btn btn-primary px-6 py-2.5">
-              Complete Setup
-              <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-              </svg>
-            </button>
+          <!-- Physician Form (Hidden by default) -->
+          <div id="physician-form-container" class="hidden border border-gray-200 rounded-lg p-4 bg-gray-50">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">First Name <span class="text-red-500">*</span></label>
+                <input type="text" id="physician_first_name" placeholder="First name"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Last Name <span class="text-red-500">*</span></label>
+                <input type="text" id="physician_last_name" placeholder="Last name"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">NPI Number <span class="text-red-500">*</span></label>
+                <input type="text" id="physician_npi" placeholder="10-digit NPI" maxlength="10"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Credential</label>
+                <select id="physician_credential" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
+                  <option value="">Select...</option>
+                  <option value="MD">MD</option>
+                  <option value="DO">DO</option>
+                  <option value="DPM">DPM</option>
+                  <option value="PA">PA</option>
+                  <option value="NP">NP</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">License Number</label>
+                <input type="text" id="physician_license" placeholder="License number"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">License State</label>
+                <select id="physician_license_state" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
+                  <option value="">Select...</option>
+                  <?php foreach ($states as $code => $name): ?>
+                    <option value="<?= $code ?>"><?= $name ?></option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+            </div>
+            <div class="flex gap-3 mt-4">
+              <button type="button" id="btn-save-physician" class="btn btn-primary">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Add Physician
+              </button>
+              <button type="button" id="btn-cancel-physician" class="btn btn-outline">Cancel</button>
+            </div>
           </div>
-        </form>
+        </div>
+
+        <!-- Navigation -->
+        <div class="flex justify-between mt-8 pt-6 border-t border-gray-200">
+          <button type="button" onclick="showStep('profile')" class="btn btn-outline px-6 py-2.5">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+            Back
+          </button>
+          <button type="button" id="btn-complete-onboarding" class="btn btn-primary px-6 py-2.5 hidden">
+            Complete Setup
+            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+          </button>
+        </div>
       </div>
       <?php endif; ?>
     </div>
@@ -5792,6 +5973,95 @@ if ($page==='logout'){
   });
 
   <?php if ($isPracticeAdmin): ?>
+  // ========================================
+  // Location & Physician Management
+  // ========================================
+
+  // Track saved locations and physicians
+  const savedLocations = [];
+  const savedPhysicians = [];
+
+  // Initialize address autocomplete for location form
+  if (typeof initAddressAutocomplete === 'function') {
+    initAddressAutocomplete('wizard_address1', (address) => {
+      document.getElementById('wizard_address1').value = address.street || address.formatted || '';
+      document.getElementById('wizard_city').value = address.city || '';
+      document.getElementById('wizard_zip').value = address.zip || '';
+      // Set state dropdown
+      const stateSelect = document.getElementById('wizard_state');
+      if (address.state && stateSelect) {
+        for (let i = 0; i < stateSelect.options.length; i++) {
+          if (stateSelect.options[i].value === address.state) {
+            stateSelect.selectedIndex = i;
+            break;
+          }
+        }
+      }
+    });
+  }
+
+  // Update UI after saving a location
+  function updateLocationUI() {
+    const listContainer = document.getElementById('saved-locations-list');
+    const container = document.getElementById('saved-locations-container');
+    const formContainer = document.getElementById('location-form-container');
+    const addAnotherBtn = document.getElementById('add-another-location-container');
+    const completeBtn = document.getElementById('btn-complete-onboarding');
+    const formTitle = document.getElementById('location-form-title');
+
+    if (savedLocations.length > 0) {
+      // Show saved locations list
+      listContainer.classList.remove('hidden');
+      container.innerHTML = savedLocations.map((loc, idx) => `
+        <div class="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+              <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+            </div>
+            <div>
+              <div class="font-medium text-gray-900">${loc.name}${loc.is_primary ? ' <span class="text-xs text-brand">(Primary)</span>' : ''}</div>
+              <div class="text-sm text-gray-500">${loc.address}, ${loc.city}, ${loc.state} ${loc.zip}</div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+      // Show "Add Another" button and "Complete" button
+      addAnotherBtn.classList.remove('hidden');
+      completeBtn.classList.remove('hidden');
+
+      // Hide the form initially after first save
+      formContainer.classList.add('hidden');
+
+      // Update form title for subsequent locations
+      formTitle.textContent = 'Additional Location';
+      document.getElementById('wizard_is_primary').checked = false;
+    }
+  }
+
+  // Show location form for adding another
+  document.getElementById('btn-add-another-location')?.addEventListener('click', function() {
+    document.getElementById('location-form-container').classList.remove('hidden');
+    document.getElementById('add-another-location-container').classList.add('hidden');
+    // Clear form
+    document.getElementById('wizard_location_name').value = '';
+    document.getElementById('wizard_address1').value = '';
+    document.getElementById('wizard_address2').value = '';
+    document.getElementById('wizard_city').value = '';
+    document.getElementById('wizard_state').value = '';
+    document.getElementById('wizard_zip').value = '';
+    document.getElementById('wizard_phone').value = '';
+    document.getElementById('wizard_is_primary').checked = false;
+  });
+
+  // Complete onboarding button
+  document.getElementById('btn-complete-onboarding')?.addEventListener('click', function() {
+    markStepComplete('location');
+    window.location.href = '/portal/index.php?page=dashboard';
+  });
+
   // Location form submission
   document.getElementById('location-form-wizard').addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -5849,9 +6119,20 @@ if ($page==='logout'){
       const result = await response.json();
 
       if (result.ok) {
+        // Add to saved locations
+        savedLocations.push({
+          id: result.location_id,
+          name: locationName,
+          address: address1 + (address2 ? ', ' + address2 : ''),
+          city: city,
+          state: state,
+          zip: zip,
+          is_primary: isPrimary
+        });
+
+        // Update UI
+        updateLocationUI();
         markStepComplete('location');
-        // Onboarding complete - redirect to dashboard
-        window.location.href = '/portal/index.php?page=dashboard';
       } else {
         showError(result.error || 'An error occurred. Please try again.');
       }
@@ -5860,7 +6141,122 @@ if ($page==='logout'){
     }
 
     btn.disabled = false;
-    btn.innerHTML = 'Complete Setup <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+    btn.innerHTML = '<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Save Location';
+  });
+
+  // ========================================
+  // Physician Management
+  // ========================================
+
+  // Toggle physician form
+  document.getElementById('btn-toggle-physicians')?.addEventListener('click', function() {
+    const form = document.getElementById('physician-form-container');
+    form.classList.toggle('hidden');
+    this.textContent = form.classList.contains('hidden') ? '+ Add Physician' : 'Cancel';
+  });
+
+  // Cancel physician form
+  document.getElementById('btn-cancel-physician')?.addEventListener('click', function() {
+    document.getElementById('physician-form-container').classList.add('hidden');
+    document.getElementById('btn-toggle-physicians').textContent = '+ Add Physician';
+    clearPhysicianForm();
+  });
+
+  function clearPhysicianForm() {
+    document.getElementById('physician_first_name').value = '';
+    document.getElementById('physician_last_name').value = '';
+    document.getElementById('physician_npi').value = '';
+    document.getElementById('physician_credential').value = '';
+    document.getElementById('physician_license').value = '';
+    document.getElementById('physician_license_state').value = '';
+  }
+
+  function updatePhysicianUI() {
+    const listContainer = document.getElementById('added-physicians-list');
+    if (savedPhysicians.length > 0) {
+      listContainer.classList.remove('hidden');
+      listContainer.innerHTML = savedPhysicians.map((phys, idx) => `
+        <div class="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+              <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+              </svg>
+            </div>
+            <div>
+              <div class="font-medium text-gray-900">${phys.first_name} ${phys.last_name}${phys.credential ? ', ' + phys.credential : ''}</div>
+              <div class="text-sm text-gray-500">NPI: ${phys.npi}</div>
+            </div>
+          </div>
+          <button type="button" onclick="removePhysician(${idx})" class="text-red-500 hover:text-red-700">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+      `).join('');
+    } else {
+      listContainer.classList.add('hidden');
+    }
+  }
+
+  window.removePhysician = function(idx) {
+    savedPhysicians.splice(idx, 1);
+    updatePhysicianUI();
+  };
+
+  // Save physician
+  document.getElementById('btn-save-physician')?.addEventListener('click', async function() {
+    const firstName = document.getElementById('physician_first_name').value.trim();
+    const lastName = document.getElementById('physician_last_name').value.trim();
+    const npi = document.getElementById('physician_npi').value.trim();
+    const credential = document.getElementById('physician_credential').value;
+    const license = document.getElementById('physician_license').value.trim();
+    const licenseState = document.getElementById('physician_license_state').value;
+
+    if (!firstName || !lastName) {
+      showError('Please enter the physician\'s first and last name.');
+      return;
+    }
+    if (!npi || !/^\d{10}$/.test(npi)) {
+      showError('Please enter a valid 10-digit NPI number.');
+      return;
+    }
+
+    const btn = this;
+    btn.disabled = true;
+    btn.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Saving...';
+
+    try {
+      const formData = new FormData();
+      formData.append('first_name', firstName);
+      formData.append('last_name', lastName);
+      formData.append('npi', npi);
+      formData.append('credential', credential);
+      formData.append('license', license);
+      formData.append('license_state', licenseState);
+
+      const response = await fetch('/portal/index.php?action=onboarding.save_physician', {
+        method: 'POST',
+        body: formData
+      });
+      const result = await response.json();
+
+      if (result.ok) {
+        savedPhysicians.push({ first_name: firstName, last_name: lastName, npi, credential, license, license_state: licenseState });
+        updatePhysicianUI();
+        clearPhysicianForm();
+        document.getElementById('physician-form-container').classList.add('hidden');
+        document.getElementById('btn-toggle-physicians').textContent = '+ Add Physician';
+      } else {
+        showError(result.error || 'Failed to add physician.');
+      }
+    } catch (err) {
+      showError('Network error. Please try again.');
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> Add Physician';
   });
   <?php endif; ?>
   </script>

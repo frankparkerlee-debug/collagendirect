@@ -130,8 +130,9 @@
         <a href="#documents" class="text-gray-700 hover:text-brand-teal font-medium whitespace-nowrap transition-colors">Documents</a>
         <a href="#icd10" class="text-gray-700 hover:text-brand-teal font-medium whitespace-nowrap transition-colors">ICD-10 Search</a>
         <a href="#orders" class="text-gray-700 hover:text-brand-teal font-medium whitespace-nowrap transition-colors">Create Order</a>
-        <a href="#view-patients" class="text-gray-700 hover:text-brand-teal font-medium whitespace-nowrap transition-colors">View Patients</a>
-        <a href="#tips" class="text-gray-700 hover:text-brand-teal font-medium whitespace-nowrap transition-colors">Tips & Tricks</a>
+        <a href="#wound-photos" class="text-gray-700 hover:text-brand-teal font-medium whitespace-nowrap transition-colors">Wound Photos</a>
+        <a href="#practice-management" class="text-gray-700 hover:text-brand-teal font-medium whitespace-nowrap transition-colors">Practice Admin</a>
+        <a href="#tips" class="text-gray-700 hover:text-brand-teal font-medium whitespace-nowrap transition-colors">Tips</a>
       </div>
     </div>
   </nav>
@@ -181,6 +182,41 @@
           <span>Register Your Practice</span>
           <span>→</span>
         </a>
+      </div>
+
+      <!-- Practice Admin Onboarding -->
+      <div class="mt-8 bg-white rounded-xl shadow-lg p-8">
+        <div class="flex items-start gap-4 mb-6">
+          <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-2xl shadow-lg">🏥</div>
+          <div>
+            <h3 class="text-xl font-bold mb-1">For Practice Administrators</h3>
+            <p class="text-gray-600">First-time practice admins will complete a guided onboarding wizard</p>
+          </div>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-4">
+          <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+            <div class="text-2xl mb-2">1️⃣</div>
+            <h4 class="font-bold text-gray-900 mb-1">Sign Agreements</h4>
+            <p class="text-sm text-gray-600">Review and digitally sign the Business Associate Agreement (BAA) and Provider Agreement</p>
+          </div>
+          <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+            <div class="text-2xl mb-2">2️⃣</div>
+            <h4 class="font-bold text-gray-900 mb-1">Complete Profile</h4>
+            <p class="text-sm text-gray-600">Enter your NPI number, medical license, credential type, and license state</p>
+          </div>
+          <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+            <div class="text-2xl mb-2">3️⃣</div>
+            <h4 class="font-bold text-gray-900 mb-1">Add Locations</h4>
+            <p class="text-sm text-gray-600">Add at least one practice location for order fulfillment. You can add multiple locations and additional physicians.</p>
+          </div>
+        </div>
+
+        <div class="mt-6 bg-purple-50 border border-purple-200 rounded-lg p-4">
+          <p class="text-sm text-purple-800">
+            <strong>Address Autocomplete:</strong> When adding locations, start typing your address and Google Places will suggest matching addresses - no need to manually enter city, state, and ZIP!
+          </p>
+        </div>
       </div>
     </section>
     <section id="dashboard" class="section mb-20">
@@ -795,6 +831,118 @@
               <li>• Forget to verify insurance information</li>
             </ul>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Wound Photo Documentation -->
+    <section id="wound-photos" class="section mb-20">
+      <div class="flex items-center gap-3 mb-8">
+        <h2 class="text-4xl font-bold">Wound Photo Documentation</h2>
+        <span class="inline-block px-4 py-1.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm font-bold rounded-full shadow-lg">
+          Revenue Opportunity
+        </span>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+        <div class="grid md:grid-cols-2 gap-8">
+          <div>
+            <h3 class="text-xl font-bold mb-4 text-brand-navy">Why Document Wound Photos?</h3>
+            <p class="text-gray-600 mb-4">
+              Wound photo documentation creates billable encounters that can be submitted for reimbursement.
+              Quality wound photos help with insurance approvals and clinical decision-making.
+            </p>
+            <ul class="space-y-2 text-sm text-gray-700">
+              <li class="flex items-start gap-2">
+                <span class="text-green-500">✓</span>
+                <span><strong>Billable encounters:</strong> Generate additional revenue per patient visit</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-green-500">✓</span>
+                <span><strong>Insurance support:</strong> Photos help justify medical necessity</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-green-500">✓</span>
+                <span><strong>Track progress:</strong> Visual documentation of healing over time</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-green-500">✓</span>
+                <span><strong>Clinical records:</strong> Maintain complete wound care documentation</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="bg-green-50 border border-green-200 rounded-xl p-6">
+            <h4 class="font-bold text-green-900 mb-3">Photo Guidelines</h4>
+            <ul class="space-y-3 text-sm text-green-800">
+              <li class="flex items-start gap-2">
+                <span>📷</span>
+                <span><strong>Clear focus:</strong> Ensure wound edges are clearly visible</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span>📏</span>
+                <span><strong>Include ruler:</strong> Place measuring tape/ruler next to wound</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span>💡</span>
+                <span><strong>Good lighting:</strong> Natural light or well-lit room</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span>🎯</span>
+                <span><strong>Consistent angle:</strong> Use same angle for progress photos</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span>📱</span>
+                <span><strong>Mobile upload:</strong> Take photos directly from the portal on your phone</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Practice Management -->
+    <section id="practice-management" class="section mb-20">
+      <h2 class="text-4xl font-bold mb-8">Practice Management (Admins)</h2>
+
+      <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+        <p class="text-gray-600 mb-6">
+          Practice administrators have access to additional features for managing their practice,
+          multiple locations, and physician roster.
+        </p>
+
+        <div class="grid md:grid-cols-3 gap-6">
+          <div class="border border-gray-200 rounded-xl p-6 hover:border-brand-teal transition">
+            <div class="text-3xl mb-3">📍</div>
+            <h4 class="font-bold text-gray-900 mb-2">Multiple Locations</h4>
+            <p class="text-sm text-gray-600">
+              Add and manage multiple practice locations. Set a primary location for default shipping.
+            </p>
+          </div>
+
+          <div class="border border-gray-200 rounded-xl p-6 hover:border-brand-teal transition">
+            <div class="text-3xl mb-3">👨‍⚕️</div>
+            <h4 class="font-bold text-gray-900 mb-2">Physician Roster</h4>
+            <p class="text-sm text-gray-600">
+              Add other physicians in your practice who will be placing orders. Each physician needs NPI and license info.
+            </p>
+          </div>
+
+          <div class="border border-gray-200 rounded-xl p-6 hover:border-brand-teal transition">
+            <div class="text-3xl mb-3">📊</div>
+            <h4 class="font-bold text-gray-900 mb-2">Revenue Tracking</h4>
+            <p class="text-sm text-gray-600">
+              View practice-wide analytics including order volume, revenue from billable encounters, and patient metrics.
+            </p>
+          </div>
+        </div>
+
+        <div class="mt-6 bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+          <h4 class="font-bold text-blue-900 mb-2">Profile Management</h4>
+          <p class="text-blue-800 text-sm">
+            Access your profile settings from the navigation menu to update your NPI, license information, credentials,
+            and practice locations at any time.
+          </p>
         </div>
       </div>
     </section>
