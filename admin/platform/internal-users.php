@@ -27,7 +27,7 @@ if (!has_permission('admin_settings.internal_users.view')) {
     exit;
 }
 
-require_once __DIR__ . '/../../api/lib/email_notifications.php';
+require_once __DIR__ . '/../../api/lib/provider_welcome.php';
 
 $admin = current_admin();
 $adminRole = $admin['role'] ?? '';
@@ -135,19 +135,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ")->execute([$newUserId, $overrideRate, $admin['id']]);
                 }
 
-                // Send welcome email
-                $emailSent = false;
-                if ($role === 'sales' && $hasRepView) {
-                    $emailSent = send_employee_rep_welcome_email($email, $name, $password);
-                } else {
-                    $emailSent = send_physician_account_created_email($email, $name, $password);
-                }
+                // Send welcome email with temp password
+                $emailSent = send_provider_welcome_email($email, $name, $role, $password);
 
                 $msg = 'Internal user created successfully';
                 if ($emailSent) {
-                    $msg .= ' - Welcome email sent';
+                    $msg .= ' - Welcome email with login credentials sent';
                 } else {
-                    $msg .= ' - Warning: Email failed to send';
+                    $msg .= ' - Warning: Welcome email failed to send - contact support';
                     error_log("[internal-users.php] Failed to send welcome email to $email");
                 }
                 break;
@@ -260,11 +255,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ->execute([password_hash($newPassword, PASSWORD_DEFAULT), $userId]);
 
                 // Send password reset email
-                $emailSent = send_physician_account_created_email($user['email'], $user['name'], $newPassword);
+                $emailSent = send_provider_welcome_email($user['email'], $user['name'], 'employee', $newPassword);
 
                 $msg = 'Password reset successfully';
                 if ($emailSent) {
                     $msg .= ' - Email sent with new credentials';
+                } else {
+                    $msg .= ' - Warning: Email failed to send - contact support';
                 }
                 break;
 

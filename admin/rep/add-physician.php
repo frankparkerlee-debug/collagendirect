@@ -6,7 +6,7 @@
  */
 declare(strict_types=1);
 require __DIR__ . '/_header.php';
-require_once __DIR__ . '/../../api/lib/email_notifications.php';
+require_once __DIR__ . '/../../api/lib/provider_welcome.php';
 
 $repId = $admin['rep_id'] ?? null;
 if (!$repId) {
@@ -35,9 +35,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   $practiceId = $_POST['practice_id'] ?? '';
   $email = trim($_POST['email'] ?? '');
-  $password = $_POST['password'] ?? '';
   $firstName = trim($_POST['first_name'] ?? '');
   $lastName = trim($_POST['last_name'] ?? '');
+
+  // Generate a secure temporary password (12 chars, mixed case + numbers)
+  $tempPassword = substr(str_shuffle('abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789'), 0, 12);
   $npi = preg_replace('/\D/', '', $_POST['npi'] ?? '');
   $license = trim($_POST['license'] ?? '');
   $licenseState = $_POST['license_state'] ?? null;
@@ -61,12 +63,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   if (!$validPractice) {
     $error = 'Please select one of your assigned practices.';
-  } elseif (!$email || !$password || !$firstName || !$lastName) {
+  } elseif (!$email || !$firstName || !$lastName) {
     $error = 'Please fill in all required fields.';
   } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     $error = 'Please enter a valid email address.';
-  } elseif (strlen($password) < 8) {
-    $error = 'Password must be at least 8 characters.';
   } else {
     // Check if email already exists
     $checkStmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
@@ -92,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           created_at, updated_at
         ) VALUES (?,LOWER(?),?,?,?,?,?,?,'physician','physician','referral','active',?,NOW(),'self_onboard',?,NOW(),NOW())
       ")->execute([
-        $userId, $email, password_hash($password, PASSWORD_DEFAULT), $firstName, $lastName,
+        $userId, $email, password_hash($tempPassword, PASSWORD_DEFAULT), $firstName, $lastName,
         $npi ?: null, $license ?: null, $licenseState,
         $repId, $admin['id']
       ]);
@@ -119,15 +119,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       $pdo->commit();
 
-      // Send welcome email with login credentials
+      // Send welcome email with temp password
       $fullName = $firstName . ' ' . $lastName;
-      $emailSent = send_physician_account_created_email($email, $fullName, $password);
+      $emailSent = send_provider_welcome_email($email, $fullName, 'physician', $tempPassword);
       if ($emailSent) {
         error_log("[add-physician] Welcome email sent to $email");
         $message = 'Physician "' . htmlspecialchars($fullName) . '" has been added to the practice. A welcome email with login credentials has been sent.';
       } else {
         error_log("[add-physician] Failed to send welcome email to $email");
-        $message = 'Physician "' . htmlspecialchars($fullName) . '" has been added to the practice. Note: Welcome email could not be sent - please share credentials manually.';
+        $message = 'Physician "' . htmlspecialchars($fullName) . '" has been added to the practice. Warning: Welcome email could not be sent - please contact support.';
       }
     } catch (PDOException $e) {
       $pdo->rollBack();
@@ -210,10 +210,7 @@ $states = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN'
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Email <span class="text-red-500">*</span></label>
         <input type="email" name="email" required value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Password <span class="text-red-500">*</span></label>
-        <input type="password" name="password" required minlength="8" placeholder="Min 8 characters">
+        <p class="text-xs text-gray-500 mt-1">A temporary password will be emailed to this address</p>
       </div>
     </div>
   </div>

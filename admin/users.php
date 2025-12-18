@@ -6,7 +6,7 @@ require_admin();
 // Sales reps cannot access admin settings
 if (function_exists('deny_sales_rep')) deny_sales_rep();
 
-require_once __DIR__ . '/../api/lib/email_notifications.php'; // Email notifications
+require_once __DIR__ . '/../api/lib/provider_welcome.php'; // Welcome emails with temp passwords
 require_once __DIR__ . '/config.php'; // For Google Maps API key
 
 $admin = current_admin();
@@ -122,19 +122,21 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $name = trim($_POST['name']);
     $email = trim($_POST['email']);
     $role = trim($_POST['role']);
-    $password = $_POST['password'];
+
+    // Generate a secure temporary password (12 chars, mixed case + numbers)
+    $tempPassword = substr(str_shuffle('abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789'), 0, 12);
 
     $pdo->prepare("INSERT INTO admin_users(name,email,role,password_hash) VALUES(?,?,?,?)")
-        ->execute([$name, $email, $role, password_hash($password, PASSWORD_DEFAULT)]);
+        ->execute([$name, $email, $role, password_hash($tempPassword, PASSWORD_DEFAULT)]);
 
-    // Send welcome email using SendGrid template
-    $emailSent = send_physician_account_created_email($email, $name, $password);
+    // Send welcome email with temp password
+    $emailSent = send_provider_welcome_email($email, $name, $role, $tempPassword);
 
     $msg = ($role === 'manufacturer' ? 'Manufacturer' : 'Employee') . ' created';
     if ($emailSent) {
-      $msg .= ' - Welcome email sent';
+      $msg .= ' - Welcome email with login credentials sent';
     } else {
-      $msg .= ' - Warning: Email failed to send';
+      $msg .= ' - Warning: Welcome email failed to send - contact support';
       error_log("[users.php] Failed to send welcome email to $email");
     }
     $tab = ($role === 'manufacturer') ? 'manufacturer' : 'employees';
@@ -154,9 +156,11 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
   if ($act==='create_phys') {
     $providerType = $_POST['provider_type'] ?? 'practice';
     $email = trim($_POST['email']);
-    $password = $_POST['password'];
     $firstName = trim($_POST['first_name']);
     $lastName = trim($_POST['last_name']);
+
+    // Generate a secure temporary password (12 chars, mixed case + numbers)
+    $tempPassword = substr(str_shuffle('abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789'), 0, 12);
     $securityRole = $_POST['security_role'] ?? 'physician'; // Practice Manager or Physician
     $accountTypeInput = $_POST['account_type'] ?? 'referral'; // referral, wholesale, or both
     $userId = bin2hex(random_bytes(16));
@@ -218,7 +222,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
           created_at, updated_at
         ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'practice_admin','practice_admin',?,'active',TRUE,?,?,?,?,".($assignedRepId ? "NOW()" : "NULL").",?,?,NOW(),NOW())
       ")->execute([
-        $userId, $email, password_hash($password, PASSWORD_DEFAULT), $firstName, $lastName, $practiceName,
+        $userId, $email, password_hash($tempPassword, PASSWORD_DEFAULT), $firstName, $lastName, $practiceName,
         $address, $city, $state, $zip, $phone,
         $npi ?: null, $ptan ?: null, $license ?: null, $licenseState, $licenseExpiry,
         $accountType,
@@ -241,7 +245,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
           created_at, updated_at
         ) VALUES (?,?,?,?,?,?,?,?,?,?,'physician','physician',?,'active',?,?,?,?,".($assignedRepId ? "NOW()" : "NULL").",?,?,NOW(),NOW())
       ")->execute([
-        $userId, $email, password_hash($password, PASSWORD_DEFAULT), $firstName, $lastName,
+        $userId, $email, password_hash($tempPassword, PASSWORD_DEFAULT), $firstName, $lastName,
         $npi ?: null, $ptan ?: null, $license ?: null, $licenseState, $licenseExpiry,
         $accountType,
         $isReferralOnly, $hasDmeLicense, $isHybrid,
@@ -269,13 +273,14 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
       $pdo->prepare("INSERT INTO admin_physicians(admin_id, physician_user_id) VALUES(?,?) ON CONFLICT DO NOTHING")->execute([$admin['id'], $userId]);
     }
 
-    // Send welcome email via SendGrid template
-    $emailSent = send_physician_account_created_email($email, "$firstName $lastName", $password);
+    // Send welcome email with temp password
+    $role = $providerType === 'practice' ? 'practice_admin' : 'physician';
+    $emailSent = send_provider_welcome_email($email, "$firstName $lastName", $role, $tempPassword);
 
     if ($emailSent) {
-      $msg .= ' - Welcome email sent';
+      $msg .= ' - Welcome email with login credentials sent';
     } else {
-      $msg .= ' - Warning: Email failed to send';
+      $msg .= ' - Warning: Welcome email failed to send - contact support';
       error_log("[users.php] Failed to send welcome email to $email");
     }
   }
@@ -973,8 +978,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
           <input class="border rounded px-2 py-1" name="license_expiry" type="date" placeholder="License Expiry">
         </div>
 
-        <div class="mb-2">
-          <input class="border rounded px-2 py-1 w-full" type="password" name="password" placeholder="Temporary Password *" required>
+        <div class="mb-2 text-xs text-slate-500">
+          <em>A temporary password will be emailed to the provider</em>
         </div>
         <button class="bg-brand text-white rounded px-3 py-1">Create Provider</button>
       </form>
@@ -1076,13 +1081,13 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         <div class="grid grid-cols-2 gap-2">
           <input class="border rounded px-2 py-1 col-span-2" name="name" placeholder="Full name" required/>
           <input class="border rounded px-2 py-1 col-span-2" type="email" name="email" placeholder="Email" required/>
-          <select class="border rounded px-2 py-1" name="role" required>
+          <select class="border rounded px-2 py-1 col-span-2" name="role" required>
             <option value="">Select Role</option>
             <option value="admin">Admin</option>
             <option value="sales">Sales</option>
             <option value="ops">Ops</option>
           </select>
-          <input class="border rounded px-2 py-1" type="password" name="password" placeholder="Temporary password" required/>
+          <div class="col-span-2 text-xs text-slate-500"><em>Password will be emailed to user</em></div>
         </div>
         <button class="mt-2 bg-brand text-white rounded px-3 py-1">Create</button>
       </form>
@@ -1141,7 +1146,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
           <input class="border rounded px-2 py-1 col-span-2" name="name" placeholder="Full name" required/>
           <input class="border rounded px-2 py-1 col-span-2" type="email" name="email" placeholder="Email" required/>
           <input type="hidden" name="role" value="manufacturer"/>
-          <input class="border rounded px-2 py-1 col-span-2" type="password" name="password" placeholder="Temporary password" required/>
+          <div class="col-span-2 text-xs text-slate-500"><em>Password will be emailed to user</em></div>
         </div>
         <button class="mt-2 bg-brand text-white rounded px-3 py-1">Create</button>
       </form>
