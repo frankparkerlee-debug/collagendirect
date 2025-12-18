@@ -8,7 +8,7 @@
  * - Validates email format, looks up user (by email, case-insensitive).
  * - Creates selector + verifier; stores hashed verifier (sha256).
  * - Expires in 15 minutes; single-use (invalidates older outstanding tokens).
- * - Sends SendGrid Dynamic Template (SG_TMPL_PASSWORD_RESET) with reset_url.
+ * - Sends password reset email via SMTP/Gmail.
  */
 
 declare(strict_types=1);
@@ -17,7 +17,6 @@ error_reporting(E_ALL);
 
 require __DIR__ . '/../db.php';          // provides $pdo
 require __DIR__ . '/../lib/env.php';     // env('KEY')
-require __DIR__ . '/../lib/sg_curl.php'; // sg_send(...)
 
 if (!function_exists('json_out')) {
   function json_out(int $code, array $payload): void {
@@ -164,7 +163,7 @@ try {
 $resetUrl = 'https://collagendirect.health/portal/reset/?selector='
           . urlencode($selector) . '&token=' . urlencode($tokenB64);
 
-// ---------- Send via SendGrid template ----------
+// ---------- Send via SMTP/Gmail ----------
 require_once __DIR__ . '/../lib/email_notifications.php';
 
 $sentOk = false;

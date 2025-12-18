@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /* ------------ DB + session/bootstrap ------------ */
 require __DIR__ . '/../api/db.php'; // defines $pdo + session helpers
-require __DIR__ . '/../api/lib/sg_curl.php'; // SendGrid email helper
+require __DIR__ . '/../api/lib/email_sender.php'; // SMTP/Gmail email helper
 require __DIR__ . '/../api/lib/create_multi_product_orders.php'; // Multi-product order creation
 
 // BLOCK ADMIN USERS (employees, manufacturer) from accessing physician portal

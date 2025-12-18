@@ -4,194 +4,184 @@ declare(strict_types=1);
 /**
  * Registration Welcome Email
  * Sends welcome email to self-registered users (no temp password needed)
+ * Uses SMTP/Gmail via email_sender.php
  */
 
-require_once __DIR__ . '/sg_curl.php';
+require_once __DIR__ . '/email_sender.php';
 
 function send_registration_welcome_email(array $userData): bool {
-  $apiKey = getenv('SENDGRID_API_KEY');
-  if (!$apiKey) {
-    error_log('SendGrid API key not configured');
-    return false;
-  }
-
-  $fromEmail = getenv('SMTP_FROM') ?: 'no-reply@collagendirect.health';
-  $fromName = getenv('SMTP_FROM_NAME') ?: 'CollagenDirect';
-
   $email = $userData['email'];
   $name = trim(($userData['firstName'] ?? '') . ' ' . ($userData['lastName'] ?? ''));
   $userType = $userData['userType'];
   $practiceName = $userData['practiceName'] ?? '';
 
-  // Build role-specific message
+  // Build role-specific content
   $roleTitle = '';
-  $nextSteps = '';
   $portalAccess = '';
-  $trainingMaterials = "
-**Training & Support Resources:**
-- Portal Training Guide: https://collagendirect.health/portal-guide/
-- Video Tutorials: https://collagendirect.health/portal-guide/#videos
-- Order Creation Walkthrough: https://collagendirect.health/portal-guide/#orders
-- FAQs: https://collagendirect.health/portal-guide/#faq";
+  $nextSteps = '';
 
   switch ($userType) {
     case 'practice_admin':
       $roleTitle = 'Practice Manager';
-      $portalAccess = "
-**Your Portal Access:**
-You now have full access to the CollagenDirect Physician Portal where you can:
-- Create and manage patient orders
-- Track order status and shipments
-- Upload patient documentation
-- Manage your practice team and physicians
-- Configure billing and insurance settings
-
-**About Your Role:**
-As a Practice Owner, you can:
-- Create and manage orders for your patients
-- Add and manage physicians within your practice
-- Configure practice-wide billing settings
-- Access all orders created by physicians in your practice
-- Review wound photos and telehealth assessments";
-
-      $nextSteps = "
-**Next Steps:**
-1. Log in to your portal at: https://collagendirect.health/portal
-2. Complete your practice profile
-3. Add physicians to your practice (if applicable)
-4. Review the training materials below to get started
-5. Start creating orders for your patients";
+      $portalAccess = '
+        <p><strong>Your Portal Access:</strong></p>
+        <p>You now have full access to the CollagenDirect Physician Portal where you can:</p>
+        <ul style="margin: 10px 0; padding-left: 20px;">
+          <li>Create and manage patient orders</li>
+          <li>Track order status and shipments</li>
+          <li>Upload patient documentation</li>
+          <li>Manage your practice team and physicians</li>
+          <li>Configure billing and insurance settings</li>
+        </ul>';
+      $nextSteps = '
+        <p><strong>Next Steps:</strong></p>
+        <ol style="margin: 10px 0; padding-left: 20px;">
+          <li>Log in to your portal</li>
+          <li>Complete your practice profile</li>
+          <li>Add physicians to your practice (if applicable)</li>
+          <li>Review the training materials below</li>
+          <li>Start creating orders for your patients</li>
+        </ol>';
       break;
 
     case 'physician':
       $roleTitle = 'Physician';
       $pmEmail = $userData['practiceManagerEmail'] ?? '';
-
-      $portalAccess = "
-**Your Portal Access:**
-You now have access to the CollagenDirect Physician Portal where you can:
-- Create and manage patient orders
-- Review wound photos and assessments
-- Track patient progress
-- Generate billable E/M codes for telehealth reviews
-- Access patient documentation
-
-**About Your Role:**
-As a Physician within a practice, you can:
-- Create and manage orders for your own patients
-- Review wound photos and telehealth assessments
-- Generate billable E/M codes for telehealth reviews
-- Access your patient documentation
-- All orders you create are also visible to your practice administrator";
-
-      $nextSteps = "
-**Next Steps:**
-1. Log in to your portal at: https://collagendirect.health/portal
-2. Complete your physician profile
-3. Review the training materials below to get started
-4. Start creating orders for your patients";
-
+      $portalAccess = '
+        <p><strong>Your Portal Access:</strong></p>
+        <p>You now have access to the CollagenDirect Physician Portal where you can:</p>
+        <ul style="margin: 10px 0; padding-left: 20px;">
+          <li>Create and manage patient orders</li>
+          <li>Review wound photos and assessments</li>
+          <li>Track patient progress</li>
+          <li>Generate billable E/M codes for telehealth reviews</li>
+          <li>Access patient documentation</li>
+        </ul>';
+      $nextSteps = '
+        <p><strong>Next Steps:</strong></p>
+        <ol style="margin: 10px 0; padding-left: 20px;">
+          <li>Log in to your portal</li>
+          <li>Complete your physician profile</li>
+          <li>Review the training materials below</li>
+          <li>Start creating orders for your patients</li>
+        </ol>';
       if ($pmEmail) {
-        $nextSteps .= "\n5. Your practice manager ($pmEmail) will manage your practice settings";
+        $nextSteps .= "<p style='margin-top: 10px;'>Your practice manager ($pmEmail) will manage your practice settings.</p>";
       }
       break;
 
     case 'dme_wholesale':
       $roleTitle = 'DME Wholesale Provider';
-      $portalAccess = "
-**Your Portal Access:**
-You now have access to wholesale ordering through CollagenDirect:
-- Order products at wholesale pricing
-- Track your account balance
-- Manage direct billing to your patients/insurers
-- Access all practice management features";
-
-      $nextSteps = "
-**Next Steps:**
-1. Log in to your portal at: https://collagendirect.health/portal
-2. Complete your DME license verification
-3. Review wholesale pricing and payment terms
-4. Start placing wholesale orders";
+      $portalAccess = '
+        <p><strong>Your Portal Access:</strong></p>
+        <p>You now have access to wholesale ordering through CollagenDirect:</p>
+        <ul style="margin: 10px 0; padding-left: 20px;">
+          <li>Order products at wholesale pricing</li>
+          <li>Track your account balance</li>
+          <li>Manage direct billing to your patients/insurers</li>
+          <li>Access all practice management features</li>
+        </ul>';
+      $nextSteps = '
+        <p><strong>Next Steps:</strong></p>
+        <ol style="margin: 10px 0; padding-left: 20px;">
+          <li>Log in to your portal</li>
+          <li>Complete your DME license verification</li>
+          <li>Review wholesale pricing and payment terms</li>
+          <li>Start placing wholesale orders</li>
+        </ol>';
       break;
 
     default:
       $roleTitle = 'User';
-      $portalAccess = "You now have access to the CollagenDirect portal.";
-      $nextSteps = "Log in at: https://collagendirect.health/portal";
+      $portalAccess = '<p>You now have access to the CollagenDirect portal.</p>';
+      $nextSteps = '';
   }
 
   $subject = "Welcome to CollagenDirect - Registration Complete";
 
-  // Build email body
-  $emailBody = "Hello $name,
+  // Build HTML body content
+  $practiceInfo = $practiceName ? "<p style='margin: 5px 0;'><strong>Practice:</strong> " . htmlspecialchars($practiceName) . "</p>" : '';
+
+  $bodyContent = '
+    <p style="font-size: 16px; color: #1e293b; margin-bottom: 20px;">Hello ' . htmlspecialchars($name) . ',</p>
+
+    <p style="font-size: 16px; color: #1e293b; margin-bottom: 20px;">
+      Welcome to CollagenDirect! Your registration as a ' . $roleTitle . ' has been successfully completed.
+    </p>
+
+    <div style="background-color: #f0fdfa; border: 1px solid #99f6e4; border-radius: 8px; padding: 20px; margin: 20px 0;">
+      <p style="margin: 0 0 10px 0; font-weight: 600; color: #0f766e;">Account Information:</p>
+      <p style="margin: 5px 0; color: #1e293b;"><strong>Email:</strong> ' . htmlspecialchars($email) . '</p>
+      ' . $practiceInfo . '
+      <p style="margin: 15px 0 0 0;">
+        <a href="https://collagendirect.health/portal" style="display: inline-block; background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%); color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600;">Log In to Portal</a>
+      </p>
+    </div>
+
+    ' . $portalAccess . '
+    ' . $nextSteps . '
+
+    <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+      <p style="font-weight: 600; color: #0f766e; margin-bottom: 10px;">Training & Support Resources:</p>
+      <ul style="margin: 10px 0; padding-left: 20px; color: #1e293b;">
+        <li><a href="https://collagendirect.health/portal-guide/" style="color: #0d9488;">Portal Training Guide</a></li>
+        <li><a href="https://collagendirect.health/portal-guide/#videos" style="color: #0d9488;">Video Tutorials</a></li>
+        <li><a href="https://collagendirect.health/portal-guide/#orders" style="color: #0d9488;">Order Creation Walkthrough</a></li>
+        <li><a href="https://collagendirect.health/portal-guide/#faq" style="color: #0d9488;">FAQs</a></li>
+      </ul>
+    </div>
+
+    <p style="font-size: 16px; color: #1e293b; margin-top: 25px;">
+      Thank you for choosing CollagenDirect. We look forward to partnering with you!
+    </p>
+
+    <p style="font-size: 16px; color: #1e293b; margin-top: 20px;">
+      Best regards,<br>
+      <strong>The CollagenDirect Team</strong>
+    </p>
+  ';
+
+  // Plain text version
+  $plainText = "Hello $name,
 
 Welcome to CollagenDirect! Your registration as a $roleTitle has been successfully completed.
 
-**Account Information:**
-Email: $email";
+ACCOUNT INFORMATION:
+Email: $email" . ($practiceName ? "\nPractice: $practiceName" : "") . "
 
-  if ($practiceName) {
-    $emailBody .= "\nPractice: $practiceName";
-  }
+Log in at: https://collagendirect.health/portal
 
-  $emailBody .= "\n\n$portalAccess
-
-$nextSteps
-
-$trainingMaterials
-
-**Need Help?**
+TRAINING & SUPPORT RESOURCES:
 - Portal Training Guide: https://collagendirect.health/portal-guide/
+- Video Tutorials: https://collagendirect.health/portal-guide/#videos
+- Order Creation Walkthrough: https://collagendirect.health/portal-guide/#orders
+- FAQs: https://collagendirect.health/portal-guide/#faq
+
+Need Help?
 - Email: support@collagendirect.health
 - Phone: (888) 415-6880
-- Live Chat: Available in your portal
 
-**Important Reminders:**
-- Keep your login credentials secure
-- Complete your profile information for faster order processing
-- Review our HIPAA Business Associate Agreement in your portal settings
-
-Thank you for choosing CollagenDirect. We look forward to partnering with you in providing exceptional wound care to your patients!
+Thank you for choosing CollagenDirect!
 
 Best regards,
 The CollagenDirect Team
-
----
-CollagenDirect
-Advanced Wound Care Solutions
-https://collagendirect.health
 ";
 
-  // Send via SendGrid
-  $data = [
-    'personalizations' => [
-      [
-        'to' => [['email' => $email, 'name' => $name]],
-        'subject' => $subject
-      ]
-    ],
-    'from' => ['email' => $fromEmail, 'name' => $fromName],
-    'content' => [
-      ['type' => 'text/plain', 'value' => $emailBody]
-    ],
-    'reply_to' => ['email' => 'support@collagendirect.health', 'name' => 'CollagenDirect Support'],
-    'tracking_settings' => [
-      'click_tracking' => ['enable' => false, 'enable_text' => false],
-      'open_tracking' => ['enable' => false]
-    ]
-  ];
+  // Build HTML email using the email template
+  $htmlBody = email_template($subject, $bodyContent);
 
+  // Send via SMTP (Gmail/PHPMailer)
   try {
-    $result = sg_curl_send($apiKey, $data);
-    if ($result['success']) {
-      error_log("Registration welcome email sent successfully to $email (user type: $userType)");
+    $result = send_email($email, $name, $subject, $htmlBody, $plainText);
+    if ($result) {
+      error_log("[registration_welcome] Email sent to $email (user type: $userType)");
       return true;
     } else {
-      error_log("Failed to send registration welcome email to $email: " . ($result['error'] ?? 'Unknown error'));
+      error_log("[registration_welcome] Failed to send email to $email");
       return false;
     }
   } catch (\Throwable $e) {
-    error_log("Exception sending registration welcome email to $email: " . $e->getMessage());
+    error_log("[registration_welcome] Exception: " . $e->getMessage());
     return false;
   }
 }
@@ -200,13 +190,6 @@ https://collagendirect.health
  * Send notification email to admin about new registration
  */
 function send_admin_new_registration_notification(array $userData): bool {
-  $apiKey = getenv('SENDGRID_API_KEY');
-  if (!$apiKey) {
-    return false; // Silently fail admin notification
-  }
-
-  $fromEmail = getenv('SMTP_FROM') ?: 'no-reply@collagendirect.health';
-  $fromName = getenv('SMTP_FROM_NAME') ?: 'CollagenDirect';
   $adminEmail = getenv('ADMIN_EMAIL') ?: 'admin@collagendirect.health';
 
   $name = trim(($userData['firstName'] ?? '') . ' ' . ($userData['lastName'] ?? ''));
@@ -220,9 +203,28 @@ function send_admin_new_registration_notification(array $userData): bool {
 
   $subject = "New Registration: $name ($userType)";
 
-  $emailBody = "A new user has registered on CollagenDirect:
+  $bodyContent = '
+    <h2 style="color: #1e293b; margin: 0 0 20px 0;">New User Registration</h2>
+    <p style="color: #475569;">A new user has registered on CollagenDirect:</p>
 
-**User Details:**
+    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 20px 0;">
+      <p style="margin: 5px 0;"><strong>Name:</strong> ' . htmlspecialchars($name) . '</p>
+      <p style="margin: 5px 0;"><strong>Email:</strong> ' . htmlspecialchars($email) . '</p>
+      <p style="margin: 5px 0;"><strong>User Type:</strong> ' . htmlspecialchars($userType) . '</p>
+      <p style="margin: 5px 0;"><strong>Practice:</strong> ' . htmlspecialchars($practiceName) . '</p>
+      <p style="margin: 5px 0;"><strong>NPI:</strong> ' . htmlspecialchars($npi) . '</p>
+      <p style="margin: 5px 0;"><strong>Phone:</strong> ' . htmlspecialchars($phone) . '</p>
+      <p style="margin: 5px 0;"><strong>Location:</strong> ' . htmlspecialchars("$city, $state") . '</p>
+      <p style="margin: 5px 0;"><strong>Time:</strong> ' . date('Y-m-d H:i:s T') . '</p>
+    </div>
+
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="https://collagendirect.health/admin" style="display: inline-block; background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%); color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600;">View in Admin Portal</a>
+    </div>
+  ';
+
+  $plainText = "New User Registration
+
 Name: $name
 Email: $email
 User Type: $userType
@@ -230,37 +232,22 @@ Practice: $practiceName
 NPI: $npi
 Phone: $phone
 Location: $city, $state
+Time: " . date('Y-m-d H:i:s T') . "
 
-**Registration Time:** " . date('Y-m-d H:i:s T') . "
-
-**Admin Portal:** https://collagendirect.health/admin
-
----
-This is an automated notification.
+Admin Portal: https://collagendirect.health/admin
 ";
 
-  $data = [
-    'personalizations' => [
-      [
-        'to' => [['email' => $adminEmail]],
-        'subject' => $subject
-      ]
-    ],
-    'from' => ['email' => $fromEmail, 'name' => $fromName],
-    'content' => [
-      ['type' => 'text/plain', 'value' => $emailBody]
-    ]
-  ];
+  $htmlBody = email_template($subject, $bodyContent);
 
   try {
-    $result = sg_curl_send($apiKey, $data);
-    if ($result['success']) {
-      error_log("Admin notification sent for new registration: $email");
+    $result = send_email($adminEmail, 'Admin', $subject, $htmlBody, $plainText);
+    if ($result) {
+      error_log("[registration_welcome] Admin notification sent for: $email");
       return true;
     }
   } catch (\Throwable $e) {
-    error_log("Failed to send admin notification for registration: " . $e->getMessage());
+    error_log("[registration_welcome] Admin notification failed: " . $e->getMessage());
   }
 
-  return false; // Don't fail registration if admin notification fails
+  return false;
 }

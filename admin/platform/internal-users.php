@@ -28,6 +28,7 @@ if (!has_permission('admin_settings.internal_users.view')) {
 }
 
 require_once __DIR__ . '/../../api/lib/provider_welcome.php';
+require_once __DIR__ . '/../../api/lib/email_notifications.php';
 
 $admin = current_admin();
 $adminRole = $admin['role'] ?? '';
@@ -136,11 +137,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 // Send welcome email with temp password
-                $emailSent = send_provider_welcome_email($email, $name, $role, $password);
+                // Use new hire onboarding email for sales roles, standard welcome for others
+                if ($role === 'sales') {
+                    $emailSent = send_new_hire_welcome_email($email, $name, $password);
+                } else {
+                    $emailSent = send_provider_welcome_email($email, $name, $role, $password);
+                }
 
                 $msg = 'Internal user created successfully';
                 if ($emailSent) {
-                    $msg .= ' - Welcome email with login credentials sent';
+                    $msg .= $role === 'sales'
+                        ? ' - New hire onboarding email with login credentials sent'
+                        : ' - Welcome email with login credentials sent';
                 } else {
                     $msg .= ' - Warning: Welcome email failed to send - contact support';
                     error_log("[internal-users.php] Failed to send welcome email to $email");

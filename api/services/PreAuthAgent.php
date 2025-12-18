@@ -589,7 +589,7 @@ This documentation was prepared by CollagenDirect DME Services in support of the
      * Send preauth status notification
      */
     private function sendPreauthStatusNotification($preauthRequestId, $status) {
-        // TODO: Integrate with existing SendGrid email system
+        // TODO: Integrate with SMTP email system (email_sender.php)
         // This should send emails to patient, physician, and manufacturer
         // based on the status (submitted, approved, denied, need_info)
 

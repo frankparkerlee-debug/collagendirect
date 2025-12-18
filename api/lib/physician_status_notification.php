@@ -1,6 +1,9 @@
 <?php
 // api/lib/physician_status_notification.php - Physician order status update emails (batched)
+// Uses SMTP/Gmail via email_sender.php
 declare(strict_types=1);
+
+require_once __DIR__ . '/email_sender.php';
 
 if (!function_exists('send_physician_status_batch')) {
   /**
@@ -192,15 +195,8 @@ if (!function_exists('send_physician_status_batch')) {
       </div>
       ";
 
-      // Send email
-      require_once __DIR__ . '/sg_curl.php';
-
-      $result = sg_send(
-        ['email' => $physicianEmail, 'name' => $physicianName],
-        $subject,
-        $html,
-        ['categories' => ['physician', 'status', 'batch']]
-      );
+      // Send email via SMTP/Gmail
+      $result = send_email($physicianEmail, $physicianName, $subject, $html);
 
       if ($result) {
         error_log("[physician-status] Batch email sent to $physicianEmail ($totalUpdates updates)");

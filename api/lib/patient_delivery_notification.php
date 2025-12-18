@@ -1,6 +1,9 @@
 <?php
 // api/lib/patient_delivery_notification.php - Patient delivery confirmation emails
+// Uses SMTP/Gmail via email_sender.php
 declare(strict_types=1);
+
+require_once __DIR__ . '/email_sender.php';
 
 if (!function_exists('send_delivery_confirmation_email')) {
   /**
@@ -76,85 +79,69 @@ if (!function_exists('send_delivery_confirmation_email')) {
 
       $subject = "CollagenDirect Order Delivery Confirmation - Order #$orderId";
 
-      // Check if we have SendGrid template
-      require_once __DIR__ . '/env.php';
-      $templateId = env('SG_TMPL_ORDER_CONFIRM', '');
+      $bodyContent = '
+        <h2 style="color: #0d9488; margin: 0 0 20px 0;">Delivery Confirmation Required</h2>
 
-      if ($templateId) {
-        // Use SendGrid template
-        require_once __DIR__ . '/sg_curl.php';
+        <p style="color: #475569; line-height: 1.6; margin: 0 0 15px 0;">
+          Dear <strong>' . htmlspecialchars($patientName) . '</strong>,
+        </p>
 
-        $result = sg_send(
-          ['email' => $patientEmail, 'name' => $patientName],
-          null,
-          null,
-          [
-            'template_id' => $templateId,
-            'dynamic_data' => [
-              'patient_name' => $patientName,
-              'order_id' => (string)$orderId,
-              'product_name' => $productLabel,
-              'physician_name' => $physicianName,
-              'confirm_url' => $confirmUrl,
-              'support_email' => 'support@collagendirect.health',
-              'year' => date('Y')
-            ],
-            'categories' => ['delivery', 'confirmation', 'compliance']
-          ]
-        );
-      } else {
-        // Fallback to plain HTML email
-        $html = "
-        <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;'>
-          <h2 style='color: #2563eb;'>Delivery Confirmation Required</h2>
+        <p style="color: #475569; line-height: 1.6; margin: 0 0 15px 0;">
+          We hope you\'ve received your CollagenDirect order!
+        </p>
 
-          <p>Dear $patientName,</p>
+        <div style="background-color: #f0fdfa; border: 1px solid #99f6e4; border-radius: 8px; padding: 20px; margin: 25px 0;">
+          <p style="margin: 0 0 10px 0; font-weight: 600; color: #0f766e;">Order Details:</p>
+          <p style="margin: 5px 0; color: #475569;"><strong>Order #:</strong> ' . $orderId . '</p>
+          <p style="margin: 5px 0; color: #475569;"><strong>Product:</strong> ' . htmlspecialchars($productLabel) . '</p>
+          <p style="margin: 5px 0; color: #475569;"><strong>Prescribing Physician:</strong> Dr. ' . htmlspecialchars($physicianName) . '</p>
+        </div>
 
-          <p>We hope you've received your CollagenDirect order!</p>
-
-          <div style='background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0;'>
-            <strong>Order Details:</strong><br>
-            Order #: $orderId<br>
-            Product: $productLabel<br>
-            Prescribing Physician: Dr. $physicianName
-          </div>
-
-          <p><strong style='color: #dc2626;'>Action Required:</strong></p>
-          <p>For insurance compliance, please confirm that you have received your order by clicking the button below:</p>
-
-          <div style='text-align: center; margin: 30px 0;'>
-            <a href='$confirmUrl' style='background-color: #2563eb; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;'>
-              Confirm Delivery
-            </a>
-          </div>
-
-          <p style='font-size: 12px; color: #6b7280;'>
-            If the button above doesn't work, copy and paste this link into your browser:<br>
-            <a href='$confirmUrl'>$confirmUrl</a>
-          </p>
-
-          <hr style='border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;'>
-
-          <p style='font-size: 12px; color: #6b7280;'>
-            If you have any questions or did not receive your order, please contact our support team at
-            <a href='mailto:support@collagendirect.health'>support@collagendirect.health</a>.
-          </p>
-
-          <p style='font-size: 12px; color: #6b7280;'>
-            Thank you,<br>
-            The CollagenDirect Team
+        <div style="background-color: #fef3c7; border: 1px solid #fcd34d; border-radius: 8px; padding: 15px; margin: 20px 0;">
+          <p style="margin: 0; color: #92400e; font-size: 14px;">
+            <strong>Action Required:</strong> For insurance compliance, please confirm that you have received your order by clicking the button below.
           </p>
         </div>
-        ";
 
-        require_once __DIR__ . '/sg_curl.php';
-        $result = sg_send(
-          ['email' => $patientEmail, 'name' => $patientName],
-          $subject,
-          $html,
-          ['categories' => ['delivery', 'confirmation', 'compliance']]
-        );
-      }
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="' . htmlspecialchars($confirmUrl) . '" style="display: inline-block; background: linear-gradient(135deg, #0d9488, #14b8a6); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600;">
+            Confirm Delivery
+          </a>
+        </div>
+
+        <p style="font-size: 12px; color: #64748b; margin: 20px 0;">
+          If the button doesn\'t work, copy and paste this link: ' . htmlspecialchars($confirmUrl) . '
+        </p>
+
+        <p style="color: #475569; margin-top: 30px;">
+          If you have questions or did not receive your order, contact us at
+          <a href="mailto:support@collagendirect.health" style="color: #0d9488;">support@collagendirect.health</a>.
+        </p>
+      ';
+
+      $plainText = "Delivery Confirmation Required
+
+Dear $patientName,
+
+We hope you've received your CollagenDirect order!
+
+ORDER DETAILS:
+Order #: $orderId
+Product: $productLabel
+Prescribing Physician: Dr. $physicianName
+
+ACTION REQUIRED:
+For insurance compliance, please confirm delivery at:
+$confirmUrl
+
+Questions? Contact support@collagendirect.health
+
+Thank you,
+The CollagenDirect Team
+";
+
+      $html = email_template($subject, $bodyContent);
+      $result = send_email($patientEmail, $patientName, $subject, $html, $plainText);
 
       if ($result) {
         error_log("[delivery-notification] Email sent to patient for order #$orderId");
