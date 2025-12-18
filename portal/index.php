@@ -84,7 +84,7 @@ if ($isPracticeAdmin) {
 $needsOnboarding = $needsAgreements || $needsProfile || $needsLocation;
 $isOnboardingPage = ($_GET['page'] ?? '') === 'onboarding';
 $isSignAgreementsPage = ($_GET['page'] ?? '') === 'sign-agreements'; // Keep for backward compat
-$isOnboardingAction = in_array($_GET['action'] ?? '', ['sign_agreements', 'onboarding.save_profile', 'onboarding.save_location']);
+$isOnboardingAction = in_array($_GET['action'] ?? '', ['sign_agreements', 'onboarding.save_profile', 'onboarding.save_location', 'notifications']);
 $hasAnyAction = !empty($_GET['action']);
 
 // Redirect to onboarding page if needed
@@ -871,7 +871,7 @@ if ($action) {
     try {
       $updateStmt = $pdo->prepare("
         UPDATE users
-        SET npi = ?, license = ?, license_state = ?, credential = ?, updated_at = NOW()
+        SET npi = ?, license = ?, license_state = ?, credential_type = ?, updated_at = NOW()
         WHERE id = ?
       ");
       $updateStmt->execute([$npi, $license, strtoupper($licenseState), $credential ?: null, $userId]);
@@ -5495,11 +5495,11 @@ if ($page==='logout'){
               <label class="block text-sm font-medium text-gray-700 mb-1">Credential</label>
               <select name="credential" id="wizard_credential" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
                 <option value="">Select credential...</option>
-                <option value="MD" <?= ($user['credential'] ?? '') === 'MD' ? 'selected' : '' ?>>MD - Doctor of Medicine</option>
-                <option value="DO" <?= ($user['credential'] ?? '') === 'DO' ? 'selected' : '' ?>>DO - Doctor of Osteopathic Medicine</option>
-                <option value="DPM" <?= ($user['credential'] ?? '') === 'DPM' ? 'selected' : '' ?>>DPM - Doctor of Podiatric Medicine</option>
-                <option value="PA" <?= ($user['credential'] ?? '') === 'PA' ? 'selected' : '' ?>>PA - Physician Assistant</option>
-                <option value="NP" <?= ($user['credential'] ?? '') === 'NP' ? 'selected' : '' ?>>NP - Nurse Practitioner</option>
+                <option value="MD" <?= ($user['credential_type'] ?? '') === 'MD' ? 'selected' : '' ?>>MD - Doctor of Medicine</option>
+                <option value="DO" <?= ($user['credential_type'] ?? '') === 'DO' ? 'selected' : '' ?>>DO - Doctor of Osteopathic Medicine</option>
+                <option value="DPM" <?= ($user['credential_type'] ?? '') === 'DPM' ? 'selected' : '' ?>>DPM - Doctor of Podiatric Medicine</option>
+                <option value="PA" <?= ($user['credential_type'] ?? '') === 'PA' ? 'selected' : '' ?>>PA - Physician Assistant</option>
+                <option value="NP" <?= ($user['credential_type'] ?? '') === 'NP' ? 'selected' : '' ?>>NP - Nurse Practitioner</option>
               </select>
             </div>
             <div>
