@@ -60,10 +60,20 @@ $isPracticeAdmin = in_array($userRole, ['practice_admin', 'superadmin']);
 $needsAgreements = empty($user['agree_msa']) || empty($user['agree_baa']);
 $isSignAgreementsPage = ($_GET['page'] ?? '') === 'sign-agreements';
 $isSignAgreementsAction = ($_GET['action'] ?? '') === 'sign_agreements';
+$hasAnyAction = !empty($_GET['action']);
 
 // Redirect to agreement signing page if not already there
 // Allow the sign_agreements API action to proceed without redirect
+// For other API actions, return JSON error instead of HTML redirect
 if ($needsAgreements && !$isSignAgreementsPage && !$isSignAgreementsAction) {
+  // If this is an API request (has action parameter), return JSON error
+  if ($hasAnyAction) {
+    http_response_code(403);
+    header('Content-Type: application/json');
+    echo json_encode(['ok' => false, 'error' => 'Please sign the required agreements first', 'redirect' => '/portal/index.php?page=sign-agreements']);
+    exit;
+  }
+  // Otherwise redirect to sign-agreements page
   header('Location: /portal/index.php?page=sign-agreements');
   exit;
 }
