@@ -1005,8 +1005,8 @@ if ($action) {
       $stmt = $pdo->prepare("
         INSERT INTO practice_physicians (
           practice_user_id, physician_name, npi, license_number, state,
-          is_active, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, TRUE, NOW(), NOW())
+          is_active
+        ) VALUES (?, ?, ?, ?, ?, TRUE)
       ");
       $stmt->execute([
         $userId,
@@ -14329,69 +14329,140 @@ function renderApprovalScore(patientId, scoreData) {
   if (!displayDiv) return;
 
   // Determine color scheme based on score
-  let scoreColor, scoreBg, scoreIcon;
+  let scoreColor, scoreBg, scoreIcon, scoreLabel;
   if (scoreData.score === 'GREEN') {
     scoreColor = 'text-green-700';
-    scoreBg = 'bg-green-100 border-green-500';
+    scoreBg = 'bg-green-50 border-green-500';
     scoreIcon = '✓';
+    scoreLabel = 'High Likelihood of Approval';
   } else if (scoreData.score === 'YELLOW') {
     scoreColor = 'text-yellow-700';
-    scoreBg = 'bg-yellow-100 border-yellow-500';
+    scoreBg = 'bg-yellow-50 border-yellow-500';
     scoreIcon = '⚠';
+    scoreLabel = 'Moderate Likelihood - Action Needed';
   } else {
     scoreColor = 'text-red-700';
-    scoreBg = 'bg-red-100 border-red-500';
+    scoreBg = 'bg-red-50 border-red-500';
     scoreIcon = '✗';
+    scoreLabel = 'Low Likelihood - Documentation Required';
   }
 
-  let html = '<div class="' + scoreBg + ' border-l-4 p-3 rounded text-sm">';
+  // Build HTML for display - new structured format
+  let html = '<div class="' + scoreBg + ' border-l-4 p-4 rounded space-y-4">';
+
+  // Score header
+  html += '<div class="flex items-center justify-between">';
   html += '<div class="flex items-center gap-2">';
   html += '<span class="text-2xl">' + scoreIcon + '</span>';
   html += '<div>';
-  html += '<div class="font-semibold ' + scoreColor + '">' + scoreData.score + ' - ';
-  if (scoreData.score === 'GREEN') html += 'High Likelihood of Approval';
-  else if (scoreData.score === 'YELLOW') html += 'Average Likelihood of Approval';
-  else html += 'Low Likelihood of Approval';
-  html += '</div>';
-  html += '<div class="text-xs ' + scoreColor + ' opacity-75">Score: ' + scoreData.score_numeric + '/100</div>';
-  html += '</div>';
-  html += '<button onclick="generateApprovalScore(\'' + patientId + '\')" class="text-xs underline ' + scoreColor + '">Refresh</button>';
+  html += '<div class="font-bold ' + scoreColor + '">' + scoreData.score + ' - ' + scoreLabel + '</div>';
+  html += '<div class="text-xs ' + scoreColor + ' opacity-75">Billing Readiness Score: ' + scoreData.score_numeric + '/100</div>';
+  html += '</div></div>';
+  html += '<button onclick="generateApprovalScore(\'' + patientId + '\')" class="text-xs underline ' + scoreColor + ' hover:no-underline">Refresh</button>';
   html += '</div>';
 
   // Summary
   if (scoreData.summary) {
-    html += '<div class="text-sm ' + scoreColor + '">' + esc(scoreData.summary) + '</div>';
+    html += '<div class="text-sm ' + scoreColor + ' bg-white/50 p-2 rounded">' + esc(scoreData.summary) + '</div>';
   }
 
-  // Missing items (if any)
-  if (scoreData.missing_items && scoreData.missing_items.length > 0) {
-    html += '<div>';
-    html += '<div class="font-semibold text-xs ' + scoreColor + ' mb-1">Missing Information:</div>';
-    html += '<ul class="text-xs ' + scoreColor + ' space-y-1 list-disc list-inside">';
-    scoreData.missing_items.forEach(item => {
-      html += '<li>' + esc(item) + '</li>';
-    });
-    html += '</ul></div>';
-  }
-
-  // Recommendations
-  if (scoreData.recommendations && scoreData.recommendations.length > 0) {
-    html += '<div>';
-    html += '<div class="font-semibold text-xs ' + scoreColor + ' mb-1">Recommendations:</div>';
-    html += '<ul class="text-xs ' + scoreColor + ' space-y-1 list-disc list-inside">';
-    scoreData.recommendations.forEach(rec => {
-      html += '<li>' + esc(rec) + '</li>';
-    });
-    html += '</ul></div>';
-  }
-
-  // Complete items (positive feedback)
+  // ===== COMPLETED ITEMS (GREEN CHECKMARKS) =====
   if (scoreData.complete_items && scoreData.complete_items.length > 0) {
-    html += '<div class="mt-2">';
-    html += '<div class="font-semibold text-xs text-green-700 mb-1">✓ Complete:</div>';
-    html += '<ul class="text-xs text-green-700 space-y-1 list-disc list-inside">';
+    html += '<div class="bg-green-50 border border-green-200 rounded p-3">';
+    html += '<div class="font-bold text-sm text-green-800 mb-2 flex items-center gap-1"><span>✓</span> Completed (What\'s Good)</div>';
+    html += '<ul class="text-xs text-green-700 space-y-1">';
     scoreData.complete_items.forEach(item => {
-      html += '<li>' + esc(item) + '</li>';
+      const itemText = typeof item === 'string' ? item : (item.item || item.text || JSON.stringify(item));
+      html += '<li class="flex items-start gap-2"><span class="text-green-500 mt-0.5">✓</span><span>' + esc(itemText) + '</span></li>';
+    });
+    html += '</ul></div>';
+  }
+
+  // ===== OPPORTUNITIES FOR IMPROVEMENT (YELLOW WARNING) =====
+  if (scoreData.opportunities && scoreData.opportunities.length > 0) {
+    html += '<div class="bg-yellow-50 border border-yellow-200 rounded p-3">';
+    html += '<div class="font-bold text-sm text-yellow-800 mb-2 flex items-center gap-1"><span>⚡</span> Opportunities for Improvement</div>';
+    html += '<div class="space-y-2">';
+    scoreData.opportunities.forEach(opp => {
+      if (typeof opp === 'string') {
+        html += '<div class="text-xs text-yellow-700 flex items-start gap-2"><span class="text-yellow-500 mt-0.5">→</span><span>' + esc(opp) + '</span></div>';
+      } else {
+        html += '<div class="bg-white/50 p-2 rounded text-xs">';
+        html += '<div class="font-semibold text-yellow-800">' + esc(opp.issue || 'Improvement needed') + '</div>';
+        if (opp.current_state && opp.current_state !== 'Not documented') {
+          html += '<div class="text-yellow-600 mt-1"><span class="font-medium">Current:</span> ' + esc(opp.current_state) + '</div>';
+        }
+        if (opp.recommendation) {
+          html += '<div class="text-yellow-700 mt-1"><span class="font-medium">Action:</span> ' + esc(opp.recommendation) + '</div>';
+        }
+        if (opp.why_it_matters) {
+          html += '<div class="text-yellow-600 mt-1 italic text-[10px]">' + esc(opp.why_it_matters) + '</div>';
+        }
+        html += '</div>';
+      }
+    });
+    html += '</div></div>';
+  }
+
+  // ===== MISSING ITEMS (RED X) =====
+  if (scoreData.missing_items && scoreData.missing_items.length > 0) {
+    html += '<div class="bg-red-50 border border-red-200 rounded p-3">';
+    html += '<div class="font-bold text-sm text-red-800 mb-2 flex items-center gap-1"><span>✗</span> Missing Information (Required)</div>';
+    html += '<div class="space-y-2">';
+    scoreData.missing_items.forEach(item => {
+      if (typeof item === 'string') {
+        html += '<div class="text-xs text-red-700 flex items-start gap-2"><span class="text-red-500 mt-0.5">✗</span><span>' + esc(item) + '</span></div>';
+      } else {
+        html += '<div class="bg-white/50 p-2 rounded text-xs">';
+        html += '<div class="font-semibold text-red-800 flex items-center gap-1"><span class="text-red-500">✗</span>' + esc(item.item || 'Missing item') + '</div>';
+        if (item.required_for) {
+          html += '<div class="text-red-600 mt-1"><span class="font-medium">Required for:</span> ' + esc(item.required_for) + '</div>';
+        }
+        if (item.how_to_document) {
+          html += '<div class="text-red-700 mt-1"><span class="font-medium">How to fix:</span> ' + esc(item.how_to_document) + '</div>';
+        }
+        html += '</div>';
+      }
+    });
+    html += '</div></div>';
+  }
+
+  // ===== BILLING READINESS CHECKLIST =====
+  if (scoreData.billing_readiness_checklist) {
+    const checklist = scoreData.billing_readiness_checklist;
+    html += '<div class="bg-gray-50 border border-gray-200 rounded p-3">';
+    html += '<div class="font-bold text-sm text-gray-800 mb-2">Billing Readiness Checklist</div>';
+    html += '<div class="grid grid-cols-2 gap-1 text-xs">';
+
+    const checkItems = [
+      {key: 'patient_id_verified', label: 'Patient ID'},
+      {key: 'insurance_verified', label: 'Insurance'},
+      {key: 'diagnosis_code_valid', label: 'ICD-10 Valid'},
+      {key: 'medical_necessity_established', label: 'Medical Necessity'},
+      {key: 'conservative_care_documented', label: 'Failed Conservative Care'},
+      {key: 'wound_measurements_complete', label: 'Wound Measurements'},
+      {key: 'treatment_plan_justified', label: 'Treatment Plan'},
+      {key: 'provider_signature_present', label: 'Provider Signature'}
+    ];
+
+    checkItems.forEach(ci => {
+      const isChecked = checklist[ci.key] === true;
+      const icon = isChecked ? '<span class="text-green-600">✓</span>' : '<span class="text-red-500">✗</span>';
+      const textColor = isChecked ? 'text-green-700' : 'text-red-700';
+      html += '<div class="flex items-center gap-1 ' + textColor + '">' + icon + ' ' + ci.label + '</div>';
+    });
+
+    html += '</div></div>';
+  }
+
+  // Legacy support for old format recommendations (if no opportunities)
+  if ((!scoreData.opportunities || scoreData.opportunities.length === 0) && scoreData.recommendations && scoreData.recommendations.length > 0) {
+    html += '<div class="bg-blue-50 border border-blue-200 rounded p-3">';
+    html += '<div class="font-bold text-sm text-blue-800 mb-2">Recommendations</div>';
+    html += '<ul class="text-xs text-blue-700 space-y-1">';
+    scoreData.recommendations.forEach(rec => {
+      const recText = typeof rec === 'string' ? rec : (rec.recommendation || rec.issue || JSON.stringify(rec));
+      html += '<li class="flex items-start gap-2"><span class="text-blue-500 mt-0.5">→</span><span>' + esc(recText) + '</span></li>';
     });
     html += '</ul></div>';
   }
@@ -14442,73 +14513,177 @@ async function generateApprovalScore(patientId) {
       }
 
       // Determine color scheme based on score
-      let scoreColor, scoreBg, scoreIcon;
+      let scoreColor, scoreBg, scoreIcon, scoreLabel;
       if (j.score === 'GREEN') {
         scoreColor = 'text-green-700';
-        scoreBg = 'bg-green-100 border-green-500';
+        scoreBg = 'bg-green-50 border-green-500';
         scoreIcon = '✓';
+        scoreLabel = 'High Likelihood of Approval';
       } else if (j.score === 'YELLOW') {
         scoreColor = 'text-yellow-700';
-        scoreBg = 'bg-yellow-100 border-yellow-500';
+        scoreBg = 'bg-yellow-50 border-yellow-500';
         scoreIcon = '⚠';
+        scoreLabel = 'Moderate Likelihood - Action Needed';
       } else {
         scoreColor = 'text-red-700';
-        scoreBg = 'bg-red-100 border-red-500';
+        scoreBg = 'bg-red-50 border-red-500';
         scoreIcon = '✗';
+        scoreLabel = 'Low Likelihood - Documentation Required';
       }
 
-      // Build HTML for display
-      let html = '<div class="' + scoreBg + ' border-l-4 p-4 rounded space-y-3">';
+      // Build HTML for display - new structured format
+      let html = '<div class="' + scoreBg + ' border-l-4 p-4 rounded space-y-4">';
 
       // Score header
       html += '<div class="flex items-center justify-between">';
       html += '<div class="flex items-center gap-2">';
       html += '<span class="text-2xl">' + scoreIcon + '</span>';
       html += '<div>';
-      html += '<div class="font-semibold ' + scoreColor + '">' + j.score + ' - ';
-      if (j.score === 'GREEN') html += 'High Likelihood of Approval';
-      else if (j.score === 'YELLOW') html += 'Average Likelihood of Approval';
-      else html += 'Low Likelihood of Approval';
-      html += '</div>';
-      html += '<div class="text-xs ' + scoreColor + ' opacity-75">Score: ' + j.score_numeric + '/100</div>';
+      html += '<div class="font-bold ' + scoreColor + '">' + j.score + ' - ' + scoreLabel + '</div>';
+      html += '<div class="text-xs ' + scoreColor + ' opacity-75">Billing Readiness Score: ' + j.score_numeric + '/100</div>';
       html += '</div></div>';
-      html += '<button onclick="generateApprovalScore(\'' + patientId + '\')" class="text-xs underline ' + scoreColor + '">Refresh</button>';
+      html += '<button onclick="generateApprovalScore(\'' + patientId + '\')" class="text-xs underline ' + scoreColor + ' hover:no-underline">Refresh</button>';
       html += '</div>';
 
       // Summary
       if (j.summary) {
-        html += '<div class="text-sm ' + scoreColor + '">' + esc(j.summary) + '</div>';
+        html += '<div class="text-sm ' + scoreColor + ' bg-white/50 p-2 rounded">' + esc(j.summary) + '</div>';
       }
 
-      // Missing items (if any)
+      // ===== COMPLETED ITEMS (GREEN CHECKMARKS) =====
+      if (j.complete_items && j.complete_items.length > 0) {
+        html += '<div class="bg-green-50 border border-green-200 rounded p-3">';
+        html += '<div class="font-bold text-sm text-green-800 mb-2 flex items-center gap-1"><span>✓</span> Completed (What\'s Good)</div>';
+        html += '<ul class="text-xs text-green-700 space-y-1">';
+        j.complete_items.forEach(item => {
+          const itemText = typeof item === 'string' ? item : (item.item || item.text || JSON.stringify(item));
+          html += '<li class="flex items-start gap-2"><span class="text-green-500 mt-0.5">✓</span><span>' + esc(itemText) + '</span></li>';
+        });
+        html += '</ul></div>';
+      }
+
+      // ===== OPPORTUNITIES FOR IMPROVEMENT (YELLOW WARNING) =====
+      if (j.opportunities && j.opportunities.length > 0) {
+        html += '<div class="bg-yellow-50 border border-yellow-200 rounded p-3">';
+        html += '<div class="font-bold text-sm text-yellow-800 mb-2 flex items-center gap-1"><span>⚡</span> Opportunities for Improvement</div>';
+        html += '<div class="space-y-2">';
+        j.opportunities.forEach(opp => {
+          if (typeof opp === 'string') {
+            html += '<div class="text-xs text-yellow-700 flex items-start gap-2"><span class="text-yellow-500 mt-0.5">→</span><span>' + esc(opp) + '</span></div>';
+          } else {
+            html += '<div class="bg-white/50 p-2 rounded text-xs">';
+            html += '<div class="font-semibold text-yellow-800">' + esc(opp.issue || 'Improvement needed') + '</div>';
+            if (opp.current_state && opp.current_state !== 'Not documented') {
+              html += '<div class="text-yellow-600 mt-1"><span class="font-medium">Current:</span> ' + esc(opp.current_state) + '</div>';
+            }
+            if (opp.recommendation) {
+              html += '<div class="text-yellow-700 mt-1"><span class="font-medium">Action:</span> ' + esc(opp.recommendation) + '</div>';
+            }
+            if (opp.why_it_matters) {
+              html += '<div class="text-yellow-600 mt-1 italic text-[10px]">' + esc(opp.why_it_matters) + '</div>';
+            }
+            html += '</div>';
+          }
+        });
+        html += '</div></div>';
+      }
+
+      // ===== MISSING ITEMS (RED X) =====
       if (j.missing_items && j.missing_items.length > 0) {
-        html += '<div>';
-        html += '<div class="font-semibold text-xs ' + scoreColor + ' mb-1">Missing Information:</div>';
-        html += '<ul class="text-xs ' + scoreColor + ' space-y-1 list-disc list-inside">';
+        html += '<div class="bg-red-50 border border-red-200 rounded p-3">';
+        html += '<div class="font-bold text-sm text-red-800 mb-2 flex items-center gap-1"><span>✗</span> Missing Information (Required)</div>';
+        html += '<div class="space-y-2">';
         j.missing_items.forEach(item => {
-          html += '<li>' + esc(item) + '</li>';
+          if (typeof item === 'string') {
+            html += '<div class="text-xs text-red-700 flex items-start gap-2"><span class="text-red-500 mt-0.5">✗</span><span>' + esc(item) + '</span></div>';
+          } else {
+            html += '<div class="bg-white/50 p-2 rounded text-xs">';
+            html += '<div class="font-semibold text-red-800 flex items-center gap-1"><span class="text-red-500">✗</span>' + esc(item.item || 'Missing item') + '</div>';
+            if (item.required_for) {
+              html += '<div class="text-red-600 mt-1"><span class="font-medium">Required for:</span> ' + esc(item.required_for) + '</div>';
+            }
+            if (item.how_to_document) {
+              html += '<div class="text-red-700 mt-1"><span class="font-medium">How to fix:</span> ' + esc(item.how_to_document) + '</div>';
+            }
+            html += '</div>';
+          }
         });
-        html += '</ul></div>';
+        html += '</div></div>';
       }
 
-      // Recommendations
-      if (j.recommendations && j.recommendations.length > 0) {
-        html += '<div>';
-        html += '<div class="font-semibold text-xs ' + scoreColor + ' mb-1">Recommendations:</div>';
-        html += '<ul class="text-xs ' + scoreColor + ' space-y-1 list-disc list-inside">';
+      // ===== BILLING READINESS CHECKLIST =====
+      if (j.billing_readiness_checklist) {
+        const checklist = j.billing_readiness_checklist;
+        html += '<div class="bg-gray-50 border border-gray-200 rounded p-3">';
+        html += '<div class="font-bold text-sm text-gray-800 mb-2">Billing Readiness Checklist</div>';
+        html += '<div class="grid grid-cols-2 gap-1 text-xs">';
+
+        const checkItems = [
+          {key: 'patient_id_verified', label: 'Patient ID'},
+          {key: 'insurance_verified', label: 'Insurance'},
+          {key: 'diagnosis_code_valid', label: 'ICD-10 Valid'},
+          {key: 'medical_necessity_established', label: 'Medical Necessity'},
+          {key: 'conservative_care_documented', label: 'Failed Conservative Care'},
+          {key: 'wound_measurements_complete', label: 'Wound Measurements'},
+          {key: 'treatment_plan_justified', label: 'Treatment Plan'},
+          {key: 'provider_signature_present', label: 'Provider Signature'}
+        ];
+
+        checkItems.forEach(ci => {
+          const isChecked = checklist[ci.key] === true;
+          const icon = isChecked ? '<span class="text-green-600">✓</span>' : '<span class="text-red-500">✗</span>';
+          const textColor = isChecked ? 'text-green-700' : 'text-red-700';
+          html += '<div class="flex items-center gap-1 ' + textColor + '">' + icon + ' ' + ci.label + '</div>';
+        });
+
+        html += '</div></div>';
+      }
+
+      // ===== DOCUMENT ANALYSIS (if detailed) =====
+      if (j.document_analysis && typeof j.document_analysis === 'object') {
+        const da = j.document_analysis;
+        html += '<details class="text-xs">';
+        html += '<summary class="cursor-pointer text-gray-600 hover:text-gray-800 font-medium">View Document Analysis</summary>';
+        html += '<div class="mt-2 bg-gray-50 border border-gray-200 rounded p-3 space-y-2">';
+
+        // Visit notes analysis (most important)
+        if (da.visit_notes && typeof da.visit_notes === 'object') {
+          const vn = da.visit_notes;
+          html += '<div class="border-b border-gray-200 pb-2">';
+          html += '<div class="font-semibold text-gray-800">Visit Notes</div>';
+          html += '<div class="text-gray-600">Status: ' + (vn.status || 'Unknown') + ' | Quality: ' + (vn.quality || 'Unknown') + '</div>';
+          if (vn.key_findings) html += '<div class="text-gray-700 mt-1">' + esc(vn.key_findings) + '</div>';
+          html += '</div>';
+        }
+
+        // Clinical notes analysis
+        if (da.clinical_notes && typeof da.clinical_notes === 'object') {
+          const cn = da.clinical_notes;
+          html += '<div class="border-b border-gray-200 pb-2">';
+          html += '<div class="font-semibold text-gray-800">Clinical Notes</div>';
+          html += '<div class="text-gray-600">Status: ' + (cn.status || 'Unknown') + ' | Quality: ' + (cn.quality || 'Unknown') + '</div>';
+          if (cn.key_findings) html += '<div class="text-gray-700 mt-1">' + esc(cn.key_findings) + '</div>';
+          html += '</div>';
+        }
+
+        // ID and Insurance cards
+        if (da.id_card) {
+          html += '<div class="text-gray-600"><span class="font-medium">Photo ID:</span> ' + esc(da.id_card) + '</div>';
+        }
+        if (da.insurance_card) {
+          html += '<div class="text-gray-600"><span class="font-medium">Insurance Card:</span> ' + esc(da.insurance_card) + '</div>';
+        }
+
+        html += '</div></details>';
+      }
+
+      // Legacy support for old format recommendations
+      if ((!j.opportunities || j.opportunities.length === 0) && j.recommendations && j.recommendations.length > 0) {
+        html += '<div class="bg-blue-50 border border-blue-200 rounded p-3">';
+        html += '<div class="font-bold text-sm text-blue-800 mb-2">Recommendations</div>';
+        html += '<ul class="text-xs text-blue-700 space-y-1">';
         j.recommendations.forEach(rec => {
-          html += '<li>' + esc(rec) + '</li>';
-        });
-        html += '</ul></div>';
-      }
-
-      // Complete items (positive feedback)
-      if (j.complete_items && j.complete_items.length > 0 && j.score !== 'RED') {
-        html += '<div>';
-        html += '<div class="font-semibold text-xs ' + scoreColor + ' mb-1">What\'s Complete:</div>';
-        html += '<ul class="text-xs ' + scoreColor + ' space-y-1 list-disc list-inside">';
-        j.complete_items.slice(0, 3).forEach(item => {
-          html += '<li>' + esc(item) + '</li>';
+          html += '<li class="flex items-start gap-2"><span class="text-blue-500 mt-0.5">→</span><span>' + esc(rec) + '</span></li>';
         });
         html += '</ul></div>';
       }
