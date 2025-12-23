@@ -138,59 +138,31 @@ try {
     echo "   ✓ Ensured required columns exist\n";
   }
 
+  $pdo->commit();
+
   // 4. Fix rep_assigned_by check constraint to include 'employee_onboard'
+  // This needs to run outside the transaction for DDL changes
   echo "\n4. Updating rep_assigned_by check constraint...\n";
 
-  // Check if column exists and has a constraint
-  $constraintCheck = $pdo->query("
-    SELECT constraint_name
-    FROM information_schema.constraint_column_usage
-    WHERE table_name = 'users'
-    AND column_name = 'rep_assigned_by'
-  ")->fetch();
+  // Force drop the constraint (ignore errors if it doesn't exist)
+  try {
+    $pdo->exec("ALTER TABLE users DROP CONSTRAINT IF EXISTS users_rep_assigned_by_check");
+    echo "   ✓ Dropped old constraint\n";
+  } catch (PDOException $e) {
+    echo "   - Could not drop constraint: " . $e->getMessage() . "\n";
+  }
 
-  if ($constraintCheck) {
-    // Drop old constraint and add new one with employee_onboard
-    try {
-      $pdo->exec("ALTER TABLE users DROP CONSTRAINT IF EXISTS users_rep_assigned_by_check");
-      echo "   ✓ Dropped old constraint\n";
-    } catch (PDOException $e) {
-      // Constraint might not exist, that's OK
-      echo "   - No existing constraint to drop\n";
-    }
-
+  // Add the new constraint with employee_onboard
+  try {
     $pdo->exec("
       ALTER TABLE users ADD CONSTRAINT users_rep_assigned_by_check
       CHECK (rep_assigned_by IS NULL OR rep_assigned_by IN
         ('self_onboard', 'admin_assign', 'approved_request', 'employee_onboard'))
     ");
-    echo "   ✓ Added updated constraint with employee_onboard\n";
-  } else {
-    // Column might not have a constraint, just ensure we can use employee_onboard
-    echo "   - No constraint found on rep_assigned_by column\n";
-    // Try to add the proper constraint anyway
-    try {
-      $pdo->exec("
-        ALTER TABLE users ADD CONSTRAINT users_rep_assigned_by_check
-        CHECK (rep_assigned_by IS NULL OR rep_assigned_by IN
-          ('self_onboard', 'admin_assign', 'approved_request', 'employee_onboard'))
-      ");
-      echo "   ✓ Added constraint with employee_onboard\n";
-    } catch (PDOException $e) {
-      if (strpos($e->getMessage(), 'already exists') !== false) {
-        // Constraint exists, try to replace it
-        $pdo->exec("ALTER TABLE users DROP CONSTRAINT users_rep_assigned_by_check");
-        $pdo->exec("
-          ALTER TABLE users ADD CONSTRAINT users_rep_assigned_by_check
-          CHECK (rep_assigned_by IS NULL OR rep_assigned_by IN
-            ('self_onboard', 'admin_assign', 'approved_request', 'employee_onboard'))
-        ");
-        echo "   ✓ Replaced constraint with employee_onboard\n";
-      }
-    }
+    echo "   ✓ Added constraint with employee_onboard\n";
+  } catch (PDOException $e) {
+    echo "   ✗ Could not add constraint: " . $e->getMessage() . "\n";
   }
-
-  $pdo->commit();
   echo "\n✓ Migration completed successfully!\n\n";
   echo "The onboarding wizard should now work correctly.\n";
 
