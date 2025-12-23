@@ -162,9 +162,11 @@ class AIService {
         'summary' => isset($result['summary']) ? $result['summary'] : '',
         'missing_items' => isset($result['missing_items']) ? $result['missing_items'] : [],
         'complete_items' => isset($result['complete_items']) ? $result['complete_items'] : [],
-        'recommendations' => isset($result['recommendations']) ? $result['recommendations'] : [],
-        'concerns' => isset($result['concerns']) ? $result['concerns'] : [],
-        'document_analysis' => isset($result['document_analysis']) ? $result['document_analysis'] : null
+        'opportunities' => isset($result['opportunities']) ? $result['opportunities'] : [],
+        'recommendations' => isset($result['recommendations']) ? $result['recommendations'] : [], // Legacy support
+        'concerns' => isset($result['concerns']) ? $result['concerns'] : [], // Legacy support
+        'document_analysis' => isset($result['document_analysis']) ? $result['document_analysis'] : null,
+        'billing_readiness_checklist' => isset($result['billing_readiness_checklist']) ? $result['billing_readiness_checklist'] : null
       ];
     } catch (Exception $e) {
       error_log('[AIService] Approval score generation error: ' . $e->getMessage());
@@ -450,6 +452,7 @@ PROMPT;
 
   /**
    * Build prompt for approval score generation
+   * Acts as a billing professional/clinical support reviewing documentation for insurance authorization
    */
   private function buildApprovalScorePrompt(array $patient, array $documents, ?array $order = null): string {
     $patientAge = !empty($patient['dob']) ? date_diff(date_create($patient['dob']), date_create('today'))->y : 'Unknown';
@@ -463,16 +466,25 @@ PROMPT;
       return mb_substr($value, 0, $maxLength);
     };
 
-    // Format document information
+    // Format document information - extract full text from visit notes
     $documentInfo = '';
+    $visitNotesContent = '';
     if (!empty($documents)) {
       $documentInfo = "\n\nUPLOADED DOCUMENTS:\n";
       foreach ($documents as $doc) {
         $documentInfo .= "- {$doc['type']}: {$doc['filename']}";
         if (!empty($doc['extracted_text'])) {
-          // Limit extracted text to 2000 chars per document to avoid prompt being too long
-          $extractedPreview = mb_substr(str_replace("\0", '', $doc['extracted_text']), 0, 2000);
-          $documentInfo .= "\n  Content Preview: " . $extractedPreview . "...\n";
+          // For visit notes, capture full content for deep analysis
+          if ($doc['type'] === 'Order Visit Notes' || $doc['type'] === 'Clinical Notes') {
+            // Give more space for clinical notes - these are critical
+            $extractedText = mb_substr(str_replace("\0", '', $doc['extracted_text']), 0, 8000);
+            $visitNotesContent .= "\n\n=== {$doc['type']} ({$doc['filename']}) ===\n" . $extractedText;
+            $documentInfo .= " [CONTENT INCLUDED BELOW FOR ANALYSIS]\n";
+          } else {
+            // Limit other documents
+            $extractedPreview = mb_substr(str_replace("\0", '', $doc['extracted_text']), 0, 1500);
+            $documentInfo .= "\n  Content Preview: " . $extractedPreview . "\n";
+          }
         }
         $documentInfo .= "\n";
       }
@@ -576,9 +588,9 @@ PROMPT;
     }
 
     return <<<PROMPT
-You are an expert medical billing and insurance authorization specialist reviewing a patient profile for wound care product authorization.
+You are an expert medical billing professional and clinical documentation specialist reviewing a wound care patient profile for insurance authorization of advanced wound care products (collagen dressings).
 
-Your task is to analyze ALL available information and provide a comprehensive approval likelihood score.
+YOUR ROLE: Act as if you are a billing professional or clinical support specialist who is reviewing this patient's documentation to verify that ALL criteria is met for insurance billing and reimbursement. Your job is to identify what is complete, what needs improvement, and what is missing.
 
 PATIENT DEMOGRAPHICS:
 - Name: {$firstName} {$lastName}
@@ -602,114 +614,112 @@ DOCUMENTATION STATUS:
 - Visit Notes (Order): {$visitNotesStatus}
 {$documentInfo}
 
-CLINICAL NOTES/INFORMATION:
+PATIENT PROFILE NOTES:
 {$notes}
 
-CRITICAL ANALYSIS REQUIREMENTS:
+CLINICAL VISIT NOTES (UPLOADED WITH ORDER):
+{$visitNotesContent}
 
-1. **Document Completeness** (30 points):
-   - Photo ID uploaded?
-   - Insurance card uploaded (both front and back)?
-   - Clinical notes present (uploaded or typed)?
-   - Visit notes uploaded with order (rx_note_path)?
-   - Are notes detailed enough?
+=== CRITICAL: VISIT NOTES ANALYSIS ===
 
-2. **Patient Demographics** (15 points):
-   - Complete contact information?
-   - Valid insurance information?
-   - All required fields populated?
+You MUST carefully read and analyze the visit notes above as a billing professional would. Look for and evaluate:
 
-3. **Clinical Information Quality** (35 points):
-   - Are clinical notes detailed and specific?
-   - Is there a clear diagnosis/ICD-10 code mentioned?
-   - Are wound details documented (size, location, stage)?
-   - Is there documentation of failed conservative care?
-   - Medical necessity clearly explained?
+**MEDICAL NECESSITY CRITERIA** (Required for insurance approval):
+1. Wound etiology/cause documented (diabetic ulcer, pressure ulcer, venous ulcer, etc.)
+2. ICD-10 diagnosis code matches the documented condition
+3. Wound measurements documented (Length x Width x Depth in cm)
+4. Wound characteristics: wound bed appearance, exudate amount/type, periwound condition
+5. Documentation of FAILED CONSERVATIVE TREATMENT (critical!) - what was tried before?
+6. Why standard dressings are insufficient
+7. Medical rationale for advanced wound care product (collagen)
 
-4. **Insurance Authorization Readiness** (20 points):
-   - Is insurance information complete and accurate?
-   - Insurance card readable and valid?
-   - Member/Group ID format looks correct?
+**BILLING COMPLIANCE CRITERIA**:
+1. Provider signature/attestation
+2. Date of service
+3. Patient identification confirmed
+4. Diagnosis supports medical necessity
+5. Treatment plan with frequency and duration justified
+6. Face-to-face encounter documented
+
+**RED FLAGS TO IDENTIFY**:
+- Vague wound descriptions ("wound healing slowly")
+- Missing measurements
+- No failed conservative care documentation
+- ICD-10 code doesn't match documented wound type
+- Missing medical necessity justification
+- Template/generic notes without patient-specific detail
 
 SCORING GUIDELINES:
-- **GREEN (80-100 points)**: High likelihood of approval
-  - All documents uploaded
-  - Comprehensive clinical notes with specific details
-  - Clear medical necessity
-  - Insurance info complete
-
-- **YELLOW (50-79 points)**: Average likelihood of approval
-  - Most documents present but some gaps
-  - Clinical notes present but could be more detailed
-  - Some minor missing information
-  - Will likely need clarification
-
-- **RED (0-49 points)**: Low likelihood of approval
-  - Critical documents missing (ID, insurance card, or notes)
-  - Insufficient clinical information
-  - Missing medical necessity justification
-  - Significant gaps in required data
+- **GREEN (80-100 points)**: High likelihood of approval - all key criteria documented
+- **YELLOW (50-79 points)**: Moderate likelihood - has gaps that should be addressed
+- **RED (0-49 points)**: Low likelihood - critical documentation missing
 
 REQUIRED OUTPUT FORMAT (JSON ONLY):
 {
   "score": "RED|YELLOW|GREEN",
   "score_numeric": 0-100,
-  "summary": "2-3 sentence overall assessment",
-  "suggestions": [
+  "summary": "2-3 sentence billing-focused assessment of approval readiness",
+  "complete_items": [
+    "Specific item that IS documented properly (quote from notes if relevant)",
+    "Another item that meets billing requirements"
+  ],
+  "opportunities": [
     {
-      "category": "demographic|order",
-      "issue": "Concise issue title (e.g., 'ICD-10 mismatch', 'Missing insurance card')",
-      "field": "field_name",
-      "field_label": "User-friendly field name",
-      "current_value": "current value or 'Not provided'",
-      "suggested_value": "specific recommendation (e.g., specific ICD-10 code, exact text)",
-      "reason": "brief explanation why this matters",
+      "category": "medical_necessity|billing_compliance|documentation",
+      "issue": "Clear title of the issue",
+      "current_state": "What the notes currently say (or 'Not documented')",
+      "recommendation": "Specific recommendation for what to add/fix",
       "priority": "high|medium|low",
-      "edit_location": "Edit in patient profile|Edit in order details"
+      "why_it_matters": "Brief explanation of billing/approval impact"
     }
   ],
-  "missing_items": ["Specific item 1", "Specific item 2"],
-  "complete_items": ["What's good item 1", "What's good item 2"],
+  "missing_items": [
+    {
+      "item": "Critical missing element",
+      "required_for": "What billing/approval requirement this satisfies",
+      "how_to_document": "Specific guidance on what to add"
+    }
+  ],
   "document_analysis": {
-    "id_card": "Present/Missing - specific feedback",
-    "insurance_card": "Present/Missing - specific feedback",
-    "clinical_notes": "Present/Missing - quality assessment",
-    "visit_notes": "Present/Missing - quality assessment of order visit notes"
+    "id_card": "Present/Missing - feedback",
+    "insurance_card": "Present/Missing - feedback",
+    "clinical_notes": {
+      "status": "Present/Missing",
+      "quality": "Excellent/Good/Fair/Poor/Not provided",
+      "medical_necessity_documented": true/false,
+      "failed_conservative_care_documented": true/false,
+      "wound_measurements_present": true/false,
+      "diagnosis_supported": true/false,
+      "key_findings": "Brief summary of what the notes contain"
+    },
+    "visit_notes": {
+      "status": "Present/Missing",
+      "quality": "Excellent/Good/Fair/Poor/Not provided",
+      "contains_signature": true/false,
+      "contains_date": true/false,
+      "face_to_face_documented": true/false,
+      "key_findings": "Brief summary of visit note content"
+    }
+  },
+  "billing_readiness_checklist": {
+    "patient_id_verified": true/false,
+    "insurance_verified": true/false,
+    "diagnosis_code_valid": true/false,
+    "medical_necessity_established": true/false,
+    "conservative_care_documented": true/false,
+    "wound_measurements_complete": true/false,
+    "treatment_plan_justified": true/false,
+    "provider_signature_present": true/false
   }
 }
 
-CATEGORIZATION GUIDELINES:
-
-**Demographic Issues** (category: "demographic", edit_location: "Edit in patient profile"):
-- Patient name, DOB, sex, contact information issues
-- Insurance provider, member ID, group ID, payer phone problems
-- Address, city, state, zip missing or invalid
-- Photo ID card not uploaded
-- Insurance card not uploaded
-
-**Order/Clinical Issues** (category: "order", edit_location: "Edit in order details"):
-- ICD-10 codes missing, invalid, or not matching diagnosis
-  Example: "ICD-10 mismatch: Consider L97.421 (diabetic foot ulcer) instead of L97.9"
-- Clinical notes too vague or lacking detail
-  Example: "Insufficient visit note detail: Add wound measurements, exudate description, periwound condition"
-- Wound documentation incomplete (location, size, stage)
-  Example: "Missing wound depth: Add depth measurement for complete staging"
-- Medical necessity justification weak or absent
-  Example: "Weak medical necessity: Specify failed conservative treatments (e.g., basic gauze, hydrocolloid)"
-- Failed conservative care not documented
-- Treatment plan details missing
-- Clinical note document not uploaded
-
 IMPORTANT INSTRUCTIONS:
-- Be VERY specific in suggestions - give exact ICD-10 codes, specific measurements needed, etc.
-- Use concise issue titles like "ICD-10 mismatch", "Missing insurance card", "Insufficient wound detail"
-- In suggested_value, provide the EXACT recommendation (specific code, specific text to add, etc.)
-- Keep reason brief but clear (why it matters for approval)
-- Separate demographic issues from clinical/order issues clearly
-- Reference actual patient data in your analysis
-- If clinical notes are vague, quote the vague part and suggest specific additions
-- If wrong ICD-10 code is used, suggest the correct specific code
-- Focus on what will help get insurance approval
+- READ THE VISIT NOTES THOROUGHLY - don't just note they exist, analyze their content
+- Be specific about what IS documented (complete_items) vs what NEEDS improvement (opportunities) vs what is MISSING (missing_items)
+- Quote relevant text from notes when assessing quality
+- Provide actionable recommendations that a provider can act on
+- Focus on what matters for insurance approval and billing compliance
+- If visit notes are present but vague, mark as present but flag quality issues in opportunities
 
 Return ONLY valid JSON, no additional text.
 PROMPT;

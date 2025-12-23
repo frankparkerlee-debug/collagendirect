@@ -102,11 +102,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $isReferralOnly = 1;
       } elseif ($accountType === 'wholesale') {
         $dbAccountType = 'wholesale';
-        $hasDmeLicense = 1;
+        // DME license not required - CollagenDirect handles fulfillment
       } elseif ($accountType === 'both') {
         $dbAccountType = 'referral';
         $isHybrid = 1;
-        $hasDmeLicense = 1;
       }
 
       // Common fields
@@ -233,38 +232,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           $message = 'Physician "' . htmlspecialchars($fullName) . '" added to practice. Warning: Welcome email could not be sent - contact support.';
         }
 
-      } else {
-        // Creating a standalone physician
-        $pdo->prepare("
-          INSERT INTO users(
-            id, email, password_hash, first_name, last_name,
-            address, city, state, zip, phone, tax_id,
-            npi, ptan, license, license_state, license_expiry,
-            role, user_type, account_type, status,
-            is_referral_only, has_dme_license, is_hybrid,
-            employee_rep_id, rep_assignment_date, rep_assigned_by, rep_assigned_by_user_id,
-            created_at, updated_at
-          ) VALUES (?,LOWER(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,'physician','physician',?,'active',?,?,?,?,NOW(),'employee_onboard',?,NOW(),NOW())
-        ")->execute([
-          $userId, $email, password_hash($tempPassword, PASSWORD_DEFAULT), $firstName, $lastName,
-          $address, $city, $state, $zip, $phone, $taxId ?: null,
-          $npi ?: null, $ptan ?: null, $license ?: null, $licenseState, $licenseExpiry,
-          $dbAccountType,
-          $isReferralOnly, $hasDmeLicense, $isHybrid,
-          $adminId, $adminId
-        ]);
-
-        $pdo->commit();
-
-        // Send welcome email with temp password
-        $fullName = $firstName . ' ' . $lastName;
-        $emailSent = send_provider_welcome_email($email, $fullName, 'physician', $tempPassword);
-
-        if ($emailSent) {
-          $message = 'Physician "' . htmlspecialchars($fullName) . '" created successfully. Welcome email with login credentials sent to provider.';
-        } else {
-          $message = 'Physician "' . htmlspecialchars($fullName) . '" created successfully. Warning: Welcome email could not be sent - contact support.';
-        }
       }
 
     } catch (Exception $e) {
@@ -345,7 +312,7 @@ $states = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN'
   <!-- Provider Type Selection -->
   <div class="mb-6">
     <label class="block text-sm font-medium text-gray-700 mb-3">What type of provider are you adding?</label>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <label class="cursor-pointer">
         <input type="radio" name="provider_type" value="practice" checked class="sr-only peer" onchange="toggleProviderType()">
         <div class="p-4 border-2 rounded-lg text-center peer-checked:border-brand peer-checked:bg-brand-light transition h-full">
@@ -353,17 +320,7 @@ $states = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN'
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
           </svg>
           <span class="font-medium block">New Practice</span>
-          <p class="text-xs text-gray-500 mt-1">Create a practice/clinic that can manage multiple physicians</p>
-        </div>
-      </label>
-      <label class="cursor-pointer">
-        <input type="radio" name="provider_type" value="physician" class="sr-only peer" onchange="toggleProviderType()">
-        <div class="p-4 border-2 rounded-lg text-center peer-checked:border-brand peer-checked:bg-brand-light transition h-full">
-          <svg class="w-8 h-8 mx-auto mb-2 text-gray-400 peer-checked:text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-          </svg>
-          <span class="font-medium block">Standalone Physician</span>
-          <p class="text-xs text-gray-500 mt-1">Independent practitioner not under a practice</p>
+          <p class="text-xs text-gray-500 mt-1">Create a new practice/clinic (includes standalone physicians)</p>
         </div>
       </label>
       <label class="cursor-pointer <?= empty($practices) ? 'opacity-50' : '' ?>">
@@ -373,7 +330,7 @@ $states = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN'
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
           </svg>
           <span class="font-medium block">Add to Practice</span>
-          <p class="text-xs text-gray-500 mt-1"><?= empty($practices) ? 'No practices available' : 'Add physician to existing practice' ?></p>
+          <p class="text-xs text-gray-500 mt-1"><?= empty($practices) ? 'No practices available yet' : 'Add physician to an existing practice' ?></p>
         </div>
       </label>
     </div>
@@ -395,9 +352,9 @@ $states = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN'
   <!-- Account Type -->
   <div class="mb-6">
     <label class="block text-sm font-medium text-gray-700 mb-2">Account Type <span class="text-red-500">*</span></label>
-    <select name="account_type" required class="w-full" id="account-type-select" onchange="toggleDMEFields()">
+    <select name="account_type" required class="w-full" id="account-type-select">
       <option value="referral">Referral Only (Insurance billing)</option>
-      <option value="wholesale">Wholesale Only (Direct purchase - requires DME)</option>
+      <option value="wholesale">Wholesale Only (Direct purchase)</option>
       <option value="both">Both Referral & Wholesale</option>
     </select>
     <p class="text-xs text-gray-500 mt-1">Referral = Patient orders billed to insurance. Wholesale = Practice purchases directly.</p>
@@ -498,31 +455,6 @@ $states = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN'
     </div>
   </div>
 
-  <!-- DME Fields (for wholesale) -->
-  <div id="dme-fields" class="border-t pt-6 mb-6 hidden">
-    <h3 class="text-lg font-medium text-gray-900 mb-4">DME License Information</h3>
-    <p class="text-sm text-gray-500 mb-4">Required for wholesale accounts to purchase products directly.</p>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">DME Number <span class="text-red-500">*</span></label>
-        <input type="text" name="dme_number" id="dme-number-input" value="<?= htmlspecialchars($_POST['dme_number'] ?? '') ?>">
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">DME State <span class="text-red-500">*</span></label>
-        <select name="dme_state" id="dme-state-input">
-          <option value="">Select...</option>
-          <?php foreach ($states as $st): ?>
-            <option value="<?= $st ?>" <?= ($_POST['dme_state'] ?? '') === $st ? 'selected' : '' ?>><?= $st ?></option>
-          <?php endforeach; ?>
-        </select>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">DME Expiry <span class="text-red-500">*</span></label>
-        <input type="date" name="dme_expiry" id="dme-expiry-input" value="<?= htmlspecialchars($_POST['dme_expiry'] ?? '') ?>">
-      </div>
-    </div>
-  </div>
-
   <!-- Agreement Notice -->
   <div class="border-t pt-6 mb-6">
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -581,74 +513,12 @@ function toggleProviderType() {
     stateInput.required = false;
     zipInput.required = false;
     practiceSelect.required = true;
-  } else {
-    // Standalone physician
-    practiceFields.classList.add('hidden');
-    practiceSelection.classList.add('hidden');
-    practiceNameInput.required = false;
-    addressInput.required = false;
-    cityInput.required = false;
-    stateInput.required = false;
-    zipInput.required = false;
-    practiceSelect.required = false;
-  }
-}
-
-function toggleDMEFields() {
-  const accountType = document.getElementById('account-type-select').value;
-  const dmeFields = document.getElementById('dme-fields');
-  const credentialsSection = document.getElementById('credentials-section');
-
-  const dmeNumber = document.getElementById('dme-number-input');
-  const dmeState = document.getElementById('dme-state-input');
-  const dmeExpiry = document.getElementById('dme-expiry-input');
-
-  const npiRequired = document.getElementById('npi-required');
-  const licenseRequired = document.getElementById('license-required');
-  const licenseStateRequired = document.getElementById('license-state-required');
-  const licenseExpiryRequired = document.getElementById('license-expiry-required');
-
-  if (accountType === 'wholesale') {
-    // Wholesale only - DME required, credentials optional
-    dmeFields.classList.remove('hidden');
-    dmeNumber.required = true;
-    dmeState.required = true;
-    dmeExpiry.required = true;
-
-    // Hide required indicators for credentials
-    npiRequired.classList.add('hidden');
-    licenseRequired.classList.add('hidden');
-    licenseStateRequired.classList.add('hidden');
-    licenseExpiryRequired.classList.add('hidden');
-  } else if (accountType === 'both') {
-    // Both - DME and credentials required
-    dmeFields.classList.remove('hidden');
-    dmeNumber.required = true;
-    dmeState.required = true;
-    dmeExpiry.required = true;
-
-    npiRequired.classList.remove('hidden');
-    licenseRequired.classList.remove('hidden');
-    licenseStateRequired.classList.remove('hidden');
-    licenseExpiryRequired.classList.remove('hidden');
-  } else {
-    // Referral only - credentials required, no DME
-    dmeFields.classList.add('hidden');
-    dmeNumber.required = false;
-    dmeState.required = false;
-    dmeExpiry.required = false;
-
-    npiRequired.classList.remove('hidden');
-    licenseRequired.classList.remove('hidden');
-    licenseStateRequired.classList.remove('hidden');
-    licenseExpiryRequired.classList.remove('hidden');
   }
 }
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
   toggleProviderType();
-  toggleDMEFields();
 });
 </script>
 <?php endif; ?>

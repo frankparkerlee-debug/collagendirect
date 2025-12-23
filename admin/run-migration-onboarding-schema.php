@@ -6,6 +6,7 @@
  * 1. Users table has all required columns for profile saving
  * 2. practice_locations table exists with correct schema
  * 3. practice_physicians table exists with correct schema
+ * 4. rep_assigned_by check constraint includes 'employee_onboard'
  */
 
 declare(strict_types=1);
@@ -135,6 +136,58 @@ try {
     $pdo->exec("ALTER TABLE practice_physicians ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
     $pdo->exec("ALTER TABLE practice_physicians ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
     echo "   ✓ Ensured required columns exist\n";
+  }
+
+  // 4. Fix rep_assigned_by check constraint to include 'employee_onboard'
+  echo "\n4. Updating rep_assigned_by check constraint...\n";
+
+  // Check if column exists and has a constraint
+  $constraintCheck = $pdo->query("
+    SELECT constraint_name
+    FROM information_schema.constraint_column_usage
+    WHERE table_name = 'users'
+    AND column_name = 'rep_assigned_by'
+  ")->fetch();
+
+  if ($constraintCheck) {
+    // Drop old constraint and add new one with employee_onboard
+    try {
+      $pdo->exec("ALTER TABLE users DROP CONSTRAINT IF EXISTS users_rep_assigned_by_check");
+      echo "   ✓ Dropped old constraint\n";
+    } catch (PDOException $e) {
+      // Constraint might not exist, that's OK
+      echo "   - No existing constraint to drop\n";
+    }
+
+    $pdo->exec("
+      ALTER TABLE users ADD CONSTRAINT users_rep_assigned_by_check
+      CHECK (rep_assigned_by IS NULL OR rep_assigned_by IN
+        ('self_onboard', 'admin_assign', 'approved_request', 'employee_onboard'))
+    ");
+    echo "   ✓ Added updated constraint with employee_onboard\n";
+  } else {
+    // Column might not have a constraint, just ensure we can use employee_onboard
+    echo "   - No constraint found on rep_assigned_by column\n";
+    // Try to add the proper constraint anyway
+    try {
+      $pdo->exec("
+        ALTER TABLE users ADD CONSTRAINT users_rep_assigned_by_check
+        CHECK (rep_assigned_by IS NULL OR rep_assigned_by IN
+          ('self_onboard', 'admin_assign', 'approved_request', 'employee_onboard'))
+      ");
+      echo "   ✓ Added constraint with employee_onboard\n";
+    } catch (PDOException $e) {
+      if (strpos($e->getMessage(), 'already exists') !== false) {
+        // Constraint exists, try to replace it
+        $pdo->exec("ALTER TABLE users DROP CONSTRAINT users_rep_assigned_by_check");
+        $pdo->exec("
+          ALTER TABLE users ADD CONSTRAINT users_rep_assigned_by_check
+          CHECK (rep_assigned_by IS NULL OR rep_assigned_by IN
+            ('self_onboard', 'admin_assign', 'approved_request', 'employee_onboard'))
+        ");
+        echo "   ✓ Replaced constraint with employee_onboard\n";
+      }
+    }
   }
 
   $pdo->commit();

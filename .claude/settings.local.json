@@ -1,32 +1,10 @@
 {
   "permissions": {
     "allow": [
+      "Bash(/opt/homebrew/opt/postgresql@14/bin/psql:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)",
-      "Bash(git log:*)",
-      "Bash(find:*)",
-      "Bash(php:*)",
-      "Bash(/opt/homebrew/bin/brew:*)",
-      "Bash(/opt/homebrew/bin/php:*)",
-      "Bash(mysql:*)",
-      "Bash(psql:*)",
-      "Bash(git restore:*)",
-      "Bash(curl:*)",
-      "Bash(scp:*)",
-      "Bash(git rm:*)",
-      "Bash(git checkout:*)",
-      "Bash(git reset:*)",
-      "Bash(grep:*)",
-      "Bash(brew services list:*)",
-      "Bash(composer install:*)",
-      "Bash(dig:*)",
-      "Bash(ls:*)",
-      "Bash(cat:*)",
-      "Bash(git rebase:*)",
-      "Bash(git stash:*)",
-      "Bash(xargs ls:*)",
-      "Bash(wc:*)"
+      "Bash(git push origin main)"
     ],
     "deny": [],
     "ask": []

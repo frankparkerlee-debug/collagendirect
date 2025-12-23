@@ -298,6 +298,11 @@ try {
          recommendations, concerns, document_analysis, created_by)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ");
+
+      // Combine opportunities into recommendations for database compatibility
+      $recommendations = $result['opportunities'] ?? $result['recommendations'] ?? [];
+      $concerns = $result['concerns'] ?? [];
+
       $insertStmt->execute([
         $patientId,
         $result['score'],
@@ -305,9 +310,12 @@ try {
         $result['summary'],
         json_encode($result['missing_items']),
         json_encode($result['complete_items']),
-        json_encode($result['recommendations']),
-        json_encode($result['concerns']),
-        json_encode($result['document_analysis']),
+        json_encode($recommendations),
+        json_encode($concerns),
+        json_encode([
+          'document_analysis' => $result['document_analysis'],
+          'billing_readiness_checklist' => $result['billing_readiness_checklist'] ?? null
+        ]),
         $userId
       ]);
     }
@@ -316,17 +324,20 @@ try {
     // Don't fail the request, just log the error
   }
 
-  // Return the score
+  // Return the score with new structured response
   echo json_encode([
     'ok' => true,
     'score' => $result['score'],
     'score_numeric' => $result['score_numeric'],
     'summary' => $result['summary'],
-    'missing_items' => $result['missing_items'],
     'complete_items' => $result['complete_items'],
-    'recommendations' => $result['recommendations'],
-    'concerns' => $result['concerns'],
-    'document_analysis' => $result['document_analysis']
+    'opportunities' => $result['opportunities'] ?? [],
+    'missing_items' => $result['missing_items'],
+    'document_analysis' => $result['document_analysis'],
+    'billing_readiness_checklist' => $result['billing_readiness_checklist'] ?? null,
+    // Legacy fields for backwards compatibility
+    'recommendations' => $result['recommendations'] ?? [],
+    'concerns' => $result['concerns'] ?? []
   ]);
 
 } catch (Exception $e) {
