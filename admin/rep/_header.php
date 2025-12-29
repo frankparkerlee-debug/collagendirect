@@ -31,6 +31,13 @@ $rep = $isRegularSalesRep ? current_sales_rep() : null;
 // For employee sales reps, we need to mark them appropriately
 // They use employee_rep_id (INTEGER from admin_users.id), not assigned_rep_id
 if ($isEmployeeSalesRep) {
+  // Verify the admin_users.id is actually an integer (not a UUID from users table)
+  // This prevents superadmins or regular sales reps from accidentally using this path
+  if (!is_numeric($admin['id']) || strlen((string)$admin['id']) > 10) {
+    // ID looks like a UUID, not an integer - this is not a valid employee rep
+    header('Location: /admin/');
+    exit;
+  }
   $admin['is_employee_rep'] = true;
 }
 

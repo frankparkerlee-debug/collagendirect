@@ -23,6 +23,14 @@ if (!$admin || !isset($_SESSION['admin']) || empty($_SESSION['admin']['has_rep_v
 // This prevents using a VARCHAR users.id when a superadmin or sales_rep somehow accesses this page
 $admin = $_SESSION['admin'];
 
+// Verify the admin_users.id is actually an integer (not a UUID from users table)
+// This is a safety check in case a superadmin somehow has has_rep_view set
+if (!is_numeric($admin['id']) || strlen((string)$admin['id']) > 10) {
+  // ID looks like a UUID, not an integer - redirect to main admin portal
+  header('Location: /admin/');
+  exit;
+}
+
 // Get managed distributors count
 $managedDistributorsStmt = $pdo->prepare("
   SELECT COUNT(*) as count
