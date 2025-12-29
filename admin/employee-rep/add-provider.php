@@ -433,20 +433,20 @@ $states = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN'
     <h3 class="text-lg font-medium text-gray-900 mb-4">Practice Information</h3>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="md:col-span-2">
-        <label class="block text-sm font-medium text-gray-700 mb-1">Practice Name <span class="text-red-500">*</span></label>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Practice Name</label>
         <input type="text" name="practice_name" id="practice-name-input" value="<?= htmlspecialchars($_POST['practice_name'] ?? '') ?>">
       </div>
       <div class="md:col-span-2">
-        <label class="block text-sm font-medium text-gray-700 mb-1">Address <span class="text-red-500">*</span></label>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
         <input type="text" name="address" id="address-input" value="<?= htmlspecialchars($_POST['address'] ?? '') ?>">
       </div>
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">City <span class="text-red-500">*</span></label>
+        <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
         <input type="text" name="city" id="city-input" value="<?= htmlspecialchars($_POST['city'] ?? '') ?>">
       </div>
       <div class="grid grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">State <span class="text-red-500">*</span></label>
+          <label class="block text-sm font-medium text-gray-700 mb-1">State</label>
           <select name="state" id="state-input">
             <option value="">Select...</option>
             <?php foreach ($states as $st): ?>
@@ -455,7 +455,7 @@ $states = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN'
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">ZIP Code <span class="text-red-500">*</span></label>
+          <label class="block text-sm font-medium text-gray-700 mb-1">ZIP Code</label>
           <input type="text" name="zip" id="zip-input" value="<?= htmlspecialchars($_POST['zip'] ?? '') ?>">
         </div>
       </div>
@@ -469,10 +469,10 @@ $states = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN'
   <!-- Physician Credentials -->
   <div id="credentials-section" class="border-t pt-6 mb-6">
     <h3 class="text-lg font-medium text-gray-900 mb-4">Physician Credentials</h3>
-    <p class="text-sm text-gray-500 mb-4">Required for referral orders. These credentials will be used for insurance verification.</p>
+    <p class="text-sm text-gray-500 mb-4">Optional - can be added later by the provider.</p>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">NPI Number <span class="text-red-500" id="npi-required">*</span></label>
+        <label class="block text-sm font-medium text-gray-700 mb-1">NPI Number</label>
         <input type="text" name="npi" maxlength="10" pattern="[0-9]{10}" placeholder="10 digits" value="<?= htmlspecialchars($_POST['npi'] ?? '') ?>">
       </div>
       <div>
@@ -480,11 +480,11 @@ $states = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN'
         <input type="text" name="ptan" value="<?= htmlspecialchars($_POST['ptan'] ?? '') ?>">
       </div>
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Medical License # <span class="text-red-500" id="license-required">*</span></label>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Medical License #</label>
         <input type="text" name="license" value="<?= htmlspecialchars($_POST['license'] ?? '') ?>">
       </div>
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">License State <span class="text-red-500" id="license-state-required">*</span></label>
+        <label class="block text-sm font-medium text-gray-700 mb-1">License State</label>
         <select name="license_state">
           <option value="">Select...</option>
           <?php foreach ($states as $st): ?>
@@ -493,7 +493,7 @@ $states = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN'
         </select>
       </div>
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">License Expiry <span class="text-red-500" id="license-expiry-required">*</span></label>
+        <label class="block text-sm font-medium text-gray-700 mb-1">License Expiry</label>
         <input type="date" name="license_expiry" value="<?= htmlspecialchars($_POST['license_expiry'] ?? '') ?>">
       </div>
     </div>
@@ -538,17 +538,18 @@ function toggleProviderType() {
   const practiceSelect = document.getElementById('practice-select');
 
   if (providerType === 'practice') {
-    // New practice
+    // New practice - show practice fields, hide practice selection
+    // Practice fields are optional to match distributor portal behavior
     practiceFields.classList.remove('hidden');
     practiceSelection.classList.add('hidden');
-    practiceNameInput.required = true;
-    addressInput.required = true;
-    cityInput.required = true;
-    stateInput.required = true;
-    zipInput.required = true;
+    practiceNameInput.required = false;
+    addressInput.required = false;
+    cityInput.required = false;
+    stateInput.required = false;
+    zipInput.required = false;
     practiceSelect.required = false;
   } else if (providerType === 'physician_to_practice') {
-    // Add to existing practice
+    // Add to existing practice - hide practice fields, show practice selection
     practiceFields.classList.add('hidden');
     practiceSelection.classList.remove('hidden');
     practiceNameInput.required = false;
