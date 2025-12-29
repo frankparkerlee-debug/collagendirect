@@ -131,6 +131,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       if ($providerType === 'practice') {
         // Creating a practice owner (practice_admin)
+        // Note: employee_rep_id uses admin_users.id (INTEGER), so we skip rep_assigned_by_user_id
+        // which has a FK constraint to users.id (VARCHAR UUID)
         $pdo->prepare("
           INSERT INTO users(
             id, email, password_hash, first_name, last_name, practice_name,
@@ -139,9 +141,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             dme_number, dme_state, dme_expiry,
             role, user_type, account_type, status, can_manage_physicians,
             is_referral_only, has_dme_license, is_hybrid,
-            employee_rep_id, rep_assignment_date, rep_assigned_by, rep_assigned_by_user_id,
+            employee_rep_id, rep_assignment_date, rep_assigned_by,
             created_at, updated_at
-          ) VALUES (?,LOWER(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'practice_admin','practice_admin',?,'active',TRUE,?,?,?,?,NOW(),'employee_onboard',?,NOW(),NOW())
+          ) VALUES (?,LOWER(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'practice_admin','practice_admin',?,'active',TRUE,?,?,?,?,NOW(),'employee_onboard',NOW(),NOW())
         ")->execute([
           $userId, $email, password_hash($tempPassword, PASSWORD_DEFAULT), $firstName, $lastName, $practiceName,
           $address, $city, $state, $zip, $phone, $taxId ?: null,
@@ -149,7 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           $dmeNumber ?: null, $dmeState, $dmeExpiry,
           $dbAccountType,
           $isReferralOnly, $hasDmeLicense, $isHybrid,
-          $adminId, $adminId
+          $adminId
         ]);
 
         // Create default practice location if address provided
@@ -195,21 +197,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Create physician user
+        // Note: employee_rep_id uses admin_users.id (INTEGER), so we skip rep_assigned_by_user_id
+        // which has a FK constraint to users.id (VARCHAR UUID)
         $pdo->prepare("
           INSERT INTO users(
             id, email, password_hash, first_name, last_name,
             npi, ptan, license, license_state, license_expiry,
             role, user_type, account_type, status,
             is_referral_only, has_dme_license, is_hybrid,
-            employee_rep_id, rep_assignment_date, rep_assigned_by, rep_assigned_by_user_id,
+            employee_rep_id, rep_assignment_date, rep_assigned_by,
             created_at, updated_at
-          ) VALUES (?,LOWER(?),?,?,?,?,?,?,?,?,'physician','physician',?,'active',?,?,?,?,NOW(),'employee_onboard',?,NOW(),NOW())
+          ) VALUES (?,LOWER(?),?,?,?,?,?,?,?,?,'physician','physician',?,'active',?,?,?,?,NOW(),'employee_onboard',NOW(),NOW())
         ")->execute([
           $userId, $email, password_hash($tempPassword, PASSWORD_DEFAULT), $firstName, $lastName,
           $npi ?: null, $ptan ?: null, $license ?: null, $licenseState, $licenseExpiry,
           $dbAccountType,
           $isReferralOnly, $hasDmeLicense, $isHybrid,
-          $adminId, $adminId
+          $adminId
         ]);
 
         // Link to practice via practice_physicians table
