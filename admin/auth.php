@@ -97,10 +97,29 @@ function is_sales_rep(): bool {
   return $admin && $admin['role'] === 'sales_rep';
 }
 
-// Permission check: Returns true if user CAN access (is NOT a sales rep, or is explicitly allowed)
+// Check if user is an employee with ONLY sales rep access (should not see main admin portal)
+// These are admin_users with has_rep_view=true but role='sales' (not 'admin' or 'employee')
+function is_sales_only_employee(): bool {
+  $admin = current_admin();
+  if (!$admin || !isset($_SESSION['admin'])) {
+    return false;
+  }
+  // Employee sales reps have has_rep_view=true and role='sales'
+  // They should only access the employee-rep portal, not the main admin portal
+  // Admins/employees with has_rep_view can access both (they have broader permissions)
+  return !empty($admin['has_rep_view']) && ($admin['role'] ?? '') === 'sales';
+}
+
+// Permission check: Redirects sales reps (both regular and employee) away from main admin pages
 function deny_sales_rep(): void {
+  // Regular sales reps (from users table) go to /admin/rep/
   if (is_sales_rep()) {
     header('Location: /admin/rep/');
+    exit;
+  }
+  // Employee sales reps (from admin_users with role='sales') go to /admin/employee-rep/
+  if (is_sales_only_employee()) {
+    header('Location: /admin/employee-rep/');
     exit;
   }
 }
