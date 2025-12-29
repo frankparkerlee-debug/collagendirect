@@ -31,6 +31,9 @@ if (!is_numeric($admin['id']) || strlen((string)$admin['id']) > 10) {
   exit;
 }
 
+// Cast to integer for all database queries (admin_users.id is INTEGER)
+$adminId = (int)$admin['id'];
+
 // Get managed distributors count
 $managedDistributorsStmt = $pdo->prepare("
   SELECT COUNT(*) as count
@@ -38,7 +41,7 @@ $managedDistributorsStmt = $pdo->prepare("
   WHERE managed_by_admin_id = ?
   AND status = 'active'
 ");
-$managedDistributorsStmt->execute([$admin['id']]);
+$managedDistributorsStmt->execute([$adminId]);
 $managedDistributorsCount = (int)$managedDistributorsStmt->fetch()['count'];
 
 // Get direct accounts count
@@ -48,7 +51,7 @@ $directAccountsStmt = $pdo->prepare("
   WHERE employee_rep_id = ?
   AND role IN ('physician', 'practice_admin')
 ");
-$directAccountsStmt->execute([$admin['id']]);
+$directAccountsStmt->execute([$adminId]);
 $directAccountsCount = (int)$directAccountsStmt->fetch()['count'];
 
 // Determine current page for navigation highlighting

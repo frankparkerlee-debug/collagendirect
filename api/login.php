@@ -16,22 +16,25 @@ $remember = !empty($data['remember']);
 
 if (!$email || !$pass) json_out(400, ['error'=>'Email and password required']);
 
-// Try to find user in users table first (physicians, practice_admin, superadmin)
-$stmt = $pdo->prepare("SELECT id, password_hash, first_name, last_name, email, role FROM users WHERE email=? LIMIT 1");
-$stmt->execute([$email]);
-$user = $stmt->fetch();
-
 $isAdminUser = false;
 $adminUser = null;
+$user = null;
 
-// If not found in users table, check admin_users table (employees, manufacturer)
-if (!$user) {
-  $stmt = $pdo->prepare("SELECT id, password_hash, name, email, role, has_rep_view FROM admin_users WHERE email=? LIMIT 1");
+// IMPORTANT: Check admin_users table FIRST for employees/manufacturer
+// This ensures users with INTEGER ids (admin_users) are not confused with
+// UUID ids from the users table if someone exists in both tables
+$stmt = $pdo->prepare("SELECT id, password_hash, name, email, role, has_rep_view FROM admin_users WHERE email=? LIMIT 1");
+$stmt->execute([$email]);
+$adminUser = $stmt->fetch();
+if ($adminUser) {
+  $isAdminUser = true;
+}
+
+// If not found in admin_users table, check users table (physicians, practice_admin, superadmin, sales_rep)
+if (!$isAdminUser) {
+  $stmt = $pdo->prepare("SELECT id, password_hash, first_name, last_name, email, role FROM users WHERE email=? LIMIT 1");
   $stmt->execute([$email]);
-  $adminUser = $stmt->fetch();
-  if ($adminUser) {
-    $isAdminUser = true;
-  }
+  $user = $stmt->fetch();
 }
 
 // Verify credentials
