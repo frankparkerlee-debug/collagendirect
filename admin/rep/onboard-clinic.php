@@ -11,7 +11,9 @@ require __DIR__ . '/_header.php';
 require_once __DIR__ . '/../../api/lib/provider_welcome.php';
 
 // Determine if this is an employee sales rep or regular sales rep
-$isEmployeeRep = !empty($admin['is_employee_rep']) || has_employee_rep_view();
+// Employee reps: have is_employee_rep flag set by _header.php, role is NOT 'sales_rep'
+// Regular reps: have role='sales_rep' AND a rep_id from sales_reps table
+$isEmployeeRep = !empty($admin['is_employee_rep']) && $admin['role'] !== 'sales_rep';
 $repId = $admin['rep_id'] ?? null;
 $employeeRepId = $isEmployeeRep ? (int)$admin['id'] : null;
 

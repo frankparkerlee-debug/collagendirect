@@ -12,10 +12,13 @@ require_once __DIR__ . '/../auth.php';
 $admin = current_admin();
 
 // Ensure only sales reps OR employee sales reps can access this portal
-// - Regular sales reps: role='sales_rep' with rep_id from sales_reps table
-// - Employee sales reps: admin_users with has_rep_view=true
-$isRegularSalesRep = $admin && $admin['role'] === 'sales_rep';
-$isEmployeeSalesRep = $admin && has_employee_rep_view();
+// - Regular sales reps: role='sales_rep' with rep_id from sales_reps table (UUID in users table)
+// - Employee sales reps: admin_users with has_rep_view=true (INTEGER in admin_users table)
+//
+// IMPORTANT: A regular sales rep has role='sales_rep' AND a rep_id from sales_reps table.
+// An employee sales rep is from admin_users table and does NOT have role='sales_rep'.
+$isRegularSalesRep = $admin && $admin['role'] === 'sales_rep' && !empty($admin['rep_id']);
+$isEmployeeSalesRep = $admin && $admin['role'] !== 'sales_rep' && has_employee_rep_view();
 
 if (!$isRegularSalesRep && !$isEmployeeSalesRep) {
   header('Location: /admin/login.php');
@@ -25,11 +28,9 @@ if (!$isRegularSalesRep && !$isEmployeeSalesRep) {
 // Get full rep profile (only for regular sales reps)
 $rep = $isRegularSalesRep ? current_sales_rep() : null;
 
-// For employee sales reps, we need to set rep_id to their admin_users.id
-// This is used for tracking assignments but won't be stored in assigned_rep_id
-// (which expects a sales_reps.id for regular reps)
-if ($isEmployeeSalesRep && !isset($admin['rep_id'])) {
-  $admin['rep_id'] = null; // Employee reps don't have a sales_reps record
+// For employee sales reps, we need to mark them appropriately
+// They use employee_rep_id (INTEGER from admin_users.id), not assigned_rep_id
+if ($isEmployeeSalesRep) {
   $admin['is_employee_rep'] = true;
 }
 
