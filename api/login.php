@@ -4,6 +4,10 @@ declare(strict_types=1);
 require __DIR__ . '/db.php';
 require_csrf();
 
+// ========== DIAGNOSTIC LOGGING ==========
+$loginDebugLog = __DIR__ . '/../admin/employee-rep/error_log';
+// ========== END DIAGNOSTIC LOGGING ==========
+
 try {
   $data = json_decode(file_get_contents('php://input'), true) ?? [];
 } catch (Throwable $e) {
@@ -15,6 +19,9 @@ $pass  = (string)($data['password'] ?? '');
 $remember = !empty($data['remember']);
 
 if (!$email || !$pass) json_out(400, ['error'=>'Email and password required']);
+
+// Log login attempt
+error_log("[LOGIN] Attempt at " . date('Y-m-d H:i:s') . " for email: " . $email, 3, $loginDebugLog);
 
 $isAdminUser = false;
 $adminUser = null;
@@ -28,6 +35,12 @@ $stmt->execute([$email]);
 $adminUser = $stmt->fetch();
 if ($adminUser) {
   $isAdminUser = true;
+  error_log("[LOGIN] Found in admin_users: id=" . $adminUser['id'] .
+            ", role=" . $adminUser['role'] .
+            ", has_rep_view=" . ($adminUser['has_rep_view'] ? 'true' : 'false') .
+            ", id_type=" . gettype($adminUser['id']), 3, $loginDebugLog);
+} else {
+  error_log("[LOGIN] NOT found in admin_users, will check users table", 3, $loginDebugLog);
 }
 
 // If not found in admin_users table, check users table (physicians, practice_admin, superadmin, sales_rep)
@@ -39,11 +52,21 @@ if (!$isAdminUser) {
 
 // Verify credentials
 if ($isAdminUser) {
-  if (!password_verify($pass, (string)$adminUser['password_hash'])) {
+  $passwordMatch = password_verify($pass, (string)$adminUser['password_hash']);
+  error_log("[LOGIN] admin_users password verify: " . ($passwordMatch ? 'SUCCESS' : 'FAILED'), 3, $loginDebugLog);
+  if (!$passwordMatch) {
+    error_log("[LOGIN] Password FAILED for admin_users - will NOT fall through to users table", 3, $loginDebugLog);
     json_out(401, ['error'=>'Invalid credentials']);
   }
 } else {
-  if (!$user || !password_verify($pass, (string)$user['password_hash'])) {
+  if (!$user) {
+    error_log("[LOGIN] User not found in users table either", 3, $loginDebugLog);
+    json_out(401, ['error'=>'Invalid credentials']);
+  }
+  $passwordMatch = password_verify($pass, (string)$user['password_hash']);
+  error_log("[LOGIN] users table password verify: " . ($passwordMatch ? 'SUCCESS' : 'FAILED') .
+            " | user_id=" . $user['id'] . " | id_type=" . gettype($user['id']), 3, $loginDebugLog);
+  if (!$passwordMatch) {
     json_out(401, ['error'=>'Invalid credentials']);
   }
 }
@@ -61,6 +84,8 @@ if ($isAdminUser) {
     'role' => $adminUser['role'],
     'has_rep_view' => !empty($adminUser['has_rep_view'])
   ];
+
+  error_log("[LOGIN-SUCCESS] admin_users session created: " . json_encode($_SESSION['admin']), 3, $loginDebugLog);
 
   // Always set persistent cookie
   $params = session_get_cookie_params();

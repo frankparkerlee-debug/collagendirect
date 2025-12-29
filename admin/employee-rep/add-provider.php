@@ -13,8 +13,32 @@ declare(strict_types=1);
 require __DIR__ . '/_header.php';
 require_once __DIR__ . '/../../api/lib/provider_welcome.php';
 
+// ========== DIAGNOSTIC LOGGING ==========
+// Log session data for debugging ID type issues
+$debugLogFile = __DIR__ . '/error_log';
+$debugInfo = [
+    'timestamp' => date('Y-m-d H:i:s'),
+    'page' => 'add-provider.php',
+    'session_admin_id' => $admin['id'] ?? 'NOT SET',
+    'session_admin_id_type' => gettype($admin['id'] ?? null),
+    'session_admin_id_length' => strlen((string)($admin['id'] ?? '')),
+    'session_admin_role' => $admin['role'] ?? 'NOT SET',
+    'session_admin_email' => $admin['email'] ?? 'NOT SET',
+    'session_has_rep_view' => $admin['has_rep_view'] ?? 'NOT SET',
+    'is_numeric' => is_numeric($admin['id'] ?? ''),
+    'raw_session_admin' => json_encode($_SESSION['admin'] ?? [])
+];
+error_log("[DIAGNOSTIC] add-provider.php loaded: " . json_encode($debugInfo), 3, $debugLogFile);
+// ========== END DIAGNOSTIC LOGGING ==========
+
 // Ensure adminId is an integer (admin_users.id is INTEGER, not VARCHAR)
+// CRITICAL: If $admin['id'] is a UUID (32 chars), this will cast to 0 or invalid number
 $adminId = (int)$admin['id'];
+
+// Additional safety check - log if adminId looks wrong
+if ($adminId === 0 || $adminId > 2147483647) {
+    error_log("[ERROR] Invalid adminId after cast: original=" . ($admin['id'] ?? 'null') . ", cast=" . $adminId, 3, $debugLogFile);
+}
 
 $message = '';
 $error = '';
@@ -133,6 +157,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Creating a practice owner (practice_admin)
         // Note: employee_rep_id uses admin_users.id (INTEGER), so we skip rep_assigned_by_user_id
         // which has a FK constraint to users.id (VARCHAR UUID)
+
+        // ========== PRE-INSERT DIAGNOSTIC ==========
+        error_log("[INSERT-PRACTICE] About to insert with employee_rep_id=" . $adminId .
+                  ", type=" . gettype($adminId) .
+                  ", original_session_id=" . ($admin['id'] ?? 'null') .
+                  ", email=" . $email, 3, $debugLogFile);
+        // ========== END DIAGNOSTIC ==========
+
         $pdo->prepare("
           INSERT INTO users(
             id, email, password_hash, first_name, last_name, practice_name,
@@ -199,6 +231,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Create physician user
         // Note: employee_rep_id uses admin_users.id (INTEGER), so we skip rep_assigned_by_user_id
         // which has a FK constraint to users.id (VARCHAR UUID)
+
+        // ========== PRE-INSERT DIAGNOSTIC ==========
+        error_log("[INSERT-PHYSICIAN] About to insert with employee_rep_id=" . $adminId .
+                  ", type=" . gettype($adminId) .
+                  ", original_session_id=" . ($admin['id'] ?? 'null') .
+                  ", email=" . $email, 3, $debugLogFile);
+        // ========== END DIAGNOSTIC ==========
+
         $pdo->prepare("
           INSERT INTO users(
             id, email, password_hash, first_name, last_name,

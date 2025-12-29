@@ -9,12 +9,22 @@
 declare(strict_types=1);
 require_once __DIR__ . '/../auth.php';
 
+// ========== DIAGNOSTIC LOGGING ==========
+$debugLogFile = __DIR__ . '/error_log';
+error_log("[HEADER] employee-rep/_header.php loaded at " . date('Y-m-d H:i:s') .
+          " | Page: " . ($_SERVER['PHP_SELF'] ?? 'unknown') .
+          " | SESSION['admin']: " . json_encode($_SESSION['admin'] ?? 'NOT SET') .
+          " | SESSION['user_id']: " . ($_SESSION['user_id'] ?? 'NOT SET'), 3, $debugLogFile);
+// ========== END DIAGNOSTIC LOGGING ==========
+
 $admin = current_admin();
 
 // Ensure only employee sales reps with rep view can access this portal
 // IMPORTANT: Only admin_users (with INTEGER ids) can access this portal, not users table users
 // The has_rep_view flag is only set for admin_users from the login flow
 if (!$admin || !isset($_SESSION['admin']) || empty($_SESSION['admin']['has_rep_view'])) {
+  error_log("[HEADER-REDIRECT] Access denied - redirecting to /admin/ | admin=" . json_encode($admin) .
+            " | has_rep_view=" . ($_SESSION['admin']['has_rep_view'] ?? 'NOT SET'), 3, $debugLogFile);
   header('Location: /admin/');
   exit;
 }
@@ -27,6 +37,9 @@ $admin = $_SESSION['admin'];
 // This is a safety check in case a superadmin somehow has has_rep_view set
 if (!is_numeric($admin['id']) || strlen((string)$admin['id']) > 10) {
   // ID looks like a UUID, not an integer - redirect to main admin portal
+  error_log("[HEADER-UUID-DETECTED] Redirecting due to UUID id: " . ($admin['id'] ?? 'null') .
+            " | length=" . strlen((string)($admin['id'] ?? '')) .
+            " | is_numeric=" . (is_numeric($admin['id'] ?? '') ? 'true' : 'false'), 3, $debugLogFile);
   header('Location: /admin/');
   exit;
 }
