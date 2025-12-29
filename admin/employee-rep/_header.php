@@ -36,11 +36,44 @@ $admin = $_SESSION['admin'];
 // Verify the admin_users.id is actually an integer (not a UUID from users table)
 // This is a safety check in case a superadmin somehow has has_rep_view set
 if (!is_numeric($admin['id']) || strlen((string)$admin['id']) > 10) {
-  // ID looks like a UUID, not an integer - redirect to main admin portal
-  error_log("[HEADER-UUID-DETECTED] Redirecting due to UUID id: " . ($admin['id'] ?? 'null') .
-            " | length=" . strlen((string)($admin['id'] ?? '')) .
-            " | is_numeric=" . (is_numeric($admin['id'] ?? '') ? 'true' : 'false'), 3, $debugLogFile);
-  header('Location: /admin/');
+  // ID looks like a UUID, not an integer - show clear error and require re-login
+  error_log("[HEADER-UUID-DETECTED] UUID id found: " . ($admin['id'] ?? 'null'), 3, $debugLogFile);
+
+  // Clear the session to force fresh login
+  session_destroy();
+
+  // Show helpful error page instead of just redirecting
+  ?>
+  <!DOCTYPE html>
+  <html><head><title>Session Error - CollagenDirect</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+    .error-box { background: #fee; border: 2px solid #c00; padding: 20px; border-radius: 8px; }
+    h1 { color: #c00; margin-top: 0; }
+    code { background: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-size: 12px; word-break: break-all; }
+    .btn { display: inline-block; background: #0066cc; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-top: 15px; }
+  </style>
+  </head><body>
+  <div class="error-box">
+    <h1>Session Configuration Error</h1>
+    <p><strong>Your session contains an invalid ID type.</strong></p>
+    <p>Expected: INTEGER from <code>admin_users</code> table<br>
+    Found: UUID <code><?php echo htmlspecialchars($admin['id']); ?></code></p>
+    <p>This typically happens when:</p>
+    <ul>
+      <li>Your email exists in both <code>admin_users</code> and <code>users</code> tables with different passwords</li>
+      <li>The <code>admin_users</code> record doesn't exist for your email</li>
+    </ul>
+    <p><strong>Your session has been cleared.</strong> Please log in again.</p>
+    <a href="/admin/login.php" class="btn">Log In Again</a>
+  </div>
+  <p style="margin-top: 30px; color: #666; font-size: 12px;">
+    Debug info: Email=<?php echo htmlspecialchars($admin['email'] ?? 'unknown'); ?>,
+    Role=<?php echo htmlspecialchars($admin['role'] ?? 'unknown'); ?>,
+    ID Length=<?php echo strlen((string)$admin['id']); ?>
+  </p>
+  </body></html>
+  <?php
   exit;
 }
 
