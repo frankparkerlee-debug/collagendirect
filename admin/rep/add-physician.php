@@ -3,13 +3,20 @@
  * Sales Rep: Add Physician to Clinic
  *
  * Add a physician to one of your assigned clinics.
+ * Supports both regular sales reps (from users/sales_reps tables) and
+ * employee sales reps (from admin_users with has_rep_view=true).
  */
 declare(strict_types=1);
 require __DIR__ . '/_header.php';
 require_once __DIR__ . '/../../api/lib/provider_welcome.php';
 
+// Determine if this is an employee sales rep or regular sales rep
+$isEmployeeRep = !empty($admin['is_employee_rep']) || has_employee_rep_view();
 $repId = $admin['rep_id'] ?? null;
-if (!$repId) {
+$employeeRepId = $isEmployeeRep ? (int)$admin['id'] : null;
+
+// Regular sales reps must have a rep_id; employee reps use their admin_users.id
+if (!$isEmployeeRep && !$repId) {
   echo '<div class="card p-6"><p class="text-red-600">Sales rep profile not found.</p></div>';
   require __DIR__ . '/_footer.php';
   exit;
@@ -19,14 +26,26 @@ $message = '';
 $error = '';
 
 // Get assigned practices (only practice_admin accounts can have physicians added)
-$practicesStmt = $pdo->prepare("
-  SELECT id, practice_name, first_name, last_name, email
-  FROM users
-  WHERE assigned_rep_id = ?
-  AND role = 'practice_admin'
-  ORDER BY practice_name, last_name
-");
-$practicesStmt->execute([$repId]);
+// Query based on rep type: employee reps use employee_rep_id, regular reps use assigned_rep_id
+if ($isEmployeeRep) {
+  $practicesStmt = $pdo->prepare("
+    SELECT id, practice_name, first_name, last_name, email
+    FROM users
+    WHERE employee_rep_id = ?
+    AND role = 'practice_admin'
+    ORDER BY practice_name, last_name
+  ");
+  $practicesStmt->execute([$employeeRepId]);
+} else {
+  $practicesStmt = $pdo->prepare("
+    SELECT id, practice_name, first_name, last_name, email
+    FROM users
+    WHERE assigned_rep_id = ?
+    AND role = 'practice_admin'
+    ORDER BY practice_name, last_name
+  ");
+  $practicesStmt->execute([$repId]);
+}
 $practices = $practicesStmt->fetchAll();
 
 // Handle form submission
@@ -82,20 +101,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       $userId = bin2hex(random_bytes(16));
 
-      // Create physician user
-      $pdo->prepare("
-        INSERT INTO users(
-          id, email, password_hash, first_name, last_name,
-          npi, license, license_state,
-          role, user_type, account_type, status,
-          assigned_rep_id, rep_assignment_date, rep_assigned_by, rep_assigned_by_user_id,
-          created_at, updated_at
-        ) VALUES (?,LOWER(?),?,?,?,?,?,?,'physician','physician','referral','active',?,NOW(),'self_onboard',?,NOW(),NOW())
-      ")->execute([
-        $userId, $email, password_hash($tempPassword, PASSWORD_DEFAULT), $firstName, $lastName,
-        $npi ?: null, $license ?: null, $licenseState,
-        $repId, $admin['id']
-      ]);
+      // Create physician user - handle both regular and employee sales reps
+      if ($isEmployeeRep) {
+        // Employee sales rep: use employee_rep_id, skip rep_assigned_by_user_id (FK constraint)
+        $pdo->prepare("
+          INSERT INTO users(
+            id, email, password_hash, first_name, last_name,
+            npi, license, license_state,
+            role, user_type, account_type, status,
+            employee_rep_id, rep_assignment_date, rep_assigned_by,
+            created_at, updated_at
+          ) VALUES (?,LOWER(?),?,?,?,?,?,?,'physician','physician','referral','active',?,NOW(),'employee_onboard',NOW(),NOW())
+        ")->execute([
+          $userId, $email, password_hash($tempPassword, PASSWORD_DEFAULT), $firstName, $lastName,
+          $npi ?: null, $license ?: null, $licenseState,
+          $employeeRepId
+        ]);
+      } else {
+        // Regular sales rep: use assigned_rep_id and rep_assigned_by_user_id
+        $pdo->prepare("
+          INSERT INTO users(
+            id, email, password_hash, first_name, last_name,
+            npi, license, license_state,
+            role, user_type, account_type, status,
+            assigned_rep_id, rep_assignment_date, rep_assigned_by, rep_assigned_by_user_id,
+            created_at, updated_at
+          ) VALUES (?,LOWER(?),?,?,?,?,?,?,'physician','physician','referral','active',?,NOW(),'self_onboard',?,NOW(),NOW())
+        ")->execute([
+          $userId, $email, password_hash($tempPassword, PASSWORD_DEFAULT), $firstName, $lastName,
+          $npi ?: null, $license ?: null, $licenseState,
+          $repId, $admin['id']
+        ]);
+      }
 
       // Link to practice via practice_physicians table
       $pdo->prepare("

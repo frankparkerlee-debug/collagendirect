@@ -11,14 +11,27 @@ require_once __DIR__ . '/../auth.php';
 
 $admin = current_admin();
 
-// Ensure only sales reps can access this portal
-if (!$admin || $admin['role'] !== 'sales_rep') {
+// Ensure only sales reps OR employee sales reps can access this portal
+// - Regular sales reps: role='sales_rep' with rep_id from sales_reps table
+// - Employee sales reps: admin_users with has_rep_view=true
+$isRegularSalesRep = $admin && $admin['role'] === 'sales_rep';
+$isEmployeeSalesRep = $admin && has_employee_rep_view();
+
+if (!$isRegularSalesRep && !$isEmployeeSalesRep) {
   header('Location: /admin/login.php');
   exit;
 }
 
-// Get full rep profile
-$rep = current_sales_rep();
+// Get full rep profile (only for regular sales reps)
+$rep = $isRegularSalesRep ? current_sales_rep() : null;
+
+// For employee sales reps, we need to set rep_id to their admin_users.id
+// This is used for tracking assignments but won't be stored in assigned_rep_id
+// (which expects a sales_reps.id for regular reps)
+if ($isEmployeeSalesRep && !isset($admin['rep_id'])) {
+  $admin['rep_id'] = null; // Employee reps don't have a sales_reps record
+  $admin['is_employee_rep'] = true;
+}
 
 // Determine current page for navigation highlighting
 $currentPage = basename($_SERVER['PHP_SELF'], '.php');

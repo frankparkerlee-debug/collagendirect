@@ -3,13 +3,20 @@
  * Sales Rep: Onboard New Clinic
  *
  * Create a new clinic/practice that is automatically assigned to this rep.
+ * Supports both regular sales reps (from users/sales_reps tables) and
+ * employee sales reps (from admin_users with has_rep_view=true).
  */
 declare(strict_types=1);
 require __DIR__ . '/_header.php';
 require_once __DIR__ . '/../../api/lib/provider_welcome.php';
 
+// Determine if this is an employee sales rep or regular sales rep
+$isEmployeeRep = !empty($admin['is_employee_rep']) || has_employee_rep_view();
 $repId = $admin['rep_id'] ?? null;
-if (!$repId) {
+$employeeRepId = $isEmployeeRep ? (int)$admin['id'] : null;
+
+// Regular sales reps must have a rep_id; employee reps use their admin_users.id
+if (!$isEmployeeRep && !$repId) {
   echo '<div class="card p-6"><p class="text-red-600">Sales rep profile not found.</p></div>';
   require __DIR__ . '/_footer.php';
   exit;
@@ -38,11 +45,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $error = 'Please enter a valid email address.';
   } else {
     // Check if email already exists
-    $checkStmt = $pdo->prepare("SELECT id, assigned_rep_id, practice_name, first_name, last_name FROM users WHERE email = ?");
+    $checkStmt = $pdo->prepare("SELECT id, assigned_rep_id, employee_rep_id, practice_name, first_name, last_name FROM users WHERE email = ?");
     $checkStmt->execute([strtolower($email)]);
     $existingUser = $checkStmt->fetch();
     if ($existingUser) {
-      if ($existingUser['assigned_rep_id'] === $repId) {
+      // Check if already assigned to this rep (handle both regular and employee reps)
+      $alreadyAssigned = $isEmployeeRep
+        ? ($existingUser['employee_rep_id'] == $employeeRepId)
+        : ($existingUser['assigned_rep_id'] === $repId);
+
+      if ($alreadyAssigned) {
         $error = 'This clinic is already assigned to you.';
       } else {
         $existingClinicName = $existingUser['practice_name'] ?: $existingUser['first_name'] . ' ' . $existingUser['last_name'];
@@ -55,11 +67,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$error) {
       $npi = preg_replace('/\D/', '', $_POST['npi'] ?? '');
       if ($npi && strlen($npi) === 10) {
-        $npiStmt = $pdo->prepare("SELECT id, assigned_rep_id, practice_name, first_name, last_name FROM users WHERE npi = ? AND deleted_at IS NULL");
+        $npiStmt = $pdo->prepare("SELECT id, assigned_rep_id, employee_rep_id, practice_name, first_name, last_name FROM users WHERE npi = ? AND deleted_at IS NULL");
         $npiStmt->execute([$npi]);
         $existingNpi = $npiStmt->fetch();
         if ($existingNpi) {
-          if ($existingNpi['assigned_rep_id'] === $repId) {
+          // Check if already assigned to this rep (handle both regular and employee reps)
+          $alreadyAssigned = $isEmployeeRep
+            ? ($existingNpi['employee_rep_id'] == $employeeRepId)
+            : ($existingNpi['assigned_rep_id'] === $repId);
+
+          if ($alreadyAssigned) {
             $error = 'A clinic with this NPI is already assigned to you.';
           } else {
             $existingClinicName = $existingNpi['practice_name'] ?: $existingNpi['first_name'] . ' ' . $existingNpi['last_name'];
@@ -102,22 +119,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $zip = trim($_POST['zip'] ?? '');
         $phone = trim($_POST['phone'] ?? '');
 
-        $pdo->prepare("
-          INSERT INTO users(
-            id, email, password_hash, first_name, last_name, practice_name,
-            address, city, state, zip, phone,
-            role, user_type, account_type, status, can_manage_physicians,
-            is_referral_only, has_dme_license, is_hybrid,
-            assigned_rep_id, rep_assignment_date, rep_assigned_by, rep_assigned_by_user_id,
-            created_at, updated_at
-          ) VALUES (?,LOWER(?),?,?,?,?,?,?,?,?,?,'practice_admin','practice_admin',?,'active',TRUE,?,?,?,?,NOW(),'self_onboard',?,NOW(),NOW())
-        ")->execute([
-          $userId, $email, password_hash($tempPassword, PASSWORD_DEFAULT), $firstName, $lastName, $practiceName,
-          $address, $city, $state, $zip, $phone,
-          $dbAccountType,
-          $isReferralOnly, $hasDmeLicense, $isHybrid,
-          $repId, $admin['id']
-        ]);
+        if ($isEmployeeRep) {
+          // Employee sales rep: use employee_rep_id, set rep_assigned_by_user_id to NULL
+          // (admin_users.id is INTEGER, can't satisfy FK to users.id which is VARCHAR)
+          $pdo->prepare("
+            INSERT INTO users(
+              id, email, password_hash, first_name, last_name, practice_name,
+              address, city, state, zip, phone,
+              role, user_type, account_type, status, can_manage_physicians,
+              is_referral_only, has_dme_license, is_hybrid,
+              employee_rep_id, rep_assignment_date, rep_assigned_by,
+              created_at, updated_at
+            ) VALUES (?,LOWER(?),?,?,?,?,?,?,?,?,?,'practice_admin','practice_admin',?,'active',TRUE,?,?,?,?,NOW(),'employee_onboard',NOW(),NOW())
+          ")->execute([
+            $userId, $email, password_hash($tempPassword, PASSWORD_DEFAULT), $firstName, $lastName, $practiceName,
+            $address, $city, $state, $zip, $phone,
+            $dbAccountType,
+            $isReferralOnly, $hasDmeLicense, $isHybrid,
+            $employeeRepId
+          ]);
+        } else {
+          // Regular sales rep: use assigned_rep_id and rep_assigned_by_user_id
+          $pdo->prepare("
+            INSERT INTO users(
+              id, email, password_hash, first_name, last_name, practice_name,
+              address, city, state, zip, phone,
+              role, user_type, account_type, status, can_manage_physicians,
+              is_referral_only, has_dme_license, is_hybrid,
+              assigned_rep_id, rep_assignment_date, rep_assigned_by, rep_assigned_by_user_id,
+              created_at, updated_at
+            ) VALUES (?,LOWER(?),?,?,?,?,?,?,?,?,?,'practice_admin','practice_admin',?,'active',TRUE,?,?,?,?,NOW(),'self_onboard',?,NOW(),NOW())
+          ")->execute([
+            $userId, $email, password_hash($tempPassword, PASSWORD_DEFAULT), $firstName, $lastName, $practiceName,
+            $address, $city, $state, $zip, $phone,
+            $dbAccountType,
+            $isReferralOnly, $hasDmeLicense, $isHybrid,
+            $repId, $admin['id']
+          ]);
+        }
 
         // Send welcome email with temporary password
         $fullName = trim($firstName . ' ' . $lastName);
@@ -134,22 +173,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $license = trim($_POST['license'] ?? '');
         $licenseState = $_POST['license_state'] ?? null;
 
-        $pdo->prepare("
-          INSERT INTO users(
-            id, email, password_hash, first_name, last_name,
-            npi, license, license_state,
-            role, user_type, account_type, status,
-            is_referral_only, has_dme_license, is_hybrid,
-            assigned_rep_id, rep_assignment_date, rep_assigned_by, rep_assigned_by_user_id,
-            created_at, updated_at
-          ) VALUES (?,LOWER(?),?,?,?,?,?,?,'physician','physician',?,'active',?,?,?,?,NOW(),'self_onboard',?,NOW(),NOW())
-        ")->execute([
-          $userId, $email, password_hash($tempPassword, PASSWORD_DEFAULT), $firstName, $lastName,
-          $npi ?: null, $license ?: null, $licenseState,
-          $dbAccountType,
-          $isReferralOnly, $hasDmeLicense, $isHybrid,
-          $repId, $admin['id']
-        ]);
+        if ($isEmployeeRep) {
+          // Employee sales rep: use employee_rep_id, set rep_assigned_by_user_id to NULL
+          $pdo->prepare("
+            INSERT INTO users(
+              id, email, password_hash, first_name, last_name,
+              npi, license, license_state,
+              role, user_type, account_type, status,
+              is_referral_only, has_dme_license, is_hybrid,
+              employee_rep_id, rep_assignment_date, rep_assigned_by,
+              created_at, updated_at
+            ) VALUES (?,LOWER(?),?,?,?,?,?,?,'physician','physician',?,'active',?,?,?,?,NOW(),'employee_onboard',NOW(),NOW())
+          ")->execute([
+            $userId, $email, password_hash($tempPassword, PASSWORD_DEFAULT), $firstName, $lastName,
+            $npi ?: null, $license ?: null, $licenseState,
+            $dbAccountType,
+            $isReferralOnly, $hasDmeLicense, $isHybrid,
+            $employeeRepId
+          ]);
+        } else {
+          // Regular sales rep: use assigned_rep_id and rep_assigned_by_user_id
+          $pdo->prepare("
+            INSERT INTO users(
+              id, email, password_hash, first_name, last_name,
+              npi, license, license_state,
+              role, user_type, account_type, status,
+              is_referral_only, has_dme_license, is_hybrid,
+              assigned_rep_id, rep_assignment_date, rep_assigned_by, rep_assigned_by_user_id,
+              created_at, updated_at
+            ) VALUES (?,LOWER(?),?,?,?,?,?,?,'physician','physician',?,'active',?,?,?,?,NOW(),'self_onboard',?,NOW(),NOW())
+          ")->execute([
+            $userId, $email, password_hash($tempPassword, PASSWORD_DEFAULT), $firstName, $lastName,
+            $npi ?: null, $license ?: null, $licenseState,
+            $dbAccountType,
+            $isReferralOnly, $hasDmeLicense, $isHybrid,
+            $repId, $admin['id']
+          ]);
+        }
 
         // Send welcome email with temporary password
         $fullName = trim($firstName . ' ' . $lastName);
