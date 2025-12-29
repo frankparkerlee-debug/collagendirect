@@ -96,10 +96,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 // Handle Employee Salesperson specific settings
-                $hasRepView = false;
-                if ($role === 'sales') {
-                    $hasRepView = isset($_POST['enable_rep_portal']);
-                }
+                // Sales role users ALWAYS get has_rep_view=true so they can access the sales portal
+                // This is required for proper redirect after login
+                $hasRepView = ($role === 'sales');
 
                 // Insert user
                 $stmt = $pdo->prepare("
@@ -119,7 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $newUserId = $pdo->lastInsertId();
 
                 // Handle Employee Salesperson commission rates
-                if ($role === 'sales' && $hasRepView) {
+                if ($role === 'sales') {
                     $directRate = floatval($_POST['direct_commission_rate'] ?? 15) / 100;
                     $overrideRate = floatval($_POST['override_commission_rate'] ?? 5) / 100;
 
@@ -194,10 +193,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 // Handle Employee Salesperson specific settings
-                $hasRepView = false;
-                if ($role === 'sales') {
-                    $hasRepView = isset($_POST['enable_rep_portal']);
-                }
+                // Sales role users ALWAYS get has_rep_view=true so they can access the sales portal
+                $hasRepView = ($role === 'sales');
 
                 $stmt = $pdo->prepare("
                     UPDATE admin_users
@@ -207,7 +204,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute([$name, $phone ?: null, $role, $status, $hasRepView ? 1 : 0, $userId]);
 
                 // Handle commission rates for sales role
-                if ($role === 'sales' && $hasRepView) {
+                if ($role === 'sales') {
                     $directRate = floatval($_POST['direct_commission_rate'] ?? 15) / 100;
                     $overrideRate = floatval($_POST['override_commission_rate'] ?? 5) / 100;
 
