@@ -1,45 +1,107 @@
 <?php
 session_start();
 
+// Database connection for sales rep authentication
+require_once __DIR__ . '/../admin/db.php';
+
 $error = '';
 $success = '';
-
-// Handle login form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = trim($_POST['email'] ?? '');
-    $password = $_POST['password'] ?? '';
-
-    // Check if email ends with @collagendirect.health
-    if (preg_match('/@collagendirect\.health$/i', $email)) {
-
-        // TEMPORARY: Simple password check for demo
-        // In production, you should validate against your actual user database
-        // For now, accept any password if email domain is correct
-
-        // TODO: Replace this with actual authentication against your user database
-        // Example: Check against portal users table, verify hashed password, etc.
-
-        if (!empty($password)) {
-            // Set session
-            $_SESSION['user_email'] = $email;
-            $_SESSION['user_name'] = explode('@', $email)[0]; // Extract name from email
-            $_SESSION['login_time'] = time();
-
-            // Redirect to training hub
-            header('Location: index.php');
-            exit;
-        } else {
-            $error = 'Please enter your password.';
-        }
-    } else {
-        $error = 'Access denied. You must have a @collagendirect.health email address.';
-    }
-}
 
 // Handle logout
 if (isset($_GET['logout'])) {
     session_destroy();
+    session_start();
     $success = 'You have been logged out successfully.';
+}
+
+// Handle login form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email = strtolower(trim($_POST['email'] ?? ''));
+    $password = $_POST['password'] ?? '';
+
+    if (empty($email)) {
+        $error = 'Please enter your email address.';
+    } elseif (empty($password)) {
+        $error = 'Please enter your password.';
+    } else {
+        // Check if this is a CollagenDirect employee
+        if (preg_match('/@collagendirect\.health$/i', $email)) {
+            // Employee login - validate against admin_users table
+            try {
+                $stmt = $pdo->prepare("
+                    SELECT id, email, password_hash, name, role, status
+                    FROM admin_users
+                    WHERE LOWER(email) = ? AND status = 'active'
+                ");
+                $stmt->execute([$email]);
+                $admin = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($admin && password_verify($password, $admin['password_hash'])) {
+                    // Valid employee login
+                    $_SESSION['user_email'] = $admin['email'];
+                    $_SESSION['user_name'] = $admin['name'];
+                    $_SESSION['user_type'] = 'employee';
+                    $_SESSION['login_time'] = time();
+                    $_SESSION['is_sales_rep'] = false;
+
+                    header('Location: index.php');
+                    exit;
+                } else {
+                    $error = 'Invalid email or password.';
+                }
+            } catch (Exception $e) {
+                $error = 'Login failed. Please try again.';
+            }
+        } else {
+            // Sales rep / distributor login - check users table + sales_reps status
+            try {
+                $stmt = $pdo->prepare("
+                    SELECT u.id, u.email, u.password_hash, u.first_name, u.last_name,
+                           sr.id as sales_rep_id, sr.status as rep_status, sr.company_name
+                    FROM users u
+                    INNER JOIN sales_reps sr ON sr.user_id = u.id
+                    WHERE LOWER(u.email) = ?
+                ");
+                $stmt->execute([$email]);
+                $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if (!$user) {
+                    $error = 'No sales rep account found with this email. Contact your manager for access.';
+                } elseif (!password_verify($password, $user['password_hash'])) {
+                    $error = 'Invalid email or password.';
+                } elseif ($user['rep_status'] !== 'active') {
+                    // Provide specific messages based on status
+                    switch ($user['rep_status']) {
+                        case 'pending':
+                            $error = 'Your account is pending approval. Please wait for your manager to approve your access.';
+                            break;
+                        case 'suspended':
+                            $error = 'Your account has been suspended. Please contact your manager.';
+                            break;
+                        case 'terminated':
+                            $error = 'Your account has been terminated. Contact support if you believe this is an error.';
+                            break;
+                        default:
+                            $error = 'Your account is not active. Please contact your manager.';
+                    }
+                } else {
+                    // Valid sales rep login
+                    $_SESSION['user_email'] = $user['email'];
+                    $_SESSION['user_name'] = trim($user['first_name'] . ' ' . $user['last_name']);
+                    $_SESSION['user_type'] = 'sales_rep';
+                    $_SESSION['sales_rep_id'] = $user['sales_rep_id'];
+                    $_SESSION['company_name'] = $user['company_name'];
+                    $_SESSION['login_time'] = time();
+                    $_SESSION['is_sales_rep'] = true;
+
+                    header('Location: index.php');
+                    exit;
+                }
+            } catch (Exception $e) {
+                $error = 'Login failed. Please try again.';
+            }
+        }
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -74,7 +136,7 @@ if (isset($_GET['logout'])) {
     <div class="text-center mb-8">
       <img src="/assets/collagendirect.png" alt="CollagenDirect" class="h-12 w-auto mx-auto mb-4">
       <h1 class="text-3xl font-black text-white mb-2">Sales Training Portal</h1>
-      <p class="text-slate-400">Internal Use Only</p>
+      <p class="text-slate-400">For CollagenDirect Team & Partners</p>
     </div>
 
     <!-- Login Card -->
@@ -82,8 +144,8 @@ if (isset($_GET['logout'])) {
 
       <?php if ($error): ?>
         <div class="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
-          <div class="flex items-center gap-3">
-            <svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
             </svg>
             <p class="text-sm text-red-800"><?php echo htmlspecialchars($error); ?></p>
@@ -102,8 +164,8 @@ if (isset($_GET['logout'])) {
         </div>
       <?php endif; ?>
 
+      <!-- Login Form -->
       <form method="POST" action="login.php">
-
         <!-- Email Field -->
         <div class="mb-4">
           <label for="email" class="block text-sm font-semibold text-gray-900 mb-2">
@@ -113,12 +175,11 @@ if (isset($_GET['logout'])) {
             type="email"
             id="email"
             name="email"
-            required
-            placeholder="yourname@collagendirect.health"
+            placeholder="you@example.com"
             class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-brand-teal focus:outline-none transition"
             value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>"
+            required
           >
-          <p class="text-xs text-gray-500 mt-1">Must be a @collagendirect.health email</p>
         </div>
 
         <!-- Password Field -->
@@ -130,9 +191,9 @@ if (isset($_GET['logout'])) {
             type="password"
             id="password"
             name="password"
-            required
             placeholder="Enter your password"
             class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-brand-teal focus:outline-none transition"
+            required
           >
         </div>
 
@@ -143,7 +204,6 @@ if (isset($_GET['logout'])) {
         >
           Sign In
         </button>
-
       </form>
 
       <!-- Divider -->
@@ -151,7 +211,8 @@ if (isset($_GET['logout'])) {
 
       <!-- Help Text -->
       <div class="text-center">
-        <p class="text-sm text-gray-600 mb-2">Need access to the portal?</p>
+        <p class="text-sm text-gray-600 mb-2">Need access to the training portal?</p>
+        <p class="text-xs text-gray-500 mb-3">Sales reps and distributors: Use the same login as your sales portal.</p>
         <a href="mailto:sales-support@collagendirect.health" class="text-sm text-brand-teal hover:text-brand-navy font-semibold transition">
           Contact Sales Support
         </a>
@@ -165,15 +226,6 @@ if (isset($_GET['logout'])) {
     </div>
 
   </div>
-
-  <!-- Development Helper (REMOVE IN PRODUCTION) -->
-  <?php if ($_SERVER['HTTP_HOST'] === 'localhost' || strpos($_SERVER['HTTP_HOST'], '127.0.0.1') !== false): ?>
-    <div class="fixed bottom-4 right-4 bg-yellow-100 border-2 border-yellow-500 rounded-lg p-4 text-xs max-w-xs">
-      <div class="font-bold text-yellow-900 mb-2">⚠️ Development Mode</div>
-      <p class="text-yellow-800 mb-2">For testing, use any @collagendirect.health email with any password.</p>
-      <p class="text-yellow-700 text-xs">Remove this in production!</p>
-    </div>
-  <?php endif; ?>
 
 </body>
 </html>

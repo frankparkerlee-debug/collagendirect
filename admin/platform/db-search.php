@@ -24,6 +24,23 @@ $searchType = $_GET['type'] ?? $_POST['type'] ?? 'auto';
 $results = [];
 $error = '';
 
+// Helper function to check if a string is a valid integer ID
+function isIntegerId($id): bool {
+    return ctype_digit($id) && strlen($id) <= 10;
+}
+
+// Helper function to check if a string looks like a UUID (32 hex chars or with dashes)
+function isUuidLike($id): bool {
+    // Remove dashes for check
+    $cleaned = str_replace('-', '', $id);
+    return strlen($cleaned) === 32 && ctype_xdigit($cleaned);
+}
+
+// Helper function to check if it looks like an email
+function isEmailLike($id): bool {
+    return strpos($id, '@') !== false;
+}
+
 if ($searchId) {
     try {
         // Auto-detect search type based on ID format or search all
@@ -99,9 +116,15 @@ if ($searchId) {
         }
 
         if ($searchType === 'auto' || $searchType === 'admin_user') {
-            // Search admin_users
-            $stmt = $pdo->prepare("SELECT * FROM admin_users WHERE id = ? OR email = ?");
-            $stmt->execute([$searchId, $searchId]);
+            // Search admin_users - only search by ID if it's numeric (admin_users.id is INTEGER)
+            if (isIntegerId($searchId)) {
+                $stmt = $pdo->prepare("SELECT * FROM admin_users WHERE id = ? OR email = ?");
+                $stmt->execute([$searchId, $searchId]);
+            } else {
+                // Search by email only for non-integer IDs
+                $stmt = $pdo->prepare("SELECT * FROM admin_users WHERE email = ?");
+                $stmt->execute([$searchId]);
+            }
             $adminUser = $stmt->fetch(PDO::FETCH_ASSOC);
             if ($adminUser) {
                 // Remove password hash from results
@@ -111,29 +134,66 @@ if ($searchId) {
         }
 
         if ($searchType === 'auto' || $searchType === 'sales_rep') {
-            // Search sales_reps
-            $stmt = $pdo->prepare("
-                SELECT sr.*, u.email, u.first_name, u.last_name
-                FROM sales_reps sr
-                JOIN users u ON u.id = sr.user_id
-                WHERE sr.id = ? OR sr.user_id = ?
-            ");
-            $stmt->execute([$searchId, $searchId]);
-            $salesRep = $stmt->fetch(PDO::FETCH_ASSOC);
-            if ($salesRep) {
-                $results['sales_rep'] = $salesRep;
+            // Search sales_reps - sr.id is INTEGER, sr.user_id is UUID
+            if (isIntegerId($searchId)) {
+                // Could be rep ID (integer) - search both
+                $stmt = $pdo->prepare("
+                    SELECT sr.*, u.email, u.first_name, u.last_name
+                    FROM sales_reps sr
+                    JOIN users u ON u.id = sr.user_id
+                    WHERE sr.id = ?
+                ");
+                $stmt->execute([$searchId]);
+            } elseif (isUuidLike($searchId)) {
+                // UUID - search by user_id only
+                $stmt = $pdo->prepare("
+                    SELECT sr.*, u.email, u.first_name, u.last_name
+                    FROM sales_reps sr
+                    JOIN users u ON u.id = sr.user_id
+                    WHERE sr.user_id = ?
+                ");
+                $stmt->execute([$searchId]);
+            } else {
+                // Skip - not a valid ID format for sales_reps
+                $stmt = null;
+            }
+            if ($stmt) {
+                $salesRep = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($salesRep) {
+                    $results['sales_rep'] = $salesRep;
+                }
             }
         }
 
         if ($searchType === 'auto' || $searchType === 'shipment') {
-            // Search shipments
-            $stmt = $pdo->prepare("
-                SELECT s.*, o.status as order_status
-                FROM shipments s
-                LEFT JOIN orders o ON o.id = s.order_id
-                WHERE s.id = ? OR s.tracking_number = ?
-            ");
-            $stmt->execute([$searchId, $searchId]);
+            // Search shipments - s.id could be INTEGER or UUID depending on schema
+            // Always search by tracking_number (string), only search by id if it's a valid format
+            if (isIntegerId($searchId)) {
+                $stmt = $pdo->prepare("
+                    SELECT s.*, o.status as order_status
+                    FROM shipments s
+                    LEFT JOIN orders o ON o.id = s.order_id
+                    WHERE s.id = ? OR s.tracking_number = ?
+                ");
+                $stmt->execute([$searchId, $searchId]);
+            } elseif (isUuidLike($searchId)) {
+                $stmt = $pdo->prepare("
+                    SELECT s.*, o.status as order_status
+                    FROM shipments s
+                    LEFT JOIN orders o ON o.id = s.order_id
+                    WHERE s.id = ? OR s.tracking_number = ?
+                ");
+                $stmt->execute([$searchId, $searchId]);
+            } else {
+                // Search by tracking number only for other strings
+                $stmt = $pdo->prepare("
+                    SELECT s.*, o.status as order_status
+                    FROM shipments s
+                    LEFT JOIN orders o ON o.id = s.order_id
+                    WHERE s.tracking_number = ?
+                ");
+                $stmt->execute([$searchId]);
+            }
             $shipment = $stmt->fetch(PDO::FETCH_ASSOC);
             if ($shipment) {
                 $results['shipment'] = $shipment;

@@ -1,30 +1,5 @@
 <?php
-session_start();
-
-// Simple email-based authentication
-// In production, this should integrate with your actual authentication system
-$authorized = false;
-$user_email = '';
-
-if (isset($_SESSION['user_email'])) {
-    $user_email = $_SESSION['user_email'];
-    // Check if email ends with @collagendirect.health
-    if (preg_match('/@collagendirect\.health$/i', $user_email)) {
-        $authorized = true;
-    }
-}
-
-// For development/demo: allow ?email= parameter (REMOVE IN PRODUCTION)
-if (isset($_GET['email']) && preg_match('/@collagendirect\.health$/i', $_GET['email'])) {
-    $_SESSION['user_email'] = $_GET['email'];
-    $user_email = $_GET['email'];
-    $authorized = true;
-}
-
-if (!$authorized) {
-    header('Location: login.php');
-    exit;
-}
+require_once __DIR__ . '/_auth.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -75,7 +50,12 @@ if (!$authorized) {
           </div>
         </div>
         <div class="flex items-center gap-4">
-          <span class="text-sm text-gray-600">Welcome, <strong><?php echo htmlspecialchars(explode('@', $user_email)[0]); ?></strong></span>
+          <?php if ($is_sales_rep && $company_name): ?>
+            <span class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium"><?php echo htmlspecialchars($company_name); ?></span>
+          <?php elseif ($user_type === 'employee'): ?>
+            <span class="text-xs bg-brand-teal/10 text-brand-teal px-2 py-1 rounded-full font-medium">Employee</span>
+          <?php endif; ?>
+          <span class="text-sm text-gray-600">Welcome, <strong><?php echo htmlspecialchars($displayName); ?></strong></span>
           <a href="login.php?logout=1" class="text-sm text-gray-500 hover:text-brand-teal transition">Logout</a>
         </div>
       </div>

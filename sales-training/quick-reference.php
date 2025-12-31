@@ -1,25 +1,5 @@
 <?php
-session_start();
-$authorized = false;
-$user_email = '';
-
-if (isset($_SESSION['user_email'])) {
-    $user_email = $_SESSION['user_email'];
-    if (preg_match('/@collagendirect\.health$/i', $user_email)) {
-        $authorized = true;
-    }
-}
-
-if (isset($_GET['email']) && preg_match('/@collagendirect\.health$/i', $_GET['email'])) {
-    $_SESSION['user_email'] = $_GET['email'];
-    $user_email = $_GET['email'];
-    $authorized = true;
-}
-
-if (!$authorized) {
-    header('Location: index.php');
-    exit;
-}
+require_once __DIR__ . '/_auth.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
