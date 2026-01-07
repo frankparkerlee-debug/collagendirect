@@ -37,7 +37,8 @@ if (!$token || !preg_match('/^[a-f0-9]{64}$/', $token)) {
     $expiredToken = true;
   } else {
     // Calculate commission rate display
-    $commissionRateDecimal = $inviteData['commission_rate'] ?? 0.25;
+    // Default to 15% if no rate set (self-applicants), use DB rate for invited reps
+    $commissionRateDecimal = $inviteData['commission_rate'] ?? 0.15;
     $commissionRatePercent = (int)($commissionRateDecimal * 100);
 
     // Convert to words for the agreement

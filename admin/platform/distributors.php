@@ -60,8 +60,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         switch ($action) {
             case 'approve_rep':
                 $repId = $_POST['rep_id'] ?? '';
-                // Form passes percentage (e.g., 25 for 25%), convert to decimal (0.25)
-                $commissionRate = floatval($_POST['commission_rate'] ?? 25) / 100;
+                // Form passes percentage (e.g., 15 for 15%), convert to decimal (0.15)
+                $commissionRate = floatval($_POST['commission_rate'] ?? 15) / 100;
 
                 if ($repId) {
                     $pdo->prepare("UPDATE sales_reps SET status = 'active', approved_date = NOW(), approved_by = ?, updated_at = NOW() WHERE id = ?")
@@ -924,7 +924,7 @@ function sendDistributorInviteEmail($pdo, $repId, $inviteToken, $personalNote) {
 
         <div class="mb-4">
             <label class="block text-sm font-medium text-gray-700 mb-1">Commission Rate (%)</label>
-            <input type="number" name="commission_rate" value="25" min="0" max="100" step="0.1" class="w-24 border rounded-lg px-3 py-2">
+            <input type="number" name="commission_rate" value="15" min="0" max="100" step="0.1" class="w-24 border rounded-lg px-3 py-2">
         </div>
 
         <div class="flex justify-end gap-3">

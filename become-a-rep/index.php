@@ -13,7 +13,7 @@ if (!isset($_SESSION['csrf'])) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Become a Sales Rep — CollagenDirect Partner Program</title>
-  <meta name="description" content="Apply to become a CollagenDirect sales representative. Join our partner program and earn 25% commission on wound care products.">
+  <meta name="description" content="Apply to become a CollagenDirect sales representative. Join our partner program and earn 15% commission on wound care products.">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -231,7 +231,7 @@ if (!isset($_SESSION['csrf'])) {
             <p class="mb-4">Representative is an independent contractor and not an employee, partner, or joint venturer of Company. Representative is solely responsible for all taxes, insurance, and business expenses related to their activities under this Agreement.</p>
 
             <h3 class="font-bold text-gray-900 mt-6 mb-2">3. COMMISSION STRUCTURE</h3>
-            <p class="mb-4">Representative shall receive a commission of twenty-five percent (25%) of collected revenue from orders placed by healthcare providers that Representative has successfully onboarded to the Company's platform. Commission is payable monthly, on the 15th of each month for the previous month's collections.</p>
+            <p class="mb-4">Representative shall receive a commission of <strong>fifteen percent (15%)</strong> of collected revenue from orders placed by healthcare providers that Representative has successfully onboarded to the Company's platform. Commission is payable monthly, on the 15th of each month for the previous month's collections.</p>
 
             <h3 class="font-bold text-gray-900 mt-6 mb-2">4. REPRESENTATIVE RESPONSIBILITIES</h3>
             <ul class="list-disc pl-6 mb-4 space-y-2">
