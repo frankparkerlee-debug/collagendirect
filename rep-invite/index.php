@@ -22,7 +22,8 @@ if (!$token || !preg_match('/^[a-f0-9]{64}$/', $token)) {
 
   $stmt = $pdo->prepare("
     SELECT sr.id as rep_id, sr.user_id, sr.invite_token_expires_at, sr.company_name,
-           u.email, u.first_name, u.last_name, u.phone
+           u.email, u.first_name, u.last_name, u.phone,
+           (SELECT rate FROM rep_commission_rates WHERE rep_id = sr.id ORDER BY effective_date DESC NULLS LAST, created_at DESC LIMIT 1) as commission_rate
     FROM sales_reps sr
     JOIN users u ON u.id = sr.user_id
     WHERE sr.invite_token = ? AND sr.status = 'invited'
@@ -34,6 +35,18 @@ if (!$token || !preg_match('/^[a-f0-9]{64}$/', $token)) {
     $invalidToken = true;
   } else if ($inviteData['invite_token_expires_at'] && strtotime($inviteData['invite_token_expires_at']) < time()) {
     $expiredToken = true;
+  } else {
+    // Calculate commission rate display
+    $commissionRateDecimal = $inviteData['commission_rate'] ?? 0.25;
+    $commissionRatePercent = (int)($commissionRateDecimal * 100);
+
+    // Convert to words for the agreement
+    $numberWords = [
+      5 => 'five', 10 => 'ten', 15 => 'fifteen', 20 => 'twenty',
+      25 => 'twenty-five', 30 => 'thirty', 35 => 'thirty-five',
+      40 => 'forty', 45 => 'forty-five', 50 => 'fifty'
+    ];
+    $commissionRateWords = $numberWords[$commissionRatePercent] ?? $commissionRatePercent;
   }
 }
 ?>
@@ -239,6 +252,22 @@ if (!$token || !preg_match('/^[a-f0-9]{64}$/', $token)) {
             <p class="text-gray-600">Please review and sign the agreement below</p>
           </div>
 
+          <!-- Print/Download Options -->
+          <div class="flex justify-end gap-3 mb-4">
+            <button onclick="printAgreement('sales-rep')" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+              </svg>
+              Print Agreement
+            </button>
+            <button onclick="downloadAgreement('sales-rep')" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+              Download PDF
+            </button>
+          </div>
+
           <div id="agreementContainer" class="agreement-container border border-gray-200 rounded-xl p-6 bg-slate-50 mb-6">
             <div class="prose prose-sm max-w-none text-gray-700">
               <h2 class="text-lg font-bold text-gray-900 mb-4">SALES REPRESENTATIVE AGREEMENT</h2>
@@ -253,7 +282,7 @@ if (!$token || !preg_match('/^[a-f0-9]{64}$/', $token)) {
               <p class="mb-4">Representative is an independent contractor and not an employee, partner, or joint venturer of Company. Representative is solely responsible for all taxes, insurance, and business expenses related to their activities under this Agreement.</p>
 
               <h3 class="font-bold text-gray-900 mt-6 mb-2">3. COMMISSION STRUCTURE</h3>
-              <p class="mb-4">Representative shall receive a commission of twenty-five percent (25%) of collected revenue from orders placed by healthcare providers that Representative has successfully onboarded to the Company's platform. Commission is payable monthly, on the 15th of each month for the previous month's collections.</p>
+              <p class="mb-4">Representative shall receive a commission of <strong><?= htmlspecialchars($commissionRateWords) ?> percent (<?= $commissionRatePercent ?>%)</strong> of collected revenue from orders placed by healthcare providers that Representative has successfully onboarded to the Company's platform. Commission is payable monthly, on the 15th of each month for the previous month's collections.</p>
 
               <h3 class="font-bold text-gray-900 mt-6 mb-2">4. REPRESENTATIVE RESPONSIBILITIES</h3>
               <ul class="list-disc pl-6 mb-4 space-y-2">
@@ -345,6 +374,22 @@ if (!$token || !preg_match('/^[a-f0-9]{64}$/', $token)) {
           <div class="text-center mb-8">
             <h1 class="text-3xl font-black text-gray-900 mb-2">Business Associate Agreement</h1>
             <p class="text-gray-600">HIPAA-required agreement for handling protected health information</p>
+          </div>
+
+          <!-- Print/Download Options -->
+          <div class="flex justify-end gap-3 mb-4">
+            <button onclick="printAgreement('baa')" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+              </svg>
+              Print Agreement
+            </button>
+            <button onclick="downloadAgreement('baa')" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+              Download PDF
+            </button>
           </div>
 
           <div id="baaContainer" class="agreement-container border border-gray-200 rounded-xl p-6 bg-slate-50 mb-6">
@@ -668,6 +713,52 @@ if (!$token || !preg_match('/^[a-f0-9]{64}$/', $token)) {
         submitText.textContent = 'Complete Registration';
         submitArrow.classList.remove('animate-spin');
       }
+    }
+
+    // Print agreement
+    function printAgreement(type) {
+      const containerId = type === 'baa' ? 'baaContainer' : 'agreementContainer';
+      const container = document.getElementById(containerId);
+      const title = type === 'baa' ? 'Business Associate Agreement' : 'Sales Representative Agreement';
+
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>${title} - CollagenDirect</title>
+          <style>
+            body { font-family: 'Times New Roman', serif; max-width: 800px; margin: 40px auto; padding: 20px; line-height: 1.6; }
+            h2 { font-size: 18px; margin-bottom: 10px; }
+            h3 { font-size: 14px; margin-top: 20px; margin-bottom: 10px; }
+            p { font-size: 12px; margin-bottom: 10px; }
+            ul { font-size: 12px; margin-bottom: 10px; padding-left: 30px; }
+            li { margin-bottom: 5px; }
+            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 20px; }
+            .header h1 { font-size: 24px; margin: 0; }
+            .header p { font-size: 14px; color: #666; }
+            @media print { body { margin: 0; padding: 20px; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>CollagenDirect</h1>
+            <p>${title}</p>
+          </div>
+          ${container.innerHTML}
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => printWindow.print(), 250);
+    }
+
+    // Download agreement as PDF (uses print to PDF functionality)
+    function downloadAgreement(type) {
+      const title = type === 'baa' ? 'Business Associate Agreement' : 'Sales Representative Agreement';
+      alert(`To download as PDF:\n\n1. Click "Print Agreement"\n2. In the print dialog, select "Save as PDF" as your destination\n3. Click Save\n\nThis will create a PDF file of the ${title}.`);
+      printAgreement(type);
     }
   </script>
 </body>
