@@ -296,8 +296,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ->execute([$userId, $email, $firstName, $lastName, $phone]);
 
                 $repId = bin2hex(random_bytes(16));
+                // invited_by references users.id, but admin users are in admin_users table
+                // Only set invited_by if admin has a corresponding users.id (e.g., superadmin from users table)
+                $invitedBy = null;
+                if (!empty($admin['user_id'])) {
+                    $invitedBy = $admin['user_id'];
+                } elseif ($admin['type'] === 'user') {
+                    $invitedBy = $admin['id'];
+                }
                 $pdo->prepare("INSERT INTO sales_reps (id, user_id, status, company_name, invite_token, invite_token_expires_at, invited_by, application_date, created_at, updated_at) VALUES (?, ?, 'invited', ?, ?, ?, ?, NOW(), NOW(), NOW())")
-                    ->execute([$repId, $userId, $companyName ?: null, $inviteToken, $inviteExpires, $admin['id']]);
+                    ->execute([$repId, $userId, $companyName ?: null, $inviteToken, $inviteExpires, $invitedBy]);
 
                 $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, set_by, notes, created_at) VALUES (?, ?, CURRENT_DATE, ?, 'Set on invite', NOW())")
                     ->execute([$repId, $commissionRate, $admin['id']]);

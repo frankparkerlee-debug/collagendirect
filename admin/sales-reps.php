@@ -237,10 +237,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Create sales_reps record
         $repId = bin2hex(random_bytes(16));
+        // invited_by references users.id, but admin users are in admin_users table
+        // Only set invited_by if admin has a corresponding users.id
+        $invitedBy = null;
+        if (!empty($admin['user_id'])) {
+            $invitedBy = $admin['user_id'];
+        } elseif ($admin['type'] === 'user') {
+            $invitedBy = $admin['id'];
+        }
         $pdo->prepare("
           INSERT INTO sales_reps (id, user_id, status, company_name, invite_token, invite_token_expires_at, invited_by, application_date, created_at, updated_at)
           VALUES (?, ?, 'invited', ?, ?, ?, ?, NOW(), NOW(), NOW())
-        ")->execute([$repId, $userId, $companyName ?: null, $inviteToken, $inviteExpires, $admin['id']]);
+        ")->execute([$repId, $userId, $companyName ?: null, $inviteToken, $inviteExpires, $invitedBy]);
 
         // Set commission rate (effective when invite is accepted)
         $pdo->prepare("
