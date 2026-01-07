@@ -897,7 +897,7 @@ function sendDistributorInviteEmail($pdo, $repId, $inviteToken, $personalNote) {
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Commission Rate (%)</label>
-                <input type="number" name="invite_commission_rate" value="25" min="0" max="100" step="0.1" class="w-24 border rounded-lg px-3 py-2">
+                <input type="number" name="invite_commission_rate" value="15" min="0" max="100" step="0.1" class="w-24 border rounded-lg px-3 py-2">
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Personal Note (optional)</label>
