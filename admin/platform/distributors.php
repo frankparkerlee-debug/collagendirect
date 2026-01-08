@@ -268,7 +268,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $email = strtolower(trim($_POST['invite_email'] ?? ''));
                 $phone = trim($_POST['invite_phone'] ?? '');
                 $companyName = trim($_POST['invite_company_name'] ?? '');
-                $commissionRate = floatval($_POST['invite_commission_rate'] ?? 25) / 100;
+                $commissionRate = floatval($_POST['invite_commission_rate'] ?? 15) / 100;
                 $personalNote = trim($_POST['invite_note'] ?? '');
 
                 if (!$firstName || !$lastName || !$email || !$phone) {
@@ -288,30 +288,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     break;
                 }
 
-                $inviteToken = bin2hex(random_bytes(32));
-                $inviteExpires = date('Y-m-d H:i:s', strtotime('+7 days'));
+                // Use transaction to ensure all records are created or none
+                $pdo->beginTransaction();
+                try {
+                    $inviteToken = bin2hex(random_bytes(32));
+                    $inviteExpires = date('Y-m-d H:i:s', strtotime('+7 days'));
 
-                $userId = bin2hex(random_bytes(16));
-                $pdo->prepare("INSERT INTO users (id, email, first_name, last_name, phone, role, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'physician', '', NOW(), NOW())")
-                    ->execute([$userId, $email, $firstName, $lastName, $phone]);
+                    $userId = bin2hex(random_bytes(16));
+                    $pdo->prepare("INSERT INTO users (id, email, first_name, last_name, phone, role, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'physician', '', NOW(), NOW())")
+                        ->execute([$userId, $email, $firstName, $lastName, $phone]);
 
-                $repId = bin2hex(random_bytes(16));
-                // invited_by references users.id - only set if admin is from users table (superadmin or sales_rep)
-                // admin_users (employees) don't have a users.id, so set to null
-                $invitedBy = null;
-                if ($admin['role'] === 'superadmin' || $admin['role'] === 'sales_rep') {
-                    // These roles come from users table, so $admin['id'] is a valid users.id
-                    $invitedBy = $admin['id'];
+                    $repId = bin2hex(random_bytes(16));
+                    // invited_by references users.id - only set if admin is from users table (superadmin or sales_rep)
+                    // admin_users (employees) don't have a users.id, so set to null
+                    $invitedBy = null;
+                    if ($admin['role'] === 'superadmin' || $admin['role'] === 'sales_rep') {
+                        // These roles come from users table, so $admin['id'] is a valid users.id
+                        $invitedBy = $admin['id'];
+                    }
+                    $pdo->prepare("INSERT INTO sales_reps (id, user_id, status, company_name, invite_token, invite_token_expires_at, invited_by, application_date, created_at, updated_at) VALUES (?, ?, 'invited', ?, ?, ?, ?, NOW(), NOW(), NOW())")
+                        ->execute([$repId, $userId, $companyName ?: null, $inviteToken, $inviteExpires, $invitedBy]);
+
+                    $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, set_by, notes, created_at) VALUES (?, ?, CURRENT_DATE, ?, 'Set on invite', NOW())")
+                        ->execute([$repId, $commissionRate, $admin['id']]);
+
+                    $pdo->commit();
+
+                    // Send email after successful commit
+                    sendDistributorInviteEmail($pdo, $repId, $inviteToken, $personalNote);
+
+                    $message = "Invite sent to {$firstName} {$lastName} at {$email}. The invite expires in 7 days.";
+                } catch (Exception $e) {
+                    $pdo->rollBack();
+                    throw $e;
                 }
-                $pdo->prepare("INSERT INTO sales_reps (id, user_id, status, company_name, invite_token, invite_token_expires_at, invited_by, application_date, created_at, updated_at) VALUES (?, ?, 'invited', ?, ?, ?, ?, NOW(), NOW(), NOW())")
-                    ->execute([$repId, $userId, $companyName ?: null, $inviteToken, $inviteExpires, $invitedBy]);
-
-                $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, set_by, notes, created_at) VALUES (?, ?, CURRENT_DATE, ?, 'Set on invite', NOW())")
-                    ->execute([$repId, $commissionRate, $admin['id']]);
-
-                sendDistributorInviteEmail($pdo, $repId, $inviteToken, $personalNote);
-
-                $message = "Invite sent to {$firstName} {$lastName} at {$email}. The invite expires in 7 days.";
                 break;
         }
 
