@@ -237,12 +237,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Create sales_reps record
         $repId = bin2hex(random_bytes(16));
-        // invited_by references users.id, but admin users are in admin_users table
-        // Only set invited_by if admin has a corresponding users.id
+        // invited_by references users.id - only set if admin is from users table (superadmin or sales_rep)
+        // admin_users (employees) don't have a users.id, so set to null
         $invitedBy = null;
-        if (!empty($admin['user_id'])) {
-            $invitedBy = $admin['user_id'];
-        } elseif ($admin['type'] === 'user') {
+        if ($admin['role'] === 'superadmin' || $admin['role'] === 'sales_rep') {
+            // These roles come from users table, so $admin['id'] is a valid users.id
             $invitedBy = $admin['id'];
         }
         $pdo->prepare("
