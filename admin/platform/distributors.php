@@ -64,8 +64,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $commissionRate = floatval($_POST['commission_rate'] ?? 15) / 100;
 
                 if ($repId) {
-                    $pdo->prepare("UPDATE sales_reps SET status = 'active', approved_date = NOW(), approved_by = ?, updated_at = NOW() WHERE id = ?")
-                        ->execute([$admin['id'], $repId]);
+                    // approved_by is NULL because admin_users.id is not a valid users.id FK
+                    $pdo->prepare("UPDATE sales_reps SET status = 'active', approved_date = NOW(), approved_by = NULL, updated_at = NOW() WHERE id = ?")
+                        ->execute([$repId]);
 
                     // set_by is NULL because admin_users.id is not a valid users.id FK
                     $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, set_by, notes, created_at) VALUES (?, ?, CURRENT_DATE, NULL, 'Initial rate on approval', NOW())")

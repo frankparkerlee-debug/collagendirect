@@ -42,9 +42,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $commissionRate = floatval($_POST['commission_rate'] ?? 0.25);
 
         if ($repId) {
-          // Update status to active
-          $pdo->prepare("UPDATE sales_reps SET status = 'active', approved_date = NOW(), approved_by = ?, updated_at = NOW() WHERE id = ?")
-              ->execute([$admin['id'], $repId]);
+          // Update status to active (approved_by is NULL because admin_users.id is not a valid users.id FK)
+          $pdo->prepare("UPDATE sales_reps SET status = 'active', approved_date = NOW(), approved_by = NULL, updated_at = NOW() WHERE id = ?")
+              ->execute([$repId]);
 
           // Set commission rate (set_by is NULL because admin_users.id is not a valid users.id FK)
           $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, set_by, notes, created_at) VALUES (?, ?, CURRENT_DATE, NULL, 'Initial rate on approval', NOW())")
@@ -317,12 +317,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           VALUES (?, ?, ?, ?, ?, 'physician', ?, NOW(), NOW())
         ")->execute([$userId, $email, $firstName, $lastName, $phone, $passwordHash]);
 
-        // Create sales_reps record as active
+        // Create sales_reps record as active (approved_by is NULL because admin_users.id is not a valid users.id FK)
         $repId = bin2hex(random_bytes(16));
         $pdo->prepare("
           INSERT INTO sales_reps (id, user_id, status, company_name, approved_by, approved_date, application_date, created_at, updated_at)
-          VALUES (?, ?, 'active', ?, ?, NOW(), NOW(), NOW(), NOW())
-        ")->execute([$repId, $userId, $companyName ?: null, $admin['id']]);
+          VALUES (?, ?, 'active', ?, NULL, NOW(), NOW(), NOW(), NOW())
+        ")->execute([$repId, $userId, $companyName ?: null]);
 
         // Set commission rate (set_by is NULL because admin_users.id is not a valid users.id FK)
         $pdo->prepare("
