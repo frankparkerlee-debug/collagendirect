@@ -46,9 +46,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           $pdo->prepare("UPDATE sales_reps SET status = 'active', approved_date = NOW(), approved_by = ?, updated_at = NOW() WHERE id = ?")
               ->execute([$admin['id'], $repId]);
 
-          // Set commission rate
-          $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, set_by, notes, created_at) VALUES (?, ?, CURRENT_DATE, ?, 'Initial rate on approval', NOW())")
-              ->execute([$repId, $commissionRate, $admin['id']]);
+          // Set commission rate (set_by is NULL because admin_users.id is not a valid users.id FK)
+          $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, set_by, notes, created_at) VALUES (?, ?, CURRENT_DATE, NULL, 'Initial rate on approval', NOW())")
+              ->execute([$repId, $commissionRate]);
 
           // Send approval email
           sendApprovalEmail($pdo, $repId);
@@ -253,10 +253,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ")->execute([$repId, $userId, $companyName ?: null, $inviteToken, $inviteExpires, $invitedBy]);
 
             // Set commission rate (effective when invite is accepted)
+            // set_by is NULL because admin_users.id is not a valid users.id FK
             $pdo->prepare("
               INSERT INTO rep_commission_rates (rep_id, rate, effective_date, set_by, notes, created_at)
-              VALUES (?, ?, CURRENT_DATE, ?, 'Set on invite', NOW())
-            ")->execute([$repId, $commissionRate, $admin['id']]);
+              VALUES (?, ?, CURRENT_DATE, NULL, 'Set on invite', NOW())
+            ")->execute([$repId, $commissionRate]);
 
             $pdo->commit();
 
@@ -323,11 +324,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           VALUES (?, ?, 'active', ?, ?, NOW(), NOW(), NOW(), NOW())
         ")->execute([$repId, $userId, $companyName ?: null, $admin['id']]);
 
-        // Set commission rate
+        // Set commission rate (set_by is NULL because admin_users.id is not a valid users.id FK)
         $pdo->prepare("
           INSERT INTO rep_commission_rates (rep_id, rate, effective_date, set_by, notes, created_at)
-          VALUES (?, ?, CURRENT_DATE, ?, 'Set on direct add', NOW())
-        ")->execute([$repId, $commissionRate, $admin['id']]);
+          VALUES (?, ?, CURRENT_DATE, NULL, 'Set on direct add', NOW())
+        ")->execute([$repId, $commissionRate]);
 
         // Record offline attestation for documents
         $docTypes = ['rep_agreement', 'baa'];

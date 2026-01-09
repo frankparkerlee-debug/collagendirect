@@ -96,8 +96,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $notes = $_POST['notes'] ?? '';
 
         if ($newRate > 0 && $newRate <= 1) {
-          $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, set_by, notes, created_at) VALUES (?, ?, ?, ?, ?, NOW())")
-              ->execute([$repId, $newRate, $effectiveDate, $admin['id'], $notes ?: null]);
+          // set_by is NULL because admin_users.id is not a valid users.id FK
+          $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, set_by, notes, created_at) VALUES (?, ?, ?, NULL, ?, NOW())")
+              ->execute([$repId, $newRate, $effectiveDate, $notes ?: null]);
           $message = 'Commission rate updated successfully.';
         } else {
           $error = 'Invalid commission rate. Must be between 0 and 1 (e.g., 0.25 for 25%).';

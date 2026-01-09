@@ -67,8 +67,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $pdo->prepare("UPDATE sales_reps SET status = 'active', approved_date = NOW(), approved_by = ?, updated_at = NOW() WHERE id = ?")
                         ->execute([$admin['id'], $repId]);
 
-                    $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, set_by, notes, created_at) VALUES (?, ?, CURRENT_DATE, ?, 'Initial rate on approval', NOW())")
-                        ->execute([$repId, $commissionRate, $admin['id']]);
+                    // set_by is NULL because admin_users.id is not a valid users.id FK
+                    $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, set_by, notes, created_at) VALUES (?, ?, CURRENT_DATE, NULL, 'Initial rate on approval', NOW())")
+                        ->execute([$repId, $commissionRate]);
 
                     // Send approval email
                     sendDistributorApprovalEmail($pdo, $repId);
@@ -309,8 +310,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $pdo->prepare("INSERT INTO sales_reps (id, user_id, status, company_name, invite_token, invite_token_expires_at, invited_by, application_date, created_at, updated_at) VALUES (?, ?, 'invited', ?, ?, ?, ?, NOW(), NOW(), NOW())")
                         ->execute([$repId, $userId, $companyName ?: null, $inviteToken, $inviteExpires, $invitedBy]);
 
-                    $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, set_by, notes, created_at) VALUES (?, ?, CURRENT_DATE, ?, 'Set on invite', NOW())")
-                        ->execute([$repId, $commissionRate, $admin['id']]);
+                    // set_by is NULL because admin_users.id is not a valid users.id FK
+                    $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, set_by, notes, created_at) VALUES (?, ?, CURRENT_DATE, NULL, 'Set on invite', NOW())")
+                        ->execute([$repId, $commissionRate]);
 
                     $pdo->commit();
 
