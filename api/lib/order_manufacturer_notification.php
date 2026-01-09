@@ -101,7 +101,7 @@ if (!function_exists('notify_manufacturer_of_order')) {
       $slug = preg_replace('/[^a-z0-9]+/i', '_', strtolower($patientName));
 
       // Get document URLs
-      $baseUrl = 'https://collagendirect.onrender.com';
+      $baseUrl = 'https://collagendirect.health';
       $orderPdfUrl = $baseUrl . '/admin/order.pdf.php?id=' . urlencode($orderIdStr);
 
       // Build email content

@@ -64,7 +64,7 @@ function send_provider_welcome_email(string $email, string $name, string $role, 
     case 'employee':
     case 'admin':
       $roleMessage = 'as a CollagenDirect Employee';
-      $loginUrl = 'https://collagendirect.onrender.com/admin';
+      $loginUrl = 'https://collagendirect.health/admin';
       $setupInstructions = '
         <p>You now have access to the CollagenDirect Admin Portal where you can:</p>
         <ul style="margin: 10px 0; padding-left: 20px;">
@@ -77,7 +77,7 @@ function send_provider_welcome_email(string $email, string $name, string $role, 
 
     case 'manufacturer':
       $roleMessage = 'as a Manufacturer Representative';
-      $loginUrl = 'https://collagendirect.onrender.com/admin';
+      $loginUrl = 'https://collagendirect.health/admin';
       $setupInstructions = '
         <p>You now have access to the CollagenDirect Admin Portal where you can:</p>
         <ul style="margin: 10px 0; padding-left: 20px;">
