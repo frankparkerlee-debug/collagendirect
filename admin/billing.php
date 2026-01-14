@@ -200,15 +200,16 @@ try {
     $rows = array_filter($rows, fn($row) => ($row['status'] ?? '') === $statusFilter);
   }
 
-  // Apply archive filter: billable = approved/in_transit/delivered, archived = rejected/cancelled
+  // Apply archive filter: billable = submitted/approved/in_transit/delivered, archived = rejected/cancelled
+  // Note: 'pending' orders are still in physician draft state, not yet submitted for billing
   if ($archiveFilter === 'billable') {
-    // Billable orders are those ready for billing: approved, in_transit, delivered
-    $rows = array_filter($rows, fn($row) => in_array($row['status'] ?? '', ['approved', 'in_transit', 'delivered']));
+    // Billable orders are those submitted for billing: submitted, approved, in_transit, delivered
+    $rows = array_filter($rows, fn($row) => in_array($row['status'] ?? '', ['submitted', 'approved', 'in_transit', 'delivered']));
   } elseif ($archiveFilter === 'archived') {
     // Archived orders are rejected or cancelled
     $rows = array_filter($rows, fn($row) => in_array($row['status'] ?? '', ['rejected', 'cancelled']));
   }
-  // If $archiveFilter === 'all', no additional filtering needed
+  // If $archiveFilter === 'all', no additional filtering needed (shows pending too)
 
   // Re-index array after filtering
   $rows = array_values($rows);
