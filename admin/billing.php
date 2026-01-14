@@ -249,7 +249,23 @@ try {
 $rates = load_reimbursement_rates($pdo);
 
 /* ================= View ================= */
+
+// Temporary debug output - remove after fixing
+$showDebug = isset($_GET['debug']) && $_GET['debug'] === '1';
+
 include __DIR__.'/_header.php';
+
+if ($showDebug): ?>
+<div class="bg-yellow-50 border border-yellow-300 rounded-lg p-4 mb-4 text-sm font-mono overflow-x-auto">
+  <h3 class="font-bold text-yellow-800 mb-2">DEBUG INFO (add ?debug=1 to URL)</h3>
+  <p><strong>Approved orders in DB:</strong></p>
+  <pre class="text-xs bg-yellow-100 p-2 rounded mb-2"><?=htmlspecialchars(json_encode($debugOrders ?? [], JSON_PRETTY_PRINT))?></pre>
+  <p><strong>get_revenue_metrics returned:</strong> <?=count($metrics['orders'] ?? [])?> orders</p>
+  <p><strong>Status breakdown (before filter):</strong> <?=htmlspecialchars(json_encode($statusCounts ?? []))?></p>
+  <p><strong>Archive filter:</strong> <?=htmlspecialchars($archiveFilter)?></p>
+  <p><strong>Final row count:</strong> <?=count($rows)?></p>
+</div>
+<?php endif;
 ?>
 <div>
   <h2 class="text-lg font-semibold mb-4">Billing</h2>
