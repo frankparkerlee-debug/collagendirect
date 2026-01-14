@@ -169,10 +169,33 @@ try {
 /* ================= Data - Use SHARED get_revenue_metrics() ================= */
 // This ensures billing uses the EXACT same data source as dashboard and revenue report
 try {
-  error_log("[billing] Using get_revenue_metrics() with date range: $from to $to, physician: " . ($phys ?: 'ALL'));
+  error_log("[billing] Using get_revenue_metrics() with date range: '$from' to '$to', physician: " . ($phys ?: 'ALL'));
+
+  // DEBUG: Direct query to check what orders exist with approved status
+  $debugStmt = $pdo->query("
+    SELECT o.id, o.order_number, o.status, o.billed_by, o.created_at, u.account_type,
+           pt.deleted_at as patient_deleted, o.patient_id
+    FROM orders o
+    LEFT JOIN users u ON u.id = o.user_id
+    LEFT JOIN patients pt ON pt.id = o.patient_id
+    WHERE o.status = 'approved'
+    ORDER BY o.created_at DESC
+    LIMIT 10
+  ");
+  $debugOrders = $debugStmt->fetchAll(PDO::FETCH_ASSOC);
+  error_log("[billing] DEBUG - Approved orders in DB: " . json_encode($debugOrders));
+
   $metrics = get_revenue_metrics($pdo, $from, $to, $phys ?: null, null);
   $rows = $metrics['orders']; // Get the detailed orders array
   error_log("[billing] get_revenue_metrics returned " . count($rows) . " orders");
+
+  // Debug: Log status breakdown before filtering
+  $statusCounts = [];
+  foreach ($rows as $r) {
+    $s = $r['status'] ?? 'NULL';
+    $statusCounts[$s] = ($statusCounts[$s] ?? 0) + 1;
+  }
+  error_log("[billing] Status breakdown before filtering: " . json_encode($statusCounts));
 
   // Apply client-side filters that get_revenue_metrics doesn't support
   if ($search !== '') {
@@ -200,19 +223,21 @@ try {
     $rows = array_filter($rows, fn($row) => ($row['status'] ?? '') === $statusFilter);
   }
 
-  // Apply archive filter: billable = submitted/approved/in_transit/delivered, archived = rejected/cancelled
-  // Note: 'pending' orders are still in physician draft state, not yet submitted for billing
+  // Apply archive filter: billable = approved/in_transit/delivered, archived = rejected/cancelled
   if ($archiveFilter === 'billable') {
-    // Billable orders are those submitted for billing: submitted, approved, in_transit, delivered
-    $rows = array_filter($rows, fn($row) => in_array($row['status'] ?? '', ['submitted', 'approved', 'in_transit', 'delivered']));
+    // Billable orders are those approved for billing: approved, in_transit, delivered
+    $rows = array_filter($rows, fn($row) => in_array($row['status'] ?? '', ['approved', 'in_transit', 'delivered']));
   } elseif ($archiveFilter === 'archived') {
     // Archived orders are rejected or cancelled
     $rows = array_filter($rows, fn($row) => in_array($row['status'] ?? '', ['rejected', 'cancelled']));
   }
-  // If $archiveFilter === 'all', no additional filtering needed (shows pending too)
+  // If $archiveFilter === 'all', no additional filtering needed
 
   // Re-index array after filtering
   $rows = array_values($rows);
+
+  // Debug: Log final count after filtering
+  error_log("[billing] After archiveFilter='$archiveFilter': " . count($rows) . " orders remaining");
 
 } catch (Throwable $e) {
   error_log("[billing] ERROR: " . $e->getMessage());
