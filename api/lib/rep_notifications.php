@@ -61,7 +61,7 @@ HTML;
  */
 function send_rep_application_approved(PDO $pdo, string $repEmail, string $repName): bool {
     $baseUrl = env('APP_URL', 'https://collagendirect.health');
-    $portalUrl = $baseUrl . '/sales-training/login.php';
+    $dashboardUrl = $baseUrl . '/admin/rep/';
     $quickStartUrl = $baseUrl . '/sales-training/quick-start-guide.php';
     $trainingUrl = $baseUrl . '/sales-training/';
 
@@ -113,7 +113,7 @@ function send_rep_application_approved(PDO $pdo, string $repEmail, string $repNa
                 <span style="color: #64748b; font-size: 13px;">Onboard clinics, track commissions, manage docs</span>
             </td>
             <td style="padding: 10px 0; text-align: right;">
-                <a href="{$portalUrl}" style="color: #0d9488; font-size: 13px; text-decoration: none;">dashboard →</a>
+                <a href="{$dashboardUrl}" style="color: #0d9488; font-size: 13px; text-decoration: none;">dashboard →</a>
             </td>
         </tr>
     </table>

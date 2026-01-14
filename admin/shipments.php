@@ -203,6 +203,8 @@ $sql = "
          o.rx_note_name, o.rx_note_mime, o.status, o.created_at,
          o.billed_by, o.payment_type,
          p.first_name as patient_first, p.last_name as patient_last,
+         p.phone as patient_phone,
+         p.address as patient_address, p.city as patient_city, p.state as patient_state, p.zip as patient_zip,
          u.practice_name
   FROM orders o
   LEFT JOIN patients p ON p.id = o.patient_id
@@ -331,12 +333,17 @@ include __DIR__ . '/_header.php';
           }
         }
 
-        // Build full address for tooltip
+        // Build full address for tooltip - use patient address as fallback if shipping address is empty
+        $addressLine = $r['shipping_address'] ?: ($r['patient_address'] ?? '');
+        $cityLine = $r['shipping_city'] ?: ($r['patient_city'] ?? '');
+        $stateLine = $r['shipping_state'] ?: ($r['patient_state'] ?? '');
+        $zipLine = $r['shipping_zip'] ?: ($r['patient_zip'] ?? '');
+
         $fullAddress = trim(implode(', ', array_filter([
-          $r['shipping_address'] ?? '',
-          $r['shipping_city'] ?? '',
-          $r['shipping_state'] ?? '',
-          $r['shipping_zip'] ?? ''
+          $addressLine,
+          $cityLine,
+          $stateLine,
+          $zipLine
         ])));
       ?>
       <tr class="border-b hover:bg-slate-50" data-order-id="<?=e($r['id'])?>"

@@ -113,15 +113,25 @@ function render_view_link($paths, $empty='—') {
 }
 
 /* ================= Filters ================= */
-// Default to YTD to match revenue report
-$from = isset($_GET['from']) ? trim($_GET['from']) : date('Y-01-01');
-$to   = isset($_GET['to'])   ? trim($_GET['to'])   : date('Y-m-d');
+// For billing page, default to showing ALL billable orders (no date restriction)
+// Users can optionally filter by date if needed
+$archiveFilter = isset($_GET['archive']) ? trim($_GET['archive']) : 'billable'; // billable (default), archived, all
+
+// Only apply date filters if explicitly set by user, or if viewing archived/all orders
+$hasDateFilter = isset($_GET['from']) || isset($_GET['to']);
+if ($hasDateFilter) {
+  $from = isset($_GET['from']) ? trim($_GET['from']) : '';
+  $to   = isset($_GET['to'])   ? trim($_GET['to'])   : '';
+} else {
+  // No date filter by default for billable view - show ALL billable orders
+  $from = '';
+  $to   = '';
+}
 $phys = isset($_GET['phys']) ? trim($_GET['phys']) : '';
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $productFilter = isset($_GET['product_id']) ? trim($_GET['product_id']) : '';
 $cptFilter = isset($_GET['cpt_code']) ? trim($_GET['cpt_code']) : '';
 $statusFilter = isset($_GET['status']) ? trim($_GET['status']) : '';
-$archiveFilter = isset($_GET['archive']) ? trim($_GET['archive']) : 'billable'; // billable (default), archived, all
 
 $hasProducts = has_table($pdo,'products');
 
@@ -189,6 +199,16 @@ try {
   if ($statusFilter !== '') {
     $rows = array_filter($rows, fn($row) => ($row['status'] ?? '') === $statusFilter);
   }
+
+  // Apply archive filter: billable = approved/in_transit/delivered, archived = rejected/cancelled
+  if ($archiveFilter === 'billable') {
+    // Billable orders are those ready for billing: approved, in_transit, delivered
+    $rows = array_filter($rows, fn($row) => in_array($row['status'] ?? '', ['approved', 'in_transit', 'delivered']));
+  } elseif ($archiveFilter === 'archived') {
+    // Archived orders are rejected or cancelled
+    $rows = array_filter($rows, fn($row) => in_array($row['status'] ?? '', ['rejected', 'cancelled']));
+  }
+  // If $archiveFilter === 'all', no additional filtering needed
 
   // Re-index array after filtering
   $rows = array_values($rows);
@@ -281,7 +301,7 @@ include __DIR__.'/_header.php';
         <button type="submit" class="px-4 py-1.5 bg-brand text-white rounded text-sm hover:bg-brand/90 transition-colors">
           Apply Filters
         </button>
-        <?php if ($search || $phys || $productFilter || $cptFilter || $statusFilter || $archiveFilter !== 'billable' || $from !== date('Y-m-d', strtotime('-6 months')) || $to !== date('Y-m-d')): ?>
+        <?php if ($search || $phys || $productFilter || $cptFilter || $statusFilter || $archiveFilter !== 'billable' || $from || $to): ?>
           <a href="/admin/billing.php" class="px-4 py-1.5 bg-slate-100 text-slate-700 rounded text-sm hover:bg-slate-200 transition-colors">
             Clear
           </a>

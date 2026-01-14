@@ -457,6 +457,7 @@ $sql = "
   SELECT o.*,
          COALESCE(o.order_group_id, o.id) AS display_order_id,
          p.first_name, p.last_name, p.id AS pid, p.dob, p.phone,
+         p.address AS patient_address, p.city AS patient_city, p.state AS patient_state, p.zip AS patient_zip,
          p.insurance_provider, p.insurance_member_id, p.insurance_group_id, p.insurance_payer_phone,
          $carrierSelect,
          $trackingSelect,
@@ -688,12 +689,12 @@ if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"
             <form method="post" class="mt-2 p-3 bg-slate-50 border rounded">
               <?=csrf_field()?><input type="hidden" name="id" value="<?=e($r['id'])?>"/><input type="hidden" name="action" value="ship"/>
               <div class="grid grid-cols-2 gap-2">
-                <input class="border rounded px-2 py-1" name="shipping_name"   placeholder="Recipient Name"  value="<?=e($r['shipping_name'] ?? '')?>"/>
-                <input class="border rounded px-2 py-1" name="shipping_phone"  placeholder="Recipient Phone" value="<?=e($r['shipping_phone'] ?? '')?>"/>
-                <input class="border rounded px-2 py-1 col-span-2" name="shipping_address" placeholder="Address" value="<?=e($r['shipping_address'] ?? '')?>"/>
-                <input class="border rounded px-2 py-1" name="shipping_city"   placeholder="City"   value="<?=e($r['shipping_city'] ?? '')?>"/>
-                <input class="border rounded px-2 py-1" name="shipping_state"  placeholder="State"  value="<?=e($r['shipping_state'] ?? '')?>"/>
-                <input class="border rounded px-2 py-1" name="shipping_zip"    placeholder="Zip"    value="<?=e($r['shipping_zip'] ?? '')?>"/>
+                <input class="border rounded px-2 py-1" name="shipping_name"   placeholder="Recipient Name"  value="<?=e($r['shipping_name'] ?: (trim(($r['first_name'] ?? '') . ' ' . ($r['last_name'] ?? '')) ?: ''))?>"/>
+                <input class="border rounded px-2 py-1" name="shipping_phone"  placeholder="Recipient Phone" value="<?=e($r['shipping_phone'] ?: ($r['phone'] ?? ''))?>"/>
+                <input class="border rounded px-2 py-1 col-span-2" name="shipping_address" placeholder="Address" value="<?=e($r['shipping_address'] ?: ($r['patient_address'] ?? ''))?>"/>
+                <input class="border rounded px-2 py-1" name="shipping_city"   placeholder="City"   value="<?=e($r['shipping_city'] ?: ($r['patient_city'] ?? ''))?>"/>
+                <input class="border rounded px-2 py-1" name="shipping_state"  placeholder="State"  value="<?=e($r['shipping_state'] ?: ($r['patient_state'] ?? ''))?>"/>
+                <input class="border rounded px-2 py-1" name="shipping_zip"    placeholder="Zip"    value="<?=e($r['shipping_zip'] ?: ($r['patient_zip'] ?? ''))?>"/>
                 <input class="border rounded px-2 py-1 col-span-2" name="tracking" placeholder="Tracking Number" value="<?=e($r['tracking_number'] ?? '')?>"/>
                 <select class="border rounded px-2 py-1" name="carrier">
                   <option value="">Auto-detect</option>
@@ -741,12 +742,12 @@ if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"
                 <input class="border rounded px-2 py-1" name="delivery_mode" value="<?=e($r['delivery_mode'] ?? '')?>" placeholder="e.g., Ship to patient">
 
                 <div class="col-span-2 text-sm font-medium text-slate-600 mt-2">Shipping</div>
-                <input class="border rounded px-2 py-1" name="shipping_name"  placeholder="Recipient Name"  value="<?=e($r['shipping_name'] ?? '')?>">
-                <input class="border rounded px-2 py-1" name="shipping_phone" placeholder="Recipient Phone" value="<?=e($r['shipping_phone'] ?? '')?>">
-                <input class="border rounded px-2 py-1 col-span-2" name="shipping_address" placeholder="Address" value="<?=e($r['shipping_address'] ?? '')?>">
-                <input class="border rounded px-2 py-1" name="shipping_city"  placeholder="City"  value="<?=e($r['shipping_city'] ?? '')?>">
-                <input class="border rounded px-2 py-1" name="shipping_state" placeholder="State" value="<?=e($r['shipping_state'] ?? '')?>">
-                <input class="border rounded px-2 py-1" name="shipping_zip"   placeholder="Zip"   value="<?=e($r['shipping_zip'] ?? '')?>">
+                <input class="border rounded px-2 py-1" name="shipping_name"  placeholder="Recipient Name"  value="<?=e($r['shipping_name'] ?: (trim(($r['first_name'] ?? '') . ' ' . ($r['last_name'] ?? '')) ?: ''))?>">
+                <input class="border rounded px-2 py-1" name="shipping_phone" placeholder="Recipient Phone" value="<?=e($r['shipping_phone'] ?: ($r['phone'] ?? ''))?>">
+                <input class="border rounded px-2 py-1 col-span-2" name="shipping_address" placeholder="Address" value="<?=e($r['shipping_address'] ?: ($r['patient_address'] ?? ''))?>">
+                <input class="border rounded px-2 py-1" name="shipping_city"  placeholder="City"  value="<?=e($r['shipping_city'] ?: ($r['patient_city'] ?? ''))?>">
+                <input class="border rounded px-2 py-1" name="shipping_state" placeholder="State" value="<?=e($r['shipping_state'] ?: ($r['patient_state'] ?? ''))?>">
+                <input class="border rounded px-2 py-1" name="shipping_zip"   placeholder="Zip"   value="<?=e($r['shipping_zip'] ?: ($r['patient_zip'] ?? ''))?>">
 
                 <div class="col-span-2 text-sm font-medium text-slate-600 mt-2">Patient Demographics</div>
                 <label class="text-xs text-slate-500">DOB</label><label class="text-xs text-slate-500">Insurance Provider</label>
