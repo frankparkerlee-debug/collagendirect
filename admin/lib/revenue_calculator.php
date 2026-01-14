@@ -386,10 +386,18 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
     ";
 
     try {
+        error_log("[revenue_calculator] WHERE clause: " . $where);
+        error_log("[revenue_calculator] Params: " . json_encode($params));
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
         error_log("[revenue_calculator] Query returned " . count($orders) . " orders for date range: $dateFrom to $dateTo");
+
+        // Debug: log first few orders to see their statuses
+        $debugSample = array_slice($orders, 0, 5);
+        foreach ($debugSample as $i => $o) {
+            error_log("[revenue_calculator] Sample order $i: id={$o['id']}, status={$o['status']}, billed_by=" . ($o['billed_by'] ?? 'NULL'));
+        }
     } catch (Throwable $e) {
         error_log("[revenue_calculator] SQL Error: " . $e->getMessage());
         error_log("[revenue_calculator] SQL Query: " . $sql);
