@@ -261,8 +261,9 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
     // Filter wholesale orders based on parameter
     if (!$includeWholesale) {
         // Exclude wholesale orders (for referral billing page)
+        // Only check order's billed_by field, not user's account_type
+        // A user with wholesale account can still have referral orders
         $where .= " AND (o.billed_by IS NULL OR o.billed_by != 'practice_dme')";
-        $where .= " AND (u.account_type IS NULL OR u.account_type NOT IN ('wholesale', 'dme_wholesale'))";
     }
 
     if ($hasReviewStatus) {

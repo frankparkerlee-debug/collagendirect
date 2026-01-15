@@ -169,33 +169,8 @@ try {
 /* ================= Data - Use SHARED get_revenue_metrics() ================= */
 // This ensures billing uses the EXACT same data source as dashboard and revenue report
 try {
-  error_log("[billing] Using get_revenue_metrics() with date range: '$from' to '$to', physician: " . ($phys ?: 'ALL'));
-
-  // DEBUG: Direct query to check what orders exist with approved status
-  $debugStmt = $pdo->query("
-    SELECT o.id, o.order_number, o.status, o.billed_by, o.created_at, u.account_type,
-           pt.deleted_at as patient_deleted, o.patient_id
-    FROM orders o
-    LEFT JOIN users u ON u.id = o.user_id
-    LEFT JOIN patients pt ON pt.id = o.patient_id
-    WHERE o.status = 'approved'
-    ORDER BY o.created_at DESC
-    LIMIT 10
-  ");
-  $debugOrders = $debugStmt->fetchAll(PDO::FETCH_ASSOC);
-  error_log("[billing] DEBUG - Approved orders in DB: " . json_encode($debugOrders));
-
   $metrics = get_revenue_metrics($pdo, $from, $to, $phys ?: null, null);
   $rows = $metrics['orders']; // Get the detailed orders array
-  error_log("[billing] get_revenue_metrics returned " . count($rows) . " orders");
-
-  // Debug: Log status breakdown before filtering
-  $statusCounts = [];
-  foreach ($rows as $r) {
-    $s = $r['status'] ?? 'NULL';
-    $statusCounts[$s] = ($statusCounts[$s] ?? 0) + 1;
-  }
-  error_log("[billing] Status breakdown before filtering: " . json_encode($statusCounts));
 
   // Apply client-side filters that get_revenue_metrics doesn't support
   if ($search !== '') {
@@ -236,12 +211,8 @@ try {
   // Re-index array after filtering
   $rows = array_values($rows);
 
-  // Debug: Log final count after filtering
-  error_log("[billing] After archiveFilter='$archiveFilter': " . count($rows) . " orders remaining");
-
 } catch (Throwable $e) {
   error_log("[billing] ERROR: " . $e->getMessage());
-  error_log("[billing] Stack trace: " . $e->getTraceAsString());
   $rows = [];
 }
 
@@ -250,22 +221,7 @@ $rates = load_reimbursement_rates($pdo);
 
 /* ================= View ================= */
 
-// Temporary debug output - remove after fixing
-$showDebug = isset($_GET['debug']) && $_GET['debug'] === '1';
-
 include __DIR__.'/_header.php';
-
-if ($showDebug): ?>
-<div class="bg-yellow-50 border border-yellow-300 rounded-lg p-4 mb-4 text-sm font-mono overflow-x-auto">
-  <h3 class="font-bold text-yellow-800 mb-2">DEBUG INFO (add ?debug=1 to URL)</h3>
-  <p><strong>Approved orders in DB:</strong></p>
-  <pre class="text-xs bg-yellow-100 p-2 rounded mb-2"><?=htmlspecialchars(json_encode($debugOrders ?? [], JSON_PRETTY_PRINT))?></pre>
-  <p><strong>get_revenue_metrics returned:</strong> <?=count($metrics['orders'] ?? [])?> orders</p>
-  <p><strong>Status breakdown (before filter):</strong> <?=htmlspecialchars(json_encode($statusCounts ?? []))?></p>
-  <p><strong>Archive filter:</strong> <?=htmlspecialchars($archiveFilter)?></p>
-  <p><strong>Final row count:</strong> <?=count($rows)?></p>
-</div>
-<?php endif;
 ?>
 <div>
   <h2 class="text-lg font-semibold mb-4">Billing</h2>
