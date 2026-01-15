@@ -467,6 +467,45 @@ try {
   // Commit transaction
   $pdo->commit();
 
+  // Send email notification to admin team (same as referral orders)
+  try {
+    require_once __DIR__ . '/../lib/email_notifications.php';
+
+    // Get practice/physician info
+    $userStmt = $pdo->prepare("SELECT first_name, last_name, practice_name, npi FROM users WHERE id = ?");
+    $userStmt->execute([$uid]);
+    $userInfo = $userStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+    $physicianName = trim(($userInfo['first_name'] ?? '') . ' ' . ($userInfo['last_name'] ?? ''));
+    $practiceName = $userInfo['practice_name'] ?? '';
+    $npi = $userInfo['npi'] ?? '';
+
+    // Build summary of items ordered
+    $productSummary = [];
+    foreach ($items as $item) {
+      $productData = $item['product'] ?? [];
+      $boxes = (int)($item['boxes'] ?? 0);
+      $productName = $productData['name'] ?? 'Unknown Product';
+      $productSummary[] = "$boxes box(es) of $productName";
+    }
+    $productList = implode(', ', $productSummary);
+
+    // Send notification using wholesale-specific format
+    send_wholesale_order_email([
+      'order_number' => $batchOrderNumber,
+      'order_date' => date('m/d/Y'),
+      'physician_name' => $physicianName,
+      'physician_npi' => $npi,
+      'practice_name' => $practiceName,
+      'items_count' => $ordersCreated,
+      'product_summary' => $productList,
+      'notes' => $notes ?? ''
+    ]);
+  } catch (Throwable $notifyErr) {
+    error_log('[wholesale-order.create] Email notification failed: ' . $notifyErr->getMessage());
+    // Don't fail the order creation if email fails
+  }
+
   echo json_encode([
     'ok' => true,
     'orders_created' => $ordersCreated,

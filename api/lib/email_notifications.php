@@ -909,3 +909,127 @@ View order: $adminPortalUrl
   error_log("[email] Order notification: sent $successCount/" . count($recipients) . " emails for order #$orderId");
   return $successCount > 0;
 }
+
+/**
+ * 9. Wholesale Order Submitted Email
+ * Audience: All manufacturer reps and superadmins
+ * Trigger: Wholesale order is submitted by a practice
+ */
+function send_wholesale_order_email(array $orderData): bool {
+  global $pdo;
+
+  // Get database connection if not available globally
+  if (!isset($pdo) || !$pdo) {
+    require_once __DIR__ . '/../../admin/db.php';
+  }
+
+  try {
+    // Get ALL manufacturer reps from admin_users
+    $mfgStmt = $pdo->query("SELECT email, name FROM admin_users WHERE role = 'manufacturer'");
+    $manufacturers = $mfgStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Get ALL superadmins from users table
+    $adminStmt = $pdo->query("SELECT email, first_name, last_name FROM users WHERE role = 'superadmin'");
+    $superadmins = $adminStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Combine recipients
+    $recipients = [];
+    foreach ($manufacturers as $mfg) {
+      $recipients[] = ['email' => $mfg['email'], 'name' => $mfg['name']];
+    }
+    foreach ($superadmins as $admin) {
+      $recipients[] = ['email' => $admin['email'], 'name' => trim(($admin['first_name'] ?? '') . ' ' . ($admin['last_name'] ?? ''))];
+    }
+
+    if (empty($recipients)) {
+      error_log('[email] No manufacturer reps or superadmins found for wholesale order notification');
+      return false;
+    }
+
+    error_log('[email] Found ' . count($recipients) . ' recipients for wholesale order notification');
+
+  } catch (Throwable $e) {
+    error_log('[email] Failed to get recipients for wholesale order: ' . $e->getMessage());
+    return false;
+  }
+
+  // Build email content
+  $orderNumber = $orderData['order_number'] ?? '';
+  $orderDate = $orderData['order_date'] ?? date('m/d/Y');
+  $physicianName = $orderData['physician_name'] ?? '';
+  $physicianNpi = $orderData['physician_npi'] ?? 'N/A';
+  $practiceName = $orderData['practice_name'] ?? '';
+  $itemsCount = $orderData['items_count'] ?? 0;
+  $productSummary = $orderData['product_summary'] ?? '';
+  $notes = $orderData['notes'] ?? '';
+
+  $adminPortalUrl = "https://collagendirect.health/admin/wholesale-orders.php";
+  $subject = "New Wholesale Order - $orderNumber";
+
+  $notesHtml = $notes ? "<p style='margin: 5px 0; color: #475569;'><strong>Notes:</strong> " . htmlspecialchars($notes) . "</p>" : '';
+  $notesText = $notes ? "Notes: $notes\n" : '';
+
+  $htmlBody = email_template($subject, "
+    <h2 style='color: #1e293b; margin: 0 0 20px 0;'>New Wholesale Order Submitted</h2>
+    <p style='color: #475569; line-height: 1.6;'>A new wholesale order has been submitted and is ready for processing.</p>
+
+    <div style='background-color: #fef3c7; border: 1px solid #fcd34d; border-radius: 8px; padding: 20px; margin: 20px 0;'>
+      <h3 style='margin: 0 0 15px 0; color: #92400e;'>Wholesale Order Details</h3>
+      <p style='margin: 5px 0; color: #475569;'><strong>Order Number:</strong> $orderNumber</p>
+      <p style='margin: 5px 0; color: #475569;'><strong>Order Date:</strong> $orderDate</p>
+      <p style='margin: 5px 0; color: #475569;'><strong>Items:</strong> $itemsCount product(s)</p>
+    </div>
+
+    <div style='background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 20px 0;'>
+      <h3 style='margin: 0 0 15px 0; color: #334155;'>Practice Information</h3>
+      <p style='margin: 5px 0; color: #475569;'><strong>Practice:</strong> $practiceName</p>
+      <p style='margin: 5px 0; color: #475569;'><strong>Physician:</strong> $physicianName</p>
+      <p style='margin: 5px 0; color: #475569;'><strong>NPI:</strong> $physicianNpi</p>
+    </div>
+
+    <div style='background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 20px 0;'>
+      <h3 style='margin: 0 0 15px 0; color: #334155;'>Products Ordered</h3>
+      <p style='margin: 5px 0; color: #475569;'>$productSummary</p>
+      $notesHtml
+    </div>
+
+    <div style='text-align: center; margin: 30px 0;'>
+      <a href='$adminPortalUrl' style='display: inline-block; background: linear-gradient(135deg, #d97706, #f59e0b); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600;'>
+        View Wholesale Orders
+      </a>
+    </div>
+  ");
+
+  $textBody = "New Wholesale Order - $orderNumber
+
+ORDER DETAILS
+Order Number: $orderNumber
+Order Date: $orderDate
+Items: $itemsCount product(s)
+
+PRACTICE
+Practice: $practiceName
+Physician: $physicianName
+NPI: $physicianNpi
+
+PRODUCTS ORDERED
+$productSummary
+$notesText
+View orders: $adminPortalUrl
+";
+
+  // Send to ALL recipients via SMTP
+  $successCount = 0;
+  foreach ($recipients as $recipient) {
+    $result = send_email($recipient['email'], $recipient['name'], $subject, $htmlBody, $textBody);
+    if ($result) {
+      $successCount++;
+      error_log("[email] Wholesale order notification sent to {$recipient['email']} for order $orderNumber");
+    } else {
+      error_log("[email] Failed to send wholesale order notification to {$recipient['email']} for order $orderNumber");
+    }
+  }
+
+  error_log("[email] Wholesale order notification: sent $successCount/" . count($recipients) . " emails for order $orderNumber");
+  return $successCount > 0;
+}
