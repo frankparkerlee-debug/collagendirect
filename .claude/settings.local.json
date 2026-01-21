@@ -4,7 +4,12 @@
       "Bash(/opt/homebrew/opt/postgresql@14/bin/psql:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push origin main)"
+      "Bash(git push origin main)",
+      "Bash(grep:*)",
+      "Bash(psql:*)",
+      "Bash(source .env.local)",
+      "Bash(git push)",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": []
