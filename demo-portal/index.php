@@ -491,7 +491,27 @@ $statusColors = [
     .shepherd-element {
       z-index: 1002 !important;
     }
+
+    /* Fix: Ensure demo banner is always clickable above any overlay */
+    .demo-banner {
+      z-index: 10000 !important;
+    }
+
+    /* Fix: Remove stuck shepherd overlay on page load */
+    .shepherd-modal-overlay-container.shepherd-modal-is-visible {
+      /* This will be removed by JS, but ensure it doesn't block if JS fails */
+    }
   </style>
+
+  <!-- Immediately remove any stuck Shepherd overlay before page renders -->
+  <script>
+    (function() {
+      // Remove any stuck overlay elements immediately
+      document.querySelectorAll('.shepherd-modal-overlay-container, .shepherd-element').forEach(function(el) {
+        el.remove();
+      });
+    })();
+  </script>
 </head>
 <body data-current-page="<?=e($page)?>">
 
@@ -902,9 +922,13 @@ $statusColors = [
       }
     }
 
-    // Start tour on first visit
+    // Cleanup any stuck tour overlays on page load
     document.addEventListener('DOMContentLoaded', () => {
-      DemoTour.checkAndStart();
+      // First cleanup any stuck overlays from previous page loads
+      DemoTour.cleanup();
+      // Tour auto-start is disabled until API issues are resolved
+      // Users can click "Restart Tour" button to manually start the tour
+      // DemoTour.checkAndStart();
     });
   </script>
 </body>

@@ -230,7 +230,7 @@ function initDemoTour() {
   return tour;
 }
 
-// Helper: Navigate to a page
+// Helper: Navigate to a page (full page navigation with tour state persistence)
 function navigateToPage(page) {
   return new Promise((resolve) => {
     const currentPage = document.body.dataset.currentPage;
@@ -239,14 +239,16 @@ function navigateToPage(page) {
       return;
     }
 
-    // Trigger navigation
-    const navItem = document.querySelector(`[data-nav="${page}"]`);
-    if (navItem) {
-      navItem.click();
-    }
+    // Store that we're mid-tour navigation in sessionStorage
+    sessionStorage.setItem('demoTourNavigating', 'true');
+    sessionStorage.setItem('demoTourTargetPage', page);
 
-    // Wait for page transition
-    setTimeout(resolve, 300);
+    // Navigate to the new page
+    window.location.href = '?page=' + page;
+
+    // This resolve won't actually run since we're navigating away,
+    // but keep it for completeness
+    resolve();
   });
 }
 
@@ -281,8 +283,43 @@ async function resetDemo() {
 
 // Check tour progress and start if needed
 async function checkAndStartTour() {
+  // Check if we're in the middle of a tour navigation
+  const isNavigating = sessionStorage.getItem('demoTourNavigating');
+  const targetPage = sessionStorage.getItem('demoTourTargetPage');
+  const currentPage = document.body.dataset.currentPage;
+
+  // Clear the navigation flags
+  sessionStorage.removeItem('demoTourNavigating');
+  sessionStorage.removeItem('demoTourTargetPage');
+
+  // If we just navigated for the tour, resume the tour at the appropriate step
+  if (isNavigating && targetPage === currentPage) {
+    const tour = initDemoTour();
+    tour.start();
+    // Skip to the step for this page
+    const pageStepMap = {
+      'dashboard': 1, // dashboard step
+      'patients': 3,  // patients-list step
+      'orders': 6,    // orders-list step
+      'wholesale': 8  // wholesale-form step
+    };
+    const targetStep = pageStepMap[currentPage] || 0;
+    for (let i = 0; i < targetStep; i++) {
+      tour.next();
+    }
+    return;
+  }
+
   try {
     const res = await fetch('/api/demo/tour.php', { credentials: 'include' });
+
+    // Handle non-ok response
+    if (!res.ok) {
+      console.error('Tour API returned status:', res.status);
+      // Don't start tour automatically if API fails - prevent gray overlay
+      return;
+    }
+
     const data = await res.json();
 
     if (!data.tour_completed) {
@@ -306,9 +343,15 @@ async function checkAndStartTour() {
     }
   } catch (e) {
     console.error('Failed to check tour progress:', e);
-    // Start tour anyway on first visit
-    const tour = initDemoTour();
-    tour.start();
+    // Don't start tour if there's an error - prevent gray overlay
+  }
+}
+
+// Cleanup any stuck Shepherd overlay (e.g., from failed tour start)
+function cleanupStuckOverlay() {
+  const overlay = document.querySelector('.shepherd-modal-overlay-container');
+  if (overlay) {
+    overlay.remove();
   }
 }
 
@@ -316,5 +359,6 @@ async function checkAndStartTour() {
 window.DemoTour = {
   init: initDemoTour,
   checkAndStart: checkAndStartTour,
-  reset: resetDemo
+  reset: resetDemo,
+  cleanup: cleanupStuckOverlay
 };

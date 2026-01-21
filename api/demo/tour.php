@@ -78,7 +78,7 @@ try {
     }
 
 } catch (Throwable $e) {
-    error_log('[demo/tour] Error: ' . $e->getMessage());
+    error_log('[demo/tour] Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
     http_response_code(500);
-    echo json_encode(['ok' => false, 'error' => 'Server error']);
+    echo json_encode(['ok' => false, 'error' => 'Server error: ' . $e->getMessage()]);
 }
