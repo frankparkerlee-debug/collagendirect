@@ -29,7 +29,7 @@ try {
     $pdo->exec("
         CREATE TABLE demo_sessions (
             id VARCHAR(64) PRIMARY KEY DEFAULT gen_random_uuid()::text,
-            admin_id INTEGER NOT NULL REFERENCES admins(id) ON DELETE CASCADE,
+            user_id VARCHAR(64) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
             started_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
             expires_at TIMESTAMP WITH TIME ZONE DEFAULT (CURRENT_TIMESTAMP + INTERVAL '24 hours'),
             tour_completed BOOLEAN DEFAULT FALSE,
@@ -99,7 +99,7 @@ try {
     // Create indexes
     echo "Creating indexes...\n";
     $pdo->exec("CREATE INDEX idx_demo_sessions_expires ON demo_sessions(expires_at)");
-    $pdo->exec("CREATE INDEX idx_demo_sessions_admin ON demo_sessions(admin_id)");
+    $pdo->exec("CREATE INDEX idx_demo_sessions_user ON demo_sessions(user_id)");
     $pdo->exec("CREATE INDEX idx_demo_patients_session ON demo_patients(demo_session_id)");
     $pdo->exec("CREATE INDEX idx_demo_orders_session ON demo_orders(demo_session_id)");
     $pdo->exec("CREATE INDEX idx_demo_orders_patient ON demo_orders(demo_patient_id)");

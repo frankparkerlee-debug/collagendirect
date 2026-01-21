@@ -28,10 +28,10 @@ if (!$email || !$password) {
 }
 
 try {
-    // Look up user in admins table (sales, admin, superadmin can access demo)
+    // Look up user in users table (sales, admin, superadmin can access demo)
     $stmt = $pdo->prepare("
-        SELECT id, email, password, first_name, last_name, role
-        FROM admins
+        SELECT id, email, password_hash, first_name, last_name, role
+        FROM users
         WHERE LOWER(email) = LOWER(?)
           AND role IN ('sales', 'admin', 'superadmin')
     ");
@@ -45,26 +45,26 @@ try {
     }
 
     // Verify password
-    if (!password_verify($password, $user['password'])) {
+    if (!password_verify($password, $user['password_hash'])) {
         http_response_code(401);
         echo json_encode(['ok' => false, 'error' => 'Invalid email or password']);
         exit;
     }
 
-    // Clean up any previous demo sessions for this admin user
-    $pdo->prepare("DELETE FROM demo_sessions WHERE admin_id = ?")->execute([$user['id']]);
+    // Clean up any previous demo sessions for this user
+    $pdo->prepare("DELETE FROM demo_sessions WHERE user_id = ?")->execute([$user['id']]);
 
     // Create new demo session
     $sessionId = bin2hex(random_bytes(16));
     $stmt = $pdo->prepare("
-        INSERT INTO demo_sessions (id, admin_id, started_at, expires_at)
+        INSERT INTO demo_sessions (id, user_id, started_at, expires_at)
         VALUES (?, ?, NOW(), NOW() + INTERVAL '24 hours')
     ");
     $stmt->execute([$sessionId, $user['id']]);
 
     // Set session variables
     $_SESSION['demo_mode'] = true;
-    $_SESSION['demo_admin_id'] = $user['id'];
+    $_SESSION['demo_user_id'] = $user['id'];
     $_SESSION['demo_session_id'] = $sessionId;
     $_SESSION['demo_user_name'] = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
 

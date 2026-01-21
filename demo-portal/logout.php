@@ -19,7 +19,7 @@ if (!empty($_SESSION['demo_session_id'])) {
 
 // Clear demo session variables
 unset($_SESSION['demo_mode']);
-unset($_SESSION['demo_admin_id']);
+unset($_SESSION['demo_user_id']);
 unset($_SESSION['demo_session_id']);
 unset($_SESSION['demo_user_name']);
 
