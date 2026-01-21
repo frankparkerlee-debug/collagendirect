@@ -59,6 +59,9 @@ try {
     // Update last login
     $pdo->prepare("UPDATE demo_users SET last_login_at = NOW() WHERE id = ?")->execute([$user['id']]);
 
+    // Clean up any previous sessions for this user (handles browser closes, expired sessions)
+    $pdo->prepare("DELETE FROM demo_sessions WHERE demo_user_id = ?")->execute([$user['id']]);
+
     // Create new demo session
     $sessionId = bin2hex(random_bytes(16));
     $stmt = $pdo->prepare("
