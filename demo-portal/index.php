@@ -27,10 +27,13 @@ if (!$sessionCheck->fetch()) {
 
 // Get current page
 $page = $_GET['page'] ?? 'dashboard';
-$validPages = ['dashboard', 'patients', 'orders', 'wholesale'];
+$validPages = ['dashboard', 'patients', 'orders', 'wholesale', 'referral-order'];
 if (!in_array($page, $validPages)) {
     $page = 'dashboard';
 }
+
+// Get patient ID for referral order page
+$selectedPatientId = $_GET['patient_id'] ?? null;
 
 // Fetch demo data for the current session
 $patients = [];
@@ -487,6 +490,86 @@ $statusColors = [
       box-shadow: 0 0 0 3px var(--ring);
     }
 
+    /* Upload Box Styles */
+    .upload-box {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: white;
+    }
+
+    .upload-box:hover {
+      border-color: var(--brand);
+      background: var(--brand-light);
+    }
+
+    .upload-box.uploaded {
+      border-color: var(--success);
+      border-style: solid;
+      background: #f0fdf4;
+    }
+
+    .upload-box .upload-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .upload-box .upload-success {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    /* ICD-10 Autocomplete Styles */
+    .icd10-results {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 100;
+    }
+
+    .icd10-results .icd10-item {
+      padding: 0.5rem 0.75rem;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8125rem;
+    }
+
+    .icd10-results .icd10-item:last-child {
+      border-bottom: none;
+    }
+
+    .icd10-results .icd10-item:hover {
+      background: var(--brand-light);
+    }
+
+    .icd10-results .icd10-code {
+      font-weight: 600;
+      color: var(--brand-dark);
+    }
+
+    .icd10-results .icd10-desc {
+      color: var(--ink-light);
+      margin-left: 0.5rem;
+    }
+
+    .form-group {
+      position: relative;
+    }
+
     /* Shepherd.js custom styles - ensure proper z-index layering */
     .shepherd-modal-overlay-container {
       z-index: 9998 !important;
@@ -668,8 +751,9 @@ $statusColors = [
                   <td><?=$patient['dob'] ? date('m/d/Y', strtotime($patient['dob'])) : '—'?></td>
                   <td><?=e($patient['insurance_provider'] ?: '—')?></td>
                   <td><?=e($patient['wound_location'] ?: '—')?></td>
-                  <td>
-                    <button onclick="createOrderForPatient('<?=e($patient['id'])?>')" class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8125rem;">Create Order</button>
+                  <td style="white-space: nowrap;">
+                    <a href="?page=referral-order&patient_id=<?=e($patient['id'])?>" class="btn btn-primary" style="padding: 0.25rem 0.5rem; font-size: 0.8125rem; margin-right: 0.25rem;">Referral Order</a>
+                    <a href="?page=wholesale&patient=<?=e($patient['id'])?>" class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8125rem;">Wholesale</a>
                   </td>
                 </tr>
                 <?php endforeach; ?>
@@ -760,6 +844,225 @@ $statusColors = [
 
             <div style="margin-top: 1.5rem;">
               <button type="submit" class="btn btn-primary">Place Wholesale Order</button>
+            </div>
+          </form>
+        </div>
+
+        <?php elseif ($page === 'referral-order'): ?>
+        <!-- Referral Order Page -->
+        <?php
+          $selectedPatient = null;
+          if ($selectedPatientId) {
+            foreach ($patients as $p) {
+              if ($p['id'] === $selectedPatientId) {
+                $selectedPatient = $p;
+                break;
+              }
+            }
+          }
+        ?>
+        <div id="referralOrderForm" class="card" style="padding: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h2 style="font-size: 1.125rem; font-weight: 600;">Create Referral Order</h2>
+            <span style="background: var(--brand-light); color: var(--brand-dark); padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600;">We Bill Insurance</span>
+          </div>
+
+          <form id="referralOrderFormEl">
+            <!-- Patient Selection -->
+            <div class="card" style="padding: 1rem; margin-bottom: 1.5rem; background: var(--bg-gray);">
+              <h3 style="font-size: 0.875rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--ink-light);">Patient Information</h3>
+              <div class="form-group" style="margin-bottom: 0;">
+                <select name="patient_id" id="referralPatientSelect" required class="form-input" style="font-size: 1rem;">
+                  <option value="">Select patient...</option>
+                  <?php foreach ($patients as $p): ?>
+                    <option value="<?=e($p['id'])?>" <?=$selectedPatientId === $p['id'] ? 'selected' : ''?>><?=e($p['first_name'] . ' ' . $p['last_name'])?> (<?=e($p['mrn'])?>)</option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+              <div id="patientInsuranceInfo" style="margin-top: 0.75rem; display: <?=$selectedPatient ? 'block' : 'none'?>;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.8125rem; color: var(--ink-light);">
+                  <span>Insurance: <strong id="patientInsurer"><?=e($selectedPatient['insurance_provider'] ?? '—')?></strong></span>
+                  <span>Member ID: <strong id="patientMemberId"><?=e($selectedPatient['insurance_member_id'] ?? '—')?></strong></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Wound Information -->
+            <div class="card" style="padding: 1rem; margin-bottom: 1.5rem; background: var(--bg-gray);">
+              <h3 style="font-size: 0.875rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--ink-light);">Wound Information</h3>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                  <label class="form-label">Wound Location *</label>
+                  <select name="wound_location" required class="form-input">
+                    <option value="">Select location...</option>
+                    <option value="Left Lower Leg">Left Lower Leg</option>
+                    <option value="Right Lower Leg">Right Lower Leg</option>
+                    <option value="Left Foot">Left Foot</option>
+                    <option value="Right Foot">Right Foot</option>
+                    <option value="Left Ankle">Left Ankle</option>
+                    <option value="Right Ankle">Right Ankle</option>
+                    <option value="Sacrum">Sacrum</option>
+                    <option value="Left Heel">Left Heel</option>
+                    <option value="Right Heel">Right Heel</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Wound Type *</label>
+                  <select name="wound_type" required class="form-input">
+                    <option value="">Select type...</option>
+                    <option value="Venous Ulcer">Venous Ulcer</option>
+                    <option value="Diabetic Ulcer">Diabetic Ulcer</option>
+                    <option value="Pressure Ulcer">Pressure Ulcer</option>
+                    <option value="Surgical Wound">Surgical Wound</option>
+                    <option value="Arterial Ulcer">Arterial Ulcer</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Wound Dimensions -->
+              <div style="margin-top: 1rem;">
+                <label class="form-label">Wound Dimensions (cm) *</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem;">
+                  <div>
+                    <input type="number" name="wound_length" step="0.1" min="0.1" placeholder="Length" required class="form-input" style="text-align: center;">
+                    <span style="font-size: 0.75rem; color: var(--ink-light); display: block; text-align: center; margin-top: 0.25rem;">Length</span>
+                  </div>
+                  <div>
+                    <input type="number" name="wound_width" step="0.1" min="0.1" placeholder="Width" required class="form-input" style="text-align: center;">
+                    <span style="font-size: 0.75rem; color: var(--ink-light); display: block; text-align: center; margin-top: 0.25rem;">Width</span>
+                  </div>
+                  <div>
+                    <input type="number" name="wound_depth" step="0.1" min="0" placeholder="Depth" class="form-input" style="text-align: center;">
+                    <span style="font-size: 0.75rem; color: var(--ink-light); display: block; text-align: center; margin-top: 0.25rem;">Depth</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ICD-10 Codes -->
+              <div style="margin-top: 1rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                  <label class="form-label">Primary ICD-10 Code *</label>
+                  <input type="text" name="icd10_primary" id="icd10Primary" required class="form-input" placeholder="Type to search..." autocomplete="off">
+                  <div id="icd10PrimaryResults" class="icd10-results" style="display: none;"></div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Secondary ICD-10 Code</label>
+                  <input type="text" name="icd10_secondary" id="icd10Secondary" class="form-input" placeholder="Optional..." autocomplete="off">
+                  <div id="icd10SecondaryResults" class="icd10-results" style="display: none;"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Product Selection -->
+            <div class="card" style="padding: 1rem; margin-bottom: 1.5rem; background: var(--bg-gray);">
+              <h3 style="font-size: 0.875rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--ink-light);">Product & Treatment</h3>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                  <label class="form-label">Product *</label>
+                  <select name="product_id" required class="form-input">
+                    <option value="">Select product...</option>
+                    <?php foreach ($products as $p): ?>
+                      <option value="<?=e($p['id'])?>" data-name="<?=e($p['name'])?>" data-size="<?=e($p['size'])?>"><?=e($p['name'])?> - <?=e($p['size'])?></option>
+                    <?php endforeach; ?>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Application Frequency *</label>
+                  <select name="frequency" required class="form-input">
+                    <option value="">Select frequency...</option>
+                    <option value="Weekly">Weekly</option>
+                    <option value="Every 2 Weeks">Every 2 Weeks</option>
+                    <option value="Monthly">Monthly</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group" style="margin-top: 1rem;">
+                <label class="form-label">Treatment Duration *</label>
+                <select name="duration" required class="form-input">
+                  <option value="">Select duration...</option>
+                  <option value="4 weeks">4 Weeks</option>
+                  <option value="8 weeks">8 Weeks</option>
+                  <option value="12 weeks">12 Weeks</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Document Uploads (Simulated) -->
+            <div class="card" style="padding: 1rem; margin-bottom: 1.5rem; background: var(--bg-gray);">
+              <h3 style="font-size: 0.875rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--ink-light);">Required Documents</h3>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <!-- Photo ID Upload -->
+                <div class="upload-box" id="photoIdUpload">
+                  <input type="file" id="photoIdFile" accept="image/*,.pdf" style="display: none;">
+                  <div class="upload-content" onclick="document.getElementById('photoIdFile').click()">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin: 0 auto 0.5rem;">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    <span style="font-weight: 500;">Photo ID</span>
+                    <span style="font-size: 0.75rem; color: var(--ink-light);">Click to upload</span>
+                  </div>
+                  <div class="upload-success" style="display: none;">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--success);">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    <span style="font-weight: 500; color: var(--success);">Uploaded</span>
+                  </div>
+                </div>
+
+                <!-- Insurance Card Upload -->
+                <div class="upload-box" id="insuranceUpload">
+                  <input type="file" id="insuranceFile" accept="image/*,.pdf" style="display: none;">
+                  <div class="upload-content" onclick="document.getElementById('insuranceFile').click()">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin: 0 auto 0.5rem;">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                    </svg>
+                    <span style="font-weight: 500;">Insurance Card</span>
+                    <span style="font-size: 0.75rem; color: var(--ink-light);">Click to upload</span>
+                  </div>
+                  <div class="upload-success" style="display: none;">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--success);">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    <span style="font-weight: 500; color: var(--success);">Uploaded</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Wound Photo Upload -->
+              <div class="upload-box" id="woundPhotoUpload" style="margin-top: 1rem;">
+                <input type="file" id="woundPhotoFile" accept="image/*" style="display: none;">
+                <div class="upload-content" onclick="document.getElementById('woundPhotoFile').click()">
+                  <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin: 0 auto 0.5rem;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  </svg>
+                  <span style="font-weight: 500;">Baseline Wound Photo</span>
+                  <span style="font-size: 0.75rem; color: var(--ink-light);">Click to upload wound photo</span>
+                </div>
+                <div class="upload-success" style="display: none;">
+                  <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--success);">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                  <span style="font-weight: 500; color: var(--success);">Photo Uploaded</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Submit -->
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <a href="?page=patients" class="btn">Cancel</a>
+              <button type="submit" class="btn btn-primary" style="min-width: 200px;">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right: 0.5rem;">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Submit Referral Order
+              </button>
             </div>
           </form>
         </div>
@@ -865,10 +1168,163 @@ $statusColors = [
       }
     });
 
-    // Create Order for Patient
-    function createOrderForPatient(patientId) {
-      location.href = '?page=wholesale&patient=' + patientId;
+    // Common ICD-10 codes for wound care (simulated autocomplete data)
+    const icd10Codes = [
+      { code: 'L97.529', desc: 'Non-pressure chronic ulcer of other part of unspecified foot with unspecified severity' },
+      { code: 'L97.519', desc: 'Non-pressure chronic ulcer of other part of right foot with unspecified severity' },
+      { code: 'L97.419', desc: 'Non-pressure chronic ulcer of heel and midfoot of unspecified foot with unspecified severity' },
+      { code: 'L97.319', desc: 'Non-pressure chronic ulcer of ankle with unspecified severity' },
+      { code: 'L97.219', desc: 'Non-pressure chronic ulcer of calf with unspecified severity' },
+      { code: 'L89.159', desc: 'Pressure ulcer of sacral region, unspecified stage' },
+      { code: 'L89.150', desc: 'Pressure ulcer of sacral region, unstageable' },
+      { code: 'E11.621', desc: 'Type 2 diabetes mellitus with foot ulcer' },
+      { code: 'E11.622', desc: 'Type 2 diabetes mellitus with other skin ulcer' },
+      { code: 'I83.019', desc: 'Varicose veins of unspecified lower extremity with ulcer of unspecified site' },
+      { code: 'I83.029', desc: 'Varicose veins of unspecified lower extremity with ulcer and inflammation' },
+      { code: 'I87.2', desc: 'Venous insufficiency (chronic) (peripheral)' },
+      { code: 'T81.31XA', desc: 'Disruption of external operation wound, NEC, initial encounter' },
+      { code: 'L98.499', desc: 'Non-pressure chronic ulcer of skin of other sites with unspecified severity' },
+    ];
+
+    // ICD-10 Autocomplete functionality
+    function initICD10Autocomplete(inputId, resultsId) {
+      const input = document.getElementById(inputId);
+      const results = document.getElementById(resultsId);
+      if (!input || !results) return;
+
+      input.addEventListener('input', function() {
+        const query = this.value.toLowerCase();
+        if (query.length < 2) {
+          results.style.display = 'none';
+          return;
+        }
+
+        const matches = icd10Codes.filter(item =>
+          item.code.toLowerCase().includes(query) ||
+          item.desc.toLowerCase().includes(query)
+        ).slice(0, 6);
+
+        if (matches.length === 0) {
+          results.style.display = 'none';
+          return;
+        }
+
+        results.innerHTML = matches.map(item => `
+          <div class="icd10-item" data-code="${item.code}" data-desc="${item.desc}">
+            <span class="icd10-code">${item.code}</span>
+            <span class="icd10-desc">${item.desc}</span>
+          </div>
+        `).join('');
+        results.style.display = 'block';
+      });
+
+      results.addEventListener('click', function(e) {
+        const item = e.target.closest('.icd10-item');
+        if (item) {
+          input.value = item.dataset.code + ' - ' + item.dataset.desc;
+          results.style.display = 'none';
+        }
+      });
+
+      // Close on click outside
+      document.addEventListener('click', function(e) {
+        if (!input.contains(e.target) && !results.contains(e.target)) {
+          results.style.display = 'none';
+        }
+      });
     }
+
+    // Initialize ICD-10 autocomplete for referral order page
+    initICD10Autocomplete('icd10Primary', 'icd10PrimaryResults');
+    initICD10Autocomplete('icd10Secondary', 'icd10SecondaryResults');
+
+    // File upload handlers (simulated - just shows success state)
+    ['photoIdFile', 'insuranceFile', 'woundPhotoFile'].forEach(fileId => {
+      const fileInput = document.getElementById(fileId);
+      if (fileInput) {
+        fileInput.addEventListener('change', function() {
+          if (this.files.length > 0) {
+            const uploadBox = this.closest('.upload-box');
+            uploadBox.classList.add('uploaded');
+            uploadBox.querySelector('.upload-content').style.display = 'none';
+            uploadBox.querySelector('.upload-success').style.display = 'flex';
+          }
+        });
+      }
+    });
+
+    // Patient selection updates insurance info display
+    const referralPatientSelect = document.getElementById('referralPatientSelect');
+    if (referralPatientSelect) {
+      const patientData = <?php echo json_encode(array_map(function($p) {
+        return [
+          'id' => $p['id'],
+          'insurance_provider' => $p['insurance_provider'] ?? '',
+          'insurance_member_id' => $p['insurance_member_id'] ?? ''
+        ];
+      }, $patients)); ?>;
+
+      referralPatientSelect.addEventListener('change', function() {
+        const patient = patientData.find(p => p.id === this.value);
+        const infoDiv = document.getElementById('patientInsuranceInfo');
+        if (patient && infoDiv) {
+          document.getElementById('patientInsurer').textContent = patient.insurance_provider || '—';
+          document.getElementById('patientMemberId').textContent = patient.insurance_member_id || '—';
+          infoDiv.style.display = 'block';
+        } else if (infoDiv) {
+          infoDiv.style.display = 'none';
+        }
+      });
+    }
+
+    // Referral Order Form submission
+    document.getElementById('referralOrderFormEl')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+
+      const productSelect = form.querySelector('[name="product_id"]');
+      const selectedOption = productSelect.options[productSelect.selectedIndex];
+
+      const data = {
+        patient_id: formData.get('patient_id'),
+        product_id: parseInt(formData.get('product_id')),
+        product: selectedOption.dataset.name,
+        product_size: selectedOption.dataset.size,
+        quantity: 1,
+        payment_type: 'referral',
+        billed_by: 'collagen_direct',
+        delivery_mode: 'patient',
+        frequency: formData.get('frequency'),
+        wound_location: formData.get('wound_location'),
+        wound_type: formData.get('wound_type'),
+        wound_length: formData.get('wound_length'),
+        wound_width: formData.get('wound_width'),
+        wound_depth: formData.get('wound_depth'),
+        icd10_primary: formData.get('icd10_primary'),
+        icd10_secondary: formData.get('icd10_secondary')
+      };
+
+      try {
+        const res = await fetch('/api/demo/orders.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(data)
+        });
+
+        const result = await res.json();
+        if (result.ok) {
+          alert('Referral Order ' + result.order_number + ' submitted successfully!\n\nCollagenDirect will handle insurance billing for this patient.');
+          location.href = '?page=orders';
+        } else {
+          alert(result.error || 'Failed to create order');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Network error');
+      }
+    });
 
     // Wholesale Order Form
     document.getElementById('wholesaleOrderForm')?.addEventListener('submit', async (e) => {

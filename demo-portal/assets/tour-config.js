@@ -112,16 +112,15 @@ function initDemoTour() {
     ]
   });
 
-  // Step 6: Referral Orders Explanation
+  // Step 6: Referral Order Button
   tour.addStep({
-    id: 'referral-orders',
-    title: 'Referral Orders',
+    id: 'referral-button',
+    title: 'Creating a Referral Order',
     text: `
-      <p>From the patient list, click <strong>Create Order</strong> to place a <span style="color: #4DB8A8; font-weight: 600;">Referral Order</span>.</p>
+      <p>Click <strong style="color: #4DB8A8;">Referral Order</strong> to start an insurance-billed order.</p>
       <p class="text-sm text-gray-500 mt-2">With Referral Orders:</p>
       <ul class="text-sm text-gray-600 mt-1 ml-4 list-disc">
         <li>CollagenDirect bills the patient's insurance</li>
-        <li>Product ships directly to the patient</li>
         <li>No upfront cost to your practice</li>
         <li>We handle all billing and collections</li>
       </ul>
@@ -129,11 +128,45 @@ function initDemoTour() {
     attachTo: { element: '#patientsList', on: 'top' },
     buttons: [
       { text: 'Back', action: tour.back, secondary: true },
-      { text: 'Next', action: tour.next }
+      { text: 'See Referral Form', action: tour.next }
     ]
   });
 
-  // Step 7: Orders Navigation
+  // Step 7: Referral Order Form
+  tour.addStep({
+    id: 'referral-form',
+    title: 'Referral Order Form',
+    text: `
+      <p>The referral order form captures all clinical information needed for insurance billing:</p>
+      <ul class="text-sm text-gray-600 mt-2 ml-4 list-disc">
+        <li><strong>Wound details</strong> - location, type, dimensions</li>
+        <li><strong>ICD-10 codes</strong> - searchable diagnosis lookup</li>
+        <li><strong>Product selection</strong> - size matched to wound</li>
+        <li><strong>Documents</strong> - Photo ID, insurance card, wound photo</li>
+      </ul>
+    `,
+    attachTo: { element: '#referralOrderForm', on: 'top' },
+    buttons: [
+      { text: 'Back', action: tour.back, secondary: true },
+      { text: 'Next', action: tour.next }
+    ],
+    beforeShowPromise: function() {
+      // Navigate to referral order page for first patient
+      return new Promise((resolve) => {
+        const currentPage = document.body.dataset.currentPage;
+        if (currentPage === 'referral-order') {
+          resolve();
+          return;
+        }
+        sessionStorage.setItem('demoTourNavigating', 'true');
+        sessionStorage.setItem('demoTourTargetPage', 'referral-order');
+        window.location.href = '?page=referral-order';
+        resolve();
+      });
+    }
+  });
+
+  // Step 8: Orders Navigation
   tour.addStep({
     id: 'orders-nav',
     title: 'Order Management',
@@ -148,7 +181,7 @@ function initDemoTour() {
     ]
   });
 
-  // Step 7: Orders List
+  // Step 9: Orders List
   tour.addStep({
     id: 'orders-list',
     title: 'Order Tracking',
@@ -171,7 +204,7 @@ function initDemoTour() {
     }
   });
 
-  // Step 9: Wholesale Orders
+  // Step 10: Wholesale Orders
   tour.addStep({
     id: 'wholesale-nav',
     title: 'Wholesale / DME Orders',
@@ -191,7 +224,7 @@ function initDemoTour() {
     ]
   });
 
-  // Step 10: Wholesale Interface
+  // Step 11: Wholesale Interface
   tour.addStep({
     id: 'wholesale-form',
     title: 'Place a Wholesale Order',
@@ -213,7 +246,7 @@ function initDemoTour() {
     }
   });
 
-  // Step 11: Tour Complete
+  // Step 12: Tour Complete
   tour.addStep({
     id: 'complete',
     title: 'Tour Complete!',
@@ -241,7 +274,7 @@ function initDemoTour() {
       {
         text: 'Start Exploring',
         action: () => {
-          saveTourProgress(11, true);
+          saveTourProgress(12, true);
           tour.complete();
         }
       }
@@ -325,10 +358,11 @@ async function checkAndStartTour() {
     tour.start();
     // Skip to the step for this page
     const pageStepMap = {
-      'dashboard': 1, // dashboard step
-      'patients': 3,  // patients-list step
-      'orders': 7,    // orders-list step
-      'wholesale': 9  // wholesale-form step
+      'dashboard': 1,       // dashboard step
+      'patients': 3,        // patients-list step
+      'referral-order': 6,  // referral-form step
+      'orders': 8,          // orders-list step
+      'wholesale': 10       // wholesale-form step
     };
     const targetStep = pageStepMap[currentPage] || 0;
     for (let i = 0; i < targetStep; i++) {
@@ -353,7 +387,7 @@ async function checkAndStartTour() {
       const tour = initDemoTour();
 
       // If user was partway through, offer to resume or restart
-      if (data.tour_step_reached > 0 && data.tour_step_reached < 11) {
+      if (data.tour_step_reached > 0 && data.tour_step_reached < 12) {
         const resume = confirm('Would you like to resume the tour where you left off?');
         if (resume) {
           tour.start();
