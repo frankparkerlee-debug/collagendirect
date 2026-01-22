@@ -25,8 +25,9 @@ function initDemoTour() {
       <p class="text-sm text-gray-500 mt-2">You'll learn how to:</p>
       <ul class="text-sm text-gray-600 mt-1 ml-4 list-disc">
         <li>Manage patient records</li>
-        <li>Place and track orders</li>
-        <li>Create wholesale/DME orders</li>
+        <li>Place <strong>Referral Orders</strong> (we bill insurance)</li>
+        <li>Place <strong>Wholesale Orders</strong> (you bill as DME)</li>
+        <li>Track order status and shipments</li>
       </ul>
     `,
     buttons: [
@@ -111,7 +112,28 @@ function initDemoTour() {
     ]
   });
 
-  // Step 6: Orders Navigation
+  // Step 6: Referral Orders Explanation
+  tour.addStep({
+    id: 'referral-orders',
+    title: 'Referral Orders',
+    text: `
+      <p>From the patient list, click <strong>Create Order</strong> to place a <span style="color: #4DB8A8; font-weight: 600;">Referral Order</span>.</p>
+      <p class="text-sm text-gray-500 mt-2">With Referral Orders:</p>
+      <ul class="text-sm text-gray-600 mt-1 ml-4 list-disc">
+        <li>CollagenDirect bills the patient's insurance</li>
+        <li>Product ships directly to the patient</li>
+        <li>No upfront cost to your practice</li>
+        <li>We handle all billing and collections</li>
+      </ul>
+    `,
+    attachTo: { element: '#patientsList', on: 'top' },
+    buttons: [
+      { text: 'Back', action: tour.back, secondary: true },
+      { text: 'Next', action: tour.next }
+    ]
+  });
+
+  // Step 7: Orders Navigation
   tour.addStep({
     id: 'orders-nav',
     title: 'Order Management',
@@ -149,13 +171,18 @@ function initDemoTour() {
     }
   });
 
-  // Step 8: Wholesale Orders
+  // Step 9: Wholesale Orders
   tour.addStep({
     id: 'wholesale-nav',
     title: 'Wholesale / DME Orders',
     text: `
-      <p><strong>Wholesale Orders</strong> allows practices with DME licenses to order in bulk.</p>
-      <p class="text-sm text-gray-500 mt-2">Different pricing and workflow for direct practice billing.</p>
+      <p><strong>Wholesale Orders</strong> are for practices with DME licenses.</p>
+      <p class="text-sm text-gray-500 mt-2">With Wholesale Orders:</p>
+      <ul class="text-sm text-gray-600 mt-1 ml-4 list-disc">
+        <li>Your practice purchases inventory</li>
+        <li>You bill insurance directly as DME supplier</li>
+        <li>Higher margins for your practice</li>
+      </ul>
     `,
     attachTo: { element: '[data-nav="wholesale"]', on: 'right' },
     buttons: [
@@ -164,16 +191,16 @@ function initDemoTour() {
     ]
   });
 
-  // Step 9: Wholesale Interface
+  // Step 10: Wholesale Interface
   tour.addStep({
     id: 'wholesale-form',
-    title: 'Bulk Ordering Made Easy',
+    title: 'Place a Wholesale Order',
     text: `
-      <p>Create wholesale orders for multiple patients at once.</p>
+      <p>Create wholesale orders to stock your practice.</p>
       <ul class="text-sm text-gray-600 mt-2 ml-4 list-disc">
         <li>Select products and quantities</li>
-        <li>Choose shipping destination</li>
-        <li>Order ships directly to your practice</li>
+        <li>Ship to your office or directly to patient</li>
+        <li>Wholesale pricing with net-30 terms</li>
       </ul>
     `,
     attachTo: { element: '#wholesaleForm', on: 'top' },
@@ -186,17 +213,17 @@ function initDemoTour() {
     }
   });
 
-  // Step 10: Tour Complete
+  // Step 11: Tour Complete
   tour.addStep({
     id: 'complete',
     title: 'Tour Complete!',
     text: `
       <p>You've completed the guided tour of CollagenDirect.</p>
-      <p class="text-sm text-gray-500 mt-3">Feel free to explore the demo portal. You can:</p>
+      <p class="text-sm text-gray-500 mt-3">Feel free to explore the demo portal:</p>
       <ul class="text-sm text-gray-600 mt-1 ml-4 list-disc">
         <li>Create test patients</li>
-        <li>Place demo orders</li>
-        <li>Try the wholesale ordering</li>
+        <li>Place <strong>Referral</strong> orders (we bill insurance)</li>
+        <li>Place <strong>Wholesale</strong> orders (you bill as DME)</li>
       </ul>
       <p class="text-sm text-amber-600 mt-3">
         <strong>Note:</strong> All demo data is automatically deleted within 24 hours.
@@ -214,7 +241,7 @@ function initDemoTour() {
       {
         text: 'Start Exploring',
         action: () => {
-          saveTourProgress(10, true);
+          saveTourProgress(11, true);
           tour.complete();
         }
       }
@@ -300,8 +327,8 @@ async function checkAndStartTour() {
     const pageStepMap = {
       'dashboard': 1, // dashboard step
       'patients': 3,  // patients-list step
-      'orders': 6,    // orders-list step
-      'wholesale': 8  // wholesale-form step
+      'orders': 7,    // orders-list step
+      'wholesale': 9  // wholesale-form step
     };
     const targetStep = pageStepMap[currentPage] || 0;
     for (let i = 0; i < targetStep; i++) {
@@ -326,7 +353,7 @@ async function checkAndStartTour() {
       const tour = initDemoTour();
 
       // If user was partway through, offer to resume or restart
-      if (data.tour_step_reached > 0 && data.tour_step_reached < 10) {
+      if (data.tour_step_reached > 0 && data.tour_step_reached < 11) {
         const resume = confirm('Would you like to resume the tour where you left off?');
         if (resume) {
           tour.start();
