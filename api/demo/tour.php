@@ -55,7 +55,8 @@ try {
 
             if ($tourCompleted !== null) {
                 $updates[] = "tour_completed = ?";
-                $params[] = $tourCompleted;
+                // PostgreSQL needs 't'/'f' or 1/0 for boolean, not PHP bool
+                $params[] = $tourCompleted ? 't' : 'f';
             }
 
             if (empty($updates)) {
