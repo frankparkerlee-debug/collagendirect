@@ -5,12 +5,18 @@
  */
 declare(strict_types=1);
 
-require_once __DIR__ . '/auth_check.php';
-require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/../api/lib/email_sender.php';
 
+// Require admin login
+$admin = current_admin();
+if (!$admin) {
+    header('Location: /admin/login.php');
+    exit;
+}
+
 // Only superadmin can send bulk emails
-if (($_SESSION['role'] ?? '') !== 'superadmin') {
+if (($admin['role'] ?? '') !== 'superadmin') {
     header('Location: /admin/');
     exit;
 }
