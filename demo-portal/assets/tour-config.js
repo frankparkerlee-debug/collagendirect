@@ -21,13 +21,12 @@ function initDemoTour() {
     id: 'welcome',
     title: 'Welcome to CollagenDirect!',
     text: `
-      <p>This guided tour will walk you through the key features of our physician portal.</p>
-      <p class="text-sm text-gray-500 mt-2">You'll learn how to:</p>
+      <p>This quick tour will walk you through the key features of our physician portal.</p>
+      <p class="text-sm text-gray-500 mt-2">You'll see how to:</p>
       <ul class="text-sm text-gray-600 mt-1 ml-4 list-disc">
         <li>Manage patient records</li>
         <li>Place <strong>Referral Orders</strong> (we bill insurance)</li>
         <li>Place <strong>Wholesale Orders</strong> (you bill as DME)</li>
-        <li>Track order status and shipments</li>
       </ul>
     `,
     buttons: [
@@ -51,8 +50,7 @@ function initDemoTour() {
     id: 'dashboard',
     title: 'Dashboard Overview',
     text: `
-      <p>Your dashboard provides a quick overview of your practice activity.</p>
-      <p class="text-sm text-gray-500 mt-2">See active patients, pending orders, and recent activity at a glance.</p>
+      <p>Your dashboard shows practice activity at a glance — active patients, pending orders, and recent activity.</p>
     `,
     attachTo: { element: '#dashboardMetrics', on: 'bottom' },
     buttons: [
@@ -64,27 +62,12 @@ function initDemoTour() {
     }
   });
 
-  // Step 3: Patient List
-  tour.addStep({
-    id: 'patients-nav',
-    title: 'Patient Management',
-    text: `
-      <p>Click <strong>Patients</strong> to view and manage your patient roster.</p>
-      <p class="text-sm text-gray-500 mt-2">You can search, filter, and add new patients from this section.</p>
-    `,
-    attachTo: { element: '[data-nav="patients"]', on: 'right' },
-    buttons: [
-      { text: 'Back', action: tour.back, secondary: true },
-      { text: 'Next', action: tour.next }
-    ]
-  });
-
-  // Step 4: Patient List View
+  // Step 3: Patient Management
   tour.addStep({
     id: 'patients-list',
-    title: 'Your Patient Roster',
+    title: 'Patient Management',
     text: `
-      <p>Here you can see all your patients with their key information.</p>
+      <p>The <strong>Patients</strong> section shows your full roster. Search, filter, or add new patients here.</p>
       <p class="text-sm text-gray-500 mt-2">The demo includes 5 sample patients to explore.</p>
     `,
     attachTo: { element: '#patientsList', on: 'top' },
@@ -97,27 +80,12 @@ function initDemoTour() {
     }
   });
 
-  // Step 5: Add Patient Button
+  // Step 4: Referral Orders Intro
   tour.addStep({
-    id: 'add-patient',
-    title: 'Adding New Patients',
+    id: 'referral-intro',
+    title: 'Referral Orders',
     text: `
-      <p>Click <strong>Add Patient</strong> to create a new patient record.</p>
-      <p class="text-sm text-gray-500 mt-2">You'll enter demographics, insurance info, and wound details.</p>
-    `,
-    attachTo: { element: '#addPatientBtn', on: 'bottom' },
-    buttons: [
-      { text: 'Back', action: tour.back, secondary: true },
-      { text: 'Next', action: tour.next }
-    ]
-  });
-
-  // Step 6: Referral Order Button
-  tour.addStep({
-    id: 'referral-button',
-    title: 'Creating a Referral Order',
-    text: `
-      <p>Click <strong style="color: #4DB8A8;">Referral Order</strong> to start an insurance-billed order.</p>
+      <p>Click <strong style="color: #4DB8A8;">Referral Order</strong> on any patient to start an insurance-billed order.</p>
       <p class="text-sm text-gray-500 mt-2">With Referral Orders:</p>
       <ul class="text-sm text-gray-600 mt-1 ml-4 list-disc">
         <li>CollagenDirect bills the patient's insurance</li>
@@ -128,21 +96,21 @@ function initDemoTour() {
     attachTo: { element: '#patientsList', on: 'top' },
     buttons: [
       { text: 'Back', action: tour.back, secondary: true },
-      { text: 'See Referral Form', action: tour.next }
+      { text: 'See the Form', action: tour.next }
     ]
   });
 
-  // Step 7: Referral Order Form
+  // Step 5: Referral Order Form
   tour.addStep({
     id: 'referral-form',
     title: 'Referral Order Form',
     text: `
-      <p>The referral order form captures all clinical information needed for insurance billing:</p>
+      <p>The form captures everything needed for insurance billing:</p>
       <ul class="text-sm text-gray-600 mt-2 ml-4 list-disc">
-        <li><strong>Wound details</strong> - location, type, dimensions</li>
-        <li><strong>ICD-10 codes</strong> - searchable diagnosis lookup</li>
-        <li><strong>Product selection</strong> - size matched to wound</li>
-        <li><strong>Documents</strong> - Photo ID, insurance card, wound photo</li>
+        <li><strong>Wound details</strong> — location, type, dimensions</li>
+        <li><strong>ICD-10 lookup</strong> — searchable diagnosis codes</li>
+        <li><strong>Product selection</strong> — size matched to wound</li>
+        <li><strong>Documents</strong> — ID, insurance card, wound photo</li>
       </ul>
     `,
     attachTo: { element: '#referralOrderForm', on: 'top' },
@@ -151,7 +119,6 @@ function initDemoTour() {
       { text: 'Next', action: tour.next }
     ],
     beforeShowPromise: function() {
-      // Navigate to referral order page for first patient
       return new Promise((resolve) => {
         const currentPage = document.body.dataset.currentPage;
         if (currentPage === 'referral-order') {
@@ -166,32 +133,17 @@ function initDemoTour() {
     }
   });
 
-  // Step 8: Orders Navigation
-  tour.addStep({
-    id: 'orders-nav',
-    title: 'Order Management',
-    text: `
-      <p>The <strong>Orders</strong> section shows all patient orders.</p>
-      <p class="text-sm text-gray-500 mt-2">Track order status from submission through delivery.</p>
-    `,
-    attachTo: { element: '[data-nav="orders"]', on: 'right' },
-    buttons: [
-      { text: 'Back', action: tour.back, secondary: true },
-      { text: 'Next', action: tour.next }
-    ]
-  });
-
-  // Step 9: Orders List
+  // Step 6: Order Tracking
   tour.addStep({
     id: 'orders-list',
     title: 'Order Tracking',
     text: `
-      <p>View all orders with their current status.</p>
+      <p>The <strong>Orders</strong> section tracks all orders from submission to delivery:</p>
       <ul class="text-sm text-gray-600 mt-2 ml-4 list-disc">
-        <li><span class="text-yellow-600">Submitted</span> - Awaiting review</li>
-        <li><span class="text-green-600">Approved</span> - Ready to ship</li>
-        <li><span class="text-blue-600">In Transit</span> - On the way</li>
-        <li><span class="text-emerald-600">Delivered</span> - Complete</li>
+        <li><span class="text-yellow-600">Submitted</span> — Awaiting review</li>
+        <li><span class="text-green-600">Approved</span> — Ready to ship</li>
+        <li><span class="text-blue-600">In Transit</span> — On the way</li>
+        <li><span class="text-emerald-600">Delivered</span> — Complete</li>
       </ul>
     `,
     attachTo: { element: '#ordersList', on: 'top' },
@@ -204,62 +156,43 @@ function initDemoTour() {
     }
   });
 
-  // Step 10: Wholesale Orders
-  tour.addStep({
-    id: 'wholesale-nav',
-    title: 'Wholesale / DME Orders',
-    text: `
-      <p><strong>Wholesale Orders</strong> are for practices with DME licenses.</p>
-      <p class="text-sm text-gray-500 mt-2">With Wholesale Orders:</p>
-      <ul class="text-sm text-gray-600 mt-1 ml-4 list-disc">
-        <li>Your practice purchases inventory</li>
-        <li>You bill insurance directly as DME supplier</li>
-        <li>Higher margins for your practice</li>
-      </ul>
-    `,
-    attachTo: { element: '[data-nav="wholesale"]', on: 'right' },
-    buttons: [
-      { text: 'Back', action: tour.back, secondary: true },
-      { text: 'Next', action: tour.next }
-    ]
-  });
-
-  // Step 11: Wholesale Interface
+  // Step 7: Wholesale Orders
   tour.addStep({
     id: 'wholesale-form',
-    title: 'Place a Wholesale Order',
+    title: 'Wholesale / DME Orders',
     text: `
-      <p>Create wholesale orders to stock your practice.</p>
+      <p><strong>Wholesale Orders</strong> are for practices with DME licenses:</p>
       <ul class="text-sm text-gray-600 mt-2 ml-4 list-disc">
-        <li>Select products and quantities</li>
-        <li>Ship to your office or directly to patient</li>
-        <li>Wholesale pricing with net-30 terms</li>
+        <li>Purchase inventory at wholesale pricing</li>
+        <li>You bill insurance directly as DME supplier</li>
+        <li>Ship to office or directly to patient</li>
+        <li>Net-30 payment terms</li>
       </ul>
     `,
     attachTo: { element: '#wholesaleForm', on: 'top' },
     buttons: [
       { text: 'Back', action: tour.back, secondary: true },
-      { text: 'Next', action: tour.next }
+      { text: 'Finish', action: tour.next }
     ],
     beforeShowPromise: function() {
       return navigateToPage('wholesale');
     }
   });
 
-  // Step 12: Tour Complete
+  // Step 8: Tour Complete
   tour.addStep({
     id: 'complete',
     title: 'Tour Complete!',
     text: `
-      <p>You've completed the guided tour of CollagenDirect.</p>
-      <p class="text-sm text-gray-500 mt-3">Feel free to explore the demo portal:</p>
+      <p>You're all set to explore the CollagenDirect demo portal.</p>
+      <p class="text-sm text-gray-500 mt-3">Try it out:</p>
       <ul class="text-sm text-gray-600 mt-1 ml-4 list-disc">
         <li>Create test patients</li>
-        <li>Place <strong>Referral</strong> orders (we bill insurance)</li>
-        <li>Place <strong>Wholesale</strong> orders (you bill as DME)</li>
+        <li>Place Referral or Wholesale orders</li>
+        <li>Track order status</li>
       </ul>
       <p class="text-sm text-amber-600 mt-3">
-        <strong>Note:</strong> All demo data is automatically deleted within 24 hours.
+        <strong>Note:</strong> Demo data is automatically cleared within 24 hours.
       </p>
     `,
     buttons: [
@@ -274,7 +207,7 @@ function initDemoTour() {
       {
         text: 'Start Exploring',
         action: () => {
-          saveTourProgress(12, true);
+          saveTourProgress(8, true);
           tour.complete();
         }
       }
@@ -359,10 +292,10 @@ async function checkAndStartTour() {
     // Skip to the step for this page
     const pageStepMap = {
       'dashboard': 1,       // dashboard step
-      'patients': 3,        // patients-list step
-      'referral-order': 6,  // referral-form step
-      'orders': 8,          // orders-list step
-      'wholesale': 10       // wholesale-form step
+      'patients': 2,        // patients-list step
+      'referral-order': 4,  // referral-form step
+      'orders': 5,          // orders-list step
+      'wholesale': 6        // wholesale-form step
     };
     const targetStep = pageStepMap[currentPage] || 0;
     for (let i = 0; i < targetStep; i++) {
@@ -387,7 +320,7 @@ async function checkAndStartTour() {
       const tour = initDemoTour();
 
       // If user was partway through, offer to resume or restart
-      if (data.tour_step_reached > 0 && data.tour_step_reached < 12) {
+      if (data.tour_step_reached > 0 && data.tour_step_reached < 8) {
         const resume = confirm('Would you like to resume the tour where you left off?');
         if (resume) {
           tour.start();
