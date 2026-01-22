@@ -27,15 +27,16 @@ $sentCount = 0;
 $failedCount = 0;
 $recipients = [];
 
-// Get all active sales reps (users with role 'distributor' or 'rep')
+// Get all active sales reps from sales_reps table joined to users
 try {
     $stmt = $pdo->query("
-        SELECT id, email, COALESCE(first_name || ' ' || last_name, first_name, email) as name
-        FROM users
-        WHERE role IN ('distributor', 'rep', 'sales_rep')
-        AND email IS NOT NULL
-        AND email != ''
-        ORDER BY first_name, last_name
+        SELECT u.id, u.email, COALESCE(u.first_name || ' ' || u.last_name, u.first_name, u.email) as name
+        FROM users u
+        INNER JOIN sales_reps sr ON sr.user_id = u.id
+        WHERE sr.status = 'active'
+        AND u.email IS NOT NULL
+        AND u.email != ''
+        ORDER BY u.first_name, u.last_name
     ");
     $recipients = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {
