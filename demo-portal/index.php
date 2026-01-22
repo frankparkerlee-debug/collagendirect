@@ -1381,9 +1381,8 @@ $statusColors = [
     document.addEventListener('DOMContentLoaded', () => {
       // First cleanup any stuck overlays from previous page loads
       DemoTour.cleanup();
-      // Tour auto-start is disabled until API issues are resolved
-      // Users can click "Restart Tour" button to manually start the tour
-      // DemoTour.checkAndStart();
+      // Auto-start tour for new sessions or resume for in-progress tours
+      DemoTour.checkAndStart();
     });
   </script>
 </body>

@@ -285,18 +285,20 @@ async function checkAndStartTour() {
   sessionStorage.removeItem('demoTourNavigating');
   sessionStorage.removeItem('demoTourTargetPage');
 
+  // Page step map for resuming tour at correct position
+  const pageStepMap = {
+    'dashboard': 1,       // dashboard step
+    'patients': 2,        // patients-list step
+    'referral-order': 4,  // referral-form step
+    'orders': 5,          // orders-list step
+    'wholesale': 6        // wholesale-form step
+  };
+
   // If we just navigated for the tour, resume the tour at the appropriate step
   if (isNavigating && targetPage === currentPage) {
     const tour = initDemoTour();
     tour.start();
     // Skip to the step for this page
-    const pageStepMap = {
-      'dashboard': 1,       // dashboard step
-      'patients': 2,        // patients-list step
-      'referral-order': 4,  // referral-form step
-      'orders': 5,          // orders-list step
-      'wholesale': 6        // wholesale-form step
-    };
     const targetStep = pageStepMap[currentPage] || 0;
     for (let i = 0; i < targetStep; i++) {
       tour.next();
@@ -319,20 +321,38 @@ async function checkAndStartTour() {
     if (!data.tour_completed) {
       const tour = initDemoTour();
 
-      // If user was partway through, offer to resume or restart
+      // If user was partway through, resume at their progress
       if (data.tour_step_reached > 0 && data.tour_step_reached < 8) {
-        const resume = confirm('Would you like to resume the tour where you left off?');
-        if (resume) {
+        // Check if we're on a page that corresponds to a tour step
+        // If so, resume at the right step for this page
+        const currentPageStep = pageStepMap[currentPage];
+
+        // Only prompt to resume on first page load (dashboard)
+        // On other pages during an active tour, just pick up where relevant
+        if (currentPage === 'dashboard') {
+          const resume = confirm('Would you like to resume the tour where you left off?');
+          if (resume) {
+            tour.start();
+            // Skip to the step they were on
+            for (let i = 0; i < data.tour_step_reached; i++) {
+              tour.next();
+            }
+          } else {
+            tour.start();
+          }
+        } else if (currentPageStep !== undefined) {
+          // On a specific page, start tour at the step for this page
           tour.start();
-          // Skip to the step they were on
-          for (let i = 0; i < data.tour_step_reached; i++) {
+          for (let i = 0; i < currentPageStep; i++) {
             tour.next();
           }
-        } else {
+        }
+        // If on a page not in the tour, don't auto-start
+      } else if (data.tour_step_reached === 0) {
+        // New tour - only start on dashboard
+        if (currentPage === 'dashboard') {
           tour.start();
         }
-      } else {
-        tour.start();
       }
     }
   } catch (e) {
