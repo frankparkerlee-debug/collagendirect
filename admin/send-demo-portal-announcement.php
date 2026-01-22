@@ -30,12 +30,12 @@ $recipients = [];
 // Get all active sales reps (users with role 'distributor' or 'rep')
 try {
     $stmt = $pdo->query("
-        SELECT id, email, name
+        SELECT id, email, COALESCE(first_name || ' ' || last_name, first_name, email) as name
         FROM users
         WHERE role IN ('distributor', 'rep', 'sales_rep')
         AND email IS NOT NULL
         AND email != ''
-        ORDER BY name
+        ORDER BY first_name, last_name
     ");
     $recipients = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {
@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send'])) {
     } else {
         // Get selected recipients
         $placeholders = implode(',', array_fill(0, count($selectedIds), '?'));
-        $stmt = $pdo->prepare("SELECT id, email, name FROM users WHERE id IN ($placeholders)");
+        $stmt = $pdo->prepare("SELECT id, email, COALESCE(first_name || ' ' || last_name, first_name, email) as name FROM users WHERE id IN ($placeholders)");
         $stmt->execute($selectedIds);
         $selectedRecipients = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
