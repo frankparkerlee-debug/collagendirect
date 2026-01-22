@@ -487,19 +487,18 @@ $statusColors = [
       box-shadow: 0 0 0 3px var(--ring);
     }
 
-    /* Shepherd.js custom styles */
+    /* Shepherd.js custom styles - ensure proper z-index layering */
+    .shepherd-modal-overlay-container {
+      z-index: 9998 !important;
+    }
+
     .shepherd-element {
-      z-index: 1002 !important;
+      z-index: 9999 !important;
     }
 
     /* Fix: Ensure demo banner is always clickable above any overlay */
     .demo-banner {
       z-index: 10000 !important;
-    }
-
-    /* Fix: Remove stuck shepherd overlay on page load */
-    .shepherd-modal-overlay-container.shepherd-modal-is-visible {
-      /* This will be removed by JS, but ensure it doesn't block if JS fails */
     }
   </style>
 
