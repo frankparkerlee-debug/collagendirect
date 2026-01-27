@@ -142,8 +142,22 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $tab = ($role === 'manufacturer') ? 'manufacturer' : 'employees';
   }
   if ($act==='reset_emp_pw' && ($isAdmin || $isManufacturer)) {
-    $pdo->prepare("UPDATE admin_users SET password_hash=? WHERE id=?")->execute([password_hash($_POST['newpw'], PASSWORD_DEFAULT), (int)$_POST['emp_id']]);
-    $msg='Employee password updated'; $tab='employees';
+    $empId = (int)($_POST['emp_id'] ?? 0);
+    $newPw = $_POST['newpw'] ?? '';
+    if ($empId && $newPw) {
+      $stmt = $pdo->prepare("UPDATE admin_users SET password_hash=? WHERE id=?");
+      $stmt->execute([password_hash($newPw, PASSWORD_DEFAULT), $empId]);
+      if ($stmt->rowCount() > 0) {
+        $msg = 'Employee password updated';
+        error_log("[users.php] Employee password reset successful for admin_user_id: $empId");
+      } else {
+        $msg = 'Error: Employee not found or password not updated';
+        error_log("[users.php] Employee password reset FAILED - no rows affected for admin_user_id: $empId");
+      }
+    } else {
+      $msg = 'Error: Missing employee ID or password';
+    }
+    $tab = 'employees';
   }
   if ($act==='delete_emp' && $isAdmin) {
     if ((int)$_POST['emp_id'] !== (int)$admin['id']) {
@@ -358,8 +372,21 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
   }
 
   if ($act==='reset_phys_pw' && !$isManufacturer) {
-    $pdo->prepare("UPDATE users SET password_hash=?, updated_at=NOW() WHERE id=?")->execute([password_hash($_POST['newpw'], PASSWORD_DEFAULT), $_POST['phys_id']]);
-    $msg='Physician password updated';
+    $physId = $_POST['phys_id'] ?? '';
+    $newPw = $_POST['newpw'] ?? '';
+    if ($physId && $newPw) {
+      $stmt = $pdo->prepare("UPDATE users SET password_hash=?, updated_at=NOW() WHERE id=?");
+      $stmt->execute([password_hash($newPw, PASSWORD_DEFAULT), $physId]);
+      if ($stmt->rowCount() > 0) {
+        $msg = 'Physician password updated';
+        error_log("[users.php] Password reset successful for user_id: $physId");
+      } else {
+        $msg = 'Error: User not found or password not updated';
+        error_log("[users.php] Password reset FAILED - no rows affected for user_id: $physId");
+      }
+    } else {
+      $msg = 'Error: Missing user ID or password';
+    }
   }
   if ($act==='delete_phys' && !$isManufacturer) {
     $pdo->prepare("DELETE FROM users WHERE id=?")->execute([$_POST['phys_id']]);
