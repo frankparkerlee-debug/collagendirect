@@ -1,7 +1,24 @@
 /**
  * Demo Portal Tour Configuration
  * Uses Shepherd.js for guided walkthrough
+ *
+ * Navigation Strategy:
+ * - Store target step in sessionStorage before navigation
+ * - After page load, check sessionStorage and resume at correct step
+ * - Each step knows which page it needs to be on
  */
+
+// Step definitions with their required pages
+const TOUR_STEPS = [
+  { id: 'welcome', page: 'dashboard' },
+  { id: 'dashboard', page: 'dashboard' },
+  { id: 'patients-list', page: 'patients' },
+  { id: 'referral-intro', page: 'patients' },
+  { id: 'referral-form', page: 'referral-order' },
+  { id: 'orders-list', page: 'orders' },
+  { id: 'wholesale-form', page: 'wholesale' },
+  { id: 'complete', page: 'wholesale' }
+];
 
 // Initialize the tour
 function initDemoTour() {
@@ -16,7 +33,21 @@ function initDemoTour() {
     }
   });
 
-  // Step 1: Welcome
+  // Helper to navigate and resume at a specific step
+  function goToStepWithNavigation(stepIndex) {
+    const stepDef = TOUR_STEPS[stepIndex];
+    const currentPage = document.body.dataset.currentPage;
+
+    if (stepDef && stepDef.page !== currentPage) {
+      // Need to navigate - save the target step and navigate
+      sessionStorage.setItem('demoTourResumeStep', stepIndex.toString());
+      window.location.href = '?page=' + stepDef.page;
+      return false; // Signal that we're navigating away
+    }
+    return true; // Already on the right page
+  }
+
+  // Step 0: Welcome
   tour.addStep({
     id: 'welcome',
     title: 'Welcome to CollagenDirect!',
@@ -45,7 +76,7 @@ function initDemoTour() {
     ]
   });
 
-  // Step 2: Dashboard Overview
+  // Step 1: Dashboard Overview
   tour.addStep({
     id: 'dashboard',
     title: 'Dashboard Overview',
@@ -55,32 +86,43 @@ function initDemoTour() {
     attachTo: { element: '#dashboardMetrics', on: 'bottom' },
     buttons: [
       { text: 'Back', action: tour.back, secondary: true },
-      { text: 'Next', action: tour.next }
-    ],
-    beforeShowPromise: function() {
-      return navigateToPage('dashboard');
-    }
+      {
+        text: 'Next',
+        action: function() {
+          // Going to step 2 (patients-list) which requires 'patients' page
+          if (goToStepWithNavigation(2)) {
+            tour.next();
+          }
+        }
+      }
+    ]
   });
 
-  // Step 3: Patient Management
+  // Step 2: Patient Management
   tour.addStep({
     id: 'patients-list',
     title: 'Patient Management',
     text: `
       <p>The <strong>Patients</strong> section shows your full roster. Search, filter, or add new patients here.</p>
-      <p class="text-sm text-gray-500 mt-2">The demo includes 5 sample patients to explore.</p>
+      <p class="text-sm text-gray-500 mt-2">The demo includes sample patients to explore.</p>
     `,
     attachTo: { element: '#patientsList', on: 'top' },
     buttons: [
-      { text: 'Back', action: tour.back, secondary: true },
+      {
+        text: 'Back',
+        action: function() {
+          // Going back to step 1 (dashboard) which requires 'dashboard' page
+          if (goToStepWithNavigation(1)) {
+            tour.back();
+          }
+        },
+        secondary: true
+      },
       { text: 'Next', action: tour.next }
-    ],
-    beforeShowPromise: function() {
-      return navigateToPage('patients');
-    }
+    ]
   });
 
-  // Step 4: Referral Orders Intro
+  // Step 3: Referral Orders Intro (still on patients page)
   tour.addStep({
     id: 'referral-intro',
     title: 'Referral Orders',
@@ -96,11 +138,19 @@ function initDemoTour() {
     attachTo: { element: '#patientsList', on: 'top' },
     buttons: [
       { text: 'Back', action: tour.back, secondary: true },
-      { text: 'See the Form', action: tour.next }
+      {
+        text: 'See the Form',
+        action: function() {
+          // Going to step 4 (referral-form) which requires 'referral-order' page
+          if (goToStepWithNavigation(4)) {
+            tour.next();
+          }
+        }
+      }
     ]
   });
 
-  // Step 5: Referral Order Form
+  // Step 4: Referral Order Form
   tour.addStep({
     id: 'referral-form',
     title: 'Referral Order Form',
@@ -115,25 +165,29 @@ function initDemoTour() {
     `,
     attachTo: { element: '#referralOrderForm', on: 'top' },
     buttons: [
-      { text: 'Back', action: tour.back, secondary: true },
-      { text: 'Next', action: tour.next }
-    ],
-    beforeShowPromise: function() {
-      return new Promise((resolve) => {
-        const currentPage = document.body.dataset.currentPage;
-        if (currentPage === 'referral-order') {
-          resolve();
-          return;
+      {
+        text: 'Back',
+        action: function() {
+          // Going back to step 3 (referral-intro) which requires 'patients' page
+          if (goToStepWithNavigation(3)) {
+            tour.back();
+          }
+        },
+        secondary: true
+      },
+      {
+        text: 'Next',
+        action: function() {
+          // Going to step 5 (orders-list) which requires 'orders' page
+          if (goToStepWithNavigation(5)) {
+            tour.next();
+          }
         }
-        sessionStorage.setItem('demoTourNavigating', 'true');
-        sessionStorage.setItem('demoTourTargetPage', 'referral-order');
-        window.location.href = '?page=referral-order';
-        resolve();
-      });
-    }
+      }
+    ]
   });
 
-  // Step 6: Order Tracking
+  // Step 5: Order Tracking
   tour.addStep({
     id: 'orders-list',
     title: 'Order Tracking',
@@ -148,15 +202,29 @@ function initDemoTour() {
     `,
     attachTo: { element: '#ordersList', on: 'top' },
     buttons: [
-      { text: 'Back', action: tour.back, secondary: true },
-      { text: 'Next', action: tour.next }
-    ],
-    beforeShowPromise: function() {
-      return navigateToPage('orders');
-    }
+      {
+        text: 'Back',
+        action: function() {
+          // Going back to step 4 (referral-form) which requires 'referral-order' page
+          if (goToStepWithNavigation(4)) {
+            tour.back();
+          }
+        },
+        secondary: true
+      },
+      {
+        text: 'Next',
+        action: function() {
+          // Going to step 6 (wholesale-form) which requires 'wholesale' page
+          if (goToStepWithNavigation(6)) {
+            tour.next();
+          }
+        }
+      }
+    ]
   });
 
-  // Step 7: Wholesale Orders
+  // Step 6: Wholesale Orders
   tour.addStep({
     id: 'wholesale-form',
     title: 'Wholesale / DME Orders',
@@ -171,15 +239,21 @@ function initDemoTour() {
     `,
     attachTo: { element: '#wholesaleForm', on: 'top' },
     buttons: [
-      { text: 'Back', action: tour.back, secondary: true },
+      {
+        text: 'Back',
+        action: function() {
+          // Going back to step 5 (orders-list) which requires 'orders' page
+          if (goToStepWithNavigation(5)) {
+            tour.back();
+          }
+        },
+        secondary: true
+      },
       { text: 'Finish', action: tour.next }
-    ],
-    beforeShowPromise: function() {
-      return navigateToPage('wholesale');
-    }
+    ]
   });
 
-  // Step 8: Tour Complete
+  // Step 7: Tour Complete
   tour.addStep({
     id: 'complete',
     title: 'Tour Complete!',
@@ -207,7 +281,7 @@ function initDemoTour() {
       {
         text: 'Start Exploring',
         action: () => {
-          saveTourProgress(8, true);
+          saveTourProgress(7, true);
           tour.complete();
         }
       }
@@ -221,28 +295,6 @@ function initDemoTour() {
   });
 
   return tour;
-}
-
-// Helper: Navigate to a page (full page navigation with tour state persistence)
-function navigateToPage(page) {
-  return new Promise((resolve) => {
-    const currentPage = document.body.dataset.currentPage;
-    if (currentPage === page) {
-      resolve();
-      return;
-    }
-
-    // Store that we're mid-tour navigation in sessionStorage
-    sessionStorage.setItem('demoTourNavigating', 'true');
-    sessionStorage.setItem('demoTourTargetPage', page);
-
-    // Navigate to the new page
-    window.location.href = '?page=' + page;
-
-    // This resolve won't actually run since we're navigating away,
-    // but keep it for completeness
-    resolve();
-  });
 }
 
 // Helper: Save tour progress to server
@@ -274,105 +326,73 @@ async function resetDemo() {
   }
 }
 
-// Check tour progress and start if needed
+// Check tour progress and start/resume if needed
 async function checkAndStartTour() {
-  // Check if we're in the middle of a tour navigation
-  const isNavigating = sessionStorage.getItem('demoTourNavigating');
-  const targetPage = sessionStorage.getItem('demoTourTargetPage');
   const currentPage = document.body.dataset.currentPage;
 
-  // Clear the navigation flags
-  sessionStorage.removeItem('demoTourNavigating');
-  sessionStorage.removeItem('demoTourTargetPage');
+  // Check if we need to resume at a specific step (after navigation)
+  const resumeStep = sessionStorage.getItem('demoTourResumeStep');
+  sessionStorage.removeItem('demoTourResumeStep');
 
-  // Page step map for resuming tour at correct position
-  const pageStepMap = {
-    'dashboard': 1,       // dashboard step
-    'patients': 2,        // patients-list step
-    'referral-order': 4,  // referral-form step
-    'orders': 5,          // orders-list step
-    'wholesale': 6        // wholesale-form step
-  };
-
-  // If we just navigated for the tour, resume the tour at the appropriate step
-  if (isNavigating && targetPage === currentPage) {
+  if (resumeStep !== null) {
+    const stepIndex = parseInt(resumeStep, 10);
     const tour = initDemoTour();
     tour.start();
-    // Skip to the step for this page
-    const targetStep = pageStepMap[currentPage] || 0;
-    for (let i = 0; i < targetStep; i++) {
+
+    // Advance to the target step
+    for (let i = 0; i < stepIndex; i++) {
       tour.next();
     }
     return;
   }
 
+  // Otherwise check server for tour state
   try {
     const res = await fetch('/api/demo/tour.php', { credentials: 'include' });
 
-    // Handle non-ok response
     if (!res.ok) {
       console.error('Tour API returned status:', res.status);
-      // Don't start tour automatically if API fails - prevent gray overlay
       return;
     }
 
     const data = await res.json();
 
-    if (!data.tour_completed) {
+    // Only auto-start on dashboard for new users
+    if (!data.tour_completed && data.tour_step_reached === 0 && currentPage === 'dashboard') {
       const tour = initDemoTour();
-
-      // If user was partway through, resume at their progress
-      if (data.tour_step_reached > 0 && data.tour_step_reached < 8) {
-        // Check if we're on a page that corresponds to a tour step
-        // If so, resume at the right step for this page
-        const currentPageStep = pageStepMap[currentPage];
-
-        // Only prompt to resume on first page load (dashboard)
-        // On other pages during an active tour, just pick up where relevant
-        if (currentPage === 'dashboard') {
-          const resume = confirm('Would you like to resume the tour where you left off?');
-          if (resume) {
-            tour.start();
-            // Skip to the step they were on
-            for (let i = 0; i < data.tour_step_reached; i++) {
-              tour.next();
-            }
-          } else {
-            tour.start();
-          }
-        } else if (currentPageStep !== undefined) {
-          // On a specific page, start tour at the step for this page
-          tour.start();
-          for (let i = 0; i < currentPageStep; i++) {
-            tour.next();
-          }
-        }
-        // If on a page not in the tour, don't auto-start
-      } else if (data.tour_step_reached === 0) {
-        // New tour - only start on dashboard
-        if (currentPage === 'dashboard') {
-          tour.start();
-        }
-      }
+      tour.start();
     }
   } catch (e) {
     console.error('Failed to check tour progress:', e);
-    // Don't start tour if there's an error - prevent gray overlay
   }
 }
 
-// Cleanup any stuck Shepherd overlay (e.g., from failed tour start)
-function cleanupStuckOverlay() {
-  const overlay = document.querySelector('.shepherd-modal-overlay-container');
-  if (overlay) {
-    overlay.remove();
+// Start tour from beginning (used by Restart Tour button)
+function startTourFromBeginning() {
+  // First navigate to dashboard if not there
+  const currentPage = document.body.dataset.currentPage;
+  if (currentPage !== 'dashboard') {
+    sessionStorage.setItem('demoTourResumeStep', '0');
+    window.location.href = '?page=dashboard';
+    return;
   }
+
+  const tour = initDemoTour();
+  tour.start();
+}
+
+// Cleanup any stuck Shepherd overlay
+function cleanupStuckOverlay() {
+  document.querySelectorAll('.shepherd-modal-overlay-container, .shepherd-element').forEach(el => {
+    el.remove();
+  });
 }
 
 // Export for use in main page
 window.DemoTour = {
   init: initDemoTour,
   checkAndStart: checkAndStartTour,
+  startFromBeginning: startTourFromBeginning,
   reset: resetDemo,
   cleanup: cleanupStuckOverlay
 };

@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Demo Portal — Login | CollagenDirect</title>
-  <meta name="description" content="Distributor demo portal login for CollagenDirect." />
+  <title>Demo Portal | CollagenDirect</title>
+  <meta name="description" content="Experience the CollagenDirect physician portal with our interactive demo." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -151,20 +151,6 @@
       font-size:0.875rem;
     }
 
-    .toggle{
-      position:absolute;
-      right:12px;
-      top:50%;
-      transform:translateY(-50%);
-      font-size:0.875rem;
-      color:var(--muted);
-      cursor:pointer;
-      background:none;
-      border:none;
-      padding:0.25rem 0.5rem;
-    }
-    .toggle:hover{color:var(--text)}
-
     .info-box{
       background:#fef3c7;
       border:1px solid #fcd34d;
@@ -187,6 +173,27 @@
       line-height:1.5;
     }
 
+    .features{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:0.75rem;
+      margin-top:1.5rem;
+      padding-top:1.5rem;
+      border-top:1px solid var(--line);
+    }
+    .feature{
+      display:flex;
+      align-items:flex-start;
+      gap:0.5rem;
+      font-size:0.8125rem;
+      color:var(--muted);
+    }
+    .feature svg{
+      flex-shrink:0;
+      color:var(--demo-accent);
+      margin-top:2px;
+    }
+
     footer{
       background:#fff;
       border-top:1px solid var(--line);
@@ -199,6 +206,7 @@
     @media (max-width:640px){
       .auth-card{padding:2rem 1.5rem}
       .auth-card h1{font-size:1.5rem}
+      .features{grid-template-columns:1fr}
     }
   </style>
 </head>
@@ -214,22 +222,21 @@
 
   <main>
     <section class="auth-card">
-      <div class="demo-badge">Demo Portal</div>
-      <h1>Distributor Demo Access</h1>
-      <p class="subtitle">Experience the CollagenDirect physician portal</p>
+      <div class="demo-badge">Interactive Demo</div>
+      <h1>Try CollagenDirect</h1>
+      <p class="subtitle">Experience our physician portal with a guided tour</p>
 
-      <p id="err" class="error" role="alert">Invalid credentials. Please try again.</p>
+      <p id="err" class="error" role="alert"></p>
 
       <form id="loginForm" novalidate action="javascript:void(0)">
         <div class="form-grid">
           <div class="field">
-            <label for="email">Email Address</label>
-            <input id="email" type="email" required placeholder="your@email.com" autocomplete="username" />
+            <label for="name">Your Name <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+            <input id="name" type="text" placeholder="Dr. Smith" autocomplete="name" />
           </div>
-          <div class="field" style="position:relative">
-            <label for="password">Password</label>
-            <input id="password" type="password" required placeholder="••••••••" autocomplete="current-password" />
-            <button type="button" class="toggle" aria-label="Show password" id="togglePw">Show</button>
+          <div class="field">
+            <label for="email">Email Address</label>
+            <input id="email" type="email" required placeholder="your@email.com" autocomplete="email" />
           </div>
           <button class="btn primary" type="submit" id="submitBtn">
             <span id="btnText">Start Demo</span>
@@ -243,6 +250,33 @@
         </div>
       </form>
 
+      <div class="features">
+        <div class="feature">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <span>Guided walkthrough</span>
+        </div>
+        <div class="feature">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <span>Sample patients & orders</span>
+        </div>
+        <div class="feature">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <span>Referral & wholesale ordering</span>
+        </div>
+        <div class="feature">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <span>No account required</span>
+        </div>
+      </div>
+
       <div class="info-box">
         <h3>
           <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -251,13 +285,9 @@
           Demo Environment
         </h3>
         <p>
-          This is a sandboxed demo using synthetic data. All information entered is temporary and automatically deleted within 24 hours for HIPAA compliance. No real patient data is used.
+          This is a sandboxed demo using synthetic data. All information entered is temporary and automatically deleted within 24 hours. No real patient data is used.
         </p>
       </div>
-
-      <p class="muted" style="margin-top:1.5rem;text-align:center;font-size:0.875rem">
-        Need demo access? Contact <a href="mailto:sales@collagendirect.health" style="color:var(--demo-accent);font-weight:500">sales@collagendirect.health</a>
-      </p>
     </section>
   </main>
 
@@ -274,17 +304,6 @@
 
   <script>
   (function () {
-    // Show/Hide password
-    const toggle = document.getElementById('togglePw');
-    const pw = document.getElementById('password');
-    if (toggle && pw) {
-      toggle.addEventListener('click', () => {
-        const showing = pw.type === 'text';
-        pw.type = showing ? 'password' : 'text';
-        toggle.textContent = showing ? 'Show' : 'Hide';
-      });
-    }
-
     // Form submit
     const form = document.getElementById('loginForm');
     const err = document.getElementById('err');
@@ -297,10 +316,17 @@
       err.style.display = 'none';
 
       const email = document.getElementById('email').value.trim();
-      const password = document.getElementById('password').value;
+      const name = document.getElementById('name').value.trim();
 
-      if (!email || !password) {
-        err.textContent = 'Please enter both email and password.';
+      if (!email) {
+        err.textContent = 'Please enter your email address.';
+        err.style.display = 'block';
+        return;
+      }
+
+      // Basic email validation
+      if (!email.includes('@') || !email.includes('.')) {
+        err.textContent = 'Please enter a valid email address.';
         err.style.display = 'block';
         return;
       }
@@ -315,7 +341,7 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ email, password })
+          body: JSON.stringify({ email, name })
         });
 
         let data = {};
@@ -325,7 +351,7 @@
           // Redirect to demo portal
           location.href = data.redirect || '/demo-portal/';
         } else {
-          err.textContent = data.error || data.message || 'Login failed. Please try again.';
+          err.textContent = data.error || data.message || 'Something went wrong. Please try again.';
           err.style.display = 'block';
         }
       } catch (ex) {

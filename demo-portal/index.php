@@ -604,7 +604,7 @@ $statusColors = [
       <span>Welcome, <?=e($userName)?></span>
     </div>
     <div class="demo-actions">
-      <button onclick="DemoTour.checkAndStart()">Restart Tour</button>
+      <button onclick="DemoTour.startFromBeginning()">Restart Tour</button>
       <button onclick="DemoTour.reset()">Reset Demo</button>
       <button onclick="location.href='/demo-portal/logout.php'">Exit Demo</button>
     </div>
