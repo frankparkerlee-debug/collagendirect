@@ -5,6 +5,7 @@
  */
 declare(strict_types=1);
 
+session_start();
 require_once __DIR__ . '/../admin/db.php';
 
 // Delete demo session and all associated data (CASCADE handles patients/orders)
