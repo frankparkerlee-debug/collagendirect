@@ -375,14 +375,39 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $physId = $_POST['phys_id'] ?? '';
     $newPw = $_POST['newpw'] ?? '';
     if ($physId && $newPw) {
-      $stmt = $pdo->prepare("UPDATE users SET password_hash=?, updated_at=NOW() WHERE id=?");
-      $stmt->execute([password_hash($newPw, PASSWORD_DEFAULT), $physId]);
-      if ($stmt->rowCount() > 0) {
-        $msg = 'Physician password updated';
-        error_log("[users.php] Password reset successful for user_id: $physId");
+      // Get user email for logging and duplicate check
+      $userStmt = $pdo->prepare("SELECT email FROM users WHERE id = ?");
+      $userStmt->execute([$physId]);
+      $userEmail = $userStmt->fetchColumn();
+
+      if (!$userEmail) {
+        $msg = 'Error: User not found';
+        error_log("[users.php] Password reset FAILED - user not found for id: $physId");
       } else {
-        $msg = 'Error: User not found or password not updated';
-        error_log("[users.php] Password reset FAILED - no rows affected for user_id: $physId");
+        // Check if user also exists in admin_users (would cause login issues)
+        $adminCheck = $pdo->prepare("SELECT id FROM admin_users WHERE email = ?");
+        $adminCheck->execute([$userEmail]);
+        $adminExists = $adminCheck->fetchColumn();
+
+        // Update password in users table
+        $stmt = $pdo->prepare("UPDATE users SET password_hash=?, updated_at=NOW() WHERE id=?");
+        $stmt->execute([password_hash($newPw, PASSWORD_DEFAULT), $physId]);
+
+        if ($stmt->rowCount() > 0) {
+          if ($adminExists) {
+            // Also update in admin_users to keep in sync
+            $pdo->prepare("UPDATE admin_users SET password_hash=? WHERE email=?")
+                ->execute([password_hash($newPw, PASSWORD_DEFAULT), $userEmail]);
+            $msg = 'Password updated (both accounts synced)';
+            error_log("[users.php] Password reset for $userEmail - updated both users and admin_users tables");
+          } else {
+            $msg = 'Physician password updated';
+            error_log("[users.php] Password reset successful for $userEmail (user_id: $physId)");
+          }
+        } else {
+          $msg = 'Error: Password not updated';
+          error_log("[users.php] Password reset FAILED - no rows affected for user_id: $physId");
+        }
       }
     } else {
       $msg = 'Error: Missing user ID or password';
