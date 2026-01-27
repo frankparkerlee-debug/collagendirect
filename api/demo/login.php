@@ -43,7 +43,12 @@ try {
     $demoUserId = 'demo_' . md5(strtolower($email));
 
     // Clean up any previous demo sessions for this email
-    $pdo->prepare("DELETE FROM demo_sessions WHERE user_id = ?")->execute([$demoUserId]);
+    try {
+        $pdo->prepare("DELETE FROM demo_sessions WHERE user_id = ?")->execute([$demoUserId]);
+    } catch (PDOException $delErr) {
+        error_log('[demo/login] Delete old sessions failed: ' . $delErr->getMessage());
+        // Continue anyway - table might not exist
+    }
 
     // Create new demo session
     $sessionId = bin2hex(random_bytes(16));
@@ -57,6 +62,7 @@ try {
         ");
         $stmt->execute([$sessionId, $demoUserId, $email, $name ?: null]);
     } catch (PDOException $colErr) {
+        error_log('[demo/login] Insert with email columns failed: ' . $colErr->getMessage());
         // Columns don't exist yet - use basic insert
         $stmt = $pdo->prepare("
             INSERT INTO demo_sessions (id, user_id, started_at, expires_at)
@@ -76,9 +82,14 @@ try {
     $_SESSION['demo_user_email'] = $email;
     $_SESSION['demo_user_type'] = 'guest';
 
-    // Seed initial demo data
-    require_once __DIR__ . '/seed-data.php';
-    seedDemoData($pdo, $sessionId);
+    // Seed initial demo data (wrapped in try/catch to not fail login)
+    try {
+        require_once __DIR__ . '/seed-data.php';
+        seedDemoData($pdo, $sessionId);
+    } catch (Throwable $seedErr) {
+        // Log but don't fail - demo can work without seed data
+        error_log('[demo/login] Seed data failed (non-fatal): ' . $seedErr->getMessage());
+    }
 
     // Log demo access for analytics
     error_log("[demo/login] Demo access: $email ($displayName)");
@@ -94,7 +105,7 @@ try {
     ]);
 
 } catch (Throwable $e) {
-    error_log('[demo/login] Error: ' . $e->getMessage());
+    error_log('[demo/login] Error: ' . $e->getMessage() . ' | Trace: ' . $e->getTraceAsString());
     http_response_code(500);
-    echo json_encode(['ok' => false, 'error' => 'Server error. Please try again.']);
+    echo json_encode(['ok' => false, 'error' => 'Server error: ' . $e->getMessage()]);
 }
