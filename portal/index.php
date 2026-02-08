@@ -3539,8 +3539,17 @@ if ($action) {
     $s=$pdo->prepare("SELECT password_hash FROM users WHERE id=?"); $s->execute([$userId]); $row=$s->fetch(PDO::FETCH_ASSOC);
     if(!$row||empty($row['password_hash'])) jerr('Account not configured for password change',400);
     if(!password_verify($cur,$row['password_hash'])) jerr('Current password is incorrect',403);
-    $hash=password_hash($new,PASSWORD_BCRYPT);
+    $hash=password_hash($new,PASSWORD_DEFAULT);
     $pdo->prepare("UPDATE users SET password_hash=?,updated_at=NOW() WHERE id=?")->execute([$hash,$userId]);
+    // Sync to admin_users if same email exists there
+    $userEmail = $user['email'] ?? '';
+    if ($userEmail) {
+      $adminCheck = $pdo->prepare("SELECT id FROM admin_users WHERE LOWER(email) = LOWER(?)");
+      $adminCheck->execute([$userEmail]);
+      if ($adminCheck->fetchColumn()) {
+        $pdo->prepare("UPDATE admin_users SET password_hash=? WHERE LOWER(email) = LOWER(?)")->execute([$hash,$userEmail]);
+      }
+    }
     jok();
   }
 

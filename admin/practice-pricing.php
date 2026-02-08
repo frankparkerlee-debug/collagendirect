@@ -111,11 +111,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
 }
 
-// Fetch all practices (for dropdown)
+// Fetch all practices (for dropdown) - only practice_admin accounts
 $stmt = $pdo->query("
   SELECT id, practice_name, first_name, last_name, user_type
   FROM users
-  WHERE user_type IN ('practice_admin', 'physician', 'dme_wholesale')
+  WHERE role = 'practice_admin'
   ORDER BY practice_name ASC, last_name ASC
 ");
 $practices = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -190,7 +190,7 @@ try {
       MAX(pp.updated_at) as last_updated
     FROM users u
     INNER JOIN practice_pricing pp ON u.id = pp.user_id
-    WHERE u.user_type IN ('practice_admin', 'physician', 'dme_wholesale')
+    WHERE u.role = 'practice_admin'
     GROUP BY u.id, u.practice_name, u.first_name, u.last_name, u.user_type
     ORDER BY u.practice_name ASC, u.last_name ASC
   ");
