@@ -145,10 +145,30 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $empId = (int)($_POST['emp_id'] ?? 0);
     $newPw = $_POST['newpw'] ?? '';
     if ($empId && $newPw) {
+      // Get employee email for sync check
+      $empStmt = $pdo->prepare("SELECT email FROM admin_users WHERE id = ?");
+      $empStmt->execute([$empId]);
+      $empEmail = $empStmt->fetchColumn();
+
+      $newHash = password_hash($newPw, PASSWORD_DEFAULT);
       $stmt = $pdo->prepare("UPDATE admin_users SET password_hash=? WHERE id=?");
-      $stmt->execute([password_hash($newPw, PASSWORD_DEFAULT), $empId]);
+      $stmt->execute([$newHash, $empId]);
       if ($stmt->rowCount() > 0) {
-        $msg = 'Employee password updated';
+        // Also sync to users table if same email exists there
+        if ($empEmail) {
+          $usersCheck = $pdo->prepare("SELECT id FROM users WHERE LOWER(email) = LOWER(?)");
+          $usersCheck->execute([$empEmail]);
+          if ($usersCheck->fetchColumn()) {
+            $pdo->prepare("UPDATE users SET password_hash=?, updated_at=NOW() WHERE LOWER(email) = LOWER(?)")
+                ->execute([$newHash, $empEmail]);
+            $msg = 'Employee password updated (synced to both accounts)';
+            error_log("[users.php] Employee password reset for $empEmail - synced to users table");
+          } else {
+            $msg = 'Employee password updated';
+          }
+        } else {
+          $msg = 'Employee password updated';
+        }
         error_log("[users.php] Employee password reset successful for admin_user_id: $empId");
       } else {
         $msg = 'Error: Employee not found or password not updated';
@@ -385,19 +405,22 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         error_log("[users.php] Password reset FAILED - user not found for id: $physId");
       } else {
         // Check if user also exists in admin_users (would cause login issues)
-        $adminCheck = $pdo->prepare("SELECT id FROM admin_users WHERE email = ?");
+        $adminCheck = $pdo->prepare("SELECT id FROM admin_users WHERE LOWER(email) = LOWER(?)");
         $adminCheck->execute([$userEmail]);
         $adminExists = $adminCheck->fetchColumn();
 
+        // Generate hash once and reuse it
+        $newHash = password_hash($newPw, PASSWORD_DEFAULT);
+
         // Update password in users table
         $stmt = $pdo->prepare("UPDATE users SET password_hash=?, updated_at=NOW() WHERE id=?");
-        $stmt->execute([password_hash($newPw, PASSWORD_DEFAULT), $physId]);
+        $stmt->execute([$newHash, $physId]);
 
         if ($stmt->rowCount() > 0) {
           if ($adminExists) {
             // Also update in admin_users to keep in sync
-            $pdo->prepare("UPDATE admin_users SET password_hash=? WHERE email=?")
-                ->execute([password_hash($newPw, PASSWORD_DEFAULT), $userEmail]);
+            $pdo->prepare("UPDATE admin_users SET password_hash=? WHERE LOWER(email) = LOWER(?)")
+                ->execute([$newHash, $userEmail]);
             $msg = 'Password updated (both accounts synced)';
             error_log("[users.php] Password reset for $userEmail - updated both users and admin_users tables");
           } else {

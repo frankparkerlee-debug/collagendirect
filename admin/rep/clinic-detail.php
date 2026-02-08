@@ -7,8 +7,12 @@
 declare(strict_types=1);
 require __DIR__ . '/_header.php';
 
+// Support both regular sales reps (assigned_rep_id) and employee reps (employee_rep_id)
+$isEmployeeRep = !empty($admin['is_employee_rep']);
 $repId = $admin['rep_id'] ?? null;
-if (!$repId) {
+$employeeRepId = $isEmployeeRep ? (int)$admin['id'] : null;
+
+if (!$isEmployeeRep && !$repId) {
   echo '<div class="card p-6"><p class="text-red-600">Sales rep profile not found.</p></div>';
   require __DIR__ . '/_footer.php';
   exit;
@@ -20,7 +24,10 @@ if (!$clinicId) {
   exit;
 }
 
-// Get clinic details
+// Get clinic details - query depends on rep type
+$repColumn = $isEmployeeRep ? 'u.employee_rep_id' : 'u.assigned_rep_id';
+$repParam = $isEmployeeRep ? $employeeRepId : $repId;
+
 $query = "
   SELECT u.*,
          (SELECT COUNT(*) FROM patients p WHERE p.user_id = u.id) as patient_count,
@@ -28,10 +35,10 @@ $query = "
          (SELECT COALESCE(SUM(o.product_price), 0) FROM orders o WHERE o.user_id = u.id AND o.status NOT IN ('cancelled', 'rejected', 'voided')) as total_revenue
   FROM users u
   WHERE u.id = ?
-  AND u.assigned_rep_id = ?
+  AND {$repColumn} = ?
 ";
 $stmt = $pdo->prepare($query);
-$stmt->execute([$clinicId, $repId]);
+$stmt->execute([$clinicId, $repParam]);
 $clinic = $stmt->fetch();
 
 if (!$clinic) {
@@ -55,15 +62,32 @@ $recentOrders = $ordersStmt->fetchAll();
 // Get physicians linked to this practice (if it's a practice_admin)
 $linkedPhysicians = [];
 if ($clinic['role'] === 'practice_admin') {
-  $physStmt = $pdo->prepare("
-    SELECT pp.*
-    FROM practice_physicians pp
-    WHERE pp.practice_user_id = ?
-    AND pp.is_active = TRUE
-    ORDER BY pp.physician_name
-  ");
-  $physStmt->execute([$clinicId]);
-  $linkedPhysicians = $physStmt->fetchAll();
+  try {
+    // Try newer schema first (practice_admin_id, first_name, last_name)
+    $physStmt = $pdo->prepare("
+      SELECT pp.*, CONCAT(pp.first_name, ' ', pp.last_name) as physician_name
+      FROM practice_physicians pp
+      WHERE pp.practice_admin_id = ?
+      ORDER BY pp.last_name, pp.first_name
+    ");
+    $physStmt->execute([$clinicId]);
+    $linkedPhysicians = $physStmt->fetchAll();
+  } catch (Throwable $e) {
+    // Fall back to older schema (practice_user_id, physician_name)
+    try {
+      $physStmt = $pdo->prepare("
+        SELECT pp.*
+        FROM practice_physicians pp
+        WHERE pp.practice_user_id = ?
+        AND pp.is_active = TRUE
+        ORDER BY pp.physician_name
+      ");
+      $physStmt->execute([$clinicId]);
+      $linkedPhysicians = $physStmt->fetchAll();
+    } catch (Throwable $e2) {
+      error_log("[clinic-detail] Failed to load physicians: " . $e2->getMessage());
+    }
+  }
 }
 
 $statusColors = [

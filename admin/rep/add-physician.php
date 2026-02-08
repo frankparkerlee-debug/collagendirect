@@ -90,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $error = 'Please enter a valid email address.';
   } else {
     // Check if email already exists
-    $checkStmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
+    $checkStmt = $pdo->prepare("SELECT id FROM users WHERE LOWER(email) = LOWER(?)");
     $checkStmt->execute([strtolower($email)]);
     if ($checkStmt->fetch()) {
       $error = 'A user with this email already exists.';
@@ -137,12 +137,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       }
 
       // Link to practice via practice_physicians table
-      $pdo->prepare("
-        INSERT INTO practice_physicians (practice_admin_id, physician_id, first_name, last_name, physician_email, physician_npi, physician_license, physician_license_state, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-      ")->execute([
-        $practiceId, $userId, $firstName, $lastName, strtolower($email), $npi ?: null, $license ?: null, $licenseState
-      ]);
+      // Try newer schema first, fall back to older schema
+      try {
+        $pdo->prepare("
+          INSERT INTO practice_physicians (practice_admin_id, physician_id, first_name, last_name, physician_email, physician_npi, physician_license, physician_license_state, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+        ")->execute([
+          $practiceId, $userId, $firstName, $lastName, strtolower($email), $npi ?: null, $license ?: null, $licenseState
+        ]);
+      } catch (PDOException $ppErr) {
+        // Fall back to older schema (practice_user_id, physician_name)
+        $pdo->prepare("
+          INSERT INTO practice_physicians (practice_user_id, physician_name, npi, license_number, created_at, updated_at)
+          VALUES (?, ?, ?, ?, NOW(), NOW())
+        ")->execute([
+          $practiceId, $firstName . ' ' . $lastName, $npi ?: null, $license ?: null
+        ]);
+      }
 
       // Create practice location if address provided (linked to practice_admin)
       if ($address && $city && $state && $zip) {

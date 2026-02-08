@@ -134,9 +134,19 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
           $physicianName = $order['practice_name'];
         }
 
-        // Check if confirmation already exists
+        // Check if confirmation already exists for this order
         $existingConfirmation = $pdo->prepare("SELECT id FROM delivery_confirmations WHERE order_id = ?");
         $existingConfirmation->execute([$id]);
+
+        // Check if this patient already received an SMS in the last 5 minutes (batch delivery)
+        $recentSmsCheck = $pdo->prepare("
+          SELECT dc.id FROM delivery_confirmations dc
+          JOIN orders o ON o.id = dc.order_id
+          WHERE o.patient_id = ? AND dc.sms_sent_at > NOW() - INTERVAL '5 minutes'
+          LIMIT 1
+        ");
+        $recentSmsCheck->execute([$order['patient_id']]);
+        $patientAlreadyNotified = (bool)$recentSmsCheck->fetch();
 
         if (!$existingConfirmation->fetch() && ($hasPhone || $hasEmail)) {
           // Generate unique confirmation token
@@ -166,8 +176,20 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
           $smsSent = false;
           $emailSent = false;
 
+          // Skip notification if patient already received one recently (batch delivery)
+          if ($patientAlreadyNotified) {
+            $pdo->prepare("
+              UPDATE delivery_confirmations
+              SET notes = 'Skipped SMS - patient already notified for another order in this batch',
+                  updated_at = NOW()
+              WHERE id = ?
+            ")->execute([$confirmationId]);
+            error_log("[orders.php] Skipping SMS for order {$id} - patient already notified recently");
+            $smsSent = true; // Prevent email fallback
+          }
+
           // Try SMS first if patient has phone
-          if ($hasPhone) {
+          if (!$patientAlreadyNotified && $hasPhone) {
             $smsResult = send_delivery_confirmation_sms(
               $order['phone'],
               $patientName,
@@ -227,7 +249,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
               </div>
 
               <p style='color: #64748b; font-size: 14px;'>
-                By confirming, you acknowledge receipt of your supplies and authorize CollagenDirect to bill your insurance directly.
+                By confirming, you acknowledge receipt of your supplies and authorize MD DME to bill your insurance directly.
               </p>
             ");
 
@@ -237,7 +259,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             $textBody .= "Please confirm receipt by visiting:\n{$confirmUrl}\n\n";
             $textBody .= "Product: {$productName}\n";
             $textBody .= "Order ID: #" . substr($id, 0, 8) . "\n\n";
-            $textBody .= "By confirming, you acknowledge receipt of your supplies and authorize CollagenDirect to bill your insurance directly.";
+            $textBody .= "By confirming, you acknowledge receipt of your supplies and authorize MD DME to bill your insurance directly.";
 
             $emailResult = send_email($order['email'], $patientName, $emailSubject, $emailBody, $textBody);
 

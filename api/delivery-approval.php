@@ -171,6 +171,9 @@ function showApprovalPage(array $data, string $token, bool $isConfirmed = false,
     $practiceName = htmlspecialchars($data['practice_name'] ?? '');
     $deliveredDate = $data['delivered_at'] ? date('F j, Y', strtotime($data['delivered_at'])) : 'Recently';
     $dob = $data['dob'] ? date('m/d/Y', strtotime($data['dob'])) : 'N/A';
+    $hcpcsCode = htmlspecialchars($data['cpt_code'] ?? '');
+    $quantity = (int)($data['qty_per_change'] ?? 1);
+    if ($quantity < 1) $quantity = 1;
     $patientAddress = htmlspecialchars(trim(implode(', ', array_filter([
         $data['address'] ?? '',
         $data['city'] ?? '',
@@ -184,7 +187,7 @@ function showApprovalPage(array $data, string $token, bool $isConfirmed = false,
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title><?php echo $isConfirmed ? 'Delivery Confirmed' : 'Confirm Your Delivery'; ?> - CollagenDirect</title>
+        <title><?php echo $isConfirmed ? 'Delivery Confirmed' : 'Confirm Your Delivery'; ?> - MD DME</title>
         <style>
             * { box-sizing: border-box; margin: 0; padding: 0; }
             body {
@@ -398,7 +401,7 @@ function showApprovalPage(array $data, string $token, bool $isConfirmed = false,
     <body>
         <div class="container">
             <div class="header">
-                <h1>CollagenDirect</h1>
+                <h1>MD DME</h1>
                 <p><?php echo $isConfirmed ? 'Delivery Confirmed' : 'Delivery Confirmation'; ?></p>
             </div>
 
@@ -459,6 +462,16 @@ function showApprovalPage(array $data, string $token, bool $isConfirmed = false,
                     <div class="detail-row">
                         <span class="detail-label">Product</span>
                         <span class="detail-value"><?php echo $product; ?></span>
+                    </div>
+                    <?php if ($hcpcsCode): ?>
+                    <div class="detail-row">
+                        <span class="detail-label">HCPCS</span>
+                        <span class="detail-value"><?php echo $hcpcsCode; ?></span>
+                    </div>
+                    <?php endif; ?>
+                    <div class="detail-row">
+                        <span class="detail-label">Qty Delivered</span>
+                        <span class="detail-value"><?php echo $quantity; ?></span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Delivered</span>
@@ -524,9 +537,9 @@ function showApprovalPage(array $data, string $token, bool $isConfirmed = false,
                     </div>
                     <p class="aob-preview">
                         <?php if ($isConfirmed): ?>
-                        You have authorized your insurance to pay CollagenDirect directly for wound care supplies provided to you.
+                        You have authorized your insurance to pay MD DME directly for wound care supplies provided to you.
                         <?php else: ?>
-                        By clicking "Confirm & Sign", you authorize your insurance to pay CollagenDirect directly for wound care supplies provided to you.
+                        By clicking "Confirm & Sign", you authorize your insurance to pay MD DME directly for wound care supplies provided to you.
                         <?php endif; ?>
                     </p>
                     <?php if ($isConfirmed && $confirmedDate): ?>
@@ -542,11 +555,11 @@ function showApprovalPage(array $data, string $token, bool $isConfirmed = false,
                         <p><strong>Product:</strong> <?php echo $product; ?></p>
                         <p><strong>Prescribing Physician:</strong> Dr. <?php echo $physicianName; ?></p>
                         <br>
-                        <p>I, <?php echo $patientName; ?>, hereby authorize and assign all medical and surgical benefits, including Medicare, Medicaid, private insurance, and any other health plan benefits payable to me, to be paid directly to CollagenDirect or its designated billing entity for wound care supplies and related services provided.</p>
+                        <p>I, <?php echo $patientName; ?>, hereby authorize and assign all medical and surgical benefits, including Medicare, Medicaid, private insurance, and any other health plan benefits payable to me, to be paid directly to MD DME, LLC or its designated billing entity for wound care supplies and related services provided.</p>
                         <br>
                         <p>I understand that I am financially responsible for any charges not covered by my insurance. I authorize the release of any medical information necessary to process insurance claims.</p>
                         <br>
-                        <p>I have received the wound care supplies described above and authorize CollagenDirect to bill my insurance on my behalf.</p>
+                        <p>I have received the wound care supplies described above and authorize MD DME to bill my insurance on my behalf.</p>
                         <br>
                         <p><strong>This authorization will remain in effect until revoked by me in writing.</strong></p>
                     </div>
@@ -555,7 +568,7 @@ function showApprovalPage(array $data, string $token, bool $isConfirmed = false,
 
             <div class="footer">
                 <p>Questions? Contact your physician's office or email <a href="mailto:support@collagendirect.health">support@collagendirect.health</a></p>
-                <p style="margin-top: 0.5rem;">&copy; <?php echo date('Y'); ?> CollagenDirect</p>
+                <p style="margin-top: 0.5rem;">&copy; <?php echo date('Y'); ?> MD DME, LLC</p>
             </div>
         </div>
 
@@ -600,7 +613,7 @@ function showErrorPage(string $title, string $message): void {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title><?php echo htmlspecialchars($title); ?> - CollagenDirect</title>
+        <title><?php echo htmlspecialchars($title); ?> - MD DME</title>
         <style>
             * { box-sizing: border-box; margin: 0; padding: 0; }
             body {
@@ -672,7 +685,7 @@ function showErrorPage(string $title, string $message): void {
             <div class="footer">
                 <p>Need help? Contact your physician's office.</p>
                 <p style="margin-top: 1rem;">
-                    Visit <a href="https://collagendirect.health">CollagenDirect.health</a> for more information.
+                    Visit <a href="https://collagendirect.health">collagendirect.health</a> for more information.
                 </p>
             </div>
         </div>

@@ -7,8 +7,12 @@
 declare(strict_types=1);
 require __DIR__ . '/_header.php';
 
+// Support both regular sales reps (assigned_rep_id) and employee reps (employee_rep_id)
+$isEmployeeRep = !empty($admin['is_employee_rep']);
 $repId = $admin['rep_id'] ?? null;
-if (!$repId) {
+$employeeRepId = $isEmployeeRep ? (int)$admin['id'] : null;
+
+if (!$isEmployeeRep && !$repId) {
   echo '<div class="card p-6"><p class="text-red-600">Sales rep profile not found.</p></div>';
   require __DIR__ . '/_footer.php';
   exit;
@@ -17,17 +21,20 @@ if (!$repId) {
 // Search filter
 $search = trim($_GET['q'] ?? '');
 
-// Get assigned clinics
+// Get assigned clinics - query depends on rep type
+$repColumn = $isEmployeeRep ? 'u.employee_rep_id' : 'u.assigned_rep_id';
+$repParam = $isEmployeeRep ? $employeeRepId : $repId;
+
 $query = "
   SELECT u.id, u.email, u.first_name, u.last_name, u.practice_name, u.phone, u.address, u.city, u.state, u.zip,
          u.role, u.account_type, u.status, u.rep_assignment_date, u.rep_assigned_by,
          (SELECT COUNT(*) FROM patients p WHERE p.user_id = u.id) as patient_count,
          (SELECT COUNT(*) FROM orders o WHERE o.user_id = u.id AND o.status NOT IN ('cancelled', 'rejected', 'draft')) as order_count
   FROM users u
-  WHERE u.assigned_rep_id = ?
+  WHERE {$repColumn} = ?
   AND (u.role IN ('physician', 'practice_admin') OR u.role IS NULL)
 ";
-$params = [$repId];
+$params = [$repParam];
 
 if ($search) {
   $query .= " AND (u.practice_name ILIKE ? OR u.first_name ILIKE ? OR u.last_name ILIKE ? OR u.email ILIKE ?)";
