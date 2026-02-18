@@ -23,31 +23,61 @@ if (!$isPracticeAdmin) {
   die('Only practice administrators can manage physician rosters.');
 }
 
+// Detect schema columns for compatibility
+$ppCols = [];
+try {
+  $ppCols = $pdo->query("
+    SELECT column_name FROM information_schema.columns
+    WHERE table_name = 'practice_physicians'
+  ")->fetchAll(PDO::FETCH_COLUMN);
+} catch (Exception $e) {}
+
+$adminCol = in_array('practice_admin_id', $ppCols) ? 'practice_admin_id' :
+            (in_array('practice_manager_id', $ppCols) ? 'practice_manager_id' : 'practice_user_id');
+$hasPhysicianName = in_array('physician_name', $ppCols);
+$npiCol = in_array('npi', $ppCols) ? 'npi' :
+          (in_array('physician_npi', $ppCols) ? 'physician_npi' : null);
+$licenseCol = in_array('license_number', $ppCols) ? 'license_number' :
+              (in_array('license', $ppCols) ? 'license' : (in_array('physician_license', $ppCols) ? 'physician_license' : null));
+
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $action = $_POST['action'] ?? '';
 
   if ($action === 'add') {
     try {
-      $stmt = $pdo->prepare("
-        INSERT INTO practice_physicians (
-          practice_user_id, physician_name, npi, license_number,
-          address, city, state, zip, phone, signature_text
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      ");
+      $columns = [$adminCol];
+      $values = [$userId];
+      $placeholders = ['?'];
 
-      $stmt->execute([
-        $userId,
-        $_POST['physician_name'],
-        $_POST['npi'] ?? null,
-        $_POST['license_number'] ?? null,
-        $_POST['address'] ?? null,
-        $_POST['city'] ?? null,
-        $_POST['state'] ?? null,
-        $_POST['zip'] ?? null,
-        $_POST['phone'] ?? null,
-        $_POST['signature_text'] ?? null
-      ]);
+      if ($hasPhysicianName) {
+        $columns[] = 'physician_name';
+        $values[] = $_POST['physician_name'];
+        $placeholders[] = '?';
+      } else {
+        // Split physician_name into first/last
+        $nameParts = explode(' ', $_POST['physician_name'] ?? '', 2);
+        $firstNameCol = in_array('first_name', $ppCols) ? 'first_name' : 'physician_first_name';
+        $lastNameCol = in_array('last_name', $ppCols) ? 'last_name' : 'physician_last_name';
+        $columns[] = $firstNameCol;
+        $columns[] = $lastNameCol;
+        $values[] = $nameParts[0] ?? '';
+        $values[] = $nameParts[1] ?? '';
+        $placeholders[] = '?';
+        $placeholders[] = '?';
+      }
+
+      if ($npiCol) { $columns[] = $npiCol; $values[] = $_POST['npi'] ?? null; $placeholders[] = '?'; }
+      if ($licenseCol) { $columns[] = $licenseCol; $values[] = $_POST['license_number'] ?? null; $placeholders[] = '?'; }
+      if (in_array('address', $ppCols)) { $columns[] = 'address'; $values[] = $_POST['address'] ?? null; $placeholders[] = '?'; }
+      if (in_array('city', $ppCols)) { $columns[] = 'city'; $values[] = $_POST['city'] ?? null; $placeholders[] = '?'; }
+      if (in_array('state', $ppCols)) { $columns[] = 'state'; $values[] = $_POST['state'] ?? null; $placeholders[] = '?'; }
+      if (in_array('zip', $ppCols)) { $columns[] = 'zip'; $values[] = $_POST['zip'] ?? null; $placeholders[] = '?'; }
+      if (in_array('phone', $ppCols)) { $columns[] = 'phone'; $values[] = $_POST['phone'] ?? null; $placeholders[] = '?'; }
+      if (in_array('signature_text', $ppCols)) { $columns[] = 'signature_text'; $values[] = $_POST['signature_text'] ?? null; $placeholders[] = '?'; }
+
+      $sql = "INSERT INTO practice_physicians (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")";
+      $pdo->prepare($sql)->execute($values);
 
       $_SESSION['success_msg'] = 'Physician added successfully';
       header('Location: /portal/?page=profile#physicians');
@@ -60,34 +90,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   elseif ($action === 'edit') {
     try {
-      $stmt = $pdo->prepare("
-        UPDATE practice_physicians SET
-          physician_name = ?,
-          npi = ?,
-          license_number = ?,
-          address = ?,
-          city = ?,
-          state = ?,
-          zip = ?,
-          phone = ?,
-          signature_text = ?,
-          updated_at = CURRENT_TIMESTAMP
-        WHERE id = ? AND practice_user_id = ?
-      ");
+      $sets = [];
+      $values = [];
 
-      $stmt->execute([
-        $_POST['physician_name'],
-        $_POST['npi'] ?? null,
-        $_POST['license_number'] ?? null,
-        $_POST['address'] ?? null,
-        $_POST['city'] ?? null,
-        $_POST['state'] ?? null,
-        $_POST['zip'] ?? null,
-        $_POST['phone'] ?? null,
-        $_POST['signature_text'] ?? null,
-        $_POST['physician_id'],
-        $userId
-      ]);
+      if ($hasPhysicianName) {
+        $sets[] = 'physician_name = ?';
+        $values[] = $_POST['physician_name'];
+      } else {
+        $nameParts = explode(' ', $_POST['physician_name'] ?? '', 2);
+        $firstNameCol = in_array('first_name', $ppCols) ? 'first_name' : 'physician_first_name';
+        $lastNameCol = in_array('last_name', $ppCols) ? 'last_name' : 'physician_last_name';
+        $sets[] = "$firstNameCol = ?";
+        $sets[] = "$lastNameCol = ?";
+        $values[] = $nameParts[0] ?? '';
+        $values[] = $nameParts[1] ?? '';
+      }
+
+      if ($npiCol) { $sets[] = "$npiCol = ?"; $values[] = $_POST['npi'] ?? null; }
+      if ($licenseCol) { $sets[] = "$licenseCol = ?"; $values[] = $_POST['license_number'] ?? null; }
+      if (in_array('address', $ppCols)) { $sets[] = 'address = ?'; $values[] = $_POST['address'] ?? null; }
+      if (in_array('city', $ppCols)) { $sets[] = 'city = ?'; $values[] = $_POST['city'] ?? null; }
+      if (in_array('state', $ppCols)) { $sets[] = 'state = ?'; $values[] = $_POST['state'] ?? null; }
+      if (in_array('zip', $ppCols)) { $sets[] = 'zip = ?'; $values[] = $_POST['zip'] ?? null; }
+      if (in_array('phone', $ppCols)) { $sets[] = 'phone = ?'; $values[] = $_POST['phone'] ?? null; }
+      if (in_array('signature_text', $ppCols)) { $sets[] = 'signature_text = ?'; $values[] = $_POST['signature_text'] ?? null; }
+      if (in_array('updated_at', $ppCols)) { $sets[] = 'updated_at = CURRENT_TIMESTAMP'; }
+
+      $values[] = $_POST['physician_id'];
+      $values[] = $userId;
+
+      $sql = "UPDATE practice_physicians SET " . implode(', ', $sets) . " WHERE id = ? AND $adminCol = ?";
+      $pdo->prepare($sql)->execute($values);
 
       $_SESSION['success_msg'] = 'Physician updated successfully';
       header('Location: /portal/?page=profile#physicians');
@@ -100,13 +133,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   elseif ($action === 'delete') {
     try {
-      // Soft delete - set is_active to false
       $stmt = $pdo->prepare("
         UPDATE practice_physicians
         SET is_active = FALSE, updated_at = CURRENT_TIMESTAMP
-        WHERE id = ? AND practice_user_id = ?
+        WHERE id = ? AND $adminCol = ?
       ");
-
       $stmt->execute([$_POST['physician_id'], $userId]);
 
       $_SESSION['success_msg'] = 'Physician deactivated';
@@ -123,9 +154,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $stmt = $pdo->prepare("
         UPDATE practice_physicians
         SET is_active = TRUE, updated_at = CURRENT_TIMESTAMP
-        WHERE id = ? AND practice_user_id = ?
+        WHERE id = ? AND $adminCol = ?
       ");
-
       $stmt->execute([$_POST['physician_id'], $userId]);
 
       $_SESSION['success_msg'] = 'Physician reactivated';
@@ -156,10 +186,12 @@ try {
 $physicians = [];
 if ($tableExists) {
   try {
+    $nameExpr = $hasPhysicianName ? 'physician_name' : "CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, ''))";
+    $orderCol = $hasPhysicianName ? 'physician_name' : 'last_name';
     $physiciansStmt = $pdo->prepare("
-      SELECT * FROM practice_physicians
-      WHERE practice_user_id = ?
-      ORDER BY is_active DESC, physician_name ASC
+      SELECT *, $nameExpr as physician_name FROM practice_physicians
+      WHERE $adminCol = ?
+      ORDER BY is_active DESC, $orderCol ASC
     ");
     $physiciansStmt->execute([$userId]);
     $physicians = $physiciansStmt->fetchAll(PDO::FETCH_ASSOC);

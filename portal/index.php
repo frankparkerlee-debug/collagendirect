@@ -64,7 +64,7 @@ $isPracticeAdmin = in_array($userRole, ['practice_admin', 'superadmin']);
 
 // Check what onboarding steps are needed
 $needsAgreements = $isPracticeAdmin && (empty($user['agree_msa']) || empty($user['agree_baa']));
-$needsProfile = empty($user['npi']) || empty($user['license']) || empty($user['license_state']);
+$needsProfile = empty($user['npi']);
 
 // Check if practice has at least one location (only for practice admins)
 $needsLocation = false;
@@ -858,13 +858,9 @@ if ($action) {
       exit;
     }
 
-    if (!$license) {
-      echo json_encode(['ok' => false, 'error' => 'Please enter your medical license number']);
-      exit;
-    }
-
-    if (!$licenseState || strlen($licenseState) !== 2) {
-      echo json_encode(['ok' => false, 'error' => 'Please select your license state']);
+    // License is optional - validate state format only if provided
+    if ($licenseState && strlen($licenseState) !== 2) {
+      echo json_encode(['ok' => false, 'error' => 'Please select a valid license state']);
       exit;
     }
 
@@ -996,25 +992,67 @@ if ($action) {
       echo json_encode(['ok' => false, 'error' => 'Physician first and last name are required']);
       exit;
     }
-    if (!$npi || !preg_match('/^\d{10}$/', $npi)) {
-      echo json_encode(['ok' => false, 'error' => 'Valid 10-digit NPI is required']);
-      exit;
-    }
 
     try {
-      $stmt = $pdo->prepare("
-        INSERT INTO practice_physicians (
-          practice_user_id, physician_name, npi, license_number, state,
-          is_active
-        ) VALUES (?, ?, ?, ?, ?, TRUE)
-      ");
-      $stmt->execute([
-        $userId,
-        $physicianName,
-        $npi,
-        $license ?: null,
-        $licenseState ?: null
-      ]);
+      // Detect column names dynamically for schema compatibility
+      $ppCols = $pdo->query("
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'practice_physicians'
+      ")->fetchAll(PDO::FETCH_COLUMN);
+
+      $adminCol = in_array('practice_admin_id', $ppCols) ? 'practice_admin_id' :
+                  (in_array('practice_manager_id', $ppCols) ? 'practice_manager_id' : 'practice_user_id');
+      $hasPhysicianName = in_array('physician_name', $ppCols);
+      $npiCol = in_array('npi', $ppCols) ? 'npi' :
+                (in_array('physician_npi', $ppCols) ? 'physician_npi' : null);
+      $licenseCol = in_array('license_number', $ppCols) ? 'license_number' :
+                    (in_array('license', $ppCols) ? 'license' : (in_array('physician_license', $ppCols) ? 'physician_license' : null));
+      $stateCol = in_array('state', $ppCols) ? 'state' :
+                  (in_array('license_state', $ppCols) ? 'license_state' : (in_array('physician_license_state', $ppCols) ? 'physician_license_state' : null));
+
+      $columns = [$adminCol];
+      $values = [$userId];
+      $placeholders = ['?'];
+
+      if ($hasPhysicianName) {
+        $columns[] = 'physician_name';
+        $values[] = $physicianName;
+        $placeholders[] = '?';
+      } else {
+        $firstNameCol = in_array('first_name', $ppCols) ? 'first_name' : 'physician_first_name';
+        $lastNameCol = in_array('last_name', $ppCols) ? 'last_name' : 'physician_last_name';
+        $columns[] = $firstNameCol;
+        $columns[] = $lastNameCol;
+        $values[] = $firstName;
+        $values[] = $lastName;
+        $placeholders[] = '?';
+        $placeholders[] = '?';
+      }
+
+      if ($npiCol && $npi) {
+        $columns[] = $npiCol;
+        $values[] = $npi;
+        $placeholders[] = '?';
+      }
+      if ($licenseCol && $license) {
+        $columns[] = $licenseCol;
+        $values[] = $license;
+        $placeholders[] = '?';
+      }
+      if ($stateCol && $licenseState) {
+        $columns[] = $stateCol;
+        $values[] = $licenseState;
+        $placeholders[] = '?';
+      }
+      if (in_array('is_active', $ppCols)) {
+        $columns[] = 'is_active';
+        $values[] = true;
+        $placeholders[] = '?';
+      }
+
+      $sql = "INSERT INTO practice_physicians (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")";
+      $stmt = $pdo->prepare($sql);
+      $stmt->execute($values);
 
       $physicianId = $pdo->lastInsertId();
 
@@ -5584,15 +5622,15 @@ if ($page==='logout'){
               </select>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Medical License Number <span class="text-red-500">*</span></label>
-              <input type="text" name="license" id="wizard_license" required
+              <label class="block text-sm font-medium text-gray-700 mb-1">Medical License Number</label>
+              <input type="text" name="license" id="wizard_license"
                      value="<?= htmlspecialchars($user['license'] ?? '') ?>"
-                     placeholder="License number"
+                     placeholder="License number (optional)"
                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">License State <span class="text-red-500">*</span></label>
-              <select name="license_state" id="wizard_license_state" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
+              <label class="block text-sm font-medium text-gray-700 mb-1">License State</label>
+              <select name="license_state" id="wizard_license_state" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
                 <option value="">Select state...</option>
                 <?php
                 $states = ['AL'=>'Alabama','AK'=>'Alaska','AZ'=>'Arizona','AR'=>'Arkansas','CA'=>'California','CO'=>'Colorado','CT'=>'Connecticut','DE'=>'Delaware','FL'=>'Florida','GA'=>'Georgia','HI'=>'Hawaii','ID'=>'Idaho','IL'=>'Illinois','IN'=>'Indiana','IA'=>'Iowa','KS'=>'Kansas','KY'=>'Kentucky','LA'=>'Louisiana','ME'=>'Maine','MD'=>'Maryland','MA'=>'Massachusetts','MI'=>'Michigan','MN'=>'Minnesota','MS'=>'Mississippi','MO'=>'Missouri','MT'=>'Montana','NE'=>'Nebraska','NV'=>'Nevada','NH'=>'New Hampshire','NJ'=>'New Jersey','NM'=>'New Mexico','NY'=>'New York','NC'=>'North Carolina','ND'=>'North Dakota','OH'=>'Ohio','OK'=>'Oklahoma','OR'=>'Oregon','PA'=>'Pennsylvania','RI'=>'Rhode Island','SC'=>'South Carolina','SD'=>'South Dakota','TN'=>'Tennessee','TX'=>'Texas','UT'=>'Utah','VT'=>'Vermont','VA'=>'Virginia','WA'=>'Washington','WV'=>'West Virginia','WI'=>'Wisconsin','WY'=>'Wyoming','DC'=>'District of Columbia'];
@@ -5754,8 +5792,8 @@ if ($page==='logout'){
                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">NPI Number <span class="text-red-500">*</span></label>
-                <input type="text" id="physician_npi" placeholder="10-digit NPI" maxlength="10"
+                <label class="block text-sm font-medium text-gray-700 mb-1">NPI Number</label>
+                <input type="text" id="physician_npi" placeholder="10-digit NPI (optional)" maxlength="10"
                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
               </div>
               <div>
@@ -6194,7 +6232,7 @@ if ($page==='logout'){
             </div>
             <div>
               <div class="font-medium text-gray-900">${phys.first_name} ${phys.last_name}${phys.credential ? ', ' + phys.credential : ''}</div>
-              <div class="text-sm text-gray-500">NPI: ${phys.npi}</div>
+              <div class="text-sm text-gray-500">${phys.npi ? 'NPI: ' + phys.npi : ''}</div>
             </div>
           </div>
           <button type="button" onclick="removePhysician(${idx})" class="text-red-500 hover:text-red-700">
@@ -6225,10 +6263,6 @@ if ($page==='logout'){
 
     if (!firstName || !lastName) {
       showError('Please enter the physician\'s first and last name.');
-      return;
-    }
-    if (!npi || !/^\d{10}$/.test(npi)) {
-      showError('Please enter a valid 10-digit NPI number.');
       return;
     }
 
