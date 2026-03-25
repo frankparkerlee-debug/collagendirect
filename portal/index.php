@@ -117,6 +117,7 @@ $DIRS = [
   'notes'        => $UPLOAD_ROOT . '/notes',
   'aob'          => $UPLOAD_ROOT . '/aob',
   'wound_photos' => $UPLOAD_ROOT . '/wound-photos', // Baseline wound photos from orders
+  'ivr'          => $UPLOAD_ROOT . '/ivr', // IVR (Insurance Verification Record) documents
 ];
 // Create directories with better error handling
 foreach ($DIRS as $name => $p) {
@@ -5319,7 +5320,11 @@ if ($page==='logout'){
       </a>
       <a class="<?php echo $page==='orders'?'active':''; ?>" href="?page=orders">
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
-        <span>Orders</span>
+        <span>Patient Referral</span>
+      </a>
+      <a class="<?php echo $page==='healkit'?'active':''; ?>" href="?page=healkit">
+        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+        <span>HealKit Order</span>
       </a>
       <a class="<?php echo $page==='wholesale'?'active':''; ?>" href="?page=wholesale">
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
@@ -8771,6 +8776,16 @@ function initProfileAutocomplete(addressId, cityId, stateId, zipId) {
     </div>
   </div>
 
+<?php elseif ($page==='healkit'): ?>
+  <?php
+  $tab = $_GET['tab'] ?? '';
+  if ($tab === 'create') {
+    include __DIR__ . '/healkit-order-form.php';
+  } else {
+    include __DIR__ . '/healkit-orders-list.php';
+  }
+  ?>
+
 <?php elseif ($page==='wholesale'): ?>
   <?php
   // Check if we're in "create" mode
@@ -9291,7 +9306,7 @@ function initProfileAutocomplete(addressId, cityId, stateId, zipId) {
       </div>
 
       <!-- Uploads tied to ORDER -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 border-t pt-4">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 border-t pt-4">
         <div class="md:col-span-1">
           <label class="text-sm">Visit Notes (attach file)</label>
           <input type="file" id="file-rx" accept=".pdf,.txt,image/*" class="w-full">
@@ -9306,10 +9321,9 @@ function initProfileAutocomplete(addressId, cityId, stateId, zipId) {
           </div>
         </div>
         <div class="md:col-span-1">
-          <label class="text-sm block mb-2">Insurance Requirements</label>
-          <div class="text-xs text-slate-600">
-            Patient ID & Insurance Card must be on file with the patient.
-          </div>
+          <label class="text-sm">IVR Document (Optional)</label>
+          <input type="file" id="file-ivr" accept=".pdf,.txt,image/*" class="w-full">
+          <div class="text-xs text-slate-500 mt-1">Insurance Verification Record</div>
         </div>
       </div>
     </div>
@@ -13350,6 +13364,9 @@ async function openOrderDialog(preselectId=null){
 
       const fileWoundPhoto = $('#file-wound-photo');
       if(fileWoundPhoto?.files[0])  body.append('baseline_wound_photo', fileWoundPhoto.files[0]);
+
+      const fileIvr = $('#file-ivr');
+      if(fileIvr?.files[0])  body.append('file_ivr', fileIvr.files[0]);
 
       const r=await fetch('/api/portal/orders.create.php',{method:'POST',body});
       const t=await r.text(); let j;

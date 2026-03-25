@@ -204,8 +204,13 @@ try {
 
   // 5) Order meta
   $order_id       = guid();
+  // Check if this is a HealKit order
+  $order_type = safe($_POST['order_type'] ?? null);
+  $is_healkit = ($order_type === 'healkit');
+  $billed_by = $is_healkit ? 'healkit' : null;
+
   // Frontend sends 'delivery_to' (patient/office), map to delivery_mode
-  $delivery_to    = safe($_POST['delivery_to'] ?? 'patient');
+  $delivery_to    = $is_healkit ? 'patient' : safe($_POST['delivery_to'] ?? 'patient');
   $delivery_mode  = ($delivery_to === 'office') ? 'office' : 'patient';
   $frequency      = safe($_POST['frequency_per_week'] ?? null);
   $payment_type   = safe($_POST['payment_type'] ?? 'insurance');
@@ -365,7 +370,7 @@ try {
   // Force cache refresh - 2024-11-18
   $sql = "INSERT INTO orders
     (id, patient_id, user_id, product, product_id, product_price, cpt, status, frequency, delivery_mode,
-     shipments_remaining, created_at, updated_at, order_number,
+     shipments_remaining, created_at, updated_at, order_number, billed_by,
      insurer_name, member_id, group_id, payer_phone, prior_auth, payment_type,
      wound_location, wound_laterality, wound_notes, exudate_level, wounds_data,
      last_eval_date, start_date, qty_per_change, duration_days,
@@ -377,7 +382,7 @@ try {
      review_status,
      total_pieces, boxes_to_ship, billable_pieces, expected_revenue, expected_cost, cpt_rate_used)
     VALUES
-    (?,?,?,?,?,?,?,?,?,?,0,NOW(),NOW(),?,
+    (?,?,?,?,?,?,?,?,?,?,0,NOW(),NOW(),?,?,
      ?,?,?,?,?,?,
      ?,?,?,?,?,
      ?,?,?,?,
@@ -395,6 +400,8 @@ try {
     $status, $frequency, $delivery_mode,
     // order number (same for all products in this order)
     $referralOrderNumber,
+    // billed_by (healkit for HealKit orders, null for referral)
+    $billed_by,
     // insurance & payment
     safe($_POST['insurance_provider'] ?? null),
     safe($_POST['insurance_member_id'] ?? null),
@@ -528,6 +535,7 @@ try {
   $ins_path = null; $ins_mime = null;
   $id_path = null; $id_mime = null;
   $wound_photo_path = null; $wound_photo_mime = null;
+  $ivr_path = null; $ivr_mime = null;
 
   try {
     // Log what files were submitted for debugging (error log only, not in patient instructions)
@@ -590,6 +598,13 @@ try {
       $wound_photo_path = null; $wound_photo_mime = null;
     }
 
+    try {
+      [$ivr_path, $ivr_mime] = save_upload('file_ivr', '/uploads/ivr');
+    } catch (Throwable $e) {
+      error_log('[orders.create] ERROR saving file_ivr: ' . $e->getMessage());
+      $ivr_path = null; $ivr_mime = null;
+    }
+
     // Validate insurance docs if insurance payment and files were not uploaded
     if ($payment_type === 'insurance') {
       // If the physician didn't upload in this request, we leave them NULL.
@@ -622,12 +637,13 @@ try {
 
     // Update order with file columns if present
     // IMPORTANT: Update ALL orders in the group (for multi-product orders), not just the primary
-    if ($rx_path || $ins_path || $id_path || $wound_photo_path) {
+    if ($rx_path || $ins_path || $id_path || $wound_photo_path || $ivr_path) {
       $sets=[]; $params=[];
       if ($rx_path)  { $sets[]='rx_note_path=?';  $params[]=$rx_path;  $sets[]='rx_note_name=?';  $params[]=basename($rx_path);  $sets[]='rx_note_mime=?';  $params[]=$rx_mime; }
       if ($ins_path) { $sets[]='ins_card_path=?'; $params[]=$ins_path; $sets[]='ins_card_mime=?'; $params[]=$ins_mime; }
       if ($id_path)  { $sets[]='id_card_path=?';  $params[]=$id_path;  $sets[]='id_card_mime=?';  $params[]=$id_mime; }
       if ($wound_photo_path) { $sets[]='baseline_wound_photo_path=?'; $params[]=$wound_photo_path; $sets[]='baseline_wound_photo_mime=?'; $params[]=$wound_photo_mime; }
+      if ($ivr_path) { $sets[]='ivr_path=?'; $params[]=$ivr_path; $sets[]='ivr_name=?'; $params[]=basename($ivr_path); $sets[]='ivr_mime=?'; $params[]=$ivr_mime; }
 
       // Update ALL orders in this group (not just primary order)
       foreach ($all_order_ids as $oid) {

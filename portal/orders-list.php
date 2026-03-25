@@ -53,7 +53,7 @@ $sql = "
   LEFT JOIN order_groups og ON og.id = o.order_group_id
   JOIN patients p ON p.id = o.patient_id
   WHERE o.user_id = ?
-    AND (o.billed_by IS NULL OR o.billed_by != 'practice_dme')
+    AND (o.billed_by IS NULL OR o.billed_by NOT IN ('practice_dme', 'healkit'))
   ORDER BY created_at DESC
 ";
 
@@ -180,15 +180,15 @@ foreach ($orders as $order) {
   <!-- Header -->
   <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem;">
     <div>
-      <h1 style="font-size: 1.875rem; font-weight: 700; margin-bottom: 0.5rem;">Patient Orders</h1>
+      <h1 style="font-size: 1.875rem; font-weight: 700; margin-bottom: 0.5rem;">Patient Referral</h1>
       <p style="color: #64748b; font-size: 0.875rem;">Manage your patient referral orders and shipments</p>
     </div>
-    <a href="?page=new-order" class="btn btn-primary">
+    <button type="button" class="btn btn-primary" onclick="openOrderDialog()">
       <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right: 0.5rem;">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
       </svg>
-      New Order
-    </a>
+      New Referral
+    </button>
   </div>
 
   <!-- Filters -->
@@ -226,7 +226,7 @@ foreach ($orders as $order) {
         </svg>
         <h3 style="font-size: 1.125rem; margin-bottom: 0.5rem;">No orders yet</h3>
         <p style="color: #64748b; margin-bottom: 1.5rem;">Create your first order to get started</p>
-        <a href="?page=new-order" class="btn btn-primary">Create Order</a>
+        <button type="button" class="btn btn-primary" onclick="openOrderDialog()">Create Referral</button>
       </div>
     <?php else: ?>
       <?php foreach ($grouped_orders as $order): ?>

@@ -105,6 +105,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         break;
 
+      case 'set_product_commission':
+        require_once __DIR__ . '/../api/lib/commission.php';
+        $productId = (int)($_POST['product_id'] ?? 0);
+        $commAmount = floatval($_POST['commission_amount'] ?? 0);
+        $effectiveDate = $_POST['effective_date'] ?? date('Y-m-d');
+        $notes = $_POST['notes'] ?? '';
+
+        if ($productId > 0 && $commAmount >= 0) {
+          if ($commAmount == 0) {
+            // Remove per-product commission (end it)
+            $pdo->prepare("
+              UPDATE rep_product_commissions SET end_date = ? WHERE rep_id = ? AND product_id = ? AND end_date IS NULL
+            ")->execute([date('Y-m-d'), $repId, $productId]);
+            $message = 'Per-product commission removed.';
+          } else {
+            set_product_commission($pdo, $repId, $productId, $commAmount, $effectiveDate, null, $notes ?: null);
+            $message = 'Per-product commission of $' . number_format($commAmount, 2) . '/item set successfully.';
+          }
+        } else {
+          $error = 'Invalid product or amount.';
+        }
+        break;
+
       case 'suspend_rep':
         $pdo->prepare("UPDATE sales_reps SET status = 'suspended', updated_at = NOW() WHERE id = ?")->execute([$repId]);
         $message = 'Sales rep suspended.';
@@ -641,6 +664,45 @@ $statusColors = [
         <?php endforeach; ?>
       </div>
     </div>
+    <?php endif; ?>
+  </div>
+
+  <!-- Per-Product Commission Rates -->
+  <div class="card p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Per-Product Rates</h3>
+      <button type="button" onclick="document.getElementById('productCommModal').showModal()" class="text-xs btn btn-primary" style="padding: 0.25rem 0.5rem;">
+        Manage
+      </button>
+    </div>
+    <?php
+    $productRates = [];
+    try {
+      require_once __DIR__ . '/../api/lib/commission.php';
+      $productRates = get_product_commissions($pdo, $repId);
+    } catch (Throwable $e) {}
+    ?>
+    <?php if (empty($productRates)): ?>
+      <p class="text-sm text-gray-400">No per-product rates set. Using percentage rate for all products.</p>
+    <?php else: ?>
+      <div class="space-y-2">
+        <?php
+        $productNames = [];
+        try {
+          $pnStmt = $pdo->prepare("SELECT id, name, size FROM products WHERE id IN (" . implode(',', array_keys($productRates)) . ")");
+          $pnStmt->execute();
+          while ($pn = $pnStmt->fetch(PDO::FETCH_ASSOC)) {
+            $productNames[$pn['id']] = $pn['name'] . ' ' . ($pn['size'] ?? '');
+          }
+        } catch (Throwable $e) {}
+        ?>
+        <?php foreach ($productRates as $pid => $amt): ?>
+        <div class="flex justify-between text-sm">
+          <span class="text-gray-700"><?= htmlspecialchars($productNames[$pid] ?? "Product #$pid") ?></span>
+          <span class="font-semibold text-green-600">$<?= number_format($amt, 2) ?>/item</span>
+        </div>
+        <?php endforeach; ?>
+      </div>
     <?php endif; ?>
   </div>
 
@@ -1306,6 +1368,102 @@ $statusColors = [
     <div class="p-6 border-t border-gray-200 flex gap-3">
       <button type="button" onclick="document.getElementById('payoutModal').close()" class="flex-1 btn">Cancel</button>
       <button type="submit" class="flex-1 btn btn-primary">Record Payout</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Per-Product Commission Modal -->
+<dialog id="productCommModal" class="rounded-2xl w-full max-w-2xl p-0 backdrop:bg-black/50">
+  <form method="POST" class="p-0">
+    <?= csrf_field() ?>
+    <input type="hidden" name="action" value="set_product_commission">
+
+    <div class="p-6 border-b border-gray-200">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold text-gray-900">Per-Product Commission Rates</h3>
+        <button type="button" onclick="document.getElementById('productCommModal').close()" class="text-gray-400 hover:text-gray-600">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+      <p class="text-sm text-gray-500 mt-1">Set fixed dollar commission per item. This overrides the percentage rate for these products.</p>
+    </div>
+
+    <div class="p-6 space-y-4">
+      <!-- Current Per-Product Rates -->
+      <?php
+      require_once __DIR__ . '/../api/lib/commission.php';
+      $currentProductComms = get_product_commissions($pdo, $repId);
+      $allProducts = [];
+      try {
+        $allProducts = $pdo->query("SELECT id, name, size FROM products WHERE active = TRUE ORDER BY name, size")->fetchAll(PDO::FETCH_ASSOC);
+      } catch (Throwable $e) {}
+      ?>
+
+      <?php if (!empty($currentProductComms)): ?>
+      <div>
+        <h4 class="text-sm font-semibold text-gray-700 mb-2">Current Per-Product Rates</h4>
+        <table style="width: 100%; font-size: 0.875rem;">
+          <thead>
+            <tr style="border-bottom: 1px solid #e5e7eb;">
+              <th style="text-align: left; padding: 0.5rem;">Product</th>
+              <th style="text-align: right; padding: 0.5rem;">$/Item</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php foreach ($allProducts as $p):
+              if (!isset($currentProductComms[$p['id']])) continue;
+            ?>
+            <tr style="border-bottom: 1px solid #f3f4f6;">
+              <td style="padding: 0.5rem;"><?= htmlspecialchars($p['name'] . ' ' . ($p['size'] ?? '')) ?></td>
+              <td style="padding: 0.5rem; text-align: right; font-weight: 600; color: #10b981;">$<?= number_format($currentProductComms[$p['id']], 2) ?></td>
+            </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+      <hr>
+      <?php endif; ?>
+
+      <!-- Set New Rate -->
+      <div>
+        <h4 class="text-sm font-semibold text-gray-700 mb-2">Set Commission for Product</h4>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Product</label>
+            <select name="product_id" required class="w-full">
+              <option value="">Select product...</option>
+              <?php foreach ($allProducts as $p): ?>
+              <option value="<?= $p['id'] ?>">
+                <?= htmlspecialchars($p['name'] . ' ' . ($p['size'] ?? '')) ?>
+                <?php if (isset($currentProductComms[$p['id']])): ?>
+                  (current: $<?= number_format($currentProductComms[$p['id']], 2) ?>)
+                <?php endif; ?>
+              </option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">$ per Item</label>
+            <input type="number" name="commission_amount" step="0.01" min="0" required class="w-full" placeholder="e.g., 15.00">
+            <p class="text-xs text-gray-500 mt-1">Enter 0 to remove per-product rate (reverts to %)</p>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4 mt-3">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Effective Date</label>
+            <input type="date" name="effective_date" value="<?= date('Y-m-d') ?>" class="w-full">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <input type="text" name="notes" class="w-full" placeholder="Optional notes...">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="p-6 border-t border-gray-200 flex gap-3">
+      <button type="button" onclick="document.getElementById('productCommModal').close()" class="flex-1 btn">Cancel</button>
+      <button type="submit" class="flex-1 btn btn-primary">Save Product Commission</button>
     </div>
   </form>
 </dialog>
