@@ -14,6 +14,18 @@ if (isset($_GET['logout'])) {
     $success = 'You have been logged out successfully.';
 }
 
+// Auto-expire pending applications older than 30 days
+try {
+    $pdo->exec("
+      UPDATE sales_reps
+      SET status = 'expired', updated_at = NOW(), notes = CONCAT(COALESCE(notes, ''), '\nAuto-expired: application pending over 30 days')
+      WHERE status = 'pending'
+        AND application_date < NOW() - INTERVAL '30 days'
+    ");
+} catch (Throwable $e) {
+    // Silently continue if this fails
+}
+
 // Handle login form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = strtolower(trim($_POST['email'] ?? ''));
@@ -74,6 +86,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     switch ($user['rep_status']) {
                         case 'pending':
                             $error = 'Your account is pending approval. Please wait for your manager to approve your access.';
+                            break;
+                        case 'expired':
+                            $error = 'Your application has expired (not reviewed within 30 days). Please <a href="/become-a-rep/" style="color:#0d9488;text-decoration:underline;">re-register here</a> to submit a new application.';
                             break;
                         case 'suspended':
                             $error = 'Your account has been suspended. Please contact your manager.';
@@ -148,7 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
             </svg>
-            <p class="text-sm text-red-800"><?php echo htmlspecialchars($error); ?></p>
+            <p class="text-sm text-red-800"><?php echo strpos($error, '<a ') !== false ? $error : htmlspecialchars($error); ?></p>
           </div>
         </div>
       <?php endif; ?>

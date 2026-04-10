@@ -52,10 +52,29 @@ if (!empty($errors)) {
 }
 
 // Check for existing email
-$stmt = $pdo->prepare("SELECT id FROM users WHERE LOWER(email) = LOWER(?) AND deleted_at IS NULL LIMIT 1");
+$stmt = $pdo->prepare("
+  SELECT u.id as user_id, sr.id as rep_id, sr.status as rep_status
+  FROM users u
+  LEFT JOIN sales_reps sr ON sr.user_id = u.id
+  WHERE LOWER(u.email) = LOWER(?) AND u.deleted_at IS NULL
+  LIMIT 1
+");
 $stmt->execute([$email]);
-if ($stmt->fetch()) {
-  json_out(400, ['error' => 'An account with this email already exists']);
+$existing = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if ($existing) {
+  // Allow re-registration if previous application expired or was rejected
+  if ($existing['rep_status'] === 'expired' || $existing['rep_status'] === 'rejected') {
+    // Clean up old records so they can start fresh
+    if ($existing['rep_id']) {
+      $pdo->prepare("DELETE FROM rep_signed_documents WHERE rep_id = ?")->execute([$existing['rep_id']]);
+      $pdo->prepare("DELETE FROM sales_reps WHERE id = ?")->execute([$existing['rep_id']]);
+    }
+    $pdo->prepare("DELETE FROM users WHERE id = ?")->execute([$existing['user_id']]);
+    // Continue with fresh registration below
+  } else {
+    json_out(400, ['error' => 'An account with this email already exists']);
+  }
 }
 
 // Capture metadata

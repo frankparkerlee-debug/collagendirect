@@ -337,6 +337,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// Auto-expire pending applications older than 30 days
+$pdo->exec("
+  UPDATE sales_reps
+  SET status = 'expired', updated_at = NOW(), notes = CONCAT(COALESCE(notes, ''), '\nAuto-expired: application pending over 30 days')
+  WHERE status = 'pending'
+    AND application_date < NOW() - INTERVAL '30 days'
+");
+
 // Fetch data based on active tab
 $activeReps = [];
 $pendingReps = [];
@@ -362,6 +370,15 @@ $pendingReps = $pdo->query("
     FROM sales_reps sr
     JOIN users u ON u.id = sr.user_id
     WHERE sr.status = 'pending'
+    ORDER BY sr.application_date DESC
+")->fetchAll(PDO::FETCH_ASSOC);
+
+// Expired applications
+$expiredReps = $pdo->query("
+    SELECT sr.*, u.first_name, u.last_name, u.email, u.phone
+    FROM sales_reps sr
+    JOIN users u ON u.id = sr.user_id
+    WHERE sr.status = 'expired'
     ORDER BY sr.application_date DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
@@ -436,7 +453,7 @@ try {
 }
 
 // Count badges
-$pendingCount = count($pendingReps) + count($invitedReps);
+$pendingCount = count($pendingReps) + count($invitedReps) + count($expiredReps);
 $requestCount = count($assignmentRequests);
 $payoutCount = count($payoutData);
 $w9Count = count($pendingW9s);
@@ -672,7 +689,41 @@ function sendDistributorInviteEmail($pdo, $repId, $inviteToken, $personalNote) {
         </table>
         <?php endif; ?>
 
-        <?php if (empty($pendingReps) && empty($invitedReps)): ?>
+        <?php if (!empty($expiredReps)): ?>
+        <div class="p-4 border-b <?= (!empty($pendingReps) || !empty($invitedReps)) ? 'border-t mt-4' : '' ?>">
+            <h3 class="font-semibold text-gray-700">Expired Applications</h3>
+            <p class="text-xs text-gray-500 mt-1">These applications were not reviewed within 30 days. The applicant must re-register.</p>
+        </div>
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 border-b">
+                <tr>
+                    <th class="text-left py-3 px-4 font-semibold text-gray-600">Applicant</th>
+                    <th class="text-left py-3 px-4 font-semibold text-gray-600">Contact</th>
+                    <th class="text-left py-3 px-4 font-semibold text-gray-600">Company</th>
+                    <th class="text-left py-3 px-4 font-semibold text-gray-600">Applied</th>
+                    <th class="text-left py-3 px-4 font-semibold text-gray-600">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($expiredReps as $rep): ?>
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="py-3 px-4 font-medium text-gray-400"><?= htmlspecialchars($rep['first_name'] . ' ' . $rep['last_name']) ?></td>
+                    <td class="py-3 px-4 text-gray-400">
+                        <div><?= htmlspecialchars($rep['email']) ?></div>
+                        <div class="text-xs"><?= htmlspecialchars($rep['phone'] ?? '-') ?></div>
+                    </td>
+                    <td class="py-3 px-4 text-gray-400"><?= htmlspecialchars($rep['company_name'] ?? '-') ?></td>
+                    <td class="py-3 px-4 text-gray-400 text-xs"><?= date('M j, Y', strtotime($rep['application_date'])) ?></td>
+                    <td class="py-3 px-4">
+                        <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">Expired</span>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        <?php endif; ?>
+
+        <?php if (empty($pendingReps) && empty($invitedReps) && empty($expiredReps)): ?>
         <div class="py-8 text-center text-gray-500">No pending applications.</div>
         <?php endif; ?>
 
