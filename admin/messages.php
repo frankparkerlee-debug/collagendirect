@@ -137,6 +137,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $threadId
       ]);
 
+      // Send email notification to the provider/rep
+      try {
+        require_once __DIR__ . '/../api/lib/email_notifications.php';
+        $providerStmt = $pdo->prepare("SELECT email, first_name, last_name FROM users WHERE id = ?");
+        $providerStmt->execute([$recipientId]);
+        $provider = $providerStmt->fetch(PDO::FETCH_ASSOC);
+        if ($provider && !empty($provider['email'])) {
+          send_message_notification_email(
+            $provider['email'],
+            trim(($provider['first_name'] ?? '') . ' ' . ($provider['last_name'] ?? '')),
+            $adminName,
+            $subject,
+            $body,
+            'https://collagendirect.health/portal/index.php?page=messages'
+          );
+        }
+      } catch (Throwable $emailErr) {
+        error_log('Admin message email notification error: ' . $emailErr->getMessage());
+      }
+
       header('Location: /admin/messages.php?success=1');
       exit;
     }

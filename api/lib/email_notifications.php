@@ -804,6 +804,9 @@ function send_manufacturer_order_email(array $orderData): bool {
       $recipients[] = ['email' => $admin['email'], 'name' => trim(($admin['first_name'] ?? '') . ' ' . ($admin['last_name'] ?? ''))];
     }
 
+    // Always include orders@md-dme.com for order notifications
+    $recipients[] = ['email' => 'orders@md-dme.com', 'name' => 'MD-DME Orders'];
+
     if (empty($recipients)) {
       error_log('[email] No manufacturer reps or superadmins found for order notification');
       return false;
@@ -1032,4 +1035,53 @@ View orders: $adminPortalUrl
 
   error_log("[email] Wholesale order notification: sent $successCount/" . count($recipients) . " emails for order $orderNumber");
   return $successCount > 0;
+}
+
+/**
+ * Send email notification for new message
+ *
+ * @param string $recipientEmail Email to send to
+ * @param string $recipientName Name of recipient
+ * @param string $senderName Who sent the message
+ * @param string $subject Message subject
+ * @param string $bodyPreview First ~200 chars of message body
+ * @param string $portalUrl Link to view the message
+ * @return bool Success
+ */
+function send_message_notification_email(
+  string $recipientEmail,
+  string $recipientName,
+  string $senderName,
+  string $subject,
+  string $bodyPreview,
+  string $portalUrl
+): bool {
+  $preview = mb_strlen($bodyPreview) > 200 ? mb_substr($bodyPreview, 0, 200) . '...' : $bodyPreview;
+
+  $emailSubject = "New Message from {$senderName} — CollagenDirect";
+  $htmlBody = email_template($emailSubject, "
+    <h2 style='color: #1e293b; margin: 0 0 20px 0;'>New Message</h2>
+    <p style='color: #475569; line-height: 1.6;'>You have a new message from <strong>{$senderName}</strong>.</p>
+
+    <div style='background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 20px 0;'>
+      <p style='margin: 0 0 8px 0; font-weight: 600; color: #1e293b;'>" . htmlspecialchars($subject) . "</p>
+      <p style='margin: 0; color: #64748b; font-style: italic;'>" . htmlspecialchars($preview) . "</p>
+    </div>
+
+    <div style='text-align: center; margin: 30px 0;'>
+      <a href='{$portalUrl}' style='display: inline-block; padding: 12px 30px; background-color: #4DB8A8; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600;'>
+        View Message
+      </a>
+    </div>
+
+    <p style='color: #94a3b8; font-size: 12px; margin-top: 20px;'>This is an automated notification. Please do not reply to this email.</p>
+  ");
+
+  $result = send_email($recipientEmail, $recipientName, $emailSubject, $htmlBody);
+  if ($result) {
+    error_log("[email] Message notification sent to $recipientEmail from $senderName");
+  } else {
+    error_log("[email] Failed to send message notification to $recipientEmail");
+  }
+  return $result;
 }

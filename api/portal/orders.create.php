@@ -434,6 +434,18 @@ try {
     foreach ($wounds_array as $wound_index => $wound) {
       $products_to_create = [];
 
+      // For wounds beyond the first (wound_index > 0), create a separate order for the primary product
+      // The first wound's primary product was already created as the main order above
+      if ($wound_index > 0 && !empty($wound['product_id'])) {
+        $products_to_create[] = [
+          'product_type' => 'primary',
+          'product_id' => (int)$wound['product_id'],
+          'product_name' => $wound['product_name'] ?? '',
+          'product_cpt' => $wound['product_cpt'] ?? null,
+          'product_price' => floatval($wound['product_price'] ?? 0)
+        ];
+      }
+
       // Check for secondary product
       if (!empty($wound['secondary_product_id']) && $wound['secondary_product_id'] !== '') {
         $products_to_create[] = [
@@ -456,7 +468,7 @@ try {
         ];
       }
 
-      // If we have secondary or additional products, create order group
+      // If we have products to create (secondary/additional, or primary for wound 2+), create order group
       if (!empty($products_to_create)) {
         // Create order group ID if not already created
         if (!$order_group_id) {

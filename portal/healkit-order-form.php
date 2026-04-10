@@ -20,12 +20,44 @@ $productsStmt = $pdo->prepare("SELECT id, name, size, cpt_code, price_admin, pie
 $productsStmt->execute();
 $products = $productsStmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Fetch practice physicians if practice admin
+// Fetch practice physicians if practice admin (with dynamic column detection)
 $physicians = [];
 if ($isPracticeAdmin) {
-  $physStmt = $pdo->prepare("SELECT id, physician_name, npi, license_number, signature_text FROM practice_physicians WHERE practice_admin_id = ? ORDER BY physician_name");
-  $physStmt->execute([$userId]);
-  $physicians = $physStmt->fetchAll(PDO::FETCH_ASSOC);
+  try {
+    $ppCols = $pdo->query("SELECT column_name FROM information_schema.columns WHERE table_name = 'practice_physicians'")->fetchAll(PDO::FETCH_COLUMN);
+    $adminCol = in_array('practice_admin_id', $ppCols) ? 'practice_admin_id' :
+                (in_array('practice_manager_id', $ppCols) ? 'practice_manager_id' : 'practice_user_id');
+    $hasPhysicianName = in_array('physician_name', $ppCols);
+    $npiCol = in_array('npi', $ppCols) ? 'npi' : (in_array('physician_npi', $ppCols) ? 'physician_npi' : null);
+    $licenseCol = in_array('license_number', $ppCols) ? 'license_number' : (in_array('license', $ppCols) ? 'license' : null);
+    $signatureCol = in_array('signature_text', $ppCols) ? 'signature_text' : null;
+    $hasIsActive = in_array('is_active', $ppCols);
+
+    $where = "$adminCol = ?" . ($hasIsActive ? " AND is_active = TRUE" : "");
+
+    if ($hasPhysicianName) {
+      $select = "id, physician_name";
+      if ($npiCol) $select .= ", $npiCol as npi";
+      if ($licenseCol) $select .= ", $licenseCol as license_number";
+      if ($signatureCol) $select .= ", $signatureCol as signature_text";
+      $order = "physician_name ASC";
+    } else {
+      $fn = in_array('first_name', $ppCols) ? 'first_name' : 'physician_first_name';
+      $ln = in_array('last_name', $ppCols) ? 'last_name' : 'physician_last_name';
+      $select = "id, CONCAT($fn, ' ', $ln) as physician_name";
+      if ($npiCol) $select .= ", $npiCol as npi";
+      if ($licenseCol) $select .= ", $licenseCol as license_number";
+      if ($signatureCol) $select .= ", $signatureCol as signature_text";
+      $order = "$fn ASC, $ln ASC";
+    }
+
+    $physStmt = $pdo->prepare("SELECT $select FROM practice_physicians WHERE $where ORDER BY $order");
+    $physStmt->execute([$userId]);
+    $physicians = $physStmt->fetchAll(PDO::FETCH_ASSOC);
+  } catch (Throwable $e) {
+    // Table might not exist - continue without physicians
+    $physicians = [];
+  }
 }
 ?>
 

@@ -697,6 +697,7 @@ if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"
         </td>
         <td class="py-3">
           <!-- Approve / Reject -->
+          <a href="/admin/order.pdf.php?id=<?=e($r['id'])?>&csrf=<?=e($_SESSION['csrf'] ?? '')?>" target="_blank" class="text-blue-600 hover:underline mr-2" title="Preview order details">View</a>
           <form method="post" class="inline"><?=csrf_field()?><input type="hidden" name="id" value="<?=e($r['id'])?>"><input type="hidden" name="action" value="approve"><button class="text-brand hover:underline">Approve</button></form>
           <form method="post" class="inline ml-2"><?=csrf_field()?><input type="hidden" name="id" value="<?=e($r['id'])?>"><input type="hidden" name="action" value="reject"><button class="text-rose-600 hover:underline">Reject</button></form>
 

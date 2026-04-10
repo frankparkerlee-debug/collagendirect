@@ -3739,6 +3739,24 @@ if ($action) {
         $pdo->prepare("UPDATE messages SET thread_id = id WHERE id = ?")->execute([$newMessageId]);
       }
 
+      // Send email notification to admins about new message
+      try {
+        require_once __DIR__ . '/../api/lib/email_notifications.php';
+        // Notify all superadmins and manufacturer admins
+        $adminRecipients = $pdo->query("SELECT email, name FROM admin_users WHERE role IN ('superadmin', 'manufacturer', 'admin') AND status = 'active'")->fetchAll(PDO::FETCH_ASSOC);
+        // Also notify orders@md-dme.com
+        $adminRecipients[] = ['email' => 'orders@md-dme.com', 'name' => 'MD-DME'];
+        foreach ($adminRecipients as $ar) {
+          send_message_notification_email(
+            $ar['email'], $ar['name'] ?? 'Admin',
+            $senderName, $subject, $body,
+            'https://collagendirect.health/admin/messages.php'
+          );
+        }
+      } catch (Throwable $emailErr) {
+        error_log('Message email notification error: ' . $emailErr->getMessage());
+      }
+
       jok(['message_id' => $newMessageId]);
     } catch (Throwable $e) {
       error_log('Message send error: ' . $e->getMessage());
