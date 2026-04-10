@@ -310,16 +310,13 @@ if (!$token || !preg_match('/^[a-f0-9]{64}$/', $token)) {
               <h3 class="font-bold text-gray-900 mt-6 mb-2">7. HIPAA COMPLIANCE</h3>
               <p class="mb-4">Representative acknowledges that Company handles Protected Health Information (PHI) and agrees to comply with HIPAA regulations. Representative will sign a separate Business Associate Agreement (BAA) as required by law.</p>
 
-              <h3 class="font-bold text-gray-900 mt-6 mb-2">8. NON-COMPETE</h3>
-              <p class="mb-4">During the term of this Agreement and for twelve (12) months thereafter, Representative agrees not to directly sell or promote competing wound care products to physicians onboarded through this program.</p>
-
-              <h3 class="font-bold text-gray-900 mt-6 mb-2">9. TERM AND TERMINATION</h3>
+              <h3 class="font-bold text-gray-900 mt-6 mb-2">8. TERM AND TERMINATION</h3>
               <p class="mb-4">This Agreement is effective upon acceptance and continues until terminated. Either party may terminate with 30 days written notice. Commission on orders placed before termination will be paid according to the normal schedule.</p>
 
-              <h3 class="font-bold text-gray-900 mt-6 mb-2">10. GOVERNING LAW</h3>
+              <h3 class="font-bold text-gray-900 mt-6 mb-2">9. GOVERNING LAW</h3>
               <p class="mb-4">This Agreement is governed by the laws of the State of Texas. Any disputes shall be resolved through binding arbitration in Texas.</p>
 
-              <h3 class="font-bold text-gray-900 mt-6 mb-2">11. ELECTRONIC SIGNATURE</h3>
+              <h3 class="font-bold text-gray-900 mt-6 mb-2">10. ELECTRONIC SIGNATURE</h3>
               <p class="mb-4">The parties agree that this Agreement may be executed electronically, and that electronic signatures shall have the same legal effect as original signatures.</p>
 
               <div class="mt-8 pt-6 border-t border-gray-300">
