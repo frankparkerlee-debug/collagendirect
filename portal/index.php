@@ -11719,14 +11719,21 @@ async function toggleAccordion(rowEl, patientId, page){
             <div class="space-y-2 mb-6">
               ${orders.slice(0,2).map((o,i)=>{
                 const colors = ['bg-blue-50 border-l-4 border-l-blue-500', 'bg-green-50 border-l-4 border-l-green-500'];
+                const oDraft = o.review_status === 'draft' || o.status === 'draft';
+                const cardBg = oDraft ? 'bg-amber-50 border-l-4 border-l-amber-400' : colors[i%2];
                 return `
-                  <div class="${colors[i%2]} p-3 rounded">
+                  <div class="${cardBg} p-3 rounded">
                     <div class="flex items-center justify-between">
                       <div>
                         <div class="font-medium text-sm">${esc(o.product||'Wound Care Order')}</div>
-                        <div class="text-xs text-slate-600">${fmt(o.created_at)} • ${pill(o.status||'')}</div>
+                        <div class="text-xs text-slate-600">${fmt(o.created_at)} • ${oDraft ? '<span class="text-orange-600 font-semibold">Draft - Not Submitted</span>' : pill(o.status||'')}</div>
                       </div>
-                      <button class="btn text-xs" style="background: var(--brand); color: white;" onclick="viewOrderDetails(${JSON.stringify(o).replace(/"/g, '&quot;')})">View Details</button>
+                      <div class="flex gap-2">
+                        ${oDraft ? `
+                          <button class="btn text-xs" style="background:#3b82f6;color:white;" data-edit-draft="${esc(o.id)}">Edit</button>
+                          <button class="btn text-xs" style="background:#10b981;color:white;" data-submit-draft="${esc(o.id)}">Submit</button>
+                        ` : `<button class="btn text-xs" style="background: var(--brand); color: white;" onclick="viewOrderDetails(${JSON.stringify(o).replace(/"/g, '&quot;')})">View Details</button>`}
+                      </div>
                     </div>
                   </div>
                 `;
@@ -11745,14 +11752,26 @@ async function toggleAccordion(rowEl, patientId, page){
                   </tr></thead>
                   <tbody>
                     ${orders.map(o=>{
+                      const oDraft = o.review_status === 'draft' || o.status === 'draft';
                       const viewBtn = `<button class="btn text-xs" onclick="viewOrderDetails(${JSON.stringify(o).replace(/"/g, '&quot;')})">View Order</button>`;
-                      const actions = (o.status==='stopped')
-                        ? `<button class="btn" data-restart="${esc(o.id)}">Restart</button>`
-                        : `<button class="btn" data-stop="${esc(o.id)}">Stop</button>`;
+                      let actions;
+                      if (oDraft) {
+                        actions = `
+                          <button class="btn text-xs" style="background:#3b82f6;color:white;" data-edit-draft="${esc(o.id)}">Edit</button>
+                          <button class="btn text-xs" style="background:#10b981;color:white;" data-submit-draft="${esc(o.id)}">Submit</button>
+                        `;
+                      } else if (o.status==='stopped') {
+                        actions = `<button class="btn" data-restart="${esc(o.id)}">Restart</button>`;
+                      } else {
+                        actions = `<button class="btn" data-stop="${esc(o.id)}">Stop</button>`;
+                      }
+                      const statusCell = oDraft
+                        ? '<span class="px-2 py-1 bg-amber-100 text-amber-800 rounded text-xs font-semibold">Draft</span>'
+                        : pill(o.status||'');
                       return `<tr class="border-b">
                         <td class="py-2">${fmt(o.created_at)}</td>
                         <td class="py-2">${esc(o.product||'')}</td>
-                        <td class="py-2">${pill(o.status||'')}</td>
+                        <td class="py-2">${statusCell}</td>
                         <td class="py-2">${o.shipments_remaining ?? 0}</td>
                         <td class="py-2">${o.delivery_mode==='office'?'Office':'Patient'}</td>
                         <td class="py-2">${fmt(o.expires_at)}</td>
@@ -11896,12 +11915,16 @@ function viewOrderDetails(order) {
   const content = document.getElementById('order-details-content');
 
   const statusBadge = {
+    'draft': '<span class="px-2 py-1 bg-amber-100 text-amber-800 rounded text-xs font-semibold">Draft - Not Submitted</span>',
     'active': '<span class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">Active</span>',
     'submitted': '<span class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">Submitted</span>',
+    'pending': '<span class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">Pending Review</span>',
     'approved': '<span class="px-2 py-1 bg-emerald-100 text-emerald-800 rounded text-xs font-medium">Approved</span>',
     'stopped': '<span class="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-medium">Stopped</span>',
     'completed': '<span class="px-2 py-1 bg-slate-100 text-slate-800 rounded text-xs font-medium">Completed</span>'
   };
+  const isDraftOrder = order.review_status === 'draft' || order.status === 'draft';
+  const effectiveStatusBadge = isDraftOrder ? statusBadge['draft'] : (statusBadge[order.status] || statusBadge['submitted']);
 
   // Build product list display for multi-product orders
   let productListHtml = '';
@@ -12001,12 +12024,23 @@ function viewOrderDetails(order) {
           <h4 class="text-lg font-semibold">Order Details</h4>
           <div class="flex items-center gap-2">
             ${order.is_multi_product ? '<span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-medium">Multi-Product Order</span>' : ''}
-            ${statusBadge[order.status] || statusBadge['submitted']}
+            ${effectiveStatusBadge}
           </div>
         </div>
         <div class="text-sm text-slate-600">
           Order Date: ${fmt(order.created_at)}
         </div>
+        ${isDraftOrder ? `
+          <div class="mt-3 p-3 bg-amber-50 border border-amber-200 rounded flex items-center justify-between gap-2">
+            <div class="text-sm text-amber-900">
+              <strong>This order is a draft.</strong> It has not been submitted for admin review yet.
+            </div>
+            <div class="flex gap-2 flex-shrink-0">
+              <button class="btn text-xs" style="background:#3b82f6;color:white;" data-edit-draft="${esc(order.id)}">Edit</button>
+              <button class="btn text-xs" style="background:#10b981;color:white;" data-submit-draft="${esc(order.id)}">Submit for Review</button>
+            </div>
+          </div>
+        ` : ''}
       </div>
 
       ${productListHtml}
@@ -12089,6 +12123,17 @@ function viewOrderDetails(order) {
       </div>
     </div>
   `;
+
+  // Wire up draft Edit/Submit buttons inside the modal
+  content.querySelectorAll('[data-edit-draft]').forEach(b => {
+    b.onclick = async () => {
+      dlg.close();
+      await loadAndOpenOrderEditDialog(b.dataset.editDraft);
+    };
+  });
+  content.querySelectorAll('[data-submit-draft]').forEach(b => {
+    b.onclick = () => submitDraftOrder(b.dataset.submitDraft);
+  });
 
   dlg.showModal();
 }
@@ -13773,7 +13818,13 @@ function renderOrderCard(o, index) {
         ${o.wound_location ? `<span>Location: ${esc(o.wound_location)}</span>` : ''}
         ${o.delivery_mode ? `<span>${o.delivery_mode === 'office' ? 'Office Pickup' : 'Ship to Patient'}</span>` : ''}
       </div>
-      ${isDraft ? '<div class="mt-2 text-xs text-orange-600 font-medium">⚠ Draft - Not submitted</div>' : ''}
+      ${isDraft ? `
+        <div class="mt-2 text-xs text-orange-600 font-semibold">⚠ Draft - Not submitted</div>
+        <div class="flex gap-2 mt-2" onclick="event.stopPropagation()">
+          <button class="btn text-xs" style="background:#3b82f6;color:white;" data-edit-draft="${esc(o.id)}">Edit</button>
+          <button class="btn text-xs" style="background:#10b981;color:white;" data-submit-draft="${esc(o.id)}">Submit for Review</button>
+        </div>
+      ` : ''}
       <div class="flex gap-2 mt-2">
         ${o.rx_note_path ? `<a href="${esc(o.rx_note_path)}" target="_blank" class="text-xs text-blue-600 hover:underline flex items-center gap-1" onclick="event.stopPropagation()">
           <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -14264,6 +14315,20 @@ function renderPatientDetailPage(p, orders, isEditing) {
   `;
 
   container.innerHTML = leftColumn + rightColumn;
+
+  // Wire up draft Edit/Submit buttons on order cards
+  container.querySelectorAll('[data-edit-draft]').forEach(b => {
+    b.onclick = async (e) => {
+      e.stopPropagation();
+      await loadAndOpenOrderEditDialog(b.dataset.editDraft);
+    };
+  });
+  container.querySelectorAll('[data-submit-draft]').forEach(b => {
+    b.onclick = (e) => {
+      e.stopPropagation();
+      submitDraftOrder(b.dataset.submitDraft);
+    };
+  });
 }
 
 async function savePatientFromDetail(patientId) {
