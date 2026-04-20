@@ -32,7 +32,10 @@ if (!has_permission('admin_settings.distributors.view')) {
 
 $admin = current_admin();
 $adminRole = $admin['role'] ?? '';
-$canManage = has_permission('admin_settings.distributors.manage', 'full');
+// Superadmin, admin, and manufacturer roles can always manage distributors
+// (permissions table lookup may fail if role_permissions not fully seeded)
+$canManage = in_array($adminRole, ['superadmin', 'admin', 'manufacturer'])
+    || has_permission('admin_settings.distributors.manage', 'full');
 
 // Handle tab routing
 $activeTab = $_GET['tab'] ?? 'active';
