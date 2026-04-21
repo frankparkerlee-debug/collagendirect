@@ -65,13 +65,50 @@ $existing = $stmt->fetch(PDO::FETCH_ASSOC);
 if ($existing) {
   // Allow re-registration if previous application expired or was rejected
   if ($existing['rep_status'] === 'expired' || $existing['rep_status'] === 'rejected') {
-    // Clean up old records so they can start fresh
+    // Reset existing records instead of deleting (preserves user ID references)
     if ($existing['rep_id']) {
       $pdo->prepare("DELETE FROM rep_signed_documents WHERE rep_id = ?")->execute([$existing['rep_id']]);
       $pdo->prepare("DELETE FROM sales_reps WHERE id = ?")->execute([$existing['rep_id']]);
     }
-    $pdo->prepare("DELETE FROM users WHERE id = ?")->execute([$existing['user_id']]);
-    // Continue with fresh registration below
+    // Update existing user instead of deleting and recreating
+    $passwordHash = password_hash($password, PASSWORD_DEFAULT);
+    $pdo->prepare("
+      UPDATE users SET first_name = ?, last_name = ?, phone = ?, password_hash = ?,
+        role = 'physician', status = 'active', updated_at = NOW()
+      WHERE id = ?
+    ")->execute([$firstName, $lastName, $phone, $passwordHash, $existing['user_id']]);
+
+    // Create fresh sales_rep profile
+    $repId = uid();
+    $pdo->prepare("
+      INSERT INTO sales_reps (id, user_id, company_name, status, application_date, how_heard_about_us, notes, created_at, updated_at)
+      VALUES (?, ?, ?, 'pending', NOW(), ?, 'Re-applied via online form', NOW(), NOW())
+    ")->execute([$repId, $existing['user_id'], $companyName ?: null, $howHeard ?: null]);
+
+    // Record signed documents
+    $clientIp = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    if (strpos($clientIp, ',') !== false) $clientIp = trim(explode(',', $clientIp)[0]);
+    $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
+
+    $pdo->prepare("
+      INSERT INTO rep_signed_documents (rep_id, document_type, document_version, signature_text, signed_at, ip_address, user_agent, created_at)
+      VALUES (?, 'rep_agreement', '1.0', ?, ?, ?, ?, NOW())
+    ")->execute([$repId, $repAgreementSignature, $repAgreementSignedAt ? date('Y-m-d H:i:s', strtotime($repAgreementSignedAt)) : date('Y-m-d H:i:s'), $clientIp, $userAgent]);
+
+    $pdo->prepare("
+      INSERT INTO rep_signed_documents (rep_id, document_type, document_version, signature_text, signed_at, ip_address, user_agent, created_at)
+      VALUES (?, 'baa', '1.0', ?, ?, ?, ?, NOW())
+    ")->execute([$repId, $baaSignature, $baaSignedAt ? date('Y-m-d H:i:s', strtotime($baaSignedAt)) : date('Y-m-d H:i:s'), $clientIp, $userAgent]);
+
+    // Send admin notification
+    sendAdminNotification($pdo, $firstName, $lastName, $email, $phone, $companyName);
+
+    json_out(200, [
+      'success' => true,
+      'message' => 'Application re-submitted successfully',
+      'user_id' => $existing['user_id'],
+      'rep_id' => $repId
+    ]);
   } else {
     json_out(400, ['error' => 'An account with this email already exists']);
   }

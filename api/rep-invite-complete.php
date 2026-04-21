@@ -87,16 +87,22 @@ try {
   ")->execute([$inviteData['rep_id']]);
 
   // 3. Record signed rep agreement
+  // Use ON CONFLICT to handle re-signing (e.g. if invite was re-sent)
   $pdo->prepare("
     INSERT INTO rep_signed_documents (
       rep_id, document_type, document_version,
-      signature_text, signed_at, ip_address, user_agent, source,
+      signature_text, signed_at, ip_address, user_agent,
       created_at
     ) VALUES (
       ?, 'rep_agreement', '1.0',
-      ?, ?, ?, ?, 'invite_completion',
+      ?, ?, ?, ?,
       NOW()
     )
+    ON CONFLICT (rep_id, document_type, document_version)
+    DO UPDATE SET signature_text = EXCLUDED.signature_text,
+                  signed_at = EXCLUDED.signed_at,
+                  ip_address = EXCLUDED.ip_address,
+                  user_agent = EXCLUDED.user_agent
   ")->execute([
     $inviteData['rep_id'],
     $repAgreementSignature,
@@ -109,13 +115,18 @@ try {
   $pdo->prepare("
     INSERT INTO rep_signed_documents (
       rep_id, document_type, document_version,
-      signature_text, signed_at, ip_address, user_agent, source,
+      signature_text, signed_at, ip_address, user_agent,
       created_at
     ) VALUES (
       ?, 'baa', '1.0',
-      ?, ?, ?, ?, 'invite_completion',
+      ?, ?, ?, ?,
       NOW()
     )
+    ON CONFLICT (rep_id, document_type, document_version)
+    DO UPDATE SET signature_text = EXCLUDED.signature_text,
+                  signed_at = EXCLUDED.signed_at,
+                  ip_address = EXCLUDED.ip_address,
+                  user_agent = EXCLUDED.user_agent
   ")->execute([
     $inviteData['rep_id'],
     $baaSignature,
