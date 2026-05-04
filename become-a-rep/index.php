@@ -1,6 +1,20 @@
 <?php
 declare(strict_types=1);
-session_start();
+
+// Match session config used by api/db.php so the CSRF token survives the POST
+if (session_status() === PHP_SESSION_NONE) {
+  $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+  ini_set('session.gc_maxlifetime', (string)(60*60*24*30));
+  ini_set('session.cookie_lifetime', (string)(60*60*24*30));
+  session_set_cookie_params([
+    'lifetime' => 60*60*24*30,
+    'path' => '/',
+    'secure' => $secure,
+    'httponly' => true,
+    'samesite' => 'Lax'
+  ]);
+  session_start();
+}
 
 // Generate CSRF token if not exists
 if (!isset($_SESSION['csrf'])) {
@@ -703,11 +717,22 @@ if (!isset($_SESSION['csrf'])) {
       submitBtn.innerHTML = '<svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Submitting...';
 
       try {
+        // Refresh CSRF token right before submission to handle long form fills
+        let activeCsrfToken = csrfToken;
+        try {
+          const csrfRes = await fetch('/api/csrf.php', { credentials: 'same-origin' });
+          if (csrfRes.ok) {
+            const csrfData = await csrfRes.json();
+            if (csrfData.csrfToken) activeCsrfToken = csrfData.csrfToken;
+          }
+        } catch (e) { /* fall back to page token */ }
+
         const response = await fetch('/api/rep-signup.php', {
           method: 'POST',
+          credentials: 'same-origin',
           headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-Token': csrfToken
+            'X-CSRF-Token': activeCsrfToken
           },
           body: JSON.stringify({
             // Account data

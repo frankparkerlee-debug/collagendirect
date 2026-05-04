@@ -5,7 +5,21 @@
  * Allows invited reps to set their password and sign required documents
  */
 declare(strict_types=1);
-session_start();
+
+// Match session config used by api/db.php so the CSRF token survives the POST
+if (session_status() === PHP_SESSION_NONE) {
+  $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+  ini_set('session.gc_maxlifetime', (string)(60*60*24*30));
+  ini_set('session.cookie_lifetime', (string)(60*60*24*30));
+  session_set_cookie_params([
+    'lifetime' => 60*60*24*30,
+    'path' => '/',
+    'secure' => $secure,
+    'httponly' => true,
+    'samesite' => 'Lax'
+  ]);
+  session_start();
+}
 
 // Generate CSRF token if not exists
 if (!isset($_SESSION['csrf'])) {
@@ -677,11 +691,22 @@ if (!$token || !preg_match('/^[a-f0-9]{64}$/', $token)) {
       submitArrow.classList.add('animate-spin');
 
       try {
+        // Refresh CSRF token right before submission to handle long form fills
+        let activeCsrfToken = csrfToken;
+        try {
+          const csrfRes = await fetch('/api/csrf.php', { credentials: 'same-origin' });
+          if (csrfRes.ok) {
+            const csrfData = await csrfRes.json();
+            if (csrfData.csrfToken) activeCsrfToken = csrfData.csrfToken;
+          }
+        } catch (e) { /* fall back to page token */ }
+
         const response = await fetch('/api/rep-invite-complete.php', {
           method: 'POST',
+          credentials: 'same-origin',
           headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-Token': csrfToken
+            'X-CSRF-Token': activeCsrfToken
           },
           body: JSON.stringify({
             token: token,
