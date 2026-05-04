@@ -76,10 +76,18 @@ foreach ($pending as $rep) {
         $rateCheck = $pdo->prepare("SELECT COUNT(*) FROM rep_commission_rates WHERE rep_id = ?");
         $rateCheck->execute([$rep['rep_id']]);
         if ((int)$rateCheck->fetchColumn() === 0) {
-            $pdo->prepare("
-                INSERT INTO rep_commission_rates (rep_id, rate, effective_date, set_by, notes, created_at)
-                VALUES (?, ?, CURRENT_DATE, NULL, 'Bulk approval', NOW())
-            ")->execute([$rep['rep_id'], $defaultRate]);
+            // Detect which column name exists (set_by or created_by)
+            $colCheck = $pdo->query("SELECT column_name FROM information_schema.columns WHERE table_name = 'rep_commission_rates' AND column_name IN ('set_by', 'created_by')")->fetchAll(PDO::FETCH_COLUMN);
+            if (in_array('set_by', $colCheck)) {
+                $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, set_by, notes, created_at) VALUES (?, ?, CURRENT_DATE, NULL, 'Bulk approval', NOW())")
+                    ->execute([$rep['rep_id'], $defaultRate]);
+            } elseif (in_array('created_by', $colCheck)) {
+                $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, created_by, notes, created_at) VALUES (?, ?, CURRENT_DATE, NULL, 'Bulk approval', NOW())")
+                    ->execute([$rep['rep_id'], $defaultRate]);
+            } else {
+                $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, notes, created_at) VALUES (?, ?, CURRENT_DATE, 'Bulk approval', NOW())")
+                    ->execute([$rep['rep_id'], $defaultRate]);
+            }
         }
 
         $pdo->commit();
