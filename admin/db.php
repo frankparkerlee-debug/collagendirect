@@ -2,15 +2,15 @@
 // /public/admin/db.php
 declare(strict_types=1);
 
-// Configure session for 7 days persistence
+// Configure session for 30 days persistence (matches api/db.php for consistency)
 if (session_status() !== PHP_SESSION_ACTIVE) {
   $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
 
-  ini_set('session.gc_maxlifetime', (string)(60*60*24*7)); // 7 days
-  ini_set('session.cookie_lifetime', (string)(60*60*24*7)); // 7 days
+  ini_set('session.gc_maxlifetime', (string)(60*60*24*30)); // 30 days
+  ini_set('session.cookie_lifetime', (string)(60*60*24*30)); // 30 days
 
   session_set_cookie_params([
-    'lifetime' => 60*60*24*7, // 7 days
+    'lifetime' => 60*60*24*30, // 30 days
     'path' => '/',
     'secure' => $secure,
     'httponly' => true,

@@ -87,10 +87,10 @@ if ($isAdminUser) {
 
   error_log("[LOGIN-SUCCESS] admin_users session created: " . json_encode($_SESSION['admin']), 3, $loginDebugLog);
 
-  // Always set persistent cookie
+  // Set persistent cookie (30 days to match session_set_cookie_params in api/db.php)
   $params = session_get_cookie_params();
   setcookie(session_name(), session_id(), [
-    'expires'  => time() + 60*60*24*7, // 7 days
+    'expires'  => time() + 60*60*24*30, // 30 days
     'path'     => $params['path'],
     'domain'   => $params['domain'],
     'secure'   => $params['secure'],
@@ -114,36 +114,76 @@ if ($isAdminUser) {
 }
 
 // Handle users table (physicians, practice_admin, superadmin, sales_rep)
-$_SESSION['user_id'] = $user['id'];
+// IMPORTANT: Check sales_rep status BEFORE setting $_SESSION['user_id'].
+// If status is not 'active', we must NOT leave any session state — otherwise
+// the user becomes half-logged-in (user_id set, no role), which lets them
+// reach /portal as a generic physician with no rep features.
 
-// Check if user is a sales rep (active or pending)
 $userRole = $user['role'] ?? 'physician';
 $isSalesRep = false;
-$isPendingRep = false;
 $repId = null;
 
 $repStmt = $pdo->prepare("SELECT id, status FROM sales_reps WHERE user_id = ?");
 $repStmt->execute([$user['id']]);
 $repRecord = $repStmt->fetch();
+
 if ($repRecord) {
-  if ($repRecord['status'] === 'active') {
-    $isSalesRep = true;
-    $repId = $repRecord['id'];
-    $userRole = 'sales_rep';
-  } elseif ($repRecord['status'] === 'pending') {
-    $isPendingRep = true;
-  } elseif ($repRecord['status'] === 'suspended') {
-    json_out(403, ['error' => 'Your sales rep account has been suspended. Please contact support.']);
+  // This user has a sales_reps row — only 'active' may proceed.
+  switch ($repRecord['status']) {
+    case 'active':
+      $isSalesRep = true;
+      $repId = $repRecord['id'];
+      $userRole = 'sales_rep';
+      break;
+
+    case 'pending':
+      json_out(403, [
+        'error'   => 'pending_approval',
+        'message' => 'Your application is under review. You will receive an email once your account is approved.'
+      ]);
+
+    case 'invited':
+      json_out(403, [
+        'error'   => 'invite_not_completed',
+        'message' => 'Please complete your registration using the invite link emailed to you before logging in.'
+      ]);
+
+    case 'expired':
+      json_out(403, [
+        'error'   => 'application_expired',
+        'message' => 'Your application has expired. Please re-register at /become-a-rep to reapply.'
+      ]);
+
+    case 'rejected':
+      json_out(403, [
+        'error'   => 'application_rejected',
+        'message' => 'Your sales rep application was not approved. Please contact support if you believe this is an error.'
+      ]);
+
+    case 'suspended':
+      json_out(403, [
+        'error'   => 'account_suspended',
+        'message' => 'Your sales rep account has been suspended. Please contact support.'
+      ]);
+
+    case 'terminated':
+      json_out(403, [
+        'error'   => 'account_terminated',
+        'message' => 'Your sales rep account has been terminated. Please contact support if you believe this is an error.'
+      ]);
+
+    default:
+      // Unknown status — fail closed.
+      error_log("[LOGIN] Unknown sales_reps.status='" . $repRecord['status'] . "' for user_id=" . $user['id'], 3, $loginDebugLog);
+      json_out(403, [
+        'error'   => 'account_invalid',
+        'message' => 'Your account is in an unknown state. Please contact support.'
+      ]);
   }
 }
 
-// If pending rep, show pending message
-if ($isPendingRep) {
-  json_out(403, [
-    'error' => 'pending_approval',
-    'message' => 'Your application is under review. You will receive an email once your account is approved.'
-  ]);
-}
+// All status gates passed — establish session now.
+$_SESSION['user_id'] = $user['id'];
 
 // Set admin session for superadmin or sales_rep
 // practice_admin is for practice managers and should NOT access /admin
@@ -159,11 +199,10 @@ if ($userRole === 'superadmin' || $isSalesRep) {
   }
 }
 
-// Always set persistent cookie (7 days) - session config handles this
-// The session cookie params are already configured in db.php for 7 days
+// Set persistent cookie (30 days to match session_set_cookie_params in api/db.php)
 $params = session_get_cookie_params();
 setcookie(session_name(), session_id(), [
-  'expires'  => time() + 60*60*24*7, // 7 days
+  'expires'  => time() + 60*60*24*30, // 30 days
   'path'     => $params['path'],
   'domain'   => $params['domain'],
   'secure'   => $params['secure'],
