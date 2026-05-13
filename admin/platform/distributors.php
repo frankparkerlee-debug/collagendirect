@@ -62,48 +62,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         switch ($action) {
             case 'approve_rep':
-                $repId = $_POST['rep_id'] ?? '';
+                $repId = trim((string)($_POST['rep_id'] ?? ''));
                 // Form passes percentage (e.g., 15 for 15%), convert to decimal (0.15)
                 $commissionRate = floatval($_POST['commission_rate'] ?? 15) / 100;
 
-                if ($repId) {
-                    $pdo->beginTransaction();
-                    try {
-                        // approved_by is NULL because admin_users.id is not a valid users.id FK
-                        $pdo->prepare("UPDATE sales_reps SET status = 'active', approved_date = NOW(), approved_by = NULL, updated_at = NOW() WHERE id = ?")
-                            ->execute([$repId]);
-
-                        // Detect which column name exists (set_by or created_by)
-                        $colCheck = $pdo->query("SELECT column_name FROM information_schema.columns WHERE table_name = 'rep_commission_rates' AND column_name IN ('set_by', 'created_by')")->fetchAll(PDO::FETCH_COLUMN);
-                        $hasSetBy = in_array('set_by', $colCheck);
-                        $hasCreatedBy = in_array('created_by', $colCheck);
-
-                        if ($hasSetBy) {
-                            $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, set_by, notes, created_at) VALUES (?, ?, CURRENT_DATE, NULL, 'Initial rate on approval', NOW())")
-                                ->execute([$repId, $commissionRate]);
-                        } elseif ($hasCreatedBy) {
-                            $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, created_by, notes, created_at) VALUES (?, ?, CURRENT_DATE, NULL, 'Initial rate on approval', NOW())")
-                                ->execute([$repId, $commissionRate]);
-                        } else {
-                            $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, notes, created_at) VALUES (?, ?, CURRENT_DATE, 'Initial rate on approval', NOW())")
-                                ->execute([$repId, $commissionRate]);
-                        }
-
-                        $pdo->commit();
-                    } catch (Exception $e) {
-                        $pdo->rollBack();
-                        throw $e;
-                    }
-
-                    // Send approval email (after commit, so failure doesn't block approval)
-                    try {
-                        sendDistributorApprovalEmail($pdo, $repId);
-                    } catch (Throwable $emailErr) {
-                        error_log("[approve_rep] Email failed but approval succeeded: " . $emailErr->getMessage());
-                    }
-
-                    $message = 'Distributor approved successfully.';
+                if (!$repId) {
+                    $error = 'Cannot approve: missing rep_id in form submission.';
+                    error_log("[approve_rep] FAILED — empty rep_id. POST: " . json_encode($_POST));
+                    break;
                 }
+
+                // Verify the rep exists and capture starting state for diagnostics
+                $verifyStmt = $pdo->prepare("SELECT id, status FROM sales_reps WHERE id = ?");
+                $verifyStmt->execute([$repId]);
+                $beforeRow = $verifyStmt->fetch(PDO::FETCH_ASSOC);
+                if (!$beforeRow) {
+                    $error = "Cannot approve: no sales_reps row with id=$repId.";
+                    error_log("[approve_rep] FAILED — rep_id not found: $repId");
+                    break;
+                }
+
+                $pdo->beginTransaction();
+                try {
+                    // approved_by is NULL because admin_users.id is not a valid users.id FK
+                    $updStmt = $pdo->prepare("UPDATE sales_reps SET status = 'active', approved_date = NOW(), approved_by = NULL, updated_at = NOW() WHERE id = ?");
+                    $updStmt->execute([$repId]);
+                    $rowsUpdated = $updStmt->rowCount();
+
+                    if ($rowsUpdated !== 1) {
+                        throw new RuntimeException("UPDATE affected $rowsUpdated rows (expected 1) for rep_id=$repId");
+                    }
+
+                    // Detect which column name exists (set_by or created_by)
+                    $colCheck = $pdo->query("SELECT column_name FROM information_schema.columns WHERE table_name = 'rep_commission_rates' AND column_name IN ('set_by', 'created_by')")->fetchAll(PDO::FETCH_COLUMN);
+                    $hasSetBy = in_array('set_by', $colCheck);
+                    $hasCreatedBy = in_array('created_by', $colCheck);
+
+                    if ($hasSetBy) {
+                        $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, set_by, notes, created_at) VALUES (?, ?, CURRENT_DATE, NULL, 'Initial rate on approval', NOW())")
+                            ->execute([$repId, $commissionRate]);
+                    } elseif ($hasCreatedBy) {
+                        $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, created_by, notes, created_at) VALUES (?, ?, CURRENT_DATE, NULL, 'Initial rate on approval', NOW())")
+                            ->execute([$repId, $commissionRate]);
+                    } else {
+                        $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, notes, created_at) VALUES (?, ?, CURRENT_DATE, 'Initial rate on approval', NOW())")
+                            ->execute([$repId, $commissionRate]);
+                    }
+
+                    $pdo->commit();
+                    error_log("[approve_rep] OK — rep_id=$repId was status='" . ($beforeRow['status'] ?? '?') . "', now 'active', rate=" . ($commissionRate * 100) . '%');
+                } catch (Throwable $e) {
+                    if ($pdo->inTransaction()) $pdo->rollBack();
+                    error_log("[approve_rep] FAILED — rep_id=$repId: " . $e->getMessage());
+                    $error = 'Approval failed: ' . $e->getMessage();
+                    break;
+                }
+
+                // Send approval email (after commit, so failure doesn't block approval)
+                try {
+                    sendDistributorApprovalEmail($pdo, $repId);
+                } catch (Throwable $emailErr) {
+                    error_log("[approve_rep] Email failed but approval succeeded: " . $emailErr->getMessage());
+                }
+
+                $message = 'Distributor approved successfully (was: ' . ($beforeRow['status'] ?? '?') . ', now: active).';
                 break;
 
             case 'reject_rep':
