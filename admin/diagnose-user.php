@@ -43,8 +43,8 @@ if ($email) {
         $results['admin_users'] = ['found' => false];
     }
 
-    // Check users table
-    $stmt = $pdo->prepare("SELECT id, email, first_name, last_name, role, password_hash FROM users WHERE LOWER(email) = ?");
+    // Check users table — include deleted_at and status to spot soft-deletes/bad state
+    $stmt = $pdo->prepare("SELECT id, email, first_name, last_name, role, status, password_hash, deleted_at, created_at, updated_at FROM users WHERE LOWER(email) = ?");
     $stmt->execute([$emailLower]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -55,12 +55,50 @@ if ($email) {
             'email' => $user['email'],
             'name' => trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')),
             'role' => $user['role'],
+            'status' => $user['status'] ?? '(null)',
+            'deleted_at' => $user['deleted_at'] ?? '(null)',
+            'created_at' => $user['created_at'] ?? '(null)',
+            'updated_at' => $user['updated_at'] ?? '(null)',
             'password_hash_length' => strlen($user['password_hash'] ?? ''),
             'password_hash_prefix' => substr($user['password_hash'] ?? '', 0, 10) . '...',
             'email_case_match' => $user['email'] === $emailLower ? 'lowercase' : 'mixed case'
         ];
+
+        // Look up sales_reps record linked to this user
+        $repStmt = $pdo->prepare("SELECT id, status, company_name, application_date, approved_date, invite_token_expires_at, created_at, updated_at FROM sales_reps WHERE user_id = ?");
+        $repStmt->execute([$user['id']]);
+        $rep = $repStmt->fetch(PDO::FETCH_ASSOC);
+        if ($rep) {
+            $results['sales_reps'] = [
+                'found' => true,
+                'rep_id' => $rep['id'],
+                'status' => $rep['status'],
+                'company_name' => $rep['company_name'] ?? '(null)',
+                'application_date' => $rep['application_date'] ?? '(null)',
+                'approved_date' => $rep['approved_date'] ?? '(null)',
+                'invite_token_expires_at' => $rep['invite_token_expires_at'] ?? '(null)',
+                'created_at' => $rep['created_at'] ?? '(null)',
+                'updated_at' => $rep['updated_at'] ?? '(null)',
+            ];
+        } else {
+            $results['sales_reps'] = ['found' => false];
+        }
     } else {
         $results['users'] = ['found' => false];
+        $results['sales_reps'] = ['found' => false, 'note' => 'cannot query sales_reps without a users row'];
+    }
+
+    // Optional password verification — test what login.php would actually do
+    $testPassword = $_GET['test_password'] ?? $_POST['test_password'] ?? '';
+    if ($testPassword !== '') {
+        $verifyTargets = [];
+        if (!empty($results['admin_users']['found']) && !empty($adminUser['password_hash'])) {
+            $verifyTargets['admin_users'] = password_verify($testPassword, (string)$adminUser['password_hash']);
+        }
+        if (!empty($results['users']['found']) && !empty($user['password_hash'])) {
+            $verifyTargets['users'] = password_verify($testPassword, (string)$user['password_hash']);
+        }
+        $results['password_verify_results'] = $verifyTargets ?: ['note' => 'no hash to test against'];
     }
 
     // Determine login behavior
@@ -70,7 +108,14 @@ if ($email) {
             ? 'USER EXISTS IN BOTH TABLES - password must be synced!'
             : null;
     } elseif ($results['users']['found'] ?? false) {
-        $results['login_behavior'] = 'Will authenticate against users table';
+        // Note about deleted_at — login.php does NOT filter on it
+        if (!empty($user['deleted_at'])) {
+            $results['login_behavior'] = 'WARNING: user has deleted_at set but login.php does NOT filter soft-deletes — login may still proceed';
+        } elseif (!empty($results['sales_reps']['found']) && ($results['sales_reps']['status'] ?? '') !== 'active') {
+            $results['login_behavior'] = 'Will check users table, then BLOCK via sales_reps.status=' . ($results['sales_reps']['status'] ?? '');
+        } else {
+            $results['login_behavior'] = 'Will authenticate against users table';
+        }
     } else {
         $results['login_behavior'] = 'User not found in either table';
     }
@@ -102,8 +147,10 @@ if ($email) {
 
     <form method="get">
         <input type="email" name="email" placeholder="Enter email address" value="<?= htmlspecialchars($email) ?>" required>
+        <input type="text" name="test_password" placeholder="(optional) test password" value="<?= htmlspecialchars($_GET['test_password'] ?? '') ?>" style="padding: 10px; width: 220px; font-size: 16px;">
         <button type="submit">Diagnose</button>
     </form>
+    <p style="color: #666; font-size: 13px;">Filling the password field will test password_verify() against the stored hash — same check login.php performs.</p>
 
     <?php if ($email && !empty($results)): ?>
         <div class="info">
@@ -151,6 +198,38 @@ if ($email) {
                 <p>Not found in users table</p>
             <?php endif; ?>
         </div>
+
+        <h2>sales_reps Table</h2>
+        <div class="table-section <?= ($results['sales_reps']['found'] ?? false) ? 'found' : 'not-found' ?>">
+            <?php if ($results['sales_reps']['found'] ?? false): ?>
+                <table>
+                    <?php foreach ($results['sales_reps'] as $key => $value): ?>
+                        <?php if ($key !== 'found'): ?>
+                        <tr>
+                            <th><?= htmlspecialchars($key) ?></th>
+                            <td><?= htmlspecialchars((string)$value) ?></td>
+                        </tr>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                </table>
+            <?php else: ?>
+                <p>No sales_reps row for this user</p>
+            <?php endif; ?>
+        </div>
+
+        <?php if (!empty($results['password_verify_results'])): ?>
+        <h2>Password Verification</h2>
+        <div class="table-section info">
+            <table>
+                <?php foreach ($results['password_verify_results'] as $table => $matches): ?>
+                <tr>
+                    <th><?= htmlspecialchars((string)$table) ?></th>
+                    <td><?= is_bool($matches) ? ($matches ? '✅ MATCH' : '❌ MISMATCH') : htmlspecialchars((string)$matches) ?></td>
+                </tr>
+                <?php endforeach; ?>
+            </table>
+        </div>
+        <?php endif; ?>
 
         <h2>Raw Results</h2>
         <pre><?= htmlspecialchars(json_encode($results, JSON_PRETTY_PRINT)) ?></pre>
