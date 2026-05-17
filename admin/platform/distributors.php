@@ -93,6 +93,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         throw new RuntimeException("UPDATE affected $rowsUpdated rows (expected 1) for rep_id=$repId");
                     }
 
+                    // Also flip the linked users.status to 'active' — invite-created users default to 'pending'
+                    // and nothing else updates it, so admin user lists keep showing "pending" otherwise.
+                    $pdo->prepare("UPDATE users SET status = 'active', updated_at = NOW() WHERE id = (SELECT user_id FROM sales_reps WHERE id = ?) AND status <> 'active'")
+                        ->execute([$repId]);
+
                     // Detect which column name exists (set_by or created_by)
                     $colCheck = $pdo->query("SELECT column_name FROM information_schema.columns WHERE table_name = 'rep_commission_rates' AND column_name IN ('set_by', 'created_by')")->fetchAll(PDO::FETCH_COLUMN);
                     $hasSetBy = in_array('set_by', $colCheck);

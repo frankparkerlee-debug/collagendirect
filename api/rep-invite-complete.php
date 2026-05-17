@@ -67,11 +67,12 @@ $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
 try {
   $pdo->beginTransaction();
 
-  // 1. Update user with password
+  // 1. Update user with password and mark account active
+  // Invite created users.status='pending' by default; flip it once the rep completes signup.
   $passwordHash = password_hash($password, PASSWORD_DEFAULT);
   $pdo->prepare("
     UPDATE users
-    SET password_hash = ?, updated_at = NOW()
+    SET password_hash = ?, status = 'active', updated_at = NOW()
     WHERE id = ?
   ")->execute([$passwordHash, $inviteData['user_id']]);
 
