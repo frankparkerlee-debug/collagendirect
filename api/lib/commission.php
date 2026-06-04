@@ -488,11 +488,18 @@ function set_initial_commission_rate(
   ?string $setBy = null
 ): bool {
   try {
-    $stmt = $pdo->prepare("
-      INSERT INTO rep_commission_rates (rep_id, rate, effective_date, set_by, notes, created_at)
-      VALUES (?, ?, NULL, ?, 'Initial rate on approval', NOW())
-    ");
-    $stmt->execute([$repId, $rate, $setBy]);
+    // Detect which column name exists (set_by or created_by) — schema varies by deploy.
+    $colCheck = $pdo->query("SELECT column_name FROM information_schema.columns WHERE table_name = 'rep_commission_rates' AND column_name IN ('set_by', 'created_by')")->fetchAll(PDO::FETCH_COLUMN);
+    if (in_array('set_by', $colCheck)) {
+      $stmt = $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, set_by, notes, created_at) VALUES (?, ?, NULL, ?, 'Initial rate on approval', NOW())");
+      $stmt->execute([$repId, $rate, $setBy]);
+    } elseif (in_array('created_by', $colCheck)) {
+      $stmt = $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, created_by, notes, created_at) VALUES (?, ?, NULL, ?, 'Initial rate on approval', NOW())");
+      $stmt->execute([$repId, $rate, $setBy]);
+    } else {
+      $stmt = $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, notes, created_at) VALUES (?, ?, NULL, 'Initial rate on approval', NOW())");
+      $stmt->execute([$repId, $rate]);
+    }
     return true;
   } catch (PDOException $e) {
     error_log("Error setting initial commission rate: " . $e->getMessage());

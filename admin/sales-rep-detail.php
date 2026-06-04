@@ -96,9 +96,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $notes = $_POST['notes'] ?? '';
 
         if ($newRate > 0 && $newRate <= 1) {
-          // set_by is NULL because admin_users.id is not a valid users.id FK
-          $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, set_by, notes, created_at) VALUES (?, ?, ?, NULL, ?, NOW())")
-              ->execute([$repId, $newRate, $effectiveDate, $notes ?: null]);
+          // Detect which column name exists (set_by or created_by) — schema varies by deploy.
+          $colCheck = $pdo->query("SELECT column_name FROM information_schema.columns WHERE table_name = 'rep_commission_rates' AND column_name IN ('set_by', 'created_by')")->fetchAll(PDO::FETCH_COLUMN);
+          if (in_array('set_by', $colCheck)) {
+            $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, set_by, notes, created_at) VALUES (?, ?, ?, NULL, ?, NOW())")
+                ->execute([$repId, $newRate, $effectiveDate, $notes ?: null]);
+          } elseif (in_array('created_by', $colCheck)) {
+            $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, created_by, notes, created_at) VALUES (?, ?, ?, NULL, ?, NOW())")
+                ->execute([$repId, $newRate, $effectiveDate, $notes ?: null]);
+          } else {
+            $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, notes, created_at) VALUES (?, ?, ?, ?, NOW())")
+                ->execute([$repId, $newRate, $effectiveDate, $notes ?: null]);
+          }
           $message = 'Commission rate updated successfully.';
         } else {
           $error = 'Invalid commission rate. Must be between 0 and 1 (e.g., 0.25 for 25%).';

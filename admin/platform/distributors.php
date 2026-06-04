@@ -365,9 +365,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $pdo->prepare("INSERT INTO sales_reps (id, user_id, status, company_name, invite_token, invite_token_expires_at, invited_by, application_date, created_at, updated_at) VALUES (?, ?, 'invited', ?, ?, ?, ?, NOW(), NOW(), NOW())")
                         ->execute([$repId, $userId, $companyName ?: null, $inviteToken, $inviteExpires, $invitedBy]);
 
-                    // set_by is NULL because admin_users.id is not a valid users.id FK
-                    $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, set_by, notes, created_at) VALUES (?, ?, CURRENT_DATE, NULL, 'Set on invite', NOW())")
-                        ->execute([$repId, $commissionRate]);
+                    // Detect which column name exists (set_by or created_by) — schema varies by deploy.
+                    // Wrong column name here would roll back the whole invite transaction, leaving no rep created.
+                    $colCheck = $pdo->query("SELECT column_name FROM information_schema.columns WHERE table_name = 'rep_commission_rates' AND column_name IN ('set_by', 'created_by')")->fetchAll(PDO::FETCH_COLUMN);
+                    if (in_array('set_by', $colCheck)) {
+                        $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, set_by, notes, created_at) VALUES (?, ?, CURRENT_DATE, NULL, 'Set on invite', NOW())")
+                            ->execute([$repId, $commissionRate]);
+                    } elseif (in_array('created_by', $colCheck)) {
+                        $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, created_by, notes, created_at) VALUES (?, ?, CURRENT_DATE, NULL, 'Set on invite', NOW())")
+                            ->execute([$repId, $commissionRate]);
+                    } else {
+                        $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, notes, created_at) VALUES (?, ?, CURRENT_DATE, 'Set on invite', NOW())")
+                            ->execute([$repId, $commissionRate]);
+                    }
 
                     $pdo->commit();
 

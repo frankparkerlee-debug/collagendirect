@@ -299,11 +299,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ")->execute([$repId, $userId, $companyName ?: null, $inviteToken, $inviteExpires, $invitedBy]);
 
             // Set commission rate (effective when invite is accepted)
-            // set_by is NULL because admin_users.id is not a valid users.id FK
-            $pdo->prepare("
-              INSERT INTO rep_commission_rates (rep_id, rate, effective_date, set_by, notes, created_at)
-              VALUES (?, ?, CURRENT_DATE, NULL, 'Set on invite', NOW())
-            ")->execute([$repId, $commissionRate]);
+            // Detect which column name exists (set_by or created_by) — schema varies by deploy.
+            // Wrong column name here would roll back the whole invite transaction, leaving no rep created.
+            $colCheck = $pdo->query("SELECT column_name FROM information_schema.columns WHERE table_name = 'rep_commission_rates' AND column_name IN ('set_by', 'created_by')")->fetchAll(PDO::FETCH_COLUMN);
+            if (in_array('set_by', $colCheck)) {
+              $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, set_by, notes, created_at) VALUES (?, ?, CURRENT_DATE, NULL, 'Set on invite', NOW())")
+                  ->execute([$repId, $commissionRate]);
+            } elseif (in_array('created_by', $colCheck)) {
+              $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, created_by, notes, created_at) VALUES (?, ?, CURRENT_DATE, NULL, 'Set on invite', NOW())")
+                  ->execute([$repId, $commissionRate]);
+            } else {
+              $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, notes, created_at) VALUES (?, ?, CURRENT_DATE, 'Set on invite', NOW())")
+                  ->execute([$repId, $commissionRate]);
+            }
 
             $pdo->commit();
 
@@ -370,11 +378,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           VALUES (?, ?, 'active', ?, NULL, NOW(), NOW(), NOW(), NOW())
         ")->execute([$repId, $userId, $companyName ?: null]);
 
-        // Set commission rate (set_by is NULL because admin_users.id is not a valid users.id FK)
-        $pdo->prepare("
-          INSERT INTO rep_commission_rates (rep_id, rate, effective_date, set_by, notes, created_at)
-          VALUES (?, ?, CURRENT_DATE, NULL, 'Set on direct add', NOW())
-        ")->execute([$repId, $commissionRate]);
+        // Set commission rate
+        // Detect which column name exists (set_by or created_by) — schema varies by deploy.
+        $colCheck = $pdo->query("SELECT column_name FROM information_schema.columns WHERE table_name = 'rep_commission_rates' AND column_name IN ('set_by', 'created_by')")->fetchAll(PDO::FETCH_COLUMN);
+        if (in_array('set_by', $colCheck)) {
+          $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, set_by, notes, created_at) VALUES (?, ?, CURRENT_DATE, NULL, 'Set on direct add', NOW())")
+              ->execute([$repId, $commissionRate]);
+        } elseif (in_array('created_by', $colCheck)) {
+          $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, created_by, notes, created_at) VALUES (?, ?, CURRENT_DATE, NULL, 'Set on direct add', NOW())")
+              ->execute([$repId, $commissionRate]);
+        } else {
+          $pdo->prepare("INSERT INTO rep_commission_rates (rep_id, rate, effective_date, notes, created_at) VALUES (?, ?, CURRENT_DATE, 'Set on direct add', NOW())")
+              ->execute([$repId, $commissionRate]);
+        }
 
         // Record offline attestation for documents
         $docTypes = ['rep_agreement', 'baa'];
