@@ -490,7 +490,7 @@ try {
 
           $pdo->prepare("INSERT INTO orders
             (id, patient_id, user_id, product, product_id, product_price, cpt, status, frequency, delivery_mode,
-             order_group_id, product_type, wound_index, order_number,
+             order_group_id, product_type, wound_index, order_number, billed_by,
              shipments_remaining, created_at, updated_at,
              insurer_name, member_id, group_id, payer_phone, prior_auth, payment_type,
              wound_location, wound_laterality, wound_notes, exudate_level, wounds_data,
@@ -501,7 +501,7 @@ try {
              review_status)
             VALUES
             (?,?,?,?,?,?,?,?,?,?,
-             ?,?,?,?,
+             ?,?,?,?,?,
              0,NOW(),NOW(),
              ?,?,?,?,?,?,
              ?,?,?,?,?,
@@ -513,7 +513,7 @@ try {
             $new_order_id, $patient_id, $uid,
             $product_info['product_name'], $product_info['product_id'], $product_info['product_price'], $product_info['product_cpt'],
             $status, $frequency, $delivery_mode,
-            $order_group_id, $product_info['product_type'], $wound_index, $referralOrderNumber,
+            $order_group_id, $product_info['product_type'], $wound_index, $referralOrderNumber, $billed_by,
             // insurance & payment
             safe($_POST['insurance_provider'] ?? null),
             safe($_POST['insurance_member_id'] ?? null),

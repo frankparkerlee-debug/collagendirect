@@ -421,9 +421,23 @@ document.addEventListener('DOMContentLoaded', function() {
             </select>
           </div>
           <div>
-            <label class="hk-label">Product *</label>
+            <label class="hk-label">Primary Dressing *</label>
             <select class="hk-input wound-product">
               <option value="">Select product...</option>
+              ${productOptions}
+            </select>
+          </div>
+          <div>
+            <label class="hk-label">Secondary Dressing</label>
+            <select class="hk-input wound-secondary-product">
+              <option value="">None</option>
+              ${productOptions}
+            </select>
+          </div>
+          <div>
+            <label class="hk-label">Additional Supply</label>
+            <select class="hk-input wound-additional-product">
+              <option value="">None</option>
               ${productOptions}
             </select>
           </div>
@@ -475,7 +489,12 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.hk-wound-card').forEach(el => {
       const productSelect = el.querySelector('.wound-product');
       const selectedOpt = productSelect?.options[productSelect.selectedIndex];
-      wounds.push({
+      const secondarySelect = el.querySelector('.wound-secondary-product');
+      const secondaryOpt = secondarySelect?.options[secondarySelect.selectedIndex];
+      const additionalSelect = el.querySelector('.wound-additional-product');
+      const additionalOpt = additionalSelect?.options[additionalSelect.selectedIndex];
+
+      const wound = {
         location: el.querySelector('.wound-location')?.value || '',
         laterality: el.querySelector('.wound-laterality')?.value || '',
         product_id: productSelect?.value || '',
@@ -485,7 +504,25 @@ document.addEventListener('DOMContentLoaded', function() {
         qty_per_change: parseInt(el.querySelector('.wound-qty')?.value || 1),
         frequency_per_week: parseInt(el.querySelector('.wound-freq')?.value || 7),
         duration_days: parseInt(el.querySelector('.wound-duration')?.value || 30)
-      });
+      };
+
+      // Add secondary dressing if selected
+      if (secondarySelect?.value) {
+        wound.secondary_product_id = secondarySelect.value;
+        wound.secondary_product_name = secondaryOpt?.dataset.name || '';
+        wound.secondary_product_cpt = secondaryOpt?.dataset.cpt || '';
+        wound.secondary_product_price = parseFloat(secondaryOpt?.dataset.price || 0);
+      }
+
+      // Add additional supply if selected
+      if (additionalSelect?.value) {
+        wound.additional_product_id = additionalSelect.value;
+        wound.additional_product_name = additionalOpt?.dataset.name || '';
+        wound.additional_product_cpt = additionalOpt?.dataset.cpt || '';
+        wound.additional_product_price = parseFloat(additionalOpt?.dataset.price || 0);
+      }
+
+      wounds.push(wound);
     });
     return wounds;
   }
@@ -555,7 +592,17 @@ document.addEventListener('DOMContentLoaded', function() {
         alert(isDraft ? 'Draft saved!' : 'HealKit order submitted successfully!');
         window.location.href = '?page=healkit';
       } else {
-        alert('Error: ' + (data.error || 'Order creation failed'));
+        // Surface the real error so we can diagnose. The server returns
+        // 'error' (machine code) and 'debug_message' (the actual PDO/PHP error).
+        let msg = data.error || 'Order creation failed';
+        if (data.debug_message) {
+          msg += '\n\nDetails: ' + data.debug_message;
+        }
+        if (data.debug_file && data.debug_line) {
+          msg += '\n(' + data.debug_file + ':' + data.debug_line + ')';
+        }
+        alert('Error: ' + msg);
+        console.error('HealKit submit error:', data);
       }
     } catch (e) {
       alert('Network error: ' + e.message);
