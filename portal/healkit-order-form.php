@@ -134,16 +134,16 @@ if ($isPracticeAdmin) {
         <div class="hk-grid">
           <div><label class="hk-label">First Name *</label><input id="hk-np-first" class="hk-input" placeholder="First name"></div>
           <div><label class="hk-label">Last Name *</label><input id="hk-np-last" class="hk-input" placeholder="Last name"></div>
-          <div><label class="hk-label">Date of Birth *</label><input id="hk-np-dob" type="date" class="hk-input"></div>
-          <div><label class="hk-label">Phone *</label><input id="hk-np-phone" class="hk-input" placeholder="(555) 123-4567"></div>
-          <div><label class="hk-label">Email *</label><input id="hk-np-email" class="hk-input" type="email" placeholder="patient@example.com"></div>
-          <div><label class="hk-label">Address *</label><input id="hk-np-address" class="hk-input" placeholder="Street address"></div>
-          <div><label class="hk-label">City *</label><input id="hk-np-city" class="hk-input" placeholder="City"></div>
+          <div><label class="hk-label">Date of Birth</label><input id="hk-np-dob" type="date" class="hk-input"></div>
+          <div><label class="hk-label">Phone</label><input id="hk-np-phone" class="hk-input" placeholder="(555) 123-4567"></div>
+          <div><label class="hk-label">Email</label><input id="hk-np-email" class="hk-input" type="email" placeholder="patient@example.com"></div>
+          <div><label class="hk-label">Address</label><input id="hk-np-address" class="hk-input" placeholder="Street address"></div>
+          <div><label class="hk-label">City</label><input id="hk-np-city" class="hk-input" placeholder="City"></div>
           <div>
-            <label class="hk-label">State *</label>
+            <label class="hk-label">State</label>
             <input id="hk-np-state" class="hk-input" placeholder="State" maxlength="2">
           </div>
-          <div><label class="hk-label">ZIP *</label><input id="hk-np-zip" class="hk-input" placeholder="ZIP code"></div>
+          <div><label class="hk-label">ZIP</label><input id="hk-np-zip" class="hk-input" placeholder="ZIP code"></div>
         </div>
         <div style="margin-top: 0.75rem;">
           <div style="font-weight: 500; font-size: 0.8125rem; color: #64748b; margin-bottom: 0.5rem;">Insurance (Optional)</div>
@@ -340,7 +340,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!first || !last) { hint.textContent = 'First and last name required'; hint.style.color = '#ef4444'; return; }
 
     const body = new FormData();
-    body.append('action', 'patient.create');
     body.append('first_name', first);
     body.append('last_name', last);
     body.append('dob', $('#hk-np-dob').value);
@@ -356,11 +355,11 @@ document.addEventListener('DOMContentLoaded', function() {
     body.append('insurance_payer_phone', $('#hk-np-ins-payer-phone').value);
 
     try {
-      const r = await fetch('/portal/index.php', { method: 'POST', body });
+      const r = await fetch('/portal/index.php?action=patient.save', { method: 'POST', body });
       const data = await r.json();
       if (data.ok) {
-        _patientId = data.patient_id;
-        patientIdInput.value = data.patient_id;
+        _patientId = data.id;
+        patientIdInput.value = data.id;
         searchInput.value = `${first} ${last}`;
         createSection.style.display = 'none';
         hint.textContent = 'Patient created!';
