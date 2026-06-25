@@ -388,35 +388,21 @@ $products = $productsStmt->fetchAll(PDO::FETCH_ASSOC);
       </div>
       <?php endif; ?>
 
-      <div style="margin-bottom: 1.5rem;">
-        <h3 style="font-size: 1.25rem; font-weight: 600; color: var(--ink); margin-bottom: 0.5rem;">Patient Information</h3>
-        <p style="color: var(--muted); font-size: 0.875rem;">Add patients who will receive products in this wholesale order.</p>
-      </div>
-      <div style="overflow-x: auto; margin-bottom: 1.5rem;">
-        <table class="patient-table" style="width: 100%; border-collapse: collapse; background: white; border: 1px solid var(--border); border-radius: 8px;">
-          <thead>
-            <tr style="background-color: #f8f9fa; border-bottom: 2px solid var(--border);">
-              <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: var(--ink);">First Name</th>
-              <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: var(--ink);">Last Name</th>
-              <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: var(--ink);">Phone</th>
-              <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: var(--ink);">Address</th>
-              <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: var(--ink);">Delivery</th>
-              <th style="padding: 0.75rem; text-align: center; font-weight: 600; color: var(--ink); width: 60px;">Action</th>
-            </tr>
-          </thead>
-          <tbody id="patient-rows">
-            <!-- Patient rows will be added here dynamically -->
-          </tbody>
-        </table>
-      </div>
+      <!-- Wholesale orders always ship to the selected facility/location (office stock).
+           The single office-stock recipient is submitted as hidden fields below. -->
+      <input type="hidden" name="patients[0][first_name]" value="Office">
+      <input type="hidden" name="patients[0][last_name]" value="Stock">
+      <input type="hidden" name="patients[0][phone]" value="N/A">
+      <input type="hidden" name="patients[0][address]" value="Office">
+      <input type="hidden" name="patients[0][is_office_stock]" value="1">
+      <input type="hidden" name="patients[0][delivery_mode]" value="ship_to_office">
 
-      <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
-        <button type="button" class="btn" onclick="addPatientRow()" style="flex: 0 0 auto;">
-          <span style="font-size: 1.25rem;">+</span> Add Patient
-        </button>
-        <button type="button" class="btn" onclick="addOfficeStockRow()" style="flex: 0 0 auto; background: #3b82f6;">
-          📦 Office Stock
-        </button>
+      <div style="background: white; border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem;">
+        <span style="font-size: 1.5rem;">📦</span>
+        <div>
+          <div style="font-weight: 600; color: var(--ink);">Ship to facility (office stock)</div>
+          <div style="color: var(--muted); font-size: 0.875rem;">All products in this order ship to the delivery location selected above.</div>
+        </div>
       </div>
 
       <div class="form-actions">
@@ -748,23 +734,11 @@ $products = $productsStmt->fetchAll(PDO::FETCH_ASSOC);
       nextBtn.disabled = rows.length === 0;
     }
 
-    // Load patients from session if coming back from Step 2
+    // Office-stock-only wholesale orders: the single office-stock recipient is a hidden
+    // field in the form, so just enable the Next button (delivery location is required).
     window.addEventListener('DOMContentLoaded', function() {
-      const sessionPatients = <?= json_encode($_SESSION['wholesale_patients'] ?? []) ?>;
-
-      if (sessionPatients && Object.keys(sessionPatients).length > 0) {
-        // Load existing patients from session
-        Object.values(sessionPatients).forEach(patientData => {
-          if (patientData.is_office_stock === '1') {
-            addOfficeStockRow();
-          } else {
-            addPatientRow(patientData);
-          }
-        });
-      } else {
-        // Default to Office Order first (not Patient Order)
-        addOfficeStockRow();
-      }
+      const nextBtn = document.getElementById('next-btn');
+      if (nextBtn) nextBtn.disabled = false;
     });
     </script>
 
