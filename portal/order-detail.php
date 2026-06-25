@@ -225,38 +225,35 @@ foreach ($order['products'] as $prod) {
               <th>Product</th>
               <th>Size</th>
               <th>Qty/Change</th>
-              <th>Boxes to Ship</th>
+              <th>Quantity to Ship</th>
             </tr>
           </thead>
           <tbody>
             <?php foreach ($order['products'] as $prod):
-              // Use stored boxes_to_ship if available, otherwise calculate (fallback for legacy orders)
+              // Wholesale ships whole BOXES; patient-referral and HealKit are tracked in PIECES.
               $isWholesale = ($prod['billed_by'] ?? '') === 'practice_dme';
               $qty_per_change = (int)($prod['qty_per_change'] ?? 1);
+              $stored_boxes  = (int)($prod['boxes_to_ship'] ?? 0);
+              $stored_pieces = (int)($prod['total_pieces'] ?? 0);
 
-              if (!empty($prod['boxes_to_ship'])) {
-                // Use stored value (calculated at order creation)
-                $boxes_to_ship = (int)$prod['boxes_to_ship'];
-                $qty_display = $isWholesale ? '-' : $qty_per_change;
-              } elseif ($isWholesale) {
-                // Wholesale fallback: qty_per_change is boxes
-                $boxes_to_ship = $qty_per_change;
+              if ($isWholesale) {
+                $ship_count  = $stored_boxes > 0 ? $stored_boxes : $qty_per_change;
                 $qty_display = '-';
+              } elseif ($stored_pieces > 0) {
+                // Referral / HealKit: use the stored piece count
+                $ship_count  = $stored_pieces;
+                $qty_display = $qty_per_change;
               } else {
-                // Referral fallback: calculate boxes from frequency, duration, qty
-                $fpw = (int)($prod['frequency_per_week'] ?? 0);
-                $days = (int)($prod['duration_days'] ?? 30);
+                // Fallback for legacy orders without stored pieces
+                $fpw  = (int)($prod['frequency'] ?? $prod['frequency_per_week'] ?? 1); if ($fpw === 0) $fpw = 1;
+                $days = (int)($prod['duration_days'] ?? 30); if ($days === 0) $days = 30;
                 $refills = max(0, (int)($prod['refills_allowed'] ?? 0));
-                $pieces_per_box = max(1, (int)($prod['pieces_per_box'] ?? 10));
-
-                if ($fpw === 0) $fpw = 1;
-                if ($days === 0) $days = 30;
-
-                $weeks = $days / 7.0;
-                $total_pieces = $weeks * $fpw * $qty_per_change * (1 + $refills);
-                $boxes_to_ship = (int)ceil($total_pieces / $pieces_per_box);
+                $ship_count  = (int)ceil(($days / 7.0) * $fpw * $qty_per_change * (1 + $refills));
                 $qty_display = $qty_per_change;
               }
+              $ship_unit = $isWholesale
+                ? ($ship_count == 1 ? 'box' : 'boxes')
+                : ($ship_count == 1 ? 'piece' : 'pieces');
             ?>
               <tr>
                 <td style="font-weight: 500;">
@@ -264,7 +261,7 @@ foreach ($order['products'] as $prod) {
                 </td>
                 <td><?= htmlspecialchars($prod['size'] ?? 'N/A') ?></td>
                 <td><?= $qty_display ?></td>
-                <td style="font-weight: 600; color: #10b981;"><?= $boxes_to_ship ?> box<?= $boxes_to_ship !== 1 ? 'es' : '' ?></td>
+                <td style="font-weight: 600; color: #10b981;"><?= $ship_count ?> <?= $ship_unit ?></td>
               </tr>
             <?php endforeach; ?>
           </tbody>
