@@ -1381,7 +1381,7 @@ if ($action) {
 
     if ($q!==''){
       $like="%$q%";
-      $sql.=" AND (p.first_name LIKE ? OR p.last_name LIKE ? OR p.phone LIKE ? OR p.email LIKE ? OR p.mrn LIKE ?)";
+      $sql.=" AND (p.first_name ILIKE ? OR p.last_name ILIKE ? OR p.phone ILIKE ? OR p.email ILIKE ? OR p.mrn ILIKE ?)";
       array_push($args,$like,$like,$like,$like,$like);
     }
 
@@ -3531,7 +3531,7 @@ if ($action) {
       $where="o.user_id=?"; $args=[$userId];
     }
 
-    if($q!==''){ $where.=" AND (o.product LIKE ? OR o.shipping_name LIKE ? OR p.first_name LIKE ? OR p.last_name LIKE ?)"; $like="%$q%"; array_push($args,$like,$like,$like,$like); }
+    if($q!==''){ $where.=" AND (o.product ILIKE ? OR o.shipping_name ILIKE ? OR p.first_name ILIKE ? OR p.last_name ILIKE ?)"; $like="%$q%"; array_push($args,$like,$like,$like,$like); }
     if($status==='draft'){ $where.=" AND o.review_status='draft'"; }
     elseif($status!==''){ $where.=" AND o.status=?"; $args[]=$status; }
 
