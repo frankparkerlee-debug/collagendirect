@@ -423,69 +423,68 @@ document.addEventListener('DOMContentLoaded', function() {
   })();
 
   // ---- Wounds ----
+  // Group products by name so the size becomes a separate dropdown (like the referral order)
+  const productsByName = {};
+  productsData.forEach(p => { const k = (p.name || '').trim(); (productsByName[k] = productsByName[k] || []).push(p); }); // trim so trailing-space dupes collapse
+  const productTypeOptions = Object.keys(productsByName).sort().map(n => `<option value="${n}">${n}</option>`).join('');
+
+  // Populate the size dropdown that sits right after a product-type dropdown
+  function hkFillSizes(typeSel) {
+    const sizeSel = typeSel.nextElementSibling;
+    if (!sizeSel) return;
+    const items = productsByName[typeSel.value] || [];
+    if (!items.length) { sizeSel.innerHTML = '<option value="">Size...</option>'; sizeSel.disabled = true; return; }
+    sizeSel.disabled = false;
+    sizeSel.innerHTML = '<option value="">Size...</option>' + items.map(p =>
+      `<option value="${p.id}" data-name="${p.name} ${p.size}" data-cpt="${p.cpt_code || ''}" data-price="${p.price_admin || 0}">${p.size || 'Standard'}</option>`
+    ).join('');
+    if (items.length === 1) sizeSel.value = items[0].id; // auto-select when there is only one size
+  }
+
   function addWound() {
     woundCount++;
     const idx = woundCount;
-    const productOptions = productsData.map(p =>
-      `<option value="${p.id}" data-name="${p.name} ${p.size}" data-cpt="${p.cpt_code || ''}" data-price="${p.price_admin || 0}">${p.name} ${p.size}</option>`
-    ).join('');
 
     const html = `
       <div class="hk-wound-card" data-wound-index="${idx}">
         <button type="button" class="hk-remove-wound" onclick="this.closest('.hk-wound-card').remove()" title="Remove wound">&times;</button>
         <div style="font-weight: 600; font-size: 0.875rem; margin-bottom: 0.75rem; color: #6366f1;">Wound ${idx}</div>
         <div class="hk-grid">
-          <div>
-            <label class="hk-label">Location *</label>
-            <select class="hk-input wound-location">
-              <option value="">Select...</option>
-              <option value="Head/Face">Head/Face</option>
-              <option value="Neck">Neck</option>
-              <option value="Chest">Chest</option>
-              <option value="Abdomen">Abdomen</option>
-              <option value="Back">Back</option>
-              <option value="Upper Arm">Upper Arm</option>
-              <option value="Lower Arm/Wrist">Lower Arm/Wrist</option>
-              <option value="Hand/Finger">Hand/Finger</option>
-              <option value="Hip/Buttock">Hip/Buttock</option>
-              <option value="Upper Leg/Thigh">Upper Leg/Thigh</option>
-              <option value="Knee">Knee</option>
-              <option value="Lower Leg/Calf">Lower Leg/Calf</option>
-              <option value="Ankle">Ankle</option>
-              <option value="Foot/Toe">Foot/Toe</option>
-              <option value="Sacrum/Coccyx">Sacrum/Coccyx</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-          <div>
-            <label class="hk-label">Laterality</label>
-            <select class="hk-input wound-laterality">
-              <option value="">N/A</option>
-              <option value="left">Left</option>
-              <option value="right">Right</option>
-              <option value="bilateral">Bilateral</option>
-            </select>
-          </div>
-          <div>
+          <div class="hk-full">
             <label class="hk-label">Primary Dressing *</label>
-            <select class="hk-input wound-product">
-              <option value="">Select product...</option>
-              ${productOptions}
-            </select>
+            <div style="display: flex; gap: 0.5rem;">
+              <select class="hk-input wound-type-select wound-product-type" style="flex: 2;">
+                <option value="">Select product...</option>
+                ${productTypeOptions}
+              </select>
+              <select class="hk-input wound-product-size" style="flex: 1;" disabled>
+                <option value="">Size...</option>
+              </select>
+            </div>
           </div>
-          <div>
+          <div class="hk-full">
             <label class="hk-label">Secondary Dressing</label>
-            <select class="hk-input wound-secondary-product">
-              <option value="">None</option>
-              ${productOptions}
-            </select>
+            <div style="display: flex; gap: 0.5rem;">
+              <select class="hk-input wound-type-select wound-secondary-type" style="flex: 2;">
+                <option value="">None</option>
+                ${productTypeOptions}
+              </select>
+              <select class="hk-input wound-secondary-size" style="flex: 1;" disabled>
+                <option value="">Size...</option>
+              </select>
+            </div>
           </div>
-          <div>
+          <div class="hk-full">
             <label class="hk-label">Additional Supply</label>
-            <select class="hk-input wound-additional-product">
-              <option value="">None</option>
-              ${productOptions}
-            </select>
+            <div style="display: flex; gap: 0.5rem;">
+              <select class="hk-input wound-type-select wound-additional-type" style="flex: 2;">
+                <option value="">None</option>
+                ${productTypeOptions}
+              </select>
+              <select class="hk-input wound-additional-size" style="flex: 1;" disabled>
+                <option value="">Size...</option>
+              </select>
+            </div>
           </div>
           <div>
             <label class="hk-label">Qty per Change</label>
@@ -503,6 +502,9 @@ document.addEventListener('DOMContentLoaded', function() {
       </div>
     `;
     $('#hk-wounds-container').insertAdjacentHTML('beforeend', html);
+    // wire each product-type dropdown to populate its paired size dropdown
+    const _w = $('#hk-wounds-container').lastElementChild;
+    _w.querySelectorAll('.wound-type-select').forEach(ts => ts.addEventListener('change', () => hkFillSizes(ts)));
   }
 
   $('#hk-add-wound').addEventListener('click', addWound);
@@ -533,11 +535,11 @@ document.addEventListener('DOMContentLoaded', function() {
   function collectWounds() {
     const wounds = [];
     document.querySelectorAll('.hk-wound-card').forEach(el => {
-      const productSelect = el.querySelector('.wound-product');
+      const productSelect = el.querySelector('.wound-product-size');
       const selectedOpt = productSelect?.options[productSelect.selectedIndex];
-      const secondarySelect = el.querySelector('.wound-secondary-product');
+      const secondarySelect = el.querySelector('.wound-secondary-size');
       const secondaryOpt = secondarySelect?.options[secondarySelect.selectedIndex];
-      const additionalSelect = el.querySelector('.wound-additional-product');
+      const additionalSelect = el.querySelector('.wound-additional-size');
       const additionalOpt = additionalSelect?.options[additionalSelect.selectedIndex];
 
       const wound = {
@@ -583,8 +585,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Validate wounds
     for (let i = 0; i < wounds.length; i++) {
-      if (!isDraft && (!wounds[i].location || !wounds[i].product_id)) {
-        alert(`Wound ${i + 1}: Location and product are required.`);
+      if (!isDraft && !wounds[i].product_id) {
+        alert(`Wound ${i + 1}: a product is required.`);
         return;
       }
     }
