@@ -230,16 +230,16 @@ foreach ($orders as $order) {
                 <tr style="border-bottom: 1px solid #e2e8f0;">
                   <th style="text-align: left; padding: 0.5rem; font-weight: 500; color: #64748b;">Product</th>
                   <th style="text-align: left; padding: 0.5rem; font-weight: 500; color: #64748b;">Qty/Change</th>
-                  <th style="text-align: left; padding: 0.5rem; font-weight: 500; color: #64748b;">Boxes</th>
+                  <th style="text-align: left; padding: 0.5rem; font-weight: 500; color: #64748b;">Quantity</th>
                 </tr>
               </thead>
               <tbody>
-                <?php foreach ($order['products'] as $prod): ?>
+                <?php require_once __DIR__ . '/../api/lib/order_quantity.php'; foreach ($order['products'] as $prod): $q = order_ship_quantity($prod); ?>
                 <tr style="border-bottom: 1px solid #f1f5f9;">
                   <td style="padding: 0.5rem; font-weight: 500;"><?= htmlspecialchars($prod['product'] ?? '') ?></td>
                   <td style="padding: 0.5rem;"><?= (int)($prod['qty_per_change'] ?? 1) ?></td>
                   <td style="padding: 0.5rem; font-weight: 600; color: #6366f1;">
-                    <?= (int)($prod['boxes_to_ship'] ?? 0) ?> box<?= ((int)($prod['boxes_to_ship'] ?? 0)) !== 1 ? 'es' : '' ?>
+                    <?= htmlspecialchars($q['label']) ?>
                   </td>
                 </tr>
                 <?php endforeach; ?>

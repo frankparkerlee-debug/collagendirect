@@ -634,13 +634,19 @@ if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"
         </td>
         <td class="py-3">
           <?php
-            // Use revenue calculator for consistent quantity display
+            // Use revenue calculator for consistent quantity display.
+            // Wholesale ships boxes; patient-referral and HealKit are tracked in pieces.
             $calc = calculate_order_revenue($r);
             $calcBoxes = $calc['boxes'];
             $calcPieces = $calc['pieces'];
-            echo $calcBoxes . ' box' . ($calcBoxes > 1 ? 'es' : '');
-            if ($calcPieces > 0) {
-              echo ' <span class="text-xs text-slate-500">(' . $calcPieces . ' pc)</span>';
+            $isWh = ($r['billed_by'] ?? '') === 'practice_dme';
+            if ($isWh) {
+              echo $calcBoxes . ' box' . ($calcBoxes !== 1 ? 'es' : '');
+              if ($calcPieces > 0) {
+                echo ' <span class="text-xs text-slate-500">(' . $calcPieces . ' pc)</span>';
+              }
+            } else {
+              echo $calcPieces . ' piece' . ($calcPieces !== 1 ? 's' : '');
             }
           ?>
         </td>

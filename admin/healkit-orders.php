@@ -155,7 +155,7 @@ require_once __DIR__.'/_header.php';
         <th style="padding: 0.75rem 1rem; text-align: left;">Practice</th>
         <th style="padding: 0.75rem 1rem; text-align: left;">Product</th>
         <th style="padding: 0.75rem 1rem; text-align: left;">Wound</th>
-        <th style="padding: 0.75rem 1rem; text-align: center;">Boxes</th>
+        <th style="padding: 0.75rem 1rem; text-align: center;">Quantity</th>
         <th style="padding: 0.75rem 1rem; text-align: center;">Status</th>
         <th style="padding: 0.75rem 1rem; text-align: center;">Docs</th>
         <th style="padding: 0.75rem 1rem; text-align: center;">Actions</th>
@@ -207,7 +207,7 @@ require_once __DIR__.'/_header.php';
           <?php endif; ?>
         </td>
         <td style="padding: 0.75rem 1rem; text-align: center; font-weight: 600;">
-          <?= (int)($o['boxes_to_ship'] ?? 0) ?>
+          <?php require_once __DIR__ . '/../api/lib/order_quantity.php'; $q = order_ship_quantity($o); ?><?= htmlspecialchars($q['label']) ?>
         </td>
         <td style="padding: 0.75rem 1rem; text-align: center;">
           <span style="padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 500; <?= $statusStyle ?>">

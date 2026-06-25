@@ -247,8 +247,8 @@ foreach ($wounds as $wound_idx => $wound) {
     }
 
     $products_html .= $type_label . ' ' . $product_display;
-    if ($boxes > 0) {
-      $products_html .= ' <span style="color:#64748b">— ' . $boxes . ' boxes</span>';
+    if ($total_pieces > 0) {
+      $products_html .= ' <span style="color:#64748b">— ' . $total_pieces . ' pieces</span>';
     }
     $products_html .= '<br>';
   }
@@ -261,8 +261,8 @@ foreach ($wounds as $wound_idx => $wound) {
     $legacy_boxes = $legacy_total > 0 ? (int)ceil($legacy_total / 10) : 0;
 
     $products_html = h($wound['product_name'] ?? '—');
-    if ($legacy_boxes > 0) {
-      $products_html .= ' <span style="color:#64748b">(' . $legacy_boxes . ' boxes)</span>';
+    if ($legacy_total > 0) {
+      $products_html .= ' <span style="color:#64748b">(' . $legacy_total . ' pieces)</span>';
     }
   }
 
