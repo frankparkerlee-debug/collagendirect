@@ -1249,7 +1249,7 @@ if ($action) {
   if ($action==='patients'){
     $q=trim((string)($_GET['q']??'')); $limit=max(1,min(300,(int)($_GET['limit']??100))); $offset=max(0,(int)($_GET['offset']??0));
     $productId = trim((string)($_GET['product_id'] ?? ''));
-    $dateRange = trim((string)($_GET['date_range'] ?? '3')); // Default to 3 months
+    $dateRange = trim((string)($_GET['date_range'] ?? 'all')); // Default to all patients (callers that want a window pass date_range explicitly, e.g. the dashboard)
 
     // Superadmins see all patients
     if ($userRole === 'superadmin') {
