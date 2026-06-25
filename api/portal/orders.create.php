@@ -209,8 +209,9 @@ try {
   $is_healkit = ($order_type === 'healkit');
   $billed_by = $is_healkit ? 'healkit' : null;
 
-  // Frontend sends 'delivery_to' (patient/office), map to delivery_mode
-  $delivery_to    = $is_healkit ? 'patient' : safe($_POST['delivery_to'] ?? 'patient');
+  // Frontend sends 'delivery_to' (patient/office), map to delivery_mode.
+  // HealKit now sends 'office' (with shipping_* for the office or a custom location).
+  $delivery_to    = safe($_POST['delivery_to'] ?? 'patient');
   $delivery_mode  = ($delivery_to === 'office') ? 'office' : 'patient';
   $frequency      = safe($_POST['frequency_per_week'] ?? null);
   $payment_type   = safe($_POST['payment_type'] ?? 'insurance');

@@ -1623,7 +1623,7 @@ if ($action) {
       $pid=(string)($_POST['id']??'');
       $first=trim((string)($_POST['first_name']??''));
       $last =trim((string)($_POST['last_name']??''));
-      $dob  =$_POST['dob']??null;
+      $dob  =$_POST['dob']??null; if($dob==='') $dob=null; // empty date string -> NULL (DOB is optional, e.g. HealKit)
       $mrn  =trim((string)($_POST['mrn']??''));
       $phone=$_POST['phone']??null; $cell_phone=$_POST['cell_phone']??null; $email=$_POST['email']??null;
       $accepts_sms = isset($_POST['accepts_sms']) && ($_POST['accepts_sms'] === '1' || $_POST['accepts_sms'] === 'true');

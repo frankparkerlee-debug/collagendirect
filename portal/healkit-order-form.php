@@ -15,6 +15,15 @@ if (!isset($user) || !is_array($user)) {
 
 $userId = $user['id'];
 
+// Practice locations for delivery — the order defaults to the office (primary location)
+try {
+  $hkLocStmt = $pdo->prepare("SELECT id, location_name, address, city, state, zip FROM practice_locations WHERE user_id = ? AND is_active = TRUE ORDER BY is_primary DESC, location_name ASC");
+  $hkLocStmt->execute([$userId]);
+  $hkLocations = $hkLocStmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {
+  $hkLocations = [];
+}
+
 // Fetch products
 $productsStmt = $pdo->prepare("SELECT id, name, size, cpt_code, price_admin, pieces_per_box FROM products WHERE active = TRUE ORDER BY name, size");
 $productsStmt->execute();
@@ -114,7 +123,7 @@ if ($isPracticeAdmin) {
   </div>
 
   <div class="hk-info-box">
-    <p><strong>HealKit Orders:</strong> Patient ID, Insurance Card, and clinical notes are optional. Orders always ship to the patient address. Upload them only if you'd like us to check notes and verify benefits.</p>
+    <p><strong>HealKit Orders:</strong> Patient ID, Insurance Card, and clinical notes are optional. Orders ship to your office by default &mdash; choose another delivery location below if needed. Upload documents only if you'd like us to check notes and verify benefits.</p>
   </div>
 
   <form id="healkit-order-form">
@@ -159,10 +168,38 @@ if ($isPracticeAdmin) {
       </div>
     </div>
 
-    <!-- 2. Wounds & Products -->
+    <!-- 2. Delivery -->
+    <div class="hk-card">
+      <div class="hk-section-title"><span class="hk-section-num">2</span> Delivery</div>
+      <label class="hk-label">Deliver to</label>
+      <select id="hk-delivery-select" class="hk-input">
+        <?php foreach ($hkLocations as $loc): ?>
+          <option value="loc"
+                  data-name="<?= htmlspecialchars($loc['location_name'] ?? 'Office') ?>"
+                  data-address="<?= htmlspecialchars($loc['address'] ?? '') ?>"
+                  data-city="<?= htmlspecialchars($loc['city'] ?? '') ?>"
+                  data-state="<?= htmlspecialchars($loc['state'] ?? '') ?>"
+                  data-zip="<?= htmlspecialchars($loc['zip'] ?? '') ?>">
+            Office &mdash; <?= htmlspecialchars($loc['location_name'] ?? '') ?> (<?= htmlspecialchars(trim(($loc['address'] ?? '') . ', ' . ($loc['city'] ?? '') . ', ' . ($loc['state'] ?? ''), ', ')) ?>)
+          </option>
+        <?php endforeach; ?>
+        <option value="other">Another location&hellip;</option>
+      </select>
+      <div id="hk-other-location" style="display: none; margin-top: 1rem;">
+        <div class="hk-grid">
+          <div class="hk-full"><label class="hk-label">Location Name *</label><input id="hk-del-name" class="hk-input" placeholder="e.g. Wound Care Clinic"></div>
+          <div class="hk-full"><label class="hk-label">Address *</label><input id="hk-del-address" class="hk-input" placeholder="Street address"></div>
+          <div><label class="hk-label">City</label><input id="hk-del-city" class="hk-input" placeholder="City"></div>
+          <div><label class="hk-label">State</label><input id="hk-del-state" class="hk-input" placeholder="State" maxlength="2"></div>
+          <div><label class="hk-label">ZIP</label><input id="hk-del-zip" class="hk-input" placeholder="ZIP code"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Wounds & Products -->
     <div class="hk-card">
       <div class="hk-section-title">
-        <span class="hk-section-num">2</span> Wounds & Products
+        <span class="hk-section-num">3</span> Wounds & Products
         <button type="button" id="hk-add-wound" class="hk-btn hk-btn-primary" style="margin-left: auto; padding: 0.375rem 0.75rem; font-size: 0.8125rem;">+ Add Wound</button>
       </div>
       <div id="hk-wounds-container">
@@ -172,7 +209,7 @@ if ($isPracticeAdmin) {
 
     <!-- 3. Optional Documents -->
     <div class="hk-card">
-      <div class="hk-section-title"><span class="hk-section-num">3</span> Documents (Optional)</div>
+      <div class="hk-section-title"><span class="hk-section-num">4</span> Documents (Optional)</div>
       <div class="hk-grid-3">
         <div>
           <label class="hk-label">Visit Notes</label>
@@ -210,7 +247,7 @@ if ($isPracticeAdmin) {
 
     <!-- 4. E-Signature -->
     <div class="hk-card">
-      <div class="hk-section-title"><span class="hk-section-num">4</span> Physician Signature</div>
+      <div class="hk-section-title"><span class="hk-section-num">5</span> Physician Signature</div>
       <div class="hk-grid">
         <?php if ($isPracticeAdmin && !empty($physicians)): ?>
         <div>
@@ -374,6 +411,16 @@ document.addEventListener('DOMContentLoaded', function() {
       hint.style.color = '#ef4444';
     }
   });
+
+  // ---- Delivery location toggle ----
+  (function () {
+    const sel = $('#hk-delivery-select');
+    const other = $('#hk-other-location');
+    if (!sel || !other) return;
+    const sync = () => { other.style.display = (sel.value === 'other') ? 'block' : 'none'; };
+    sel.addEventListener('change', sync);
+    sync(); // run on load (e.g. when "other" is the only option)
+  })();
 
   // ---- Wounds ----
   function addWound() {
@@ -548,6 +595,15 @@ document.addEventListener('DOMContentLoaded', function() {
       if (!$('#hk-ack-sig').checked) { alert('Please check the e-signature certification.'); return; }
     }
 
+    // Delivery: if "another location" is chosen, require a name and address
+    const _dsel = $('#hk-delivery-select');
+    if (!isDraft && _dsel && _dsel.value === 'other') {
+      if (!$('#hk-del-name')?.value?.trim() || !$('#hk-del-address')?.value?.trim()) {
+        alert('Delivery: please enter a name and address for the other location.');
+        return;
+      }
+    }
+
     const btn = isDraft ? $('#hk-btn-draft') : $('#hk-btn-submit');
     const origText = btn.textContent;
     btn.disabled = true;
@@ -558,7 +614,23 @@ document.addEventListener('DOMContentLoaded', function() {
       body.append('patient_id', pid);
       body.append('payment_type', 'insurance');
       body.append('wounds_data', JSON.stringify(wounds));
-      body.append('delivery_to', 'patient'); // Always patient for HealKit
+      // Delivery: office (a saved practice location) or a custom "other" location
+      body.append('delivery_to', 'office');
+      const _delSel = $('#hk-delivery-select');
+      if (_delSel && _delSel.value === 'other') {
+        body.append('shipping_name', $('#hk-del-name')?.value?.trim() || '');
+        body.append('shipping_address', $('#hk-del-address')?.value?.trim() || '');
+        body.append('shipping_city', $('#hk-del-city')?.value?.trim() || '');
+        body.append('shipping_state', $('#hk-del-state')?.value?.trim() || '');
+        body.append('shipping_zip', $('#hk-del-zip')?.value?.trim() || '');
+      } else if (_delSel) {
+        const _o = _delSel.options[_delSel.selectedIndex];
+        body.append('shipping_name', _o?.dataset.name || 'Office');
+        body.append('shipping_address', _o?.dataset.address || '');
+        body.append('shipping_city', _o?.dataset.city || '');
+        body.append('shipping_state', _o?.dataset.state || '');
+        body.append('shipping_zip', _o?.dataset.zip || '');
+      }
       body.append('notes_text', $('#hk-notes')?.value || '');
       body.append('sign_name', $('#hk-sign-name')?.value || '');
       body.append('sign_title', $('#hk-sign-title')?.value || '');
