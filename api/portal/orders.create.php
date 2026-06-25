@@ -294,21 +294,28 @@ try {
 
   // If physician_id is provided (practice admin selected a physician from roster)
   if ($physician_id) {
-    // Fetch physician details from practice_physicians table
-    $phys_stmt = $pdo->prepare("
-      SELECT first_name, last_name, npi, license_number, license_state, signature_text
-      FROM practice_physicians
-      WHERE id = ? AND practice_admin_id = ?
-    ");
-    $phys_stmt->execute([$physician_id, $uid]);
-    $selected_physician = $phys_stmt->fetch(PDO::FETCH_ASSOC);
+    // Fetch physician details from practice_physicians (columns are physician_*; key is practice_manager_id).
+    // Wrapped defensively — the form already submits physician_npi/license/sign_name as a fallback.
+    try {
+      $phys_stmt = $pdo->prepare("
+        SELECT physician_first_name AS first_name, physician_last_name AS last_name,
+               physician_npi AS npi, physician_license AS license_number, physician_license_state AS license_state
+        FROM practice_physicians
+        WHERE id = ? AND practice_manager_id = ?
+      ");
+      $phys_stmt->execute([$physician_id, $uid]);
+      $selected_physician = $phys_stmt->fetch(PDO::FETCH_ASSOC);
 
-    if ($selected_physician) {
-      // Use selected physician's data
-      if (!$sign_name) $sign_name = $selected_physician['signature_text'] ?: trim(($selected_physician['first_name'] ?? '') . ' ' . ($selected_physician['last_name'] ?? ''));
-      $physician_npi = $selected_physician['npi'] ?? $physician_npi;
-      $physician_license = $selected_physician['license_number'] ?? $physician_license;
-      // Note: sign_title should come from form as it may vary per order
+      if ($selected_physician) {
+        // Use selected physician's data
+        if (!$sign_name) $sign_name = trim(($selected_physician['first_name'] ?? '') . ' ' . ($selected_physician['last_name'] ?? ''));
+        $physician_npi = $selected_physician['npi'] ?: $physician_npi;
+        $physician_license = $selected_physician['license_number'] ?: $physician_license;
+        // Note: sign_title should come from form as it may vary per order
+      }
+    } catch (Throwable $e) {
+      error_log('[orders.create] physician lookup failed: ' . $e->getMessage());
+      // fall through using the physician_npi/license/sign_name already posted by the form
     }
   }
 
@@ -489,6 +496,16 @@ try {
           $new_order_id = guid();
           $all_order_ids[] = $new_order_id;
 
+          // Box/piece calc for this dressing (same formula as the primary), using this wound's qty/freq/duration
+          $sec_qty  = max(1, (int)($wound['qty_per_change'] ?? $qty_per_change ?? 1));
+          $sec_fpw  = (int)($wound['frequency_per_week'] ?? $frequency ?? 1); if ($sec_fpw === 0) $sec_fpw = 1;
+          $sec_days = (int)($wound['duration_days'] ?? $duration_days ?? 30); if ($sec_days === 0) $sec_days = 30;
+          $ppbStmt = $pdo->prepare("SELECT pieces_per_box FROM products WHERE id = ?");
+          $ppbStmt->execute([(int)$product_info['product_id']]);
+          $sec_ppb = max(1, (int)($ppbStmt->fetchColumn() ?: 10));
+          $sec_total_pieces = (int)ceil(($sec_days / 7.0) * $sec_fpw * $sec_qty);
+          $sec_boxes = (int)ceil($sec_total_pieces / $sec_ppb);
+
           $pdo->prepare("INSERT INTO orders
             (id, patient_id, user_id, product, product_id, product_price, cpt, status, frequency, delivery_mode,
              order_group_id, product_type, wound_index, order_number, billed_by,
@@ -499,7 +516,7 @@ try {
              additional_instructions, secondary_dressing, notes_text,
              shipping_name, shipping_phone, shipping_address, shipping_city, shipping_state, shipping_zip,
              e_sign_user_id, e_sign_name, e_sign_title, e_sign_at, e_sign_ip,
-             review_status)
+             review_status, total_pieces, boxes_to_ship)
             VALUES
             (?,?,?,?,?,?,?,?,?,?,
              ?,?,?,?,?,
@@ -510,7 +527,7 @@ try {
              ?,?,?,
              ?,?,?,?,?,?,
              ?,?,?,?,?,
-             ?)")->execute([
+             ?,?,?)")->execute([
             $new_order_id, $patient_id, $uid,
             $product_info['product_name'], $product_info['product_id'], $product_info['product_price'], $product_info['product_cpt'],
             $status, $frequency, $delivery_mode,
@@ -531,7 +548,9 @@ try {
             // e-sign
             $uid, $sign_name, $sign_title, date('Y-m-d H:i:s'), $_SERVER['REMOTE_ADDR'] ?? null,
             // review status
-            $review_status
+            $review_status,
+            // calculated boxes/pieces for this dressing (stored like the primary)
+            $sec_total_pieces, $sec_boxes
           ]);
         }
       }

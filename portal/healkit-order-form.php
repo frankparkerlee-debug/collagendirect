@@ -97,6 +97,10 @@ if ($isPracticeAdmin) {
 .hk-info-box { background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; }
 .hk-info-box p { font-size: 0.875rem; color: #4338ca; margin: 0; }
 .hk-wound-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem; position: relative; }
+/* Always show the number-input up/down arrows (Qty per Change, Frequency, Duration) instead of only on hover */
+.hk-wound-card input[type=number]::-webkit-inner-spin-button,
+.hk-wound-card input[type=number]::-webkit-outer-spin-button { opacity: 1; }
+.hk-wound-card input[type=number] { -moz-appearance: number-input; }
 .hk-remove-wound { position: absolute; top: 0.5rem; right: 0.5rem; background: none; border: none; color: #ef4444; cursor: pointer; font-size: 1.25rem; line-height: 1; padding: 0.25rem; }
 @media (max-width: 768px) {
   .hk-grid, .hk-grid-3 { grid-template-columns: 1fr; }
@@ -427,6 +431,8 @@ document.addEventListener('DOMContentLoaded', function() {
   const productsByName = {};
   productsData.forEach(p => { const k = (p.name || '').trim(); (productsByName[k] = productsByName[k] || []).push(p); }); // trim so trailing-space dupes collapse
   const productTypeOptions = Object.keys(productsByName).sort().map(n => `<option value="${n}">${n}</option>`).join('');
+  // Escape values placed inside HTML attributes (sizes contain " inch-marks which would otherwise truncate the attribute)
+  const hkAttr = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
 
   // Populate the size dropdown that sits right after a product-type dropdown
   function hkFillSizes(typeSel) {
@@ -436,7 +442,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!items.length) { sizeSel.innerHTML = '<option value="">Size...</option>'; sizeSel.disabled = true; return; }
     sizeSel.disabled = false;
     sizeSel.innerHTML = '<option value="">Size...</option>' + items.map(p =>
-      `<option value="${p.id}" data-name="${p.name} ${p.size}" data-cpt="${p.cpt_code || ''}" data-price="${p.price_admin || 0}">${p.size || 'Standard'}</option>`
+      `<option value="${p.id}" data-name="${hkAttr((p.name + ' ' + (p.size || '')).trim())}" data-cpt="${hkAttr(p.cpt_code || '')}" data-price="${p.price_admin || 0}">${p.size || 'Standard'}</option>`
     ).join('');
     if (items.length === 1) sizeSel.value = items[0].id; // auto-select when there is only one size
   }
@@ -492,11 +498,11 @@ document.addEventListener('DOMContentLoaded', function() {
           </div>
           <div>
             <label class="hk-label">Frequency/Week</label>
-            <input type="number" class="hk-input wound-freq" value="7" min="1" max="21">
+            <input type="number" class="hk-input wound-freq" value="1" min="1" max="21">
           </div>
           <div>
             <label class="hk-label">Duration (Days)</label>
-            <input type="number" class="hk-input wound-duration" value="30" min="1" max="90">
+            <input type="number" class="hk-input wound-duration" value="7" min="1" max="90">
           </div>
         </div>
       </div>
@@ -550,8 +556,8 @@ document.addEventListener('DOMContentLoaded', function() {
         product_cpt: selectedOpt?.dataset.cpt || '',
         product_price: parseFloat(selectedOpt?.dataset.price || 0),
         qty_per_change: parseInt(el.querySelector('.wound-qty')?.value || 1),
-        frequency_per_week: parseInt(el.querySelector('.wound-freq')?.value || 7),
-        duration_days: parseInt(el.querySelector('.wound-duration')?.value || 30)
+        frequency_per_week: parseInt(el.querySelector('.wound-freq')?.value || 1),
+        duration_days: parseInt(el.querySelector('.wound-duration')?.value || 7)
       };
 
       // Add secondary dressing if selected
