@@ -13066,7 +13066,7 @@ async function openOrderDialog(preselectId=null){
     const docStatus = $('#patient-doc-status');
     if (docStatus) docStatus.classList.add('hidden');
     if(q.length<2){ list.classList.add('hidden'); return; }
-    const r=await api('action=patients&limit=8&q='+encodeURIComponent(q)); const rows=r.rows||[];
+    const r=await api('action=patients&limit=8&date_range=all&q='+encodeURIComponent(q)); const rows=r.rows||[];
     list.innerHTML = (rows.map(p=>`<button type="button" class="w-full text-left px-3 py-2 hover:bg-slate-50" data-p="${p.id}">${esc(p.first_name)} ${esc(p.last_name)} — ${fmt(p.dob)} • ${esc(p.phone||'')}</button>`).join(''))
       + `<div class="border-t my-1"></div><button type="button" id="opt-create" class="w-full text-left px-3 py-2 hover:bg-slate-50">➕ Create new patient "${esc(q)}"</button>`;
     list.classList.remove('hidden');
@@ -15469,7 +15469,7 @@ if (<?php echo json_encode($page === 'messages'); ?>) {
 
     // Load patients for dropdown
     try {
-      const data = await api('action=patients&limit=100');
+      const data = await api('action=patients&limit=100&date_range=all');
       const patients = data.rows || [];
       const patientSelect = document.getElementById('compose-patient');
 
