@@ -22,6 +22,19 @@ function patches_per_week_text($f): int {
 }
 
 /**
+ * HealKit per-piece price: the product wholesale price billed per actual piece.
+ * Prefers a practice-specific custom price (already per piece), else the
+ * product wholesale price-per-box divided by pieces_per_box.
+ */
+function healkit_piece_rate(array $order, int $pieces_per_box): float {
+    $custom = (float)($order['practice_custom_price'] ?? 0);
+    if ($custom > 0) return $custom;
+    $whl_box = (float)($order['price_wholesale'] ?? 0);
+    if ($whl_box > 0) return $whl_box / max(1, $pieces_per_box);
+    return (float)($order['product_price'] ?? 0);
+}
+
+/**
  * Calculate revenue for a single order
  *
  * @param array $order Order data with all relevant fields
@@ -36,6 +49,8 @@ function calculate_order_revenue(array $order, array $rates = [], bool $includeS
     $accountType = $order['account_type'] ?? '';
     // Identify wholesale by billed_by OR by user's account_type
     $isWholesale = ($billedBy === 'practice_dme' || in_array($accountType, ['wholesale', 'dme_wholesale']));
+    // HealKit bills per actual piece at the wholesale price
+    $isHealkit = ($billedBy === 'healkit');
 
     $steps = [];
 
@@ -49,6 +64,10 @@ function calculate_order_revenue(array $order, array $rates = [], bool $includeS
             // Wholesale bills by the box - the stored revenue is authoritative.
             $revenue = (float)($order['expected_revenue'] ?? 0);
             $cpt_rate = (float)($order['cpt_rate_used'] ?? 0);
+        } elseif ($isHealkit) {
+            // HealKit bills by ACTUAL PIECE at the wholesale price (price_wholesale / pieces_per_box).
+            $cpt_rate = healkit_piece_rate($order, $pieces_per_box);
+            $revenue = $totalPieces * $cpt_rate;
         } else {
             // Referral bills by ACTUAL PIECE. The Medicare allowable is a PER-BOX rate,
             // so the per-piece rate is allowable / pieces_per_box. Historical orders stored
@@ -65,11 +84,15 @@ function calculate_order_revenue(array $order, array $rates = [], bool $includeS
         }
 
         if ($includeSteps) {
-            $steps[] = "Type: " . ($isWholesale ? 'Wholesale (stored values)' : 'Referral (stored pieces × per-piece rate)');
+            $typeLabel = $isWholesale ? 'Wholesale (stored values)'
+                       : ($isHealkit ? 'HealKit (stored pieces × wholesale per-piece)'
+                                     : 'Referral (stored pieces × per-piece rate)');
+            $steps[] = "Type: " . $typeLabel;
             $steps[] = "Stored boxes: {$totalBoxes}";
             $steps[] = "Stored pieces: {$totalPieces}";
             if (!$isWholesale) {
-                $steps[] = "Per-piece rate: \$" . number_format($cpt_rate, 4) . " (allowable ÷ {$pieces_per_box}/box)";
+                $rateSrc = $isHealkit ? 'wholesale' : 'allowable';
+                $steps[] = "Per-piece rate: \$" . number_format($cpt_rate, 4) . " ({$rateSrc} ÷ {$pieces_per_box}/box)";
             }
             $steps[] = "Revenue: \$" . number_format($revenue, 2);
             $steps[] = "Stored cost: \$" . number_format($order_cost, 2);
@@ -83,6 +106,7 @@ function calculate_order_revenue(array $order, array $rates = [], bool $includeS
             'pieces' => $totalPieces,
             'cpt_rate' => $cpt_rate,
             'is_wholesale' => $isWholesale,
+            'is_healkit' => $isHealkit,
             'calculation_steps' => $steps
         ];
     }
@@ -132,6 +156,35 @@ function calculate_order_revenue(array $order, array $rates = [], bool $includeS
         $order_cost = $totalBoxes * $cost_per_box;
         $totalPieces = $totalBoxes * $pieces_per_box;
         $cpt_rate = $price_per_box / max(1, $pieces_per_box);
+
+    } elseif ($isHealkit) {
+        // HEALKIT CALCULATION — pieces counted like a referral, priced at the wholesale per-piece rate
+        $fpw = (int)($order['frequency_per_week'] ?? 0);
+        $qty = max(1, (int)($order['qty_per_change'] ?? 1));
+        $days = (int)($order['duration_days'] ?? 0);
+        $refills = max(0, (int)($order['refills_allowed'] ?? 0));
+        if ($fpw === 0 && !empty($order['wounds_data'])) {
+            $wounds_data = json_decode($order['wounds_data'], true);
+            if (is_array($wounds_data) && isset($wounds_data[0]['frequency_per_week'])) {
+                $fpw = (int)$wounds_data[0]['frequency_per_week'];
+            }
+        }
+        if ($fpw === 0) $fpw = 1;
+        if ($days === 0) $days = 30;
+        $weeks = $days / 7.0;
+        $total_pieces = $weeks * $fpw * $qty * (1 + $refills);
+        $totalBoxes = (int)ceil($total_pieces / $pieces_per_box);
+        $totalPieces = (int)ceil($total_pieces);
+        $cpt_rate = healkit_piece_rate($order, $pieces_per_box);
+        $revenue = $totalPieces * $cpt_rate;
+        $order_cost = $totalBoxes * $cost_per_box;
+        if ($includeSteps) {
+            $steps[] = "Type: HealKit";
+            $steps[] = "Duration: {$days} days (" . number_format($weeks, 2) . " weeks)";
+            $steps[] = "Frequency: {$fpw}x/week, Qty: {$qty}, Refills: {$refills}";
+            $steps[] = "Pieces needed: {$totalPieces}";
+            $steps[] = "Wholesale per-piece rate: \$" . number_format($cpt_rate, 4);
+        }
 
     } else {
         // REFERRAL CALCULATION
@@ -209,6 +262,7 @@ function calculate_order_revenue(array $order, array $rates = [], bool $includeS
         'pieces' => $totalPieces,
         'cpt_rate' => $cpt_rate,
         'is_wholesale' => $isWholesale,
+        'is_healkit' => $isHealkit,
         'calculation_steps' => $steps
     ];
 }
@@ -447,6 +501,13 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
             'profit' => 0,
             'boxes' => 0
         ],
+        'healkit' => [
+            'orders' => 0,
+            'revenue' => 0,
+            'cost' => 0,
+            'profit' => 0,
+            'boxes' => 0
+        ],
 
         // High-impact metrics
         'payor_mix' => [],       // Insurance breakdown
@@ -470,8 +531,8 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
         $metrics['total_profit'] += $calc['profit'];
         $metrics['total_boxes'] += $calc['boxes'];
 
-        // Wholesale vs Referral
-        $type = $calc['is_wholesale'] ? 'wholesale' : 'referral';
+        // Wholesale vs HealKit vs Referral
+        $type = $calc['is_wholesale'] ? 'wholesale' : (!empty($calc['is_healkit']) ? 'healkit' : 'referral');
         $metrics[$type]['orders']++;
         $metrics[$type]['revenue'] += $calc['revenue'];
         $metrics[$type]['cost'] += $calc['cost'];
@@ -481,6 +542,8 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
         // Payor mix - Wholesale orders are always "Cash" (practice pays directly)
         if ($calc['is_wholesale']) {
             $payor = 'Cash (Wholesale)';
+        } elseif (!empty($calc['is_healkit'])) {
+            $payor = 'Cash (HealKit)';
         } else {
             // Try order's insurer_name first, then patient's insurance_provider
             $payor = $order['insurer_name'] ?: ($order['insurance_provider'] ?? 'Unknown');
@@ -574,16 +637,13 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
                 'orders' => 0,
                 'revenue' => 0,
                 'wholesale_revenue' => 0,
-                'referral_revenue' => 0
+                'referral_revenue' => 0,
+                'healkit_revenue' => 0
             ];
         }
         $metrics['physician_revenue'][$physKey]['orders']++;
         $metrics['physician_revenue'][$physKey]['revenue'] += $calc['revenue'];
-        if ($calc['is_wholesale']) {
-            $metrics['physician_revenue'][$physKey]['wholesale_revenue'] += $calc['revenue'];
-        } else {
-            $metrics['physician_revenue'][$physKey]['referral_revenue'] += $calc['revenue'];
-        }
+        $metrics['physician_revenue'][$physKey][$type . '_revenue'] += $calc['revenue'];
 
         // Sales rep revenue
         $repId = $order['sales_rep_id'] ?? null;
@@ -596,16 +656,13 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
                     'revenue' => 0,
                     'wholesale_revenue' => 0,
                     'referral_revenue' => 0,
+                    'healkit_revenue' => 0,
                     'physicians' => []
                 ];
             }
             $metrics['sales_rep_revenue'][$repId]['orders']++;
             $metrics['sales_rep_revenue'][$repId]['revenue'] += $calc['revenue'];
-            if ($calc['is_wholesale']) {
-                $metrics['sales_rep_revenue'][$repId]['wholesale_revenue'] += $calc['revenue'];
-            } else {
-                $metrics['sales_rep_revenue'][$repId]['referral_revenue'] += $calc['revenue'];
-            }
+            $metrics['sales_rep_revenue'][$repId][$type . '_revenue'] += $calc['revenue'];
             // Track unique physicians for this rep
             if (!in_array($order['user_id'], $metrics['sales_rep_revenue'][$repId]['physicians'])) {
                 $metrics['sales_rep_revenue'][$repId]['physicians'][] = $order['user_id'];
@@ -619,16 +676,13 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
                     'revenue' => 0,
                     'wholesale_revenue' => 0,
                     'referral_revenue' => 0,
+                    'healkit_revenue' => 0,
                     'physicians' => []
                 ];
             }
             $metrics['sales_rep_revenue']['unassigned']['orders']++;
             $metrics['sales_rep_revenue']['unassigned']['revenue'] += $calc['revenue'];
-            if ($calc['is_wholesale']) {
-                $metrics['sales_rep_revenue']['unassigned']['wholesale_revenue'] += $calc['revenue'];
-            } else {
-                $metrics['sales_rep_revenue']['unassigned']['referral_revenue'] += $calc['revenue'];
-            }
+            $metrics['sales_rep_revenue']['unassigned'][$type . '_revenue'] += $calc['revenue'];
         }
 
         // Monthly trend
@@ -638,7 +692,8 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
                 'orders' => 0,
                 'revenue' => 0,
                 'wholesale' => 0,
-                'referral' => 0
+                'referral' => 0,
+                'healkit' => 0
             ];
         }
         $metrics['monthly_trend'][$month]['orders']++;
@@ -659,7 +714,7 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
             'calculated_cost' => $calc['cost'],
             'calculated_profit' => $calc['profit'],
             'calculated_boxes' => $calc['boxes'],
-            'order_type' => $calc['is_wholesale'] ? 'Wholesale' : 'Referral',
+            'order_type' => $calc['is_wholesale'] ? 'Wholesale' : (!empty($calc['is_healkit']) ? 'HealKit' : 'Referral'),
             'calculation_steps' => $calc['calculation_steps']
         ]);
     }
