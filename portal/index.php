@@ -4357,12 +4357,14 @@ if ($page==='logout'){
   .card {
     background: #ffffff;
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    transition: box-shadow 0.15s ease;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
   }
   .card:hover {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    box-shadow: var(--shadow-md);
+    border-color: #d3def0;
+    transform: translateY(-1px);
   }
 
   /* Button Component - shadcn style */
@@ -4399,10 +4401,12 @@ if ($page==='logout'){
     background: var(--brand);
     color: #ffffff;
     border-color: var(--brand);
+    box-shadow: 0 1px 2px rgba(16, 33, 64, 0.12);
   }
   .btn-primary:hover {
     background: var(--brand-dark);
     border-color: var(--brand-dark);
+    box-shadow: 0 4px 10px -2px rgba(0, 117, 188, 0.4);
   }
 
   .btn-success {
@@ -4759,10 +4763,11 @@ if ($page==='logout'){
   }
 
   .sidebar-nav a.active {
-    background: #ffffff;
-    color: #1B1B1B;
-    font-weight: 600;
-    border: 1px solid var(--border-sidebar);
+    background: var(--brand-light);
+    color: var(--brand-dark);
+    font-weight: 700;
+    border: 1px solid transparent;
+    box-shadow: inset 3px 0 0 var(--brand);
   }
 
   .sidebar-nav-icon {
