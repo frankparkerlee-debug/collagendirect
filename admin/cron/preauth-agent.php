@@ -1,37 +1,35 @@
 #!/usr/bin/env php
 <?php
-/**
- * PreAuth Agent Cron Job
- *
- * This cron job runs the automated preauthorization agent tasks:
- * 1. Process retry queue for failed submissions
- * 2. Check status of pending preauth requests
- * 3. Send notifications for status changes
- * 4. Mark expired preauths
- *
- * CRON SCHEDULE RECOMMENDATIONS:
- * - Every 4 hours for retry queue: 0 */4 * * *
- * - Every 2 hours for status checks: 0 */2 * * *
- * - Daily for expiration checks: 0 3 * * *
- *
- * USAGE:
- * php /path/to/collagendirect/admin/cron/preauth-agent.php --task=all
- * php /path/to/collagendirect/admin/cron/preauth-agent.php --task=retry
- * php /path/to/collagendirect/admin/cron/preauth-agent.php --task=status
- * php /path/to/collagendirect/admin/cron/preauth-agent.php --task=expiration
- *
- * CRONTAB EXAMPLE:
- * # PreAuth Agent - Retry failed submissions every 4 hours
- * 0 */4 * * * php /path/to/collagendirect/admin/cron/preauth-agent.php --task=retry >> /var/log/preauth-cron.log 2>&1
- *
- * # PreAuth Agent - Check pending status every 2 hours
- * 0 */2 * * * php /path/to/collagendirect/admin/cron/preauth-agent.php --task=status >> /var/log/preauth-cron.log 2>&1
- *
- * # PreAuth Agent - Check expirations daily at 3am
- * 0 3 * * * php /path/to/collagendirect/admin/cron/preauth-agent.php --task=expiration >> /var/log/preauth-cron.log 2>&1
- *
- * @package CollagenDirect
- */
+// PreAuth Agent Cron Job
+//
+// This cron job runs the automated preauthorization agent tasks:
+// 1. Process retry queue for failed submissions
+// 2. Check status of pending preauth requests
+// 3. Send notifications for status changes
+// 4. Mark expired preauths
+//
+// CRON SCHEDULE RECOMMENDATIONS:
+// - Every 4 hours for retry queue: 0 */4 * * *
+// - Every 2 hours for status checks: 0 */2 * * *
+// - Daily for expiration checks: 0 3 * * *
+//
+// USAGE:
+// php /path/to/collagendirect/admin/cron/preauth-agent.php --task=all
+// php /path/to/collagendirect/admin/cron/preauth-agent.php --task=retry
+// php /path/to/collagendirect/admin/cron/preauth-agent.php --task=status
+// php /path/to/collagendirect/admin/cron/preauth-agent.php --task=expiration
+//
+// CRONTAB EXAMPLE:
+// # PreAuth Agent - Retry failed submissions every 4 hours
+// 0 */4 * * * php /path/to/collagendirect/admin/cron/preauth-agent.php --task=retry >> /var/log/preauth-cron.log 2>&1
+//
+// # PreAuth Agent - Check pending status every 2 hours
+// 0 */2 * * * php /path/to/collagendirect/admin/cron/preauth-agent.php --task=status >> /var/log/preauth-cron.log 2>&1
+//
+// # PreAuth Agent - Check expirations daily at 3am
+// 0 3 * * * php /path/to/collagendirect/admin/cron/preauth-agent.php --task=expiration >> /var/log/preauth-cron.log 2>&1
+//
+// @package CollagenDirect
 
 // Ensure this script is run from command line only
 if (php_sapi_name() !== 'cli') {
