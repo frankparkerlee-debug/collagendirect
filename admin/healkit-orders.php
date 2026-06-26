@@ -3,6 +3,7 @@
 declare(strict_types=1);
 $bootstrap = __DIR__.'/_bootstrap.php'; if (is_file($bootstrap)) require_once $bootstrap;
 require_once __DIR__.'/db.php';
+require_once __DIR__.'/../api/lib/tracking.php';
 $auth = __DIR__.'/auth.php'; if (is_file($auth)) { require_once $auth; if (function_exists('require_admin')) require_admin(); }
 
 // Sales reps have scoped orders view
@@ -25,14 +26,14 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
   } elseif ($id && $action==='mark_shipped') {
     $tracking = trim($_POST['tracking'] ?? '');
     $trkVal = $tracking !== '' ? $tracking : null;
-    $pdo->prepare("UPDATE orders SET status='shipped', shipped_at=NOW(), updated_at=NOW(), carrier_tracking=? WHERE id=? AND billed_by='healkit'")
+    $pdo->prepare("UPDATE orders SET status='shipped', shipped_at=NOW(), updated_at=NOW(), tracking_number=?, carrier='UPS' WHERE id=? AND billed_by='healkit'")
         ->execute([$trkVal, $id]);
     // Multi-product HealKit orders ship together: propagate to the whole group under one tracking number
     $grpStmt = $pdo->prepare("SELECT order_group_id FROM orders WHERE id=?");
     $grpStmt->execute([$id]);
     $grp = $grpStmt->fetchColumn();
     if ($grp) {
-      $pdo->prepare("UPDATE orders SET status='shipped', shipped_at=NOW(), updated_at=NOW(), carrier_tracking=? WHERE order_group_id=?")->execute([$trkVal, $grp]);
+      $pdo->prepare("UPDATE orders SET status='shipped', shipped_at=NOW(), updated_at=NOW(), tracking_number=?, carrier='UPS' WHERE order_group_id=?")->execute([$trkVal, $grp]);
       try { $pdo->prepare("UPDATE order_groups SET status='shipped' WHERE id=?")->execute([$grp]); } catch (Throwable $e) {}
     }
     // Notify the practice the order has shipped, with a clickable UPS tracking link
@@ -69,7 +70,7 @@ $sql = "
          o.ivr_path, o.ivr_name, o.rx_note_path,
          o.wound_location, o.wound_laterality,
          o.qty_per_change, o.duration_days, o.frequency AS frequency_per_week,
-         o.boxes_to_ship, o.total_pieces, o.carrier_tracking,
+         o.boxes_to_ship, o.total_pieces, o.tracking_number, o.carrier,
          p.first_name as patient_first, p.last_name as patient_last, p.mrn, p.phone as patient_phone,
          u.first_name as phys_first, u.last_name as phys_last, u.practice_name, u.email as phys_email
   FROM orders o
@@ -266,9 +267,9 @@ require_once __DIR__.'/_header.php';
                    style="width:120px; padding:0.25rem 0.4rem; font-size:0.7rem; border:1px solid #d1d5db; border-radius:4px;">
             <button type="submit" class="btn" style="padding:0.25rem 0.6rem; font-size:0.75rem; background:#0075bc; color:white; border-color:#0075bc;">Ship</button>
           </form>
-          <?php elseif ($o['status'] === 'shipped' && !empty($o['carrier_tracking'])): ?>
-            <a href="https://www.ups.com/track?loc=en_US&tracknum=<?= urlencode($o['carrier_tracking']) ?>" target="_blank" rel="noopener"
-               title="Track on UPS" style="color:#0075bc; font-size:0.75rem; font-weight:600; text-decoration:none;">UPS: <?= htmlspecialchars($o['carrier_tracking']) ?> &#8599;</a>
+          <?php elseif ($o['status'] === 'shipped' && !empty($o['tracking_number'])): ?>
+            <a href="<?= htmlspecialchars(order_tracking_url($o['tracking_number'], $o['carrier'] ?? null)) ?>" target="_blank" rel="noopener"
+               title="Track shipment" style="color:#0075bc; font-size:0.75rem; font-weight:600; text-decoration:none;"><?= htmlspecialchars(order_tracking_label($o['carrier'] ?? null)) ?>: <?= htmlspecialchars($o['tracking_number']) ?> &#8599;</a>
           <?php else: ?>
             <span style="color: #64748b; font-size: 0.75rem;">—</span>
           <?php endif; ?>

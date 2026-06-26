@@ -13,6 +13,7 @@ if (!isset($user) || !is_array($user)) {
 }
 
 $userId = $user['id'];
+require_once __DIR__ . '/../api/lib/tracking.php';
 
 // Fetch HealKit orders
 $sql = "
@@ -31,7 +32,8 @@ $sql = "
     o.product,
     o.product_price,
     o.delivery_mode,
-    o.carrier_tracking,
+    o.tracking_number,
+    o.carrier,
     o.shipped_at,
     CASE
       WHEN og.id IS NOT NULL THEN (
@@ -218,9 +220,9 @@ foreach ($orders as $order) {
               <span class="hk-status-badge <?= $status_class ?>">
                 <?= ucfirst($order['status']) ?>
               </span>
-              <?php if (!empty($order['carrier_tracking'])): ?>
-                <a href="https://www.ups.com/track?loc=en_US&tracknum=<?= urlencode($order['carrier_tracking']) ?>" target="_blank" rel="noopener" onclick="event.stopPropagation()"
-                   style="display:block; margin-top:0.35rem; font-size:0.7rem; color:#0075bc; font-weight:700; text-decoration:none;">Track UPS &#8599;</a>
+              <?php if (!empty($order['tracking_number'])): ?>
+                <a href="<?= htmlspecialchars(order_tracking_url($order['tracking_number'], $order['carrier'] ?? null)) ?>" target="_blank" rel="noopener" onclick="event.stopPropagation()"
+                   style="display:block; margin-top:0.35rem; font-size:0.7rem; color:#0075bc; font-weight:700; text-decoration:none;">Track <?= htmlspecialchars(order_tracking_label($order['carrier'] ?? null)) ?> &#8599;</a>
               <?php endif; ?>
             </div>
             <div>
@@ -251,17 +253,18 @@ foreach ($orders as $order) {
                 <?php endforeach; ?>
               </tbody>
             </table>
+            <?php if (!empty($order['tracking_number'])): ?>
+            <div style="margin-top: 1rem; font-size: 0.8125rem; color: #475569;">
+              <strong>Tracking:</strong>
+              <a href="<?= htmlspecialchars(order_tracking_url($order['tracking_number'], $order['carrier'] ?? null)) ?>" target="_blank" rel="noopener" onclick="event.stopPropagation()"
+                 style="color:#0075bc; font-weight:600; text-decoration:none;"><?= htmlspecialchars(order_tracking_label($order['carrier'] ?? null)) ?>: <?= htmlspecialchars($order['tracking_number']) ?> &#8599;</a>
+            </div>
+            <?php endif; ?>
             <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
               <a href="?page=order-detail&id=<?= htmlspecialchars($order['display_id']) ?>"
                 class="btn btn-ghost" style="padding: 0.375rem 0.75rem; font-size: 0.75rem;">
                 Order Details
               </a>
-              <?php if (!empty($order['carrier_tracking'])): ?>
-              <a href="https://www.ups.com/track?loc=en_US&tracknum=<?= urlencode($order['carrier_tracking']) ?>" target="_blank" rel="noopener" onclick="event.stopPropagation()"
-                class="btn btn-primary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem; background:#0075bc; border-color:#0075bc;">
-                Track Package (UPS) &#8599;
-              </a>
-              <?php endif; ?>
               <?php if (!empty($order['ivr_path'])): ?>
               <a href="<?= htmlspecialchars($order['ivr_path']) ?>" target="_blank"
                 class="btn btn-ghost" style="padding: 0.375rem 0.75rem; font-size: 0.75rem;">

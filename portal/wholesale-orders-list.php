@@ -49,7 +49,9 @@ if ($hasOrderNumber) {
       MAX(o.shipping_city) as shipping_city,
       MAX(o.shipping_state) as shipping_state,
       MAX(o.shipping_zip) as shipping_zip,
-      MAX(o.shipping_name) as shipping_name
+      MAX(o.shipping_name) as shipping_name,
+      MAX(o.tracking_number) as tracking_number,
+      MAX(o.carrier) as carrier
     FROM orders o
     WHERE o.user_id = ?
       AND o.billed_by = 'practice_dme'
@@ -71,7 +73,9 @@ if ($hasOrderNumber) {
       o.shipping_city,
       o.shipping_state,
       o.shipping_zip,
-      o.shipping_name
+      o.shipping_name,
+      o.tracking_number,
+      o.carrier
     FROM orders o
     WHERE o.user_id = ?
       AND o.billed_by = 'practice_dme'
@@ -83,6 +87,7 @@ if ($hasOrderNumber) {
 $stmt = $pdo->prepare($sql);
 $stmt->execute([$userId]);
 $groupedOrders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+require_once __DIR__ . '/../api/lib/tracking.php';
 
 // Get practice information for invoice header
 $practiceStmt = $pdo->prepare("
@@ -617,6 +622,10 @@ unset($order); // Break reference
               <span class="status-badge <?= $statusClass ?>">
                 <?= $statusLabel ?>
               </span>
+              <?php if (!empty($order['tracking_number'])): ?>
+                <a href="<?= htmlspecialchars(order_tracking_url($order['tracking_number'], $order['carrier'] ?? null)) ?>" target="_blank" rel="noopener" onclick="event.stopPropagation()"
+                   style="display:block; margin-top:0.35rem; font-size:0.7rem; color:#0075bc; font-weight:700; text-decoration:none;">Track <?= htmlspecialchars(order_tracking_label($order['carrier'] ?? null)) ?> &#8599;</a>
+              <?php endif; ?>
             </div>
 
             <!-- Expand/Collapse Indicator -->
@@ -690,6 +699,16 @@ unset($order); // Break reference
                   <span class="invoice-meta-label">Status</span>
                   <span class="status-badge <?= $statusClass ?>"><?= $statusLabel ?></span>
                 </div>
+                <?php if (!empty($order['tracking_number'])): ?>
+                <div class="invoice-meta-item">
+                  <span class="invoice-meta-label">Tracking</span>
+                  <span class="invoice-meta-value">
+                    <a href="<?= htmlspecialchars(order_tracking_url($order['tracking_number'], $order['carrier'] ?? null)) ?>" target="_blank" rel="noopener" style="color:#0075bc; font-weight:600; text-decoration:none;">
+                      <?= htmlspecialchars(order_tracking_label($order['carrier'] ?? null)) ?>: <?= htmlspecialchars($order['tracking_number']) ?> &#8599;
+                    </a>
+                  </span>
+                </div>
+                <?php endif; ?>
               </div>
             </div>
 

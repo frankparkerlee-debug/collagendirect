@@ -15,6 +15,8 @@ if (!isset($user) || !is_array($user)) {
 $userId = $user['id'];
 $userRole = $user['role'] ?? '';
 
+require_once __DIR__ . '/../api/lib/tracking.php';
+
 // Fetch orders with grouping support
 // EXCLUDE wholesale orders (billed_by='practice_dme') - those are shown in the Wholesale Orders page
 $sql = "
@@ -23,6 +25,8 @@ $sql = "
     og.id as group_id,
     o.id as order_id,
     o.patient_id,
+    o.tracking_number,
+    o.carrier,
     p.first_name,
     p.last_name,
     p.mrn,
@@ -296,6 +300,10 @@ foreach ($orders as $order) {
               <span class="status-badge <?= $status_class ?>">
                 <?= ucfirst($order['status']) ?>
               </span>
+              <?php if (!empty($order['tracking_number'])): ?>
+                <a href="<?= htmlspecialchars(order_tracking_url($order['tracking_number'], $order['carrier'] ?? null)) ?>" target="_blank" rel="noopener" onclick="event.stopPropagation()"
+                   style="display:block; margin-top:0.35rem; font-size:0.7rem; color:#0075bc; font-weight:700; text-decoration:none;">Track <?= htmlspecialchars(order_tracking_label($order['carrier'] ?? null)) ?> &#8599;</a>
+              <?php endif; ?>
             </div>
 
             <!-- Actions -->
@@ -338,6 +346,14 @@ foreach ($orders as $order) {
                 <?php endforeach; ?>
               </tbody>
             </table>
+
+            <?php if (!empty($order['tracking_number'])): ?>
+            <div style="margin-top: 1rem; font-size: 0.8125rem; color: #475569;">
+              <strong>Tracking:</strong>
+              <a href="<?= htmlspecialchars(order_tracking_url($order['tracking_number'], $order['carrier'] ?? null)) ?>" target="_blank" rel="noopener" onclick="event.stopPropagation()"
+                 style="color:#0075bc; font-weight:600; text-decoration:none;"><?= htmlspecialchars(order_tracking_label($order['carrier'] ?? null)) ?>: <?= htmlspecialchars($order['tracking_number']) ?> &#8599;</a>
+            </div>
+            <?php endif; ?>
 
             <!-- Action Links -->
             <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">

@@ -117,9 +117,10 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $pdo->prepare("UPDATE orders SET status='rejected', notes=?, updated_at=NOW() WHERE id=?")->execute([$reason, $id]);
     $_SESSION['success_msg'] = 'Order rejected';
   } elseif ($id && $action==='mark_shipped') {
-    $trackingNumber = $_POST['tracking_number'] ?? '';
-    $pdo->prepare("UPDATE orders SET status='in_transit', tracking_number=?, updated_at=NOW() WHERE id=?")->execute([$trackingNumber, $id]);
-    $_SESSION['success_msg'] = 'Order marked as shipped';
+    $trackingNumber = trim($_POST['tracking_number'] ?? '');
+    $pdo->prepare("UPDATE orders SET status='in_transit', tracking_number=?, carrier='UPS', updated_at=NOW() WHERE id=?")
+        ->execute([$trackingNumber !== '' ? $trackingNumber : null, $id]);
+    $_SESSION['success_msg'] = 'Order marked as shipped'.($trackingNumber !== '' ? " (UPS {$trackingNumber})" : '').'.';
   } elseif ($id && $action==='mark_delivered') {
     $pdo->prepare("UPDATE orders SET status='delivered', delivered_at=NOW(), updated_at=NOW() WHERE id=?")->execute([$id]);
     $_SESSION['success_msg'] = 'Order marked as delivered';
