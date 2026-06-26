@@ -8623,55 +8623,51 @@ function initProfileAutocomplete(addressId, cityId, stateId, zipId) {
   <!-- Financial Summary Cards -->
   <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
     <!-- Total Ordered -->
-    <div class="card no-underline transition-all hover:shadow-2xl hover:scale-105 hover:-translate-y-1" style="text-decoration: none; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: none; padding: 1.5rem; border-radius: 16px; position: relative; overflow: hidden;">
-      <div style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: rgba(59, 130, 246, 0.1); border-radius: 50%;"></div>
+    <div class="card" style="padding: 1.5rem;">
       <div class="flex items-center justify-between mb-4">
-        <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">
-          <svg style="width: 24px; height: 24px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div style="width: 48px; height: 48px; background: var(--brand-light); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+          <svg style="width: 24px; height: 24px; color: var(--brand);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
           </svg>
         </div>
       </div>
-      <div class="text-xs font-semibold mb-1" style="color: #64748b; text-transform: uppercase; letter-spacing: 0.1em;">Total Ordered</div>
-      <div class="text-4xl font-bold mb-2" style="color: #1e293b;"><?= number_format($orderCount) ?></div>
-      <div class="text-xs" style="color: #64748b;">Orders placed</div>
+      <div class="text-xs font-semibold mb-1" style="color: var(--ink-light); text-transform: uppercase; letter-spacing: 0.1em;">Total Ordered</div>
+      <div class="text-4xl font-bold mb-2" style="color: var(--ink);"><?= number_format($orderCount) ?></div>
+      <div class="text-xs" style="color: var(--muted);">Orders placed</div>
     </div>
 
     <!-- Total Value -->
-    <div class="card no-underline transition-all hover:shadow-2xl hover:scale-105 hover:-translate-y-1" style="text-decoration: none; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: none; padding: 1.5rem; border-radius: 16px; position: relative; overflow: hidden;">
-      <div style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: rgba(16, 185, 129, 0.1); border-radius: 50%;"></div>
+    <div class="card" style="padding: 1.5rem;">
       <div class="flex items-center justify-between mb-4">
-        <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
-          <svg style="width: 24px; height: 24px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div style="width: 48px; height: 48px; background: var(--brand-light); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+          <svg style="width: 24px; height: 24px; color: var(--brand);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
         </div>
       </div>
-      <div class="text-xs font-semibold mb-1" style="color: #64748b; text-transform: uppercase; letter-spacing: 0.1em;">Total Value</div>
-      <div class="text-4xl font-bold mb-2" style="color: #1e293b;">$<?= number_format($totalOrdered, 2) ?></div>
-      <div class="text-xs" style="color: #64748b;">All orders</div>
+      <div class="text-xs font-semibold mb-1" style="color: var(--ink-light); text-transform: uppercase; letter-spacing: 0.1em;">Total Value</div>
+      <div class="text-4xl font-bold mb-2" style="color: var(--ink);">$<?= number_format($totalOrdered, 2) ?></div>
+      <div class="text-xs" style="color: var(--muted);">All orders</div>
     </div>
 
-    <!-- Amount Owed -->
-    <div class="card no-underline transition-all hover:shadow-2xl hover:scale-105 hover:-translate-y-1" style="text-decoration: none; background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border: none; padding: 1.5rem; border-radius: 16px; position: relative; overflow: hidden;">
-      <div style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: rgba(239, 68, 68, 0.1); border-radius: 50%;"></div>
+    <!-- Amount Owed (semantic red kept — money outstanding) -->
+    <div class="card" style="padding: 1.5rem;">
       <div class="flex items-center justify-between mb-4">
-        <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);">
-          <svg style="width: 24px; height: 24px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div style="width: 48px; height: 48px; background: var(--error-light); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+          <svg style="width: 24px; height: 24px; color: var(--error);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
           </svg>
         </div>
       </div>
-      <div class="text-xs font-semibold mb-1" style="color: #64748b; text-transform: uppercase; letter-spacing: 0.1em;">Amount Owed</div>
-      <div class="text-4xl font-bold mb-2" style="color: #1e293b;">$<?= number_format($totalOwed, 2) ?></div>
-      <div class="text-xs" style="color: #64748b;">Unpaid orders</div>
+      <div class="text-xs font-semibold mb-1" style="color: var(--ink-light); text-transform: uppercase; letter-spacing: 0.1em;">Amount Owed</div>
+      <div class="text-4xl font-bold mb-2" style="color: <?= $totalOwed > 0 ? 'var(--error)' : 'var(--ink)' ?>;">$<?= number_format($totalOwed, 2) ?></div>
+      <div class="text-xs" style="color: var(--muted);">Unpaid orders</div>
     </div>
 
-    <!-- Total Paid -->
-    <div class="card no-underline transition-all hover:shadow-2xl hover:scale-105 hover:-translate-y-1" style="text-decoration: none; background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; border: none; padding: 1.5rem; border-radius: 16px; position: relative; overflow: hidden; box-shadow: 0 10px 25px rgba(5, 150, 105, 0.3);">
-      <div style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: rgba(255, 255, 255, 0.1); border-radius: 50%;"></div>
+    <!-- Total Paid (brand feature card) -->
+    <div class="card" style="padding: 1.5rem; background: linear-gradient(135deg, var(--brand-dark) 0%, var(--brand) 100%); border: none; color: #fff; box-shadow: 0 8px 20px -4px rgba(0, 117, 188, 0.4);">
       <div class="flex items-center justify-between mb-4">
-        <div style="width: 48px; height: 48px; background: rgba(255, 255, 255, 0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px);">
+        <div style="width: 48px; height: 48px; background: rgba(255, 255, 255, 0.18); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
           <svg style="width: 24px; height: 24px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
@@ -8679,7 +8675,7 @@ function initProfileAutocomplete(addressId, cityId, stateId, zipId) {
       </div>
       <div class="text-xs font-semibold mb-1" style="color: rgba(255,255,255,0.9); text-transform: uppercase; letter-spacing: 0.1em;">Total Paid</div>
       <div class="text-4xl font-bold mb-2" style="color: white;">$<?= number_format($totalPaid, 2) ?></div>
-      <div class="text-xs" style="color: rgba(255,255,255,0.8);">Completed payments</div>
+      <div class="text-xs" style="color: rgba(255,255,255,0.85);">Completed payments</div>
     </div>
   </section>
 
@@ -10629,7 +10625,7 @@ if (<?php echo json_encode($page==='patients'); ?>){
   async function load(q=''){ const res=await api('action=patients&limit=200&q='+encodeURIComponent(q)); rows=res.rows||[]; draw(); }
   function draw(){
     const tb=$('#tb'); tb.innerHTML='';
-    if(!rows.length){ tb.innerHTML=`<tr><td colspan="9" class="py-6 text-center text-slate-500">No patients</td></tr>`; return; }
+    if(!rows.length){ tb.innerHTML=`<tr><td colspan="9" class="py-12 text-center"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5" style="margin:0 auto .5rem;display:block"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg><div style="font-weight:600;color:#475569">No patients yet</div><div style="font-size:.8125rem;color:#94a3b8;margin-top:.25rem">Patients you add will appear here.</div></td></tr>`; return; }
     for(const p of rows){
       // Auth Ready indicator
       let readyDot = '<span class="text-slate-300 text-xl" title="Not yet scored">○</span>';
@@ -10853,7 +10849,7 @@ if (<?php echo json_encode($page==='orders'); ?>){
           <td class="py-2"><div class="flex gap-2">${actions}</div></td>
         </tr>
       `;
-    }).join('') || `<tr><td colspan="8" class="py-6 text-center text-slate-500">No orders</td></tr>`;
+    }).join('') || `<tr><td colspan="8" class="py-12 text-center"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5" style="margin:0 auto .5rem;display:block"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg><div style="font-weight:600;color:#475569">No orders yet</div><div style="font-size:.8125rem;color:#94a3b8;margin-top:.25rem">Your orders will show up here.</div></td></tr>`;
   }
   $('#oq').addEventListener('input',loadOrders);
   $('#of').addEventListener('change',loadOrders);
@@ -11250,7 +11246,7 @@ if (<?php echo json_encode($page==='profile'); ?>){
       if (!list) return;
 
       if (physicians.length === 0) {
-        list.innerHTML = '<div class="text-center py-8 text-slate-500">No physicians added yet. Click "Add Physician" to get started.</div>';
+        list.innerHTML = '<div class="text-center py-10"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5" style="margin:0 auto .5rem;display:block"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg><div style="font-weight:600;color:#475569">No physicians yet</div><div style="font-size:.8125rem;color:#94a3b8;margin-top:.25rem">Click "Add Physician" to get started.</div></div>';
         return;
       }
 
@@ -11794,7 +11790,7 @@ async function toggleAccordion(rowEl, patientId, page){
                         <td class="py-2">${viewBtn}</td>
                         <td class="py-2 flex gap-2">${actions}</td>
                       </tr>`;
-                    }).join('') || `<tr><td colspan="8" class="py-6 text-center text-slate-500">No orders</td></tr>`}
+                    }).join('') || `<tr><td colspan="8" class="py-12 text-center"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5" style="margin:0 auto .5rem;display:block"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg><div style="font-weight:600;color:#475569">No orders yet</div><div style="font-size:.8125rem;color:#94a3b8;margin-top:.25rem">Your orders will show up here.</div></td></tr>`}
                   </tbody>
                 </table>
               </div>
