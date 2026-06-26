@@ -141,10 +141,16 @@ function create_single_product_order(
   $cost_per_box = (float)($product['cost_per_box'] ?? 0);
 
   // Calculate expected revenue and cost
+  $isHealkit = (($order_params['billed_by'] ?? '') === 'healkit');
   if ($isWholesale) {
     // Wholesale: revenue = boxes * price_per_box
     $cpt_rate_used = $price_per_box / max(1, $pieces_per_box);
     $expected_revenue = $boxes_needed * $price_per_box;
+  } elseif ($isHealkit) {
+    // HealKit: wholesale price billed per piece (report applies practice pricing on read)
+    $whl = (float)($product['price_wholesale'] ?? 0);
+    $cpt_rate_used = $whl > 0 ? $whl / max(1, $pieces_per_box) : (float)($product['price_admin'] ?? 0) / max(1, $pieces_per_box);
+    $expected_revenue = $billable_pieces * $cpt_rate_used;
   } else {
     // Referral: revenue = billable_pieces * per-piece rate.
     // medicare_allowable is a PER-BOX rate, so divide by pieces_per_box to get the per-piece rate.

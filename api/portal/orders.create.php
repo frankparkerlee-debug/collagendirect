@@ -353,12 +353,13 @@ try {
   $refills_int = 0; // Refills not typically set at initial order creation
 
   // Get product details for calculation
-  $prodDetails = $pdo->prepare("SELECT pieces_per_box, cost_per_box, medicare_allowable FROM products WHERE id = ?");
+  $prodDetails = $pdo->prepare("SELECT pieces_per_box, cost_per_box, medicare_allowable, price_wholesale FROM products WHERE id = ?");
   $prodDetails->execute([$prod['id']]);
   $prodInfo = $prodDetails->fetch(PDO::FETCH_ASSOC);
   $pieces_per_box = max(1, (int)($prodInfo['pieces_per_box'] ?? 10));
   $cost_per_box = (float)($prodInfo['cost_per_box'] ?? 0);
   $medicare_rate = (float)($prodInfo['medicare_allowable'] ?? 0);
+  $price_wholesale = (float)($prodInfo['price_wholesale'] ?? 0);
 
   // Calculate pieces and boxes (referral order calculation)
   if ($fpw_int === 0) $fpw_int = 1;
@@ -368,9 +369,14 @@ try {
   $calc_boxes_to_ship = (int)ceil($calc_total_pieces / $pieces_per_box);
   $calc_billable_pieces = $calc_total_pieces;
 
-  // Calculate revenue and cost.
-  // medicare_allowable is a PER-BOX rate, so divide by pieces_per_box to get the per-piece rate.
-  $calc_cpt_rate = $medicare_rate > 0 ? $medicare_rate / $pieces_per_box : (float)($prod['price_admin'] ?? 0) / $pieces_per_box;
+  // Calculate revenue and cost (per piece).
+  if ($is_healkit) {
+    // HealKit: wholesale price billed per piece (report applies practice pricing on read)
+    $calc_cpt_rate = $price_wholesale > 0 ? $price_wholesale / $pieces_per_box : (float)($prod['price_admin'] ?? 0) / $pieces_per_box;
+  } else {
+    // Referral: medicare_allowable is a PER-BOX rate, so divide by pieces_per_box to get the per-piece rate.
+    $calc_cpt_rate = $medicare_rate > 0 ? $medicare_rate / $pieces_per_box : (float)($prod['price_admin'] ?? 0) / $pieces_per_box;
+  }
   $calc_expected_revenue = $calc_billable_pieces * $calc_cpt_rate;
   $calc_expected_cost = $calc_boxes_to_ship * $cost_per_box;
 

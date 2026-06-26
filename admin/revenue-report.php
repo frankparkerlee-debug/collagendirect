@@ -168,6 +168,8 @@ if ($orderType === 'wholesale') {
     $metrics['orders'] = array_filter($metrics['orders'], fn($o) => $o['order_type'] === 'Wholesale');
 } elseif ($orderType === 'referral') {
     $metrics['orders'] = array_filter($metrics['orders'], fn($o) => $o['order_type'] === 'Referral');
+} elseif ($orderType === 'healkit') {
+    $metrics['orders'] = array_filter($metrics['orders'], fn($o) => $o['order_type'] === 'HealKit');
 }
 
 /* ================= CSV Export ================= */
@@ -192,6 +194,8 @@ if ($exportFormat === 'csv') {
     fputcsv($output, ['Wholesale Revenue', '$' . number_format($metrics['wholesale']['revenue'], 2)]);
     fputcsv($output, ['Referral Orders', $metrics['referral']['orders']]);
     fputcsv($output, ['Referral Revenue', '$' . number_format($metrics['referral']['revenue'], 2)]);
+    fputcsv($output, ['HealKit Orders', $metrics['healkit']['orders']]);
+    fputcsv($output, ['HealKit Revenue', '$' . number_format($metrics['healkit']['revenue'], 2)]);
     fputcsv($output, []);
 
     // Payor Mix
@@ -236,7 +240,7 @@ if ($exportFormat === 'csv') {
 
     // Physician Performance
     fputcsv($output, ['PHYSICIAN/PRACTICE PERFORMANCE']);
-    fputcsv($output, ['Practice', 'Physician', 'Orders', 'Total Revenue', 'Wholesale', 'Referral']);
+    fputcsv($output, ['Practice', 'Physician', 'Orders', 'Total Revenue', 'Wholesale', 'Referral', 'HealKit']);
     foreach ($metrics['physician_revenue'] as $data) {
         fputcsv($output, [
             $data['practice'],
@@ -244,14 +248,15 @@ if ($exportFormat === 'csv') {
             $data['orders'],
             '$' . number_format($data['revenue'], 2),
             '$' . number_format($data['wholesale_revenue'], 2),
-            '$' . number_format($data['referral_revenue'], 2)
+            '$' . number_format($data['referral_revenue'], 2),
+            '$' . number_format($data['healkit_revenue'] ?? 0, 2)
         ]);
     }
     fputcsv($output, []);
 
     // Sales Rep Performance
     fputcsv($output, ['SALES REP PERFORMANCE']);
-    fputcsv($output, ['Sales Rep', 'Orders', 'Physicians', 'Total Revenue', 'Wholesale', 'Referral']);
+    fputcsv($output, ['Sales Rep', 'Orders', 'Physicians', 'Total Revenue', 'Wholesale', 'Referral', 'HealKit']);
     foreach ($metrics['sales_rep_revenue'] as $data) {
         fputcsv($output, [
             $data['name'],
@@ -259,7 +264,8 @@ if ($exportFormat === 'csv') {
             count($data['physicians']),
             '$' . number_format($data['revenue'], 2),
             '$' . number_format($data['wholesale_revenue'], 2),
-            '$' . number_format($data['referral_revenue'], 2)
+            '$' . number_format($data['referral_revenue'], 2),
+            '$' . number_format($data['healkit_revenue'] ?? 0, 2)
         ]);
     }
     fputcsv($output, []);
@@ -495,6 +501,7 @@ include __DIR__ . '/_header.php';
                     <option value="all" <?=$orderType==='all'?'selected':''?>>All Types</option>
                     <option value="wholesale" <?=$orderType==='wholesale'?'selected':''?>>Wholesale Only</option>
                     <option value="referral" <?=$orderType==='referral'?'selected':''?>>Referral Only</option>
+                    <option value="healkit" <?=$orderType==='healkit'?'selected':''?>>HealKit Only</option>
                 </select>
             </div>
             <div class="flex items-end">
@@ -558,7 +565,7 @@ include __DIR__ . '/_header.php';
     <?php endif; ?>
 
     <!-- KPI Cards Row 1 -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
         <div class="metric-card bg-white border rounded-xl p-5 shadow-sm">
             <div class="flex items-center justify-between mb-2">
                 <span class="text-xs font-medium text-slate-500 uppercase tracking-wide">Total Revenue</span>
@@ -610,6 +617,19 @@ include __DIR__ . '/_header.php';
             </div>
             <div class="text-2xl font-bold text-purple-600">$<?=number_format($metrics['referral']['revenue'], 0)?></div>
             <div class="text-xs text-slate-500 mt-1"><?=$metrics['referral']['orders']?> orders, <?=$metrics['referral']['boxes']?> boxes</div>
+        </div>
+
+        <div class="metric-card bg-white border rounded-xl p-5 shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-medium text-slate-500 uppercase tracking-wide">HealKit</span>
+                <div class="w-8 h-8 rounded-full bg-cyan-100 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="text-2xl font-bold text-cyan-600">$<?=number_format($metrics['healkit']['revenue'], 0)?></div>
+            <div class="text-xs text-slate-500 mt-1"><?=$metrics['healkit']['orders']?> orders, <?=$metrics['healkit']['boxes']?> boxes</div>
         </div>
     </div>
 
@@ -825,12 +845,13 @@ include __DIR__ . '/_header.php';
                         <th class="py-3 px-4 font-medium text-right">Total Revenue</th>
                         <th class="py-3 px-4 font-medium text-right">Wholesale</th>
                         <th class="py-3 px-4 font-medium text-right">Referral</th>
+                        <th class="py-3 px-4 font-medium text-right">HealKit</th>
                         <th class="py-3 px-4 font-medium text-right">% of Total</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     <?php if (empty($metrics['sales_rep_revenue'])): ?>
-                        <tr><td colspan="7" class="py-8 text-center text-slate-500">No sales rep data available</td></tr>
+                        <tr><td colspan="8" class="py-8 text-center text-slate-500">No sales rep data available</td></tr>
                     <?php else: ?>
                         <?php foreach ($metrics['sales_rep_revenue'] as $repId => $data):
                             $pct = $metrics['total_revenue'] > 0 ? ($data['revenue'] / $metrics['total_revenue']) * 100 : 0;
@@ -852,6 +873,7 @@ include __DIR__ . '/_header.php';
                             <td class="py-3 px-4 text-right font-semibold">$<?=number_format($data['revenue'], 0)?></td>
                             <td class="py-3 px-4 text-right text-blue-600">$<?=number_format($data['wholesale_revenue'], 0)?></td>
                             <td class="py-3 px-4 text-right text-purple-600">$<?=number_format($data['referral_revenue'], 0)?></td>
+                            <td class="py-3 px-4 text-right text-cyan-600">$<?=number_format($data['healkit_revenue'] ?? 0, 0)?></td>
                             <td class="py-3 px-4 text-right">
                                 <div class="inline-flex items-center gap-2">
                                     <div class="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
@@ -884,12 +906,13 @@ include __DIR__ . '/_header.php';
                         <th class="py-3 px-4 font-medium text-right">Total Revenue</th>
                         <th class="py-3 px-4 font-medium text-right">Wholesale</th>
                         <th class="py-3 px-4 font-medium text-right">Referral</th>
+                        <th class="py-3 px-4 font-medium text-right">HealKit</th>
                         <th class="py-3 px-4 font-medium text-right">% of Total</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     <?php if (empty($metrics['physician_revenue'])): ?>
-                        <tr><td colspan="7" class="py-8 text-center text-slate-500">No data available</td></tr>
+                        <tr><td colspan="8" class="py-8 text-center text-slate-500">No data available</td></tr>
                     <?php else: ?>
                         <?php foreach (array_slice($metrics['physician_revenue'], 0, 15, true) as $data):
                             $pct = $metrics['total_revenue'] > 0 ? ($data['revenue'] / $metrics['total_revenue']) * 100 : 0;
@@ -901,6 +924,7 @@ include __DIR__ . '/_header.php';
                             <td class="py-3 px-4 text-right font-semibold">$<?=number_format($data['revenue'], 0)?></td>
                             <td class="py-3 px-4 text-right text-blue-600">$<?=number_format($data['wholesale_revenue'], 0)?></td>
                             <td class="py-3 px-4 text-right text-purple-600">$<?=number_format($data['referral_revenue'], 0)?></td>
+                            <td class="py-3 px-4 text-right text-cyan-600">$<?=number_format($data['healkit_revenue'] ?? 0, 0)?></td>
                             <td class="py-3 px-4 text-right">
                                 <div class="inline-flex items-center gap-2">
                                     <div class="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
@@ -953,7 +977,8 @@ include __DIR__ . '/_header.php';
                             <td class="py-2 px-4 text-xs"><?=e($order['practice_name'] ?: 'N/A')?></td>
                             <td class="py-2 px-4 text-xs"><?=e($order['product_name'] ?: 'Unknown')?></td>
                             <td class="py-2 px-4">
-                                <span class="inline-block px-2 py-0.5 rounded text-[10px] font-medium <?=$order['order_type']==='Wholesale'?'bg-blue-100 text-blue-700':'bg-purple-100 text-purple-700'?>">
+                                <?php $otClass = $order['order_type']==='Wholesale' ? 'bg-blue-100 text-blue-700' : ($order['order_type']==='HealKit' ? 'bg-cyan-100 text-cyan-700' : 'bg-purple-100 text-purple-700'); ?>
+                                <span class="inline-block px-2 py-0.5 rounded text-[10px] font-medium <?=$otClass?>">
                                     <?=$order['order_type']?>
                                 </span>
                             </td>

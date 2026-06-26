@@ -452,7 +452,20 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
         FROM orders o
         LEFT JOIN patients pt ON pt.id = o.patient_id
         " . ($hasProducts ? "LEFT JOIN products pr ON pr.id = o.product_id" : "") . "
-        LEFT JOIN practice_pricing pp ON pp.user_id = o.user_id AND pp.product_id = o.product_id
+        -- Practice-level pricing: a custom price set on ANY login of a practice
+        -- applies to every login of that practice (prefer the order's own user).
+        LEFT JOIN LATERAL (
+            SELECT ppx.custom_price, ppx.cost_per_box
+            FROM practice_pricing ppx
+            WHERE ppx.product_id = o.product_id
+              AND (ppx.user_id = o.user_id OR ppx.user_id IN (
+                    SELECT u2.id FROM users u2
+                    WHERE u2.practice_name = (SELECT practice_name FROM users WHERE id = o.user_id)
+                      AND COALESCE(u2.practice_name,'') <> ''
+              ))
+            ORDER BY (ppx.user_id = o.user_id) DESC, ppx.updated_at DESC NULLS LAST
+            LIMIT 1
+        ) pp ON true
         LEFT JOIN users u ON u.id = o.user_id
         LEFT JOIN admin_physicians ap ON ap.physician_user_id = o.user_id
         LEFT JOIN admin_users au ON au.id = ap.admin_id AND au.role IN ('sales', 'admin', 'employee')
