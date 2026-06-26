@@ -146,9 +146,10 @@ function create_single_product_order(
     $cpt_rate_used = $price_per_box / max(1, $pieces_per_box);
     $expected_revenue = $boxes_needed * $price_per_box;
   } else {
-    // Referral: revenue = billable_pieces * medicare_rate
+    // Referral: revenue = billable_pieces * per-piece rate.
+    // medicare_allowable is a PER-BOX rate, so divide by pieces_per_box to get the per-piece rate.
     $medicare_rate = (float)($product['medicare_allowable'] ?? 0);
-    $cpt_rate_used = $medicare_rate > 0 ? $medicare_rate : $price_per_box / max(1, $pieces_per_box);
+    $cpt_rate_used = $medicare_rate > 0 ? $medicare_rate / max(1, $pieces_per_box) : $price_per_box / max(1, $pieces_per_box);
     $expected_revenue = $billable_pieces * $cpt_rate_used;
   }
   $expected_cost = $boxes_needed * $cost_per_box;

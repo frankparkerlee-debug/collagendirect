@@ -368,8 +368,9 @@ try {
   $calc_boxes_to_ship = (int)ceil($calc_total_pieces / $pieces_per_box);
   $calc_billable_pieces = $calc_total_pieces;
 
-  // Calculate revenue and cost
-  $calc_cpt_rate = $medicare_rate > 0 ? $medicare_rate : (float)($prod['price_admin'] ?? 0) / $pieces_per_box;
+  // Calculate revenue and cost.
+  // medicare_allowable is a PER-BOX rate, so divide by pieces_per_box to get the per-piece rate.
+  $calc_cpt_rate = $medicare_rate > 0 ? $medicare_rate / $pieces_per_box : (float)($prod['price_admin'] ?? 0) / $pieces_per_box;
   $calc_expected_revenue = $calc_billable_pieces * $calc_cpt_rate;
   $calc_expected_cost = $calc_boxes_to_ship * $cost_per_box;
 

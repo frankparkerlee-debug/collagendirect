@@ -41,19 +41,38 @@ function calculate_order_revenue(array $order, array $rates = [], bool $includeS
 
     // Check if stored calculated values exist (preferred - ensures historical accuracy)
     if (!empty($order['expected_revenue']) || !empty($order['boxes_to_ship'])) {
-        $revenue = (float)($order['expected_revenue'] ?? 0);
         $totalBoxes = (int)($order['boxes_to_ship'] ?? 0);
         $totalPieces = (int)($order['total_pieces'] ?? $order['billable_pieces'] ?? 0);
         $order_cost = (float)($order['expected_cost'] ?? 0);
-        $cpt_rate = (float)($order['cpt_rate_used'] ?? 0);
+
+        if ($isWholesale) {
+            // Wholesale bills by the box - the stored revenue is authoritative.
+            $revenue = (float)($order['expected_revenue'] ?? 0);
+            $cpt_rate = (float)($order['cpt_rate_used'] ?? 0);
+        } else {
+            // Referral bills by ACTUAL PIECE. The Medicare allowable is a PER-BOX rate,
+            // so the per-piece rate is allowable / pieces_per_box. Historical orders stored
+            // a per-box rate multiplied by pieces (overstating revenue ~pieces_per_box-fold),
+            // so recompute from the stored (correct) piece count rather than trust stored revenue.
+            $cpt = $order['cpt_code'] ?? $order['cpt'] ?? $order['hcpcs_code'] ?? '';
+            if (!empty($cpt) && isset($rates[$cpt]) && $rates[$cpt] > 0) {
+                $cpt_rate = $rates[$cpt] / $pieces_per_box;
+            } else {
+                // No Medicare rate on file -> stored rate was already a per-piece fallback.
+                $cpt_rate = (float)($order['cpt_rate_used'] ?? 0);
+            }
+            $revenue = $totalPieces * $cpt_rate;
+        }
 
         if ($includeSteps) {
-            $steps[] = "Type: " . ($isWholesale ? 'Wholesale' : 'Referral') . " (using stored values)";
+            $steps[] = "Type: " . ($isWholesale ? 'Wholesale (stored values)' : 'Referral (stored pieces × per-piece rate)');
             $steps[] = "Stored boxes: {$totalBoxes}";
             $steps[] = "Stored pieces: {$totalPieces}";
-            $steps[] = "Stored revenue: \$" . number_format($revenue, 2);
+            if (!$isWholesale) {
+                $steps[] = "Per-piece rate: \$" . number_format($cpt_rate, 4) . " (allowable ÷ {$pieces_per_box}/box)";
+            }
+            $steps[] = "Revenue: \$" . number_format($revenue, 2);
             $steps[] = "Stored cost: \$" . number_format($order_cost, 2);
-            $steps[] = "Stored rate: \$" . number_format($cpt_rate, 4) . "/piece";
         }
 
         return [
@@ -153,9 +172,10 @@ function calculate_order_revenue(array $order, array $rates = [], bool $includeS
         $cpt = $order['cpt_code'] ?? $order['cpt'] ?? $order['hcpcs_code'] ?? '';
 
         if (!empty($cpt) && isset($rates[$cpt]) && $rates[$cpt] > 0) {
-            $cpt_rate = $rates[$cpt];
+            // Medicare allowable is a PER-BOX rate; convert to per piece
+            $cpt_rate = $rates[$cpt] / $pieces_per_box;
             if ($includeSteps) {
-                $steps[] = "Medicare rate ({$cpt}): \$" . number_format($cpt_rate, 2) . "/piece";
+                $steps[] = "Medicare rate ({$cpt}): \$" . number_format($rates[$cpt], 2) . "/box ÷ {$pieces_per_box} = \$" . number_format($cpt_rate, 4) . "/piece";
             }
         } else {
             // Fallback pricing

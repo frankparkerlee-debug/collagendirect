@@ -1015,8 +1015,9 @@ include __DIR__ . '/_header.php';
                 <ul class="list-disc list-inside ml-2 mt-1 text-xs space-y-1">
                     <li>Pieces Needed = (Days / 7) x Frequency x Qty x (1 + Refills)</li>
                     <li>Boxes to Ship = ceil(Pieces Needed / Pieces Per Box)</li>
-                    <li>Revenue = Pieces Needed x Medicare Allowable Rate</li>
-                    <li class="text-blue-600 font-medium">Note: Revenue is based on actual pieces needed, not rounded-up box quantities</li>
+                    <li>Per-Piece Rate = Medicare Allowable &divide; Pieces Per Box</li>
+                    <li>Revenue = Pieces Needed x Per-Piece Rate</li>
+                    <li class="text-blue-600 font-medium">Note: The Medicare allowable is a per-box rate; revenue is based on actual pieces needed, not rounded-up box quantities</li>
                 </ul>
             </div>
         </div>
