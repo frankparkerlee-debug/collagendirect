@@ -77,10 +77,10 @@ if ($isPracticeAdmin) {
 .hk-form-container { max-width: 900px; margin: 0 auto; padding: 1.5rem; }
 .hk-card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
 .hk-section-title { font-size: 1rem; font-weight: 600; color: #1e293b; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
-.hk-section-num { width: 28px; height: 28px; border-radius: 50%; background: #6366f1; color: white; display: flex; align-items: center; justify-content: center; font-size: 0.875rem; font-weight: 700; }
+.hk-section-num { width: 28px; height: 28px; border-radius: 50%; background: var(--brand); color: white; display: flex; align-items: center; justify-content: center; font-size: 0.875rem; font-weight: 700; }
 .hk-label { font-size: 0.875rem; font-weight: 500; color: #374151; display: block; margin-bottom: 0.375rem; }
 .hk-input { width: 100%; padding: 0.625rem 0.875rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.875rem; font-family: inherit; }
-.hk-input:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2); }
+.hk-input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--ring); }
 .hk-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .hk-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
 .hk-full { grid-column: 1 / -1; }
@@ -90,12 +90,12 @@ if ($isPracticeAdmin) {
 .hk-search-results button:hover { background: #f8fafc; }
 .hk-btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.625rem 1.25rem; border-radius: 8px; font-size: 0.875rem; font-weight: 500; cursor: pointer; border: 1px solid #e2e8f0; background: white; color: #374151; transition: all 0.15s; }
 .hk-btn:hover { background: #f8fafc; }
-.hk-btn-primary { background: #6366f1; color: white; border-color: #6366f1; }
-.hk-btn-primary:hover { background: #4f46e5; border-color: #4f46e5; }
+.hk-btn-primary { background: var(--brand); color: white; border-color: var(--brand); }
+.hk-btn-primary:hover { background: var(--brand-dark); border-color: var(--brand-dark); }
 .hk-btn-ghost { background: transparent; border-color: transparent; }
 .hk-btn-ghost:hover { background: #f1f5f9; }
-.hk-info-box { background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; }
-.hk-info-box p { font-size: 0.875rem; color: #4338ca; margin: 0; }
+.hk-info-box { background: var(--brand-light); border: 1px solid #cfe5f6; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; }
+.hk-info-box p { font-size: 0.875rem; color: var(--brand-dark); margin: 0; }
 .hk-wound-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem; position: relative; }
 /* Always show the number-input up/down arrows (Qty per Change, Frequency, Duration) instead of only on hover */
 .hk-wound-card input[type=number]::-webkit-inner-spin-button,
@@ -111,7 +111,7 @@ if ($isPracticeAdmin) {
   <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
     <div>
       <h1 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem;">
-        <svg style="width: 24px; height: 24px; display: inline-block; margin-right: 0.5rem; vertical-align: middle; color: #6366f1;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg style="width: 24px; height: 24px; display: inline-block; margin-right: 0.5rem; vertical-align: middle; color: var(--brand);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
         </svg>
         New HealKit Order
@@ -143,7 +143,7 @@ if ($isPracticeAdmin) {
 
       <!-- Create New Patient (hidden by default) -->
       <div id="hk-create-patient" style="display: none; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e2e8f0;">
-        <div style="font-weight: 600; font-size: 0.875rem; margin-bottom: 0.75rem; color: #6366f1;">New Patient</div>
+        <div style="font-weight: 600; font-size: 0.875rem; margin-bottom: 0.75rem; color: var(--brand);">New Patient</div>
         <div class="hk-grid">
           <div><label class="hk-label">First Name *</label><input id="hk-np-first" class="hk-input" placeholder="First name"></div>
           <div><label class="hk-label">Last Name *</label><input id="hk-np-last" class="hk-input" placeholder="Last name"></div>
@@ -330,7 +330,7 @@ document.addEventListener('DOMContentLoaded', function() {
         `<button type="button" data-id="${p.id}" data-name="${p.first_name} ${p.last_name}">${p.first_name} ${p.last_name} — ${p.dob || 'N/A'} • ${p.phone || ''}</button>`
       ).join('');
       html += `<div style="border-top: 1px solid #e2e8f0; margin: 0.25rem 0;"></div>`;
-      html += `<button type="button" id="hk-opt-create" style="color: #6366f1; font-weight: 500;">+ Create new patient "${q}"</button>`;
+      html += `<button type="button" id="hk-opt-create" style="color: var(--brand); font-weight: 500;">+ Create new patient "${q}"</button>`;
 
       searchResults.innerHTML = html;
       searchResults.style.display = 'block';
@@ -454,7 +454,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const html = `
       <div class="hk-wound-card" data-wound-index="${idx}">
         <button type="button" class="hk-remove-wound" onclick="this.closest('.hk-wound-card').remove()" title="Remove wound">&times;</button>
-        <div style="font-weight: 600; font-size: 0.875rem; margin-bottom: 0.75rem; color: #6366f1;">Wound ${idx}</div>
+        <div style="font-weight: 600; font-size: 0.875rem; margin-bottom: 0.75rem; color: var(--brand);">Wound ${idx}</div>
         <div class="hk-grid">
           <div class="hk-full">
             <label class="hk-label">Primary Dressing *</label>

@@ -398,7 +398,7 @@ $products = $productsStmt->fetchAll(PDO::FETCH_ASSOC);
       <input type="hidden" name="patients[0][delivery_mode]" value="ship_to_office">
 
       <div style="background: white; border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem;">
-        <span style="font-size: 1.5rem;">📦</span>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-3"/><path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/></svg>
         <div>
           <div style="font-weight: 600; color: var(--ink);">Ship to facility (office stock)</div>
           <div style="color: var(--muted); font-size: 0.875rem;">All products in this order ship to the delivery location selected above.</div>

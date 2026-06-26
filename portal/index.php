@@ -4315,21 +4315,24 @@ if ($page==='logout'){
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="/assets/icd10-autocomplete.js"></script>
 <script src="/portal/search-helpers.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   /* Design Tokens - Healthcare UI */
   :root {
-    --brand: #4DB8A8;
-    --brand-dark: #3A9688;
-    --brand-light: #E0F5F2;
-    --ink: #1F2937;
-    --ink-light: #6B7280;
-    --muted: #9CA3AF;
-    --bg-gray: #F9FAFB;
-    --bg-sidebar: #F6F6F6;
-    --border: #E5E7EB;
-    --border-sidebar: #E8E8E9;
-    --ring: rgba(77, 184, 168, 0.2);
+    /* MD DME brand palette */
+    --brand: #0075bc;          /* mid blue — primary actions/links */
+    --brand-dark: #20419b;     /* royal blue — hover / deep */
+    --brand-light: #e6f2fb;    /* light blue tint — surfaces */
+    --brand-accent: #00aeef;   /* cyan — highlights / active */
+    --ink: #1a1a1a;
+    --ink-light: #4d4d4d;      /* graphite — secondary text */
+    --muted: #9aa3af;
+    --bg-gray: #f4f7fb;
+    --bg-sidebar: #f5f8fc;
+    --border: #e3e8ef;
+    --border-sidebar: #e3e8ef;
+    --ring: rgba(0, 117, 188, 0.22);
     --radius: 0.5rem;
     --radius-lg: 0.75rem;
     --success: #10B981;
@@ -4338,13 +4341,13 @@ if ($page==='logout'){
     --warning-light: #FEF3C7;
     --error: #EF4444;
     --error-light: #FEE2E2;
-    --info: #3B82F6;
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --info: #0075bc;
+    --shadow-sm: 0 1px 2px 0 rgba(16, 33, 64, 0.06);
+    --shadow-md: 0 6px 16px -4px rgba(16, 33, 64, 0.12);
   }
 
   html, body {
-    font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Manrope', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
     color: var(--ink);
     -webkit-font-smoothing: antialiased;
     background: #ffffff;
@@ -4685,6 +4688,15 @@ if ($page==='logout'){
     justify-content: center;
     padding: 0.75rem !important;
   }
+
+  .sidebar-brand {
+    padding: 1.125rem 1.25rem 0.875rem;
+    display: flex;
+    align-items: center;
+  }
+  .sidebar-logo { height: 30px; width: auto; max-width: 100%; object-fit: contain; }
+  .sidebar.collapsed .sidebar-brand { padding: 0.875rem 0.5rem; justify-content: center; }
+  .sidebar.collapsed .sidebar-logo { height: 24px; }
 
   .sidebar-header {
     max-height: 60px;
@@ -5307,6 +5319,9 @@ if ($page==='logout'){
 <div class="app-container">
   <!-- Sidebar -->
   <aside class="sidebar">
+    <div class="sidebar-brand">
+      <img src="/assets/brand/md-dme-logo.png" alt="MD DME" class="sidebar-logo">
+    </div>
     <div class="sidebar-header">
       <div class="sidebar-user" id="sidebar-profile-trigger" style="cursor: pointer; transition: background 0.2s;">
         <div class="sidebar-avatar">
@@ -9721,13 +9736,13 @@ if (<?php echo json_encode($page==='dashboard'); ?>) {
             datasets: [{
               label: 'New Patients',
               data: chartData.chart.patients,
-              borderColor: '#4DB8A8',
+              borderColor: '#0075bc',
               backgroundColor: 'rgba(77, 184, 168, 0.1)',
               tension: 0.4,
               fill: true,
               pointRadius: 4,
               pointHoverRadius: 6,
-              pointBackgroundColor: '#4DB8A8',
+              pointBackgroundColor: '#0075bc',
               pointBorderColor: '#fff',
               pointBorderWidth: 2
             }, {
