@@ -25,11 +25,11 @@ $offset = ($page - 1) * $perPage;
 // Get assigned clinics with wholesale capability
 $clinicsStmt = $pdo->prepare("
   SELECT id, practice_name, first_name, last_name
-  FROM users WHERE assigned_rep_id = ?
+  FROM users WHERE assigned_rep_id = ANY(?::text[])
   AND (account_type = 'wholesale' OR account_type = 'both' OR has_dme_license = TRUE OR is_hybrid = TRUE)
   ORDER BY practice_name, last_name
 ");
-$clinicsStmt->execute([$repId]);
+$clinicsStmt->execute([$repScopeArr]);
 $clinics = $clinicsStmt->fetchAll();
 
 // Build orders query - SCOPED to assigned clinics only, wholesale orders only
@@ -42,12 +42,12 @@ $query = "
   JOIN patients p ON p.id = o.patient_id
   JOIN users u ON u.id = o.user_id
   LEFT JOIN products pr ON pr.id = o.product_id
-  WHERE u.assigned_rep_id = ?
+  WHERE u.assigned_rep_id = ANY(?::text[])
   AND o.payment_type = 'wholesale'
   AND o.status NOT IN ('draft')
   AND o.deleted_at IS NULL
 ";
-$params = [$repId];
+$params = [$repScopeArr];
 
 if ($statusFilter) {
   $query .= " AND o.status = ?";
@@ -60,8 +60,8 @@ if ($clinicFilter) {
 }
 
 // Get total count
-$countStmt = $pdo->prepare("SELECT COUNT(*) as total FROM orders o JOIN users u ON u.id = o.user_id WHERE u.assigned_rep_id = ? AND o.payment_type = 'wholesale' AND o.status NOT IN ('draft') AND o.deleted_at IS NULL");
-$countStmt->execute([$repId]);
+$countStmt = $pdo->prepare("SELECT COUNT(*) as total FROM orders o JOIN users u ON u.id = o.user_id WHERE u.assigned_rep_id = ANY(?::text[]) AND o.payment_type = 'wholesale' AND o.status NOT IN ('draft') AND o.deleted_at IS NULL");
+$countStmt->execute([$repScopeArr]);
 $totalOrders = (int)$countStmt->fetch()['total'];
 
 $query .= " ORDER BY o.created_at DESC LIMIT ? OFFSET ?";

@@ -22,8 +22,9 @@ if (!$isEmployeeRep && !$repId) {
 $search = trim($_GET['q'] ?? '');
 
 // Get assigned clinics - query depends on rep type
-$repColumn = $isEmployeeRep ? 'u.employee_rep_id' : 'u.assigned_rep_id';
-$repParam = $isEmployeeRep ? $employeeRepId : $repId;
+// Regular reps see their own clinics; distributors see all their reps' clinics (downline scope).
+$repColumn = $isEmployeeRep ? 'u.employee_rep_id = ?' : 'u.assigned_rep_id = ANY(?::text[])';
+$repParam = $isEmployeeRep ? $employeeRepId : $repScopeArr;
 
 $query = "
   SELECT u.id, u.email, u.first_name, u.last_name, u.practice_name, u.phone, u.address, u.city, u.state, u.zip,
@@ -31,7 +32,7 @@ $query = "
          (SELECT COUNT(*) FROM patients p WHERE p.user_id = u.id) as patient_count,
          (SELECT COUNT(*) FROM orders o WHERE o.user_id = u.id AND o.status NOT IN ('cancelled', 'rejected', 'draft')) as order_count
   FROM users u
-  WHERE {$repColumn} = ?
+  WHERE {$repColumn}
   AND (u.role IN ('physician', 'practice_admin') OR u.role IS NULL)
 ";
 $params = [$repParam];

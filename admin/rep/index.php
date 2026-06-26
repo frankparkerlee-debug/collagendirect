@@ -21,20 +21,20 @@ if (!$repId) {
 $clinicsStmt = $pdo->prepare("
   SELECT COUNT(DISTINCT u.id) as count
   FROM users u
-  WHERE u.assigned_rep_id = ?
+  WHERE u.assigned_rep_id = ANY(?::text[])
   AND (u.role IN ('physician', 'practice_admin') OR u.role IS NULL)
 ");
-$clinicsStmt->execute([$repId]);
+$clinicsStmt->execute([$repScopeArr]);
 $clinicsCount = (int)$clinicsStmt->fetch()['count'];
 
 // Get total physicians from assigned clinics
 $physiciansStmt = $pdo->prepare("
   SELECT COUNT(DISTINCT u.id) as count
   FROM users u
-  WHERE u.assigned_rep_id = ?
+  WHERE u.assigned_rep_id = ANY(?::text[])
   AND u.role = 'physician'
 ");
-$physiciansStmt->execute([$repId]);
+$physiciansStmt->execute([$repScopeArr]);
 $physiciansCount = (int)$physiciansStmt->fetch()['count'];
 
 // Get orders this month from assigned clinics
@@ -42,11 +42,11 @@ $ordersStmt = $pdo->prepare("
   SELECT COUNT(o.id) as count
   FROM orders o
   JOIN users u ON u.id = o.user_id
-  WHERE u.assigned_rep_id = ?
+  WHERE u.assigned_rep_id = ANY(?::text[])
   AND o.created_at >= DATE_TRUNC('month', CURRENT_DATE)
   AND o.status NOT IN ('cancelled', 'rejected', 'draft')
 ");
-$ordersStmt->execute([$repId]);
+$ordersStmt->execute([$repScopeArr]);
 $ordersThisMonth = (int)$ordersStmt->fetch()['count'];
 
 // Get pending assignment requests
@@ -108,23 +108,23 @@ $recentOrdersStmt = $pdo->prepare("
   FROM orders o
   JOIN patients p ON p.id = o.patient_id
   JOIN users u ON u.id = o.user_id
-  WHERE u.assigned_rep_id = ?
+  WHERE u.assigned_rep_id = ANY(?::text[])
   AND o.status NOT IN ('draft')
   ORDER BY o.created_at DESC
   LIMIT 10
 ");
-$recentOrdersStmt->execute([$repId]);
+$recentOrdersStmt->execute([$repScopeArr]);
 $recentOrders = $recentOrdersStmt->fetchAll();
 
 // Get recent activity (clinics added)
 $recentClinicsStmt = $pdo->prepare("
   SELECT u.id, u.practice_name, u.first_name, u.last_name, u.email, u.rep_assignment_date, u.role
   FROM users u
-  WHERE u.assigned_rep_id = ?
+  WHERE u.assigned_rep_id = ANY(?::text[])
   ORDER BY u.rep_assignment_date DESC
   LIMIT 5
 ");
-$recentClinicsStmt->execute([$repId]);
+$recentClinicsStmt->execute([$repScopeArr]);
 $recentClinics = $recentClinicsStmt->fetchAll();
 
 // Get top clinics by collected revenue
@@ -138,14 +138,14 @@ $topClinicsStmt = $pdo->prepare("
     COALESCE(SUM(rcl.commission_amount), 0) as total_commission
   FROM users u
   LEFT JOIN rep_commission_ledger rcl ON rcl.clinic_id = u.id AND rcl.rep_id = ?
-  WHERE u.assigned_rep_id = ?
+  WHERE u.assigned_rep_id = ANY(?::text[])
   AND (u.role IN ('physician', 'practice_admin') OR u.role IS NULL)
   GROUP BY u.id, u.practice_name, u.first_name, u.last_name
   HAVING COALESCE(SUM(rcl.collected_amount), 0) > 0
   ORDER BY total_collected DESC
   LIMIT 5
 ");
-$topClinicsStmt->execute([$repId, $repId]);
+$topClinicsStmt->execute([$repId, $repScopeArr]);
 $topClinics = $topClinicsStmt->fetchAll();
 
 // Get signed agreements

@@ -294,6 +294,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           }
         }
         break;
+
+      case 'set_parent':
+        // Place this account under a distributor (or clear to make it top-level).
+        $parentId = $_POST['parent_id'] ?? '';
+        $hrStmt = $pdo->prepare("SELECT COUNT(*) FROM sales_reps WHERE parent_rep_id = ?");
+        $hrStmt->execute([$repId]);
+        $hasReps = (int)$hrStmt->fetchColumn();
+        if ($parentId === '') {
+          $pdo->prepare("UPDATE sales_reps SET parent_rep_id = NULL, updated_at = NOW() WHERE id = ?")->execute([$repId]);
+          $message = 'Account set as a top-level distributor.';
+        } elseif ($parentId === $repId) {
+          $error = 'An account cannot be its own distributor.';
+        } elseif ($hasReps > 0) {
+          $error = 'This account has reps under it, so it cannot be placed under another distributor. Reassign its reps first.';
+        } else {
+          $pStmt = $pdo->prepare("SELECT sr.id, u.first_name, u.last_name FROM sales_reps sr JOIN users u ON u.id = sr.user_id WHERE sr.id = ? AND sr.parent_rep_id IS NULL AND sr.status = 'active'");
+          $pStmt->execute([$parentId]);
+          $parent = $pStmt->fetch();
+          if ($parent) {
+            $pdo->prepare("UPDATE sales_reps SET parent_rep_id = ?, updated_at = NOW() WHERE id = ?")->execute([$parentId, $repId]);
+            $message = 'Assigned under distributor: ' . trim($parent['first_name'] . ' ' . $parent['last_name']);
+          } else {
+            $error = 'Invalid distributor selected (must be an active, top-level distributor).';
+          }
+        }
+        break;
     }
   } catch (PDOException $e) {
     $error = 'Database error: ' . $e->getMessage();
@@ -328,6 +354,35 @@ if (!$rep) {
   header('Location: /admin/platform/distributors.php');
   exit;
 }
+
+// Hierarchy: sub-reps under this distributor, and (if this is a rep) its parent distributor.
+$subReps = [];
+$parentDistributor = null;
+try {
+  if (empty($rep['parent_rep_id'])) {
+    $srStmt = $pdo->prepare("
+      SELECT sr.id, sr.status, u.first_name, u.last_name, u.email,
+             (SELECT COUNT(*) FROM users c WHERE c.assigned_rep_id = sr.id) AS clinic_count
+      FROM sales_reps sr JOIN users u ON u.id = sr.user_id
+      WHERE sr.parent_rep_id = ? ORDER BY u.first_name, u.last_name");
+    $srStmt->execute([$repId]);
+    $subReps = $srStmt->fetchAll(PDO::FETCH_ASSOC);
+  } else {
+    $pStmt = $pdo->prepare("
+      SELECT sr.id, u.first_name, u.last_name, sr.company_name
+      FROM sales_reps sr JOIN users u ON u.id = sr.user_id WHERE sr.id = ?");
+    $pStmt->execute([$rep['parent_rep_id']]);
+    $parentDistributor = $pStmt->fetch(PDO::FETCH_ASSOC) ?: null;
+  }
+} catch (Throwable $e) { /* parent_rep_id column may not exist pre-migration */ }
+
+// Active top-level distributors this account could be placed under (excludes self).
+$availableDistributors = [];
+try {
+  $adStmt = $pdo->prepare("SELECT sr.id, u.first_name, u.last_name, sr.company_name FROM sales_reps sr JOIN users u ON u.id = sr.user_id WHERE sr.parent_rep_id IS NULL AND sr.status = 'active' AND sr.id <> ? ORDER BY u.first_name, u.last_name");
+  $adStmt->execute([$repId]);
+  $availableDistributors = $adStmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {}
 
 // Fetch W9 submissions (Phase 11)
 $w9Query = "
@@ -740,6 +795,51 @@ $statusColors = [
         <div class="text-sm text-gray-500">Commission Earned</div>
       </div>
     </div>
+  </div>
+
+  <!-- Sales Hierarchy: reps under this distributor, or parent distributor -->
+  <div class="card p-6">
+    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Sales Hierarchy</h3>
+    <?php if ($parentDistributor): ?>
+      <p class="text-sm text-gray-600">This is a <strong>rep</strong> under distributor
+        <a href="/admin/sales-rep-detail.php?id=<?= htmlspecialchars($parentDistributor['id']) ?>" class="text-brand hover:underline">
+          <?= htmlspecialchars(trim($parentDistributor['first_name'] . ' ' . $parentDistributor['last_name'])) ?><?= $parentDistributor['company_name'] ? ' (' . htmlspecialchars($parentDistributor['company_name']) . ')' : '' ?>
+        </a>.</p>
+    <?php elseif (!empty($subReps)): ?>
+      <p class="text-sm text-gray-600 mb-3"><strong><?= count($subReps) ?></strong> rep<?= count($subReps) === 1 ? '' : 's' ?> under this distributor:</p>
+      <table class="w-full text-sm">
+        <thead><tr class="text-left text-xs text-gray-500 border-b"><th class="py-2">Rep</th><th class="py-2">Email</th><th class="py-2 text-center">Clinics</th><th class="py-2 text-center">Status</th></tr></thead>
+        <tbody>
+        <?php foreach ($subReps as $sr): ?>
+          <tr class="border-b">
+            <td class="py-2"><a href="/admin/sales-rep-detail.php?id=<?= htmlspecialchars($sr['id']) ?>" class="text-brand hover:underline"><?= htmlspecialchars(trim($sr['first_name'] . ' ' . $sr['last_name'])) ?></a></td>
+            <td class="py-2 text-gray-600"><?= htmlspecialchars($sr['email']) ?></td>
+            <td class="py-2 text-center"><?= (int)$sr['clinic_count'] ?></td>
+            <td class="py-2 text-center"><span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600"><?= ucfirst($sr['status']) ?></span></td>
+          </tr>
+        <?php endforeach; ?>
+        </tbody>
+      </table>
+    <?php else: ?>
+      <p class="text-sm text-gray-500">No reps under this distributor. Distributors invite their own reps from the rep portal.</p>
+    <?php endif; ?>
+
+    <?php if (empty($subReps)): ?>
+    <form method="post" class="mt-4 pt-4 border-t flex items-end gap-2 flex-wrap">
+      <?= csrf_field() ?>
+      <input type="hidden" name="action" value="set_parent">
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Place this account under a distributor</label>
+        <select name="parent_id" class="border rounded px-3 py-1.5 text-sm">
+          <option value="">&mdash; Top-level distributor (no parent) &mdash;</option>
+          <?php foreach ($availableDistributors as $d): ?>
+            <option value="<?= htmlspecialchars($d['id']) ?>" <?= (($rep['parent_rep_id'] ?? '') === $d['id']) ? 'selected' : '' ?>><?= htmlspecialchars(trim($d['first_name'] . ' ' . $d['last_name']) . ($d['company_name'] ? ' (' . $d['company_name'] . ')' : '')) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary text-sm">Save</button>
+    </form>
+    <?php endif; ?>
   </div>
 
   <!-- Manager Assignment -->

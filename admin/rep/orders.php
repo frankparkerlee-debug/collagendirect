@@ -27,10 +27,10 @@ $offset = ($page - 1) * $perPage;
 // Get assigned clinics for filter dropdown
 $clinicsStmt = $pdo->prepare("
   SELECT id, practice_name, first_name, last_name
-  FROM users WHERE assigned_rep_id = ?
+  FROM users WHERE assigned_rep_id = ANY(?::text[])
   ORDER BY practice_name, last_name
 ");
-$clinicsStmt->execute([$repId]);
+$clinicsStmt->execute([$repScopeArr]);
 $clinics = $clinicsStmt->fetchAll();
 
 // Load reimbursement rates for revenue calculation
@@ -49,11 +49,11 @@ $query = "
   JOIN patients p ON p.id = o.patient_id
   JOIN users u ON u.id = o.user_id
   LEFT JOIN products pr ON pr.id = o.product_id
-  WHERE u.assigned_rep_id = ?
+  WHERE u.assigned_rep_id = ANY(?::text[])
   AND o.status NOT IN ('draft')
   AND o.deleted_at IS NULL
 ";
-$params = [$repId];
+$params = [$repScopeArr];
 
 if ($statusFilter) {
   $query .= " AND o.status = ?";
@@ -77,8 +77,8 @@ if ($search) {
 $countQuery = str_replace("SELECT o.id, o.status", "SELECT COUNT(*) as total", $query);
 $countQuery = preg_replace('/SELECT .* FROM orders/', 'SELECT COUNT(*) as total FROM orders', $query);
 // Simpler approach - count separately
-$countStmt = $pdo->prepare("SELECT COUNT(*) as total FROM orders o JOIN users u ON u.id = o.user_id WHERE u.assigned_rep_id = ? AND o.status NOT IN ('draft') AND o.deleted_at IS NULL");
-$countStmt->execute([$repId]);
+$countStmt = $pdo->prepare("SELECT COUNT(*) as total FROM orders o JOIN users u ON u.id = o.user_id WHERE u.assigned_rep_id = ANY(?::text[]) AND o.status NOT IN ('draft') AND o.deleted_at IS NULL");
+$countStmt->execute([$repScopeArr]);
 $totalOrders = (int)$countStmt->fetch()['total'];
 
 $query .= " ORDER BY o.created_at DESC LIMIT ? OFFSET ?";

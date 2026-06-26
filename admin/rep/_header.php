@@ -28,6 +28,25 @@ if (!$isRegularSalesRep && !$isEmployeeSalesRep) {
 // Get full rep profile (only for regular sales reps)
 $rep = $isRegularSalesRep ? current_sales_rep() : null;
 
+// Distributor = a top-level sales rep (no parent). Reps under a distributor have parent_rep_id set.
+$isDistributor = $isRegularSalesRep && empty($rep['parent_rep_id']);
+
+// Clinic visibility scope: a rep sees only their own assigned clinics; a distributor also
+// sees clinics assigned to any of their reps. Expressed as a Postgres array of sales_reps ids
+// for use with `assigned_rep_id = ANY(:scope)`. (For a plain rep this is just their own id.)
+$repScopeIds = [];
+if ($isRegularSalesRep) {
+  $repScopeIds[] = $admin['rep_id'];
+  if ($isDistributor) {
+    global $pdo;
+    $subRepStmt = $pdo->prepare("SELECT id FROM sales_reps WHERE parent_rep_id = ?");
+    $subRepStmt->execute([$admin['rep_id']]);
+    foreach ($subRepStmt->fetchAll(PDO::FETCH_COLUMN) as $sid) { $repScopeIds[] = $sid; }
+  }
+}
+// Postgres array literal, e.g. {id1,id2}. Safe: ids are hex strings from our own DB/session.
+$repScopeArr = '{' . implode(',', $repScopeIds) . '}';
+
 // For employee sales reps, we need to mark them appropriately
 // They use employee_rep_id (INTEGER from admin_users.id), not assigned_rep_id
 if ($isEmployeeSalesRep) {
@@ -458,6 +477,14 @@ function isActive($pageName) {
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
         <span>Dashboard</span>
       </a>
+
+      <?php if ($isDistributor): ?>
+      <!-- My Reps (distributor only) -->
+      <a class="<?=isActive('reps')?>" href="/admin/rep/reps.php">
+        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+        <span>My Reps</span>
+      </a>
+      <?php endif; ?>
 
       <!-- My Clinics Section -->
       <div class="nav-group">

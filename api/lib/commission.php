@@ -200,6 +200,38 @@ function calculate_commission(
   }
   $entryId = $insertStmt->fetchColumn();
 
+  // 5. Distributor margin (downline override):
+  // If the assigned rep sits under a distributor (sales_reps.parent_rep_id) and a per-product
+  // rate was used for the rep, the distributor earns the difference between THEIR per-item rate
+  // and the rep's per-item rate, on the same quantity. Recorded as a separate 'override' entry.
+  if ($perProductUsed && $orderData && !empty($orderData['product_id'])) {
+    try {
+      $parentStmt = $pdo->prepare("SELECT parent_rep_id FROM sales_reps WHERE id = ?");
+      $parentStmt->execute([$repId]);
+      $parentRepId = $parentStmt->fetchColumn();
+      if ($parentRepId) {
+        $distStmt = $pdo->prepare("
+          SELECT commission_amount FROM rep_product_commissions
+          WHERE rep_id = ? AND product_id = ?
+          AND (effective_date IS NULL OR effective_date <= ?)
+          AND (end_date IS NULL OR end_date >= ?)
+          ORDER BY effective_date DESC NULLS LAST LIMIT 1
+        ");
+        $distStmt->execute([$parentRepId, $orderData['product_id'], $paymentDate, $paymentDate]);
+        $distPerItem = $distStmt->fetchColumn();
+        if ($distPerItem !== false && $distPerItem !== null) {
+          $marginPerItem = max(0.0, (float)$distPerItem - (float)$perProductAmount);
+          if ($marginPerItem > 0) {
+            $quantity = max(1, (int)($orderData['boxes_to_ship'] ?? 1));
+            record_override_ledger($pdo, $parentRepId, $orderId, $orderType, $paymentId, $clinicId, $paymentDate, $paymentAmount, $marginPerItem, $marginPerItem * $quantity);
+          }
+        }
+      }
+    } catch (Throwable $e) {
+      error_log('[commission] Distributor margin failed: ' . $e->getMessage());
+    }
+  }
+
   return [
     'entry_id' => $entryId,
     'rep_id' => $repId,
@@ -208,6 +240,39 @@ function calculate_commission(
     'commission_type' => $commissionType,
     'collected_amount' => $paymentAmount
   ];
+}
+
+/**
+ * Record (or accumulate) a distributor override/margin ledger entry.
+ * Mirrors the per-payment UPSERT used for rep commissions, tagged commission_type='override'.
+ */
+function record_override_ledger(
+  PDO $pdo, string $repId, string $orderId, string $orderType, ?string $paymentId,
+  string $clinicId, string $paymentDate, float $collected, float $ratePerItem, float $commission
+): void {
+  try {
+    $pdo->prepare("
+      INSERT INTO rep_commission_ledger (rep_id, order_id, order_type, payment_id, clinic_id,
+        payment_date, collected_amount, commission_rate, commission_amount, commission_type, status, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'override', 'pending', NOW())
+      ON CONFLICT (rep_id, order_id) DO UPDATE SET
+        collected_amount = rep_commission_ledger.collected_amount + EXCLUDED.collected_amount,
+        commission_amount = rep_commission_ledger.commission_amount + EXCLUDED.commission_amount,
+        payment_date = EXCLUDED.payment_date, commission_type = 'override', status = 'pending'
+    ")->execute([$repId, $orderId, $orderType, $paymentId, $clinicId, $paymentDate, $collected, $ratePerItem, $commission]);
+  } catch (PDOException $e) {
+    if (strpos($e->getMessage(), 'commission_type') !== false) {
+      $pdo->prepare("
+        INSERT INTO rep_commission_ledger (rep_id, order_id, order_type, payment_id, clinic_id,
+          payment_date, collected_amount, commission_rate, commission_amount, status, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())
+        ON CONFLICT (rep_id, order_id) DO UPDATE SET
+          collected_amount = rep_commission_ledger.collected_amount + EXCLUDED.collected_amount,
+          commission_amount = rep_commission_ledger.commission_amount + EXCLUDED.commission_amount,
+          payment_date = EXCLUDED.payment_date, status = 'pending'
+      ")->execute([$repId, $orderId, $orderType, $paymentId, $clinicId, $paymentDate, $collected, $ratePerItem, $commission]);
+    } else { throw $e; }
+  }
 }
 
 /**
@@ -459,10 +524,16 @@ function set_product_commission(
       WHERE rep_id = ? AND product_id = ? AND end_date IS NULL
     ")->execute([$effectiveDate, $repId, $productId]);
 
-    // Insert new rate
+    // Insert new rate. ON CONFLICT handles re-saving the same product on the same day:
+    // reactivate (end_date=NULL) and update the amount rather than failing the unique key.
     $pdo->prepare("
       INSERT INTO rep_product_commissions (rep_id, product_id, commission_amount, effective_date, set_by, notes, created_at)
       VALUES (?, ?, ?, ?, ?, ?, NOW())
+      ON CONFLICT (rep_id, product_id, effective_date) DO UPDATE SET
+        commission_amount = EXCLUDED.commission_amount,
+        end_date = NULL,
+        set_by = EXCLUDED.set_by,
+        notes = EXCLUDED.notes
     ")->execute([$repId, $productId, $amount, $effectiveDate, $setBy, $notes]);
 
     return true;

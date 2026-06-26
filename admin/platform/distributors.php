@@ -390,6 +390,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw $e;
                 }
                 break;
+
+            case 'resend_invite':
+                // Re-issue a fresh invite link so an applicant can (re)complete registration.
+                // Covers invited/expired-token and pending/rejected applications.
+                $repId = $_POST['rep_id'] ?? '';
+                if (!$repId) { $error = 'Missing distributor.'; break; }
+                $chk = $pdo->prepare("SELECT sr.status, u.email FROM sales_reps sr JOIN users u ON u.id = sr.user_id WHERE sr.id = ?");
+                $chk->execute([$repId]);
+                $rrow = $chk->fetch(PDO::FETCH_ASSOC);
+                if (!$rrow) { $error = 'Distributor not found.'; break; }
+                if (in_array($rrow['status'], ['active', 'suspended', 'terminated'], true)) {
+                    $error = 'This distributor has already completed registration; no invite needed.';
+                    break;
+                }
+                $inviteToken = bin2hex(random_bytes(32));
+                $inviteExpires = date('Y-m-d H:i:s', strtotime('+7 days'));
+                $pdo->prepare("UPDATE sales_reps SET status = 'invited', invite_token = ?, invite_token_expires_at = ?, updated_at = NOW() WHERE id = ?")
+                    ->execute([$inviteToken, $inviteExpires, $repId]);
+                try { sendDistributorInviteEmail($pdo, $repId, $inviteToken, ''); }
+                catch (Throwable $e) { error_log('[resend_invite email] ' . $e->getMessage()); }
+                $message = 'A fresh invite link (valid 7 days) was sent to ' . $rrow['email'] . '.';
+                break;
         }
 
         if ($message && !$error) {
@@ -420,11 +442,13 @@ $payoutData = [];
 // Commission rate query matches sales-rep-detail.php: effective_date <= today, order by effective_date DESC then created_at DESC
 $activeReps = $pdo->query("
     SELECT sr.*, u.first_name, u.last_name, u.email, u.phone,
-           (SELECT COUNT(*) FROM users WHERE assigned_rep_id = sr.id) as clinic_count,
+           (SELECT COUNT(*) FROM users WHERE assigned_rep_id = sr.id
+              OR assigned_rep_id IN (SELECT id FROM sales_reps WHERE parent_rep_id = sr.id)) as clinic_count,
+           (SELECT COUNT(*) FROM sales_reps WHERE parent_rep_id = sr.id) as rep_count,
            (SELECT rate FROM rep_commission_rates WHERE rep_id = sr.id AND (effective_date IS NULL OR effective_date <= CURRENT_DATE) ORDER BY effective_date DESC NULLS LAST, created_at DESC LIMIT 1) as commission_rate
     FROM sales_reps sr
     JOIN users u ON u.id = sr.user_id
-    WHERE sr.status = 'active'
+    WHERE sr.status = 'active' AND sr.parent_rep_id IS NULL
     ORDER BY u.first_name, u.last_name
 ")->fetchAll(PDO::FETCH_ASSOC);
 
@@ -634,13 +658,14 @@ function sendDistributorInviteEmail($pdo, $repId, $inviteToken, $personalNote) {
                     <th class="text-left py-3 px-4 font-semibold text-gray-600">Contact</th>
                     <th class="text-left py-3 px-4 font-semibold text-gray-600">Company</th>
                     <th class="text-center py-3 px-4 font-semibold text-gray-600">Clinics</th>
+                    <th class="text-center py-3 px-4 font-semibold text-gray-600">Reps</th>
                     <th class="text-center py-3 px-4 font-semibold text-gray-600">Commission</th>
                     <th class="text-left py-3 px-4 font-semibold text-gray-600">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (empty($activeReps)): ?>
-                <tr><td colspan="6" class="py-8 text-center text-gray-500">No active distributors.</td></tr>
+                <tr><td colspan="7" class="py-8 text-center text-gray-500">No active distributors.</td></tr>
                 <?php else: ?>
                 <?php foreach ($activeReps as $rep): ?>
                 <tr class="border-b hover:bg-gray-50">
@@ -657,6 +682,13 @@ function sendDistributorInviteEmail($pdo, $repId, $inviteToken, $personalNote) {
                         <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
                             <?= $rep['clinic_count'] ?>
                         </span>
+                    </td>
+                    <td class="py-3 px-4 text-center">
+                        <?php if ((int)($rep['rep_count'] ?? 0) > 0): ?>
+                          <a href="/admin/sales-rep-detail.php?id=<?= htmlspecialchars($rep['id']) ?>" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 hover:underline"><?= (int)$rep['rep_count'] ?> rep<?= (int)$rep['rep_count'] === 1 ? '' : 's' ?></a>
+                        <?php else: ?>
+                          <span class="text-xs text-gray-400">&mdash;</span>
+                        <?php endif; ?>
                     </td>
                     <td class="py-3 px-4 text-center">
                         <?= $rep['commission_rate'] ? number_format($rep['commission_rate'] * 100, 0) . '%' : '-' ?>
@@ -729,6 +761,7 @@ function sendDistributorInviteEmail($pdo, $repId, $inviteToken, $personalNote) {
                     <th class="text-left py-3 px-4 font-semibold text-gray-600">Email</th>
                     <th class="text-left py-3 px-4 font-semibold text-gray-600">Invited By</th>
                     <th class="text-left py-3 px-4 font-semibold text-gray-600">Expires</th>
+                    <th class="text-left py-3 px-4 font-semibold text-gray-600">Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -747,6 +780,16 @@ function sendDistributorInviteEmail($pdo, $repId, $inviteToken, $personalNote) {
                             <?= $isExpired ? '(Expired)' : '' ?>
                         </span>
                     </td>
+                    <td class="py-3 px-4">
+                        <?php if ($canManage): ?>
+                        <form method="post" class="inline" onsubmit="return confirm('Send a fresh invite link to this distributor?')">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="action" value="resend_invite">
+                            <input type="hidden" name="rep_id" value="<?= htmlspecialchars($rep['id']) ?>">
+                            <button class="text-brand hover:underline text-xs font-medium">Resend Invite</button>
+                        </form>
+                        <?php endif; ?>
+                    </td>
                 </tr>
                 <?php endforeach; ?>
             </tbody>
@@ -756,7 +799,7 @@ function sendDistributorInviteEmail($pdo, $repId, $inviteToken, $personalNote) {
         <?php if (!empty($expiredReps)): ?>
         <div class="p-4 border-b <?= (!empty($pendingReps) || !empty($invitedReps)) ? 'border-t mt-4' : '' ?>">
             <h3 class="font-semibold text-gray-700">Expired Applications</h3>
-            <p class="text-xs text-gray-500 mt-1">These applications were not reviewed within 30 days. The applicant must re-register.</p>
+            <p class="text-xs text-gray-500 mt-1">These applications expired after 30 days. Use <strong>Re-invite</strong> to send a fresh invitation link.</p>
         </div>
         <table class="w-full text-sm">
             <thead class="bg-gray-50 border-b">
@@ -780,6 +823,14 @@ function sendDistributorInviteEmail($pdo, $repId, $inviteToken, $personalNote) {
                     <td class="py-3 px-4 text-gray-400 text-xs"><?= date('M j, Y', strtotime($rep['application_date'])) ?></td>
                     <td class="py-3 px-4">
                         <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">Expired</span>
+                        <?php if ($canManage): ?>
+                        <form method="post" class="inline ml-2" onsubmit="return confirm('Send a fresh invite link to re-open this application?')">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="action" value="resend_invite">
+                            <input type="hidden" name="rep_id" value="<?= htmlspecialchars($rep['id']) ?>">
+                            <button class="text-brand hover:underline text-xs font-medium">Re-invite</button>
+                        </form>
+                        <?php endif; ?>
                     </td>
                 </tr>
                 <?php endforeach; ?>

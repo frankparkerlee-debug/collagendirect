@@ -369,9 +369,11 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
         // Check if it's a UUID (contains non-numeric characters) vs integer
         $repIdStr = (string)$salesRepId;
         if (preg_match('/[^0-9]/', $repIdStr)) {
-            // Distributor (sales_reps.id is UUID)
-            $where .= " AND o.user_id IN (SELECT id FROM users WHERE assigned_rep_id = :sales_rep_id)";
+            // Distributor (sales_reps.id is UUID). Includes clinics assigned to the distributor
+            // OR to any rep beneath them (downline).
+            $where .= " AND o.user_id IN (SELECT id FROM users WHERE assigned_rep_id = :sales_rep_id OR assigned_rep_id IN (SELECT id FROM sales_reps WHERE parent_rep_id = :sales_rep_id_dl))";
             $params['sales_rep_id'] = $repIdStr;
+            $params['sales_rep_id_dl'] = $repIdStr;
         } else {
             // Internal admin (admin_users.id is integer)
             // Cast to integer for proper comparison
