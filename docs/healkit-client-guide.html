@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Introducing HealKit — MD DME</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --brand:#0075bc; --brand-dark:#20419b; --accent:#00aeef;
+    --ink:#1a1a1a; --ink-light:#4d4d4d; --muted:#7a8699; --line:#e6ebf2; --soft:#eef6fc;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  @page{ size:Letter; margin:0; }
+  html,body{ font-family:'Manrope',system-ui,-apple-system,'Segoe UI',sans-serif; color:var(--ink); -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .page{ width:8.5in; min-height:11in; padding:0.7in 0.75in; position:relative; }
+  .page + .page{ page-break-before:always; }
+
+  /* Header */
+  .top{ display:flex; align-items:center; justify-content:space-between; border-bottom:3px solid var(--brand); padding-bottom:14px; margin-bottom:26px; }
+  .logo{ height:34px; }
+  .top-tag{ font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--brand); }
+
+  .eyebrow{ color:var(--accent); font-weight:800; letter-spacing:.14em; text-transform:uppercase; font-size:12px; margin-bottom:8px; }
+  h1{ font-size:34px; line-height:1.08; font-weight:800; color:var(--brand-dark); margin-bottom:14px; letter-spacing:-.01em; }
+  .lede{ font-size:14.5px; line-height:1.6; color:var(--ink-light); max-width:6.3in; }
+  .lede strong{ color:var(--ink); }
+
+  h2{ font-size:17px; font-weight:800; color:var(--brand-dark); margin:30px 0 14px; }
+
+  /* Benefit cards */
+  .grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .card{ border:1px solid var(--line); border-radius:12px; padding:16px 16px 15px; background:#fff; }
+  .card .ic{ width:34px; height:34px; border-radius:9px; background:var(--soft); display:flex; align-items:center; justify-content:center; margin-bottom:10px; }
+  .card .ic svg{ width:19px; height:19px; stroke:var(--brand); fill:none; stroke-width:2; }
+  .card h3{ font-size:14px; font-weight:700; color:var(--ink); margin-bottom:4px; }
+  .card p{ font-size:12.5px; line-height:1.5; color:var(--ink-light); }
+
+  /* Steps */
+  .steps{ counter-reset:step; display:flex; flex-direction:column; gap:11px; margin-top:4px; }
+  .step{ display:flex; gap:14px; align-items:flex-start; }
+  .step .num{ flex:0 0 30px; height:30px; border-radius:50%; background:linear-gradient(135deg,var(--brand-dark),var(--brand)); color:#fff; font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center; }
+  .step .body{ padding-top:3px; }
+  .step .body b{ font-size:13.5px; color:var(--ink); }
+  .step .body span{ display:block; font-size:12.5px; color:var(--ink-light); line-height:1.5; margin-top:2px; }
+
+  /* Compare strip */
+  .compare{ display:grid; grid-template-columns:1fr 1fr; gap:0; border:1px solid var(--line); border-radius:12px; overflow:hidden; margin-top:6px; }
+  .compare .col{ padding:16px 18px; }
+  .compare .col.old{ background:#fafbfc; border-right:1px solid var(--line); }
+  .compare .col.new{ background:var(--soft); }
+  .compare h4{ font-size:11px; text-transform:uppercase; letter-spacing:.1em; margin-bottom:9px; font-weight:800; }
+  .compare .old h4{ color:var(--muted); }
+  .compare .new h4{ color:var(--brand); }
+  .compare li{ list-style:none; font-size:12.5px; line-height:1.7; color:var(--ink-light); padding-left:18px; position:relative; }
+  .compare li::before{ content:"—"; position:absolute; left:0; color:var(--muted); }
+  .compare .new li::before{ content:"✓"; color:var(--accent); font-weight:800; }
+
+  .callout{ margin-top:26px; background:linear-gradient(135deg,var(--brand-dark),var(--brand)); color:#fff; border-radius:14px; padding:22px 24px; }
+  .callout h3{ font-size:16px; font-weight:800; margin-bottom:6px; }
+  .callout p{ font-size:13px; line-height:1.55; color:rgba(255,255,255,.92); }
+  .callout .cta{ margin-top:12px; font-size:13px; font-weight:700; }
+  .callout .cta a{ color:#fff; text-decoration:none; border-bottom:1px solid rgba(255,255,255,.5); }
+
+  .foot{ position:absolute; bottom:0.5in; left:0.75in; right:0.75in; border-top:1px solid var(--line); padding-top:10px; display:flex; justify-content:space-between; font-size:10.5px; color:var(--muted); }
+  .pill{ display:inline-block; background:var(--soft); color:var(--brand); font-weight:700; font-size:11px; padding:3px 9px; border-radius:999px; }
+</style>
+</head>
+<body>
+
+<!-- PAGE 1 -->
+<section class="page">
+  <div class="top">
+    <img class="logo" src="../assets/brand/md-dme-logo.png" alt="MD DME">
+    <div class="top-tag">Wound Care · Simplified</div>
+  </div>
+
+  <div class="eyebrow">A simpler way to order supplies</div>
+  <h1>Introducing HealKit</h1>
+  <p class="lede">HealKit is the easiest way to get the wound-care supplies your patients need —
+  <strong>no insurance paperwork, no verification delays, and shipped straight to your office.</strong>
+  You order what you need, we send it, and you're billed simple, transparent wholesale pricing.
+  Making the switch takes about two minutes.</p>
+
+  <h2>Why practices are switching to HealKit</h2>
+  <div class="grid">
+    <div class="card">
+      <div class="ic"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+      <h3>No insurance paperwork</h3>
+      <p>Skip the IVRs, prior auths, and benefit checks. Patient ID and clinical notes are optional, not required.</p>
+    </div>
+    <div class="card">
+      <div class="ic"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 00-2 2v8a2 2 0 002 2h14a2 2 0 002-2v-8a2 2 0 00-2-2M5 8V6a2 2 0 012-2h10a2 2 0 012 2v2"/></svg></div>
+      <h3>Shipped to your office</h3>
+      <p>Orders default to your practice location. Need it somewhere else? Choose another delivery address per order.</p>
+    </div>
+    <div class="card">
+      <div class="ic"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></div>
+      <h3>Order in two minutes</h3>
+      <p>Pick the patient, choose product type and size, set quantity — done. New patients need only a first and last name.</p>
+    </div>
+    <div class="card">
+      <div class="ic"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293A1 1 0 008 17h9m0 0a2 2 0 100 4 2 2 0 000-4zm-9 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg></div>
+      <h3>Pay for what you use</h3>
+      <p>Billed by the actual piece at your wholesale price — not by forced full-box quantities.</p>
+    </div>
+  </div>
+
+  <h2>What changes for you</h2>
+  <div class="compare">
+    <div class="col old">
+      <h4>Before — Insurance / Referral</h4>
+      <li>Insurance docs &amp; verification</li>
+      <li>Prior-auth and benefit delays</li>
+      <li>Billed through insurance</li>
+    </div>
+    <div class="col new">
+      <h4>With HealKit</h4>
+      <li>No required documents</li>
+      <li>Ships right away to your office</li>
+      <li>Simple wholesale price, per piece</li>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span>MD DME · CollagenDirect — Advanced Wound Care, Simplified</span>
+    <span>Questions? orders@md-dme.com</span>
+  </div>
+</section>
+
+<!-- PAGE 2 -->
+<section class="page">
+  <div class="top">
+    <img class="logo" src="../assets/brand/md-dme-logo.png" alt="MD DME">
+    <div class="top-tag">How to Order</div>
+  </div>
+
+  <div class="eyebrow">Get started in four steps</div>
+  <h1 style="font-size:28px;">Placing a HealKit order</h1>
+  <p class="lede" style="margin-bottom:22px;">Log in to your CollagenDirect portal and select <strong>HealKit Order</strong> from the menu.
+  The whole process takes about two minutes.</p>
+
+  <div class="steps">
+    <div class="step"><div class="num">1</div><div class="body"><b>Choose the patient</b><span>Search an existing patient, or add a new one — only a first and last name are required.</span></div></div>
+    <div class="step"><div class="num">2</div><div class="body"><b>Confirm delivery</b><span>Orders ship to your office by default. Select another location if you need supplies sent elsewhere.</span></div></div>
+    <div class="step"><div class="num">3</div><div class="body"><b>Add the wound &amp; products</b><span>Pick the product type and size, then set quantity per change, frequency, and duration. Add as many wounds as needed.</span></div></div>
+    <div class="step"><div class="num">4</div><div class="body"><b>Sign &amp; submit</b><span>Your name and credentials are pre-filled. Review and submit — that's it. We handle fulfillment and shipping.</span></div></div>
+  </div>
+
+  <div class="callout">
+    <h3>Ready to switch?</h3>
+    <p>You don't need to do anything special to start — just place your next supply order as a HealKit order.
+    Want us to walk your team through it or move your standing orders over? We're happy to help.</p>
+    <div class="cta">Email <a href="mailto:orders@md-dme.com">orders@md-dme.com</a> &nbsp;·&nbsp; or call your MD DME representative</div>
+  </div>
+
+  <h2>Good to know</h2>
+  <div class="grid">
+    <div class="card"><h3>Still need insurance billing?</h3><p>For supplies that should bill to a patient's insurance, keep using a Referral order. HealKit is for practice-pay wholesale supply.</p></div>
+    <div class="card"><h3>Your pricing, applied automatically</h3><p>If your practice has negotiated wholesale pricing, HealKit uses it — across every login on your account.</p></div>
+  </div>
+
+  <div class="foot">
+    <span>MD DME · CollagenDirect — Advanced Wound Care, Simplified</span>
+    <span class="pill">orders@md-dme.com</span>
+  </div>
+</section>
+
+</body>
+</html>
