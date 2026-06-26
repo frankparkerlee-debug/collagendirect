@@ -296,7 +296,7 @@
       </div>
 
       <p class="muted" style="margin-top:1.5rem;text-align:center;font-size:0.875rem">
-        For assistance, contact <a href="mailto:support@collagendirect.health" style="color:var(--brand);font-weight:500">support@collagendirect.health</a>
+        For assistance, contact <a href="mailto:orders@md-dme.com" style="color:var(--brand);font-weight:500">orders@md-dme.com</a>
       </p>
     </section>
   </main>
