@@ -31,6 +31,8 @@ $sql = "
     o.product,
     o.product_price,
     o.delivery_mode,
+    o.carrier_tracking,
+    o.shipped_at,
     CASE
       WHEN og.id IS NOT NULL THEN (
         SELECT COUNT(*) FROM orders WHERE order_group_id = og.id
@@ -216,6 +218,10 @@ foreach ($orders as $order) {
               <span class="hk-status-badge <?= $status_class ?>">
                 <?= ucfirst($order['status']) ?>
               </span>
+              <?php if (!empty($order['carrier_tracking'])): ?>
+                <a href="https://www.ups.com/track?loc=en_US&tracknum=<?= urlencode($order['carrier_tracking']) ?>" target="_blank" rel="noopener" onclick="event.stopPropagation()"
+                   style="display:block; margin-top:0.35rem; font-size:0.7rem; color:#0075bc; font-weight:700; text-decoration:none;">Track UPS &#8599;</a>
+              <?php endif; ?>
             </div>
             <div>
               <svg class="hk-expand-icon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -250,6 +256,12 @@ foreach ($orders as $order) {
                 class="btn btn-ghost" style="padding: 0.375rem 0.75rem; font-size: 0.75rem;">
                 Order Details
               </a>
+              <?php if (!empty($order['carrier_tracking'])): ?>
+              <a href="https://www.ups.com/track?loc=en_US&tracknum=<?= urlencode($order['carrier_tracking']) ?>" target="_blank" rel="noopener" onclick="event.stopPropagation()"
+                class="btn btn-primary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem; background:#0075bc; border-color:#0075bc;">
+                Track Package (UPS) &#8599;
+              </a>
+              <?php endif; ?>
               <?php if (!empty($order['ivr_path'])): ?>
               <a href="<?= htmlspecialchars($order['ivr_path']) ?>" target="_blank"
                 class="btn btn-ghost" style="padding: 0.375rem 0.75rem; font-size: 0.75rem;">

@@ -23,12 +23,38 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $pdo->prepare("UPDATE orders SET status='rejected', updated_at=NOW() WHERE id=? AND billed_by='healkit'")->execute([$id]);
     $_SESSION['success_msg'] = 'HealKit order rejected.';
   } elseif ($id && $action==='mark_shipped') {
-    $tracking = $_POST['tracking'] ?? '';
-    $pdo->prepare("UPDATE orders SET status='shipped', shipped_at=NOW(), updated_at=NOW() WHERE id=? AND billed_by='healkit'")->execute([$id]);
-    if ($tracking) {
-      $pdo->prepare("UPDATE orders SET carrier_tracking=? WHERE id=?")->execute([$tracking, $id]);
+    $tracking = trim($_POST['tracking'] ?? '');
+    $trkVal = $tracking !== '' ? $tracking : null;
+    $pdo->prepare("UPDATE orders SET status='shipped', shipped_at=NOW(), updated_at=NOW(), carrier_tracking=? WHERE id=? AND billed_by='healkit'")
+        ->execute([$trkVal, $id]);
+    // Multi-product HealKit orders ship together: propagate to the whole group under one tracking number
+    $grpStmt = $pdo->prepare("SELECT order_group_id FROM orders WHERE id=?");
+    $grpStmt->execute([$id]);
+    $grp = $grpStmt->fetchColumn();
+    if ($grp) {
+      $pdo->prepare("UPDATE orders SET status='shipped', shipped_at=NOW(), updated_at=NOW(), carrier_tracking=? WHERE order_group_id=?")->execute([$trkVal, $grp]);
+      try { $pdo->prepare("UPDATE order_groups SET status='shipped' WHERE id=?")->execute([$grp]); } catch (Throwable $e) {}
     }
-    $_SESSION['success_msg'] = 'HealKit order marked as shipped.';
+    // Notify the practice the order has shipped, with a clickable UPS tracking link
+    try {
+      require_once __DIR__.'/../api/lib/email_notifications.php';
+      $info = $pdo->prepare("SELECT o.order_number, o.product, u.email AS phys_email, u.first_name AS pf, u.last_name AS pl, u.practice_name
+                             FROM orders o JOIN users u ON u.id = o.user_id WHERE o.id = ?");
+      $info->execute([$id]);
+      $row = $info->fetch(PDO::FETCH_ASSOC);
+      if ($row && !empty($row['phys_email']) && function_exists('send_order_shipped_email')) {
+        send_order_shipped_email([
+          'patient_email'   => $row['phys_email'],
+          'patient_name'    => trim(($row['pf'] ?? '').' '.($row['pl'] ?? '')) ?: ($row['practice_name'] ?? 'Provider'),
+          'order_id'        => $row['order_number'] ?: substr((string)$id, 0, 8),
+          'tracking_number' => $tracking,
+          'carrier'         => 'UPS',
+          'product_name'    => $row['product'] ?? 'HealKit Supplies',
+          'shipped_date'    => date('m/d/Y'),
+        ]);
+      }
+    } catch (Throwable $e) { error_log('[healkit ship email] '.$e->getMessage()); }
+    $_SESSION['success_msg'] = 'HealKit order marked as shipped'.($tracking !== '' ? " (UPS {$tracking})" : '').'.';
   }
   header('Location: /admin/healkit-orders.php'); exit;
 }
@@ -43,7 +69,7 @@ $sql = "
          o.ivr_path, o.ivr_name, o.rx_note_path,
          o.wound_location, o.wound_laterality,
          o.qty_per_change, o.duration_days, o.frequency AS frequency_per_week,
-         o.boxes_to_ship, o.total_pieces,
+         o.boxes_to_ship, o.total_pieces, o.carrier_tracking,
          p.first_name as patient_first, p.last_name as patient_last, p.mrn, p.phone as patient_phone,
          u.first_name as phys_first, u.last_name as phys_last, u.practice_name, u.email as phys_email
   FROM orders o
@@ -231,12 +257,18 @@ require_once __DIR__.'/_header.php';
             <button name="action" value="reject" class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; color: #ef4444;" onclick="return confirm('Reject this order?')">Reject</button>
           </form>
           <?php elseif ($o['status'] === 'approved'): ?>
-          <form method="post" style="display: inline;">
+          <form method="post" style="display:flex; gap:0.25rem; align-items:center; justify-content:center; flex-wrap:nowrap;"
+                onsubmit="return this.tracking.value.trim() ? confirm('Mark shipped with UPS tracking '+this.tracking.value.trim()+'?') : confirm('Mark shipped with no tracking number?');">
             <?=csrf_field()?>
             <input type="hidden" name="id" value="<?= htmlspecialchars($o['id']) ?>">
             <input type="hidden" name="action" value="mark_shipped">
-            <button type="submit" class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background: #3b82f6; color: white; border-color: #3b82f6;">Ship</button>
+            <input type="text" name="tracking" placeholder="UPS tracking #" autocomplete="off"
+                   style="width:120px; padding:0.25rem 0.4rem; font-size:0.7rem; border:1px solid #d1d5db; border-radius:4px;">
+            <button type="submit" class="btn" style="padding:0.25rem 0.6rem; font-size:0.75rem; background:#0075bc; color:white; border-color:#0075bc;">Ship</button>
           </form>
+          <?php elseif ($o['status'] === 'shipped' && !empty($o['carrier_tracking'])): ?>
+            <a href="https://www.ups.com/track?loc=en_US&tracknum=<?= urlencode($o['carrier_tracking']) ?>" target="_blank" rel="noopener"
+               title="Track on UPS" style="color:#0075bc; font-size:0.75rem; font-weight:600; text-decoration:none;">UPS: <?= htmlspecialchars($o['carrier_tracking']) ?> &#8599;</a>
           <?php else: ?>
             <span style="color: #64748b; font-size: 0.75rem;">—</span>
           <?php endif; ?>

@@ -204,6 +204,16 @@ foreach ($order['products'] as $prod) {
         <span class="status-badge status-<?= strtolower($order['status']) ?>">
           <?= ucfirst($order['status']) ?>
         </span>
+        <?php
+          $trk = $order['carrier_tracking'] ?? '';
+          if (!$trk && !empty($order['products'])) { $trk = $order['products'][0]['carrier_tracking'] ?? ''; }
+          if ($trk):
+        ?>
+        <a href="https://www.ups.com/track?loc=en_US&tracknum=<?= urlencode($trk) ?>" target="_blank" rel="noopener"
+           style="display:inline-block; margin-left:0.5rem; padding:0.25rem 0.75rem; background:#0075bc; color:#fff; border-radius:4px; font-size:0.75rem; font-weight:600; text-decoration:none;">
+          Track Package (UPS) &#8599;
+        </a>
+        <?php endif; ?>
       </div>
       <p style="color: #64748b; font-size: 0.875rem;">
         Created <?= date('F j, Y \a\t g:i A', strtotime($order['created_at'])) ?>
