@@ -60,9 +60,9 @@ function isActive($pageName) {
       theme: {
         extend: {
           colors: {
-            brand: '#4DB8A8',
-            'brand-dark': '#3A9688',
-            'brand-light': '#E0F5F2',
+            brand: '#0075bc',
+            'brand-dark': '#20419b',
+            'brand-light': '#e6f2fb',
             ink: '#1F2937',
             'ink-light': '#6B7280',
             muted: '#9CA3AF',
@@ -73,13 +73,13 @@ function isActive($pageName) {
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     /* === PORTAL DESIGN SYSTEM === */
     :root {
-      --brand: #4DB8A8;
-      --brand-dark: #3A9688;
-      --brand-light: #E0F5F2;
+      --brand: #0075bc;
+      --brand-dark: #20419b;
+      --brand-light: #e6f2fb;
       --ink: #1F2937;
       --ink-light: #6B7280;
       --muted: #9CA3AF;
@@ -87,7 +87,7 @@ function isActive($pageName) {
       --bg-sidebar: #F6F6F6;
       --border: #E5E7EB;
       --border-sidebar: #E8E8E9;
-      --ring: rgba(77, 184, 168, 0.2);
+      --ring: rgba(0, 117, 188, 0.2);
       --radius: 0.5rem;
       --radius-lg: 0.75rem;
       --success: #10B981;
@@ -104,7 +104,7 @@ function isActive($pageName) {
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     html, body {
-      font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      font-family: Manrope, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
       color: var(--ink);
       -webkit-font-smoothing: antialiased;
       background: #ffffff;

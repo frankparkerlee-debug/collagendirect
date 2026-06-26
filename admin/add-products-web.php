@@ -39,13 +39,13 @@ header('Content-Type: text/html; charset=utf-8');
     <style>
         body { font-family: system-ui; max-width: 800px; margin: 50px auto; padding: 20px; background: #f5f5f5; }
         .container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h1 { color: #333; border-bottom: 3px solid #47c6be; padding-bottom: 10px; }
+        h1 { color: #333; border-bottom: 3px solid #0075bc; padding-bottom: 10px; }
         .success { color: #0a5f56; background: #eefaf8; padding: 10px; border-radius: 4px; margin: 10px 0; }
         .error { color: #d32f2f; background: #ffebee; padding: 10px; border-radius: 4px; margin: 10px 0; }
-        .product { padding: 8px; border-left: 3px solid #47c6be; margin: 5px 0; background: #f9f9f9; }
+        .product { padding: 8px; border-left: 3px solid #0075bc; margin: 5px 0; background: #f9f9f9; }
         table { width: 100%; border-collapse: collapse; margin: 20px 0; }
         th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background: #47c6be; color: white; }
+        th { background: #0075bc; color: white; }
         .category-header { background: #e0f2f1; font-weight: bold; }
     </style>
 </head>

@@ -342,7 +342,7 @@ include __DIR__ . '/_header.php';
 .metric-card { transition: transform 0.2s, box-shadow 0.2s; }
 .metric-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
 .chart-bar { transition: width 0.5s ease-out; }
-.tab-active { border-bottom: 2px solid #0d9488; color: #0d9488; }
+.tab-active { border-bottom: 2px solid #20419b; color: #20419b; }
 </style>
 
 <div class="max-w-7xl">

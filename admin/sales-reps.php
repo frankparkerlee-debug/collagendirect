@@ -585,7 +585,7 @@ function sendApprovalEmail(PDO $pdo, string $repId): void {
 
 <div style="text-align: center; margin: 30px 0;">
   <a href="https://collagendirect.health/login"
-     style="display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #0d9488 0%, #10b981 100%); color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">
+     style="display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #20419b 0%, #10b981 100%); color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">
     Access Your Dashboard
   </a>
 </div>
@@ -602,7 +602,7 @@ function sendApprovalEmail(PDO $pdo, string $repId): void {
 </ul>
 
 <p style="color: #6b7280; font-size: 14px; margin-top: 20px;">
-  If you have any questions, contact us at <a href="mailto:partners@collagendirect.health" style="color: #0d9488;">partners@collagendirect.health</a>
+  If you have any questions, contact us at <a href="mailto:partners@collagendirect.health" style="color: #20419b;">partners@collagendirect.health</a>
 </p>
 HTML;
 
@@ -633,8 +633,8 @@ function sendInviteEmail(PDO $pdo, string $repId, string $inviteToken, string $p
   $inviteUrl = "https://collagendirect.health/rep-invite/{$inviteToken}";
 
   $noteHtml = $personalNote ? <<<HTML
-<div style="background: #f0fdfa; border-left: 4px solid #0d9488; padding: 15px 20px; margin: 20px 0; border-radius: 0 8px 8px 0;">
-  <p style="color: #115e59; font-size: 14px; margin: 0; font-style: italic;">"{$personalNote}"</p>
+<div style="background: #e6f2fb; border-left: 4px solid #20419b; padding: 15px 20px; margin: 20px 0; border-radius: 0 8px 8px 0;">
+  <p style="color: #20419b; font-size: 14px; margin: 0; font-style: italic;">"{$personalNote}"</p>
 </div>
 HTML : '';
 
@@ -655,7 +655,7 @@ HTML : '';
 
 <div style="text-align: center; margin: 30px 0;">
   <a href="{$inviteUrl}"
-     style="display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #0d9488 0%, #10b981 100%); color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">
+     style="display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #20419b 0%, #10b981 100%); color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">
     Complete Your Registration
   </a>
 </div>
@@ -671,12 +671,12 @@ HTML : '';
 </ul>
 
 <p style="color: #6b7280; font-size: 14px; margin-top: 20px;">
-  This invite expires in 7 days. If you have any questions, contact us at <a href="mailto:partners@collagendirect.health" style="color: #0d9488;">partners@collagendirect.health</a>
+  This invite expires in 7 days. If you have any questions, contact us at <a href="mailto:partners@collagendirect.health" style="color: #20419b;">partners@collagendirect.health</a>
 </p>
 
 <p style="color: #9ca3af; font-size: 12px; margin-top: 30px;">
   If the button doesn't work, copy and paste this link into your browser:<br>
-  <a href="{$inviteUrl}" style="color: #0d9488; word-break: break-all;">{$inviteUrl}</a>
+  <a href="{$inviteUrl}" style="color: #20419b; word-break: break-all;">{$inviteUrl}</a>
 </p>
 HTML;
 
@@ -731,7 +731,7 @@ function sendDirectAddWelcomeEmail(PDO $pdo, string $repId, string $tempPassword
 
 <div style="text-align: center; margin: 30px 0;">
   <a href="{$loginUrl}"
-     style="display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #0d9488 0%, #10b981 100%); color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">
+     style="display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #20419b 0%, #10b981 100%); color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">
     Log In Now
   </a>
 </div>
@@ -748,7 +748,7 @@ function sendDirectAddWelcomeEmail(PDO $pdo, string $repId, string $tempPassword
 </ul>
 
 <p style="color: #6b7280; font-size: 14px; margin-top: 20px;">
-  If you have any questions, contact us at <a href="mailto:partners@collagendirect.health" style="color: #0d9488;">partners@collagendirect.health</a>
+  If you have any questions, contact us at <a href="mailto:partners@collagendirect.health" style="color: #20419b;">partners@collagendirect.health</a>
 </p>
 HTML;
 
@@ -800,7 +800,7 @@ function sendRejectionEmail(PDO $pdo, string $repId, string $reason): void {
 </p>
 
 <p style="color: #6b7280; font-size: 14px; margin-top: 20px;">
-  Contact: <a href="mailto:partners@collagendirect.health" style="color: #0d9488;">partners@collagendirect.health</a>
+  Contact: <a href="mailto:partners@collagendirect.health" style="color: #20419b;">partners@collagendirect.health</a>
 </p>
 HTML;
 

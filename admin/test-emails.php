@@ -126,7 +126,7 @@ function get_preview_html(string $type): string {
       </p>
 
       <div style="text-align: center; margin: 30px 0;">
-        <a href="#" style="display: inline-block; background: linear-gradient(135deg, #0d9488, #14b8a6); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600;">
+        <a href="#" style="display: inline-block; background: linear-gradient(135deg, #20419b, #0075bc); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600;">
           Reset Password
         </a>
       </div>
@@ -154,8 +154,8 @@ HTML;
         Your CollagenDirect account has been created. You can now access the portal to manage orders and patients.
       </p>
 
-      <div style="background-color: #f0fdfa; border: 1px solid #99f6e4; border-radius: 8px; padding: 20px; margin: 25px 0;">
-        <p style="margin: 0 0 10px 0; font-weight: 600; color: #0f766e;">Your Login Credentials:</p>
+      <div style="background-color: #e6f2fb; border: 1px solid #cfe5f6; border-radius: 8px; padding: 20px; margin: 25px 0;">
+        <p style="margin: 0 0 10px 0; font-weight: 600; color: #20419b;">Your Login Credentials:</p>
         <p style="margin: 0 0 5px 0; color: #475569;"><strong>Email:</strong> doctor@example.com</p>
         <p style="margin: 0; color: #475569;"><strong>Temporary Password:</strong> TempPass123!</p>
       </div>
@@ -165,7 +165,7 @@ HTML;
       </p>
 
       <div style="text-align: center; margin: 30px 0;">
-        <a href="#" style="display: inline-block; background: linear-gradient(135deg, #0d9488, #14b8a6); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600;">
+        <a href="#" style="display: inline-block; background: linear-gradient(135deg, #20419b, #0075bc); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600;">
           Login to Portal
         </a>
       </div>
@@ -183,7 +183,7 @@ HTML;
       </p>
 
       <div style="text-align: center; margin: 30px 0;">
-        <a href="#" style="display: inline-block; background: linear-gradient(135deg, #0d9488, #14b8a6); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600;">
+        <a href="#" style="display: inline-block; background: linear-gradient(135deg, #20419b, #0075bc); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600;">
           Access Your Portal
         </a>
       </div>
@@ -249,7 +249,7 @@ HTML;
       </div>
 
       <div style="text-align: center; margin: 30px 0;">
-        <a href="#" style="display: inline-block; background: linear-gradient(135deg, #0d9488, #14b8a6); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600;">
+        <a href="#" style="display: inline-block; background: linear-gradient(135deg, #20419b, #0075bc); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600;">
           View in Portal
         </a>
       </div>
@@ -275,7 +275,7 @@ HTML;
       </div>
 
       <div style="text-align: center; margin: 30px 0;">
-        <a href="https://wwwapps.ups.com/WebTracking/track?tracknum=1Z999AA10123456784" style="display: inline-block; background: linear-gradient(135deg, #0d9488, #14b8a6); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600;">
+        <a href="https://wwwapps.ups.com/WebTracking/track?tracknum=1Z999AA10123456784" style="display: inline-block; background: linear-gradient(135deg, #20419b, #0075bc); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600;">
           Track Your Package
         </a>
       </div>

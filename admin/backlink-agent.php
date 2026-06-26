@@ -1019,7 +1019,7 @@ if (php_sapi_name() === 'cli') {
         .badge-warning { background: #fef3c7; color: #92400e; }
         .badge-danger { background: #fee2e2; color: #991b1b; }
         .badge-info { background: #dbeafe; color: #1e40af; }
-        .badge-purple { background: #ede9fe; color: #5b21b6; }
+        .badge-purple { background: #e6f2fb; color: #5b21b6; }
         .intro {
             background: #f0f9ff;
             border-left: 4px solid #3b82f6;

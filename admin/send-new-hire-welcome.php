@@ -34,7 +34,7 @@ $htmlContent = <<<HTML
 
                     <!-- Header with gradient -->
                     <tr>
-                        <td style="background: linear-gradient(135deg, #47c6be 0%, #34d399 100%); padding: 50px 40px; text-align: center;">
+                        <td style="background: linear-gradient(135deg, #0075bc 0%, #34d399 100%); padding: 50px 40px; text-align: center;">
                             <h1 style="color: #ffffff; margin: 0 0 10px 0; font-size: 32px; font-weight: 900;">Welcome to CollagenDirect!</h1>
                             <p style="color: #e0f7f5; margin: 0; font-size: 16px;">Hi {$newHireFirstName}, we're thrilled to have you on our team!</p>
                         </td>
@@ -52,13 +52,13 @@ $htmlContent = <<<HTML
                             </p>
 
                             <!-- Key Resources Section -->
-                            <div style="background-color: #f0fdfc; border-left: 4px solid #47c6be; padding: 20px; margin-bottom: 30px; border-radius: 8px;">
+                            <div style="background-color: #f0fdfc; border-left: 4px solid #0075bc; padding: 20px; margin-bottom: 30px; border-radius: 8px;">
                                 <h2 style="color: #0a2540; margin: 0 0 15px 0; font-size: 20px; font-weight: 700;">Your Training Hub</h2>
                                 <p style="color: #374151; font-size: 14px; margin: 0 0 15px 0;">
                                     Access your personalized onboarding portal with interactive checklists and progress tracking:
                                 </p>
                                 <a href="https://collagendirect.health/sales-training/new-hire-welcome.php?email={$newHireEmail}"
-                                   style="display: inline-block; background-color: #47c6be; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: 700; font-size: 16px; margin-top: 10px;">
+                                   style="display: inline-block; background-color: #0075bc; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: 700; font-size: 16px; margin-top: 10px;">
                                     Start Your Onboarding
                                 </a>
                             </div>
@@ -180,7 +180,7 @@ $htmlContent = <<<HTML
                             </p>
                             <p style="color: #6b7280; font-size: 12px; margin: 0;">
                                 CollagenDirect | Streamlining Wound Care, One Patient at a Time<br>
-                                <a href="https://collagendirect.health" style="color: #47c6be; text-decoration: none;">collagendirect.health</a>
+                                <a href="https://collagendirect.health" style="color: #0075bc; text-decoration: none;">collagendirect.health</a>
                             </p>
                         </td>
                     </tr>

@@ -405,9 +405,9 @@ require __DIR__ . '/../_header.php';
     background: #f9fafb;
 }
 .category-header {
-    background: #e0f5f2 !important;
+    background: #e6f2fb !important;
     font-weight: 600;
-    color: #0d9488;
+    color: #20419b;
 }
 .access-badge {
     display: inline-flex;
@@ -438,11 +438,11 @@ require __DIR__ . '/../_header.php';
     transition: all 0.2s;
 }
 .tab-btn:hover {
-    color: #0d9488;
+    color: #20419b;
 }
 .tab-btn.active {
-    color: #0d9488;
-    border-bottom-color: #0d9488;
+    color: #20419b;
+    border-bottom-color: #20419b;
 }
 </style>
 

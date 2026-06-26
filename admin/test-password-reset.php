@@ -76,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         body { font-family: system-ui, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
         form { margin-bottom: 20px; padding: 20px; background: #f9fafb; border-radius: 8px; }
         input { padding: 10px; margin: 5px 0; width: 100%; font-size: 16px; box-sizing: border-box; }
-        button { padding: 10px 20px; font-size: 16px; background: #5FA8A1; color: white; border: none; border-radius: 6px; cursor: pointer; margin-top: 10px; }
+        button { padding: 10px 20px; font-size: 16px; background: #0075bc; color: white; border: none; border-radius: 6px; cursor: pointer; margin-top: 10px; }
         .result { padding: 20px; background: #d1fae5; border-radius: 8px; margin-top: 20px; }
         .error { background: #fee2e2; }
         pre { background: #1f2937; color: #f9fafb; padding: 15px; border-radius: 6px; overflow-x: auto; }

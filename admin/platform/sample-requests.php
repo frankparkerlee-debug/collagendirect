@@ -49,10 +49,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           if ($req) {
             $subject = 'Your Sample Request Has Been Approved - CollagenDirect';
             $bodyContent = <<<HTML
-<h2 style="color: #14b8a6; margin-bottom: 16px;">Great News!</h2>
+<h2 style="color: #0075bc; margin-bottom: 16px;">Great News!</h2>
 <p style="margin-bottom: 16px;">Dear Dr. {$req['first_name']} {$req['last_name']},</p>
 <p style="margin-bottom: 16px;">Your CollagenDirect sample request has been approved! We're preparing your sample kit and will ship it to:</p>
-<div style="background: #f0fdfa; border-radius: 8px; padding: 16px; margin: 20px 0;">
+<div style="background: #e6f2fb; border-radius: 8px; padding: 16px; margin: 20px 0;">
   <p style="margin: 0; color: #374151;">
     {$req['ship_address']}<br>
     {$req['ship_city']}, {$req['ship_state']} {$req['ship_zip']}
@@ -86,12 +86,12 @@ HTML;
             $subject = 'Your Samples Have Shipped - CollagenDirect';
             $trackingInfo = $trackingNumber ? "<p style='margin-bottom: 16px;'><strong>Tracking Number:</strong> {$trackingNumber}</p>" : '';
             $bodyContent = <<<HTML
-<h2 style="color: #14b8a6; margin-bottom: 16px;">Your Samples Are On The Way!</h2>
+<h2 style="color: #0075bc; margin-bottom: 16px;">Your Samples Are On The Way!</h2>
 <p style="margin-bottom: 16px;">Dear Dr. {$req['first_name']} {$req['last_name']},</p>
 <p style="margin-bottom: 16px;">Your CollagenDirect sample kit has shipped!</p>
 {$trackingInfo}
-<div style="background: #f0fdfa; border-radius: 8px; padding: 16px; margin: 20px 0;">
-  <p style="margin: 0; font-weight: bold; color: #134e4a;">Shipping To:</p>
+<div style="background: #e6f2fb; border-radius: 8px; padding: 16px; margin: 20px 0;">
+  <p style="margin: 0; font-weight: bold; color: #20419b;">Shipping To:</p>
   <p style="margin: 8px 0 0 0; color: #374151;">
     {$req['ship_address']}<br>
     {$req['ship_city']}, {$req['ship_state']} {$req['ship_zip']}

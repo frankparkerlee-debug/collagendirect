@@ -548,7 +548,7 @@ require_once '_header.php';
   }
   .badge-pending { background: var(--warning-light); color: #92400e; }
   .badge-approved { background: #dbeafe; color: #1e40af; }
-  .badge-shipped { background: #e0e7ff; color: #4338ca; }
+  .badge-shipped { background: #e6f2fb; color: #20419b; }
   .badge-delivered { background: var(--success-light); color: #065f46; }
   .badge-rejected { background: var(--error-light); color: #991b1b; }
   .badge-paid { background: var(--success-light); color: #065f46; }
@@ -665,7 +665,7 @@ require_once '_header.php';
     </div>
     <div class="stat-card">
       <div class="stat-label">In Transit</div>
-      <div class="stat-value" style="color: #4338ca;"><?php
+      <div class="stat-value" style="color: #20419b;"><?php
         $inTransit = 0;
         foreach ($groupedOrders as $g) {
           if (in_array($g['status'], ['shipped', 'in_transit'])) $inTransit++;
@@ -835,8 +835,8 @@ require_once '_header.php';
               $statusColor = '#059669';
               $statusBg = '#f0fdf4';
             } elseif (in_array($group['status'], ['shipped', 'in_transit'])) {
-              $statusColor = '#4338ca';
-              $statusBg = '#eef2ff';
+              $statusColor = '#20419b';
+              $statusBg = '#e6f2fb';
             } elseif ($group['status'] === 'delivered') {
               $statusColor = '#15803d';
               $statusBg = '#f0fdf4';
@@ -924,7 +924,7 @@ require_once '_header.php';
 
                 <!-- Ship (if approved) -->
                 <?php if ($canShip): ?>
-                <button class="btn-icon" onclick="openShipModal('<?= $firstItemId ?>')" title="Mark as Shipped" style="color: #4338ca; border-color: #4338ca;">
+                <button class="btn-icon" onclick="openShipModal('<?= $firstItemId ?>')" title="Mark as Shipped" style="color: #20419b; border-color: #20419b;">
                   <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"></path></svg>
                 </button>
                 <?php endif; ?>

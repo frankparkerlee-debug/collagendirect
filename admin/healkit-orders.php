@@ -95,7 +95,7 @@ require_once __DIR__.'/_header.php';
 
 <div style="margin-bottom: 1.5rem;">
   <h2 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem;">
-    <svg style="width: 24px; height: 24px; display: inline-block; margin-right: 0.5rem; vertical-align: middle; color: #6366f1;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg style="width: 24px; height: 24px; display: inline-block; margin-right: 0.5rem; vertical-align: middle; color: #0075bc;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
     </svg>
     HealKit Orders
@@ -106,7 +106,7 @@ require_once __DIR__.'/_header.php';
 <!-- Stats Cards -->
 <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
   <div class="card" style="padding: 1rem; text-align: center;">
-    <div style="font-size: 2rem; font-weight: 700; color: #6366f1;"><?= $totalOrders ?></div>
+    <div style="font-size: 2rem; font-weight: 700; color: #0075bc;"><?= $totalOrders ?></div>
     <div style="font-size: 0.75rem; color: #64748b; text-transform: uppercase;">Total Orders</div>
   </div>
   <div class="card" style="padding: 1rem; text-align: center;">
@@ -174,7 +174,7 @@ require_once __DIR__.'/_header.php';
           'pending' => 'background:#fef3c7;color:#92400e;',
           'submitted' => 'background:#dbeafe;color:#1e40af;',
           'approved' => 'background:#d1fae5;color:#065f46;',
-          'shipped' => 'background:#e0e7ff;color:#4338ca;',
+          'shipped' => 'background:#e6f2fb;color:#20419b;',
           'delivered' => 'background:#d1fae5;color:#065f46;',
           'rejected' => 'background:#fee2e2;color:#991b1b;',
           'draft' => 'background:#f3f4f6;color:#6b7280;',
@@ -186,7 +186,7 @@ require_once __DIR__.'/_header.php';
           <div style="font-weight: 600; font-size: 0.8125rem;"><?= htmlspecialchars(substr($o['id'], 0, 8)) ?>...</div>
           <div style="font-size: 0.75rem; color: #64748b;"><?= date('M j, Y', strtotime($o['created_at'])) ?></div>
           <?php if ($o['order_number']): ?>
-          <div style="font-size: 0.7rem; color: #6366f1;"><?= htmlspecialchars($o['order_number']) ?></div>
+          <div style="font-size: 0.7rem; color: #0075bc;"><?= htmlspecialchars($o['order_number']) ?></div>
           <?php endif; ?>
         </td>
         <td style="padding: 0.75rem 1rem;">
@@ -219,7 +219,7 @@ require_once __DIR__.'/_header.php';
             <a href="<?= htmlspecialchars($o['rx_note_path']) ?>" target="_blank" title="Visit Notes" style="color: #3b82f6; text-decoration: none; margin-right: 0.25rem;">Notes</a>
           <?php endif; ?>
           <?php if ($o['ivr_path']): ?>
-            <a href="<?= htmlspecialchars($o['ivr_path']) ?>" target="_blank" title="IVR Document" style="color: #6366f1; text-decoration: none;">IVR</a>
+            <a href="<?= htmlspecialchars($o['ivr_path']) ?>" target="_blank" title="IVR Document" style="color: #0075bc; text-decoration: none;">IVR</a>
           <?php endif; ?>
         </td>
         <td style="padding: 0.75rem 1rem; text-align: center;">

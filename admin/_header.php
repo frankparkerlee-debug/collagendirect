@@ -22,9 +22,9 @@ function isActive($pageName) {
       theme: {
         extend: {
           colors: {
-            brand: '#4DB8A8',
-            'brand-dark': '#3A9688',
-            'brand-light': '#E0F5F2',
+            brand: '#0075bc',
+            'brand-dark': '#20419b',
+            'brand-light': '#e6f2fb',
             ink: '#1F2937',
             'ink-light': '#6B7280',
             muted: '#9CA3AF',
@@ -35,13 +35,13 @@ function isActive($pageName) {
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     /* === PORTAL DESIGN SYSTEM - EXACT COPY === */
     :root {
-      --brand: #4DB8A8;
-      --brand-dark: #3A9688;
-      --brand-light: #E0F5F2;
+      --brand: #0075bc;
+      --brand-dark: #20419b;
+      --brand-light: #e6f2fb;
       --ink: #1F2937;
       --ink-light: #6B7280;
       --muted: #9CA3AF;
@@ -49,7 +49,7 @@ function isActive($pageName) {
       --bg-sidebar: #F6F6F6;
       --border: #E5E7EB;
       --border-sidebar: #E8E8E9;
-      --ring: rgba(77, 184, 168, 0.2);
+      --ring: rgba(0, 117, 188, 0.2);
       --radius: 0.5rem;
       --radius-lg: 0.75rem;
       --success: #10B981;
@@ -66,7 +66,7 @@ function isActive($pageName) {
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     html, body {
-      font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      font-family: Manrope, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
       color: var(--ink);
       -webkit-font-smoothing: antialiased;
       background: #ffffff;
@@ -375,6 +375,9 @@ function isActive($pageName) {
 <div class="app-container">
   <!-- Sidebar -->
   <aside class="sidebar">
+    <div style="padding:1rem 1.25rem; border-bottom:1px solid var(--border-sidebar);">
+      <img src="/assets/brand/md-dme-logo.png" alt="MD DME" style="height:28px; width:auto; display:block;">
+    </div>
     <div class="sidebar-header">
       <div class="sidebar-user">
         <div class="sidebar-avatar">
@@ -532,7 +535,7 @@ function isActive($pageName) {
 
     <div style="padding: 1rem; border-top: 1px solid var(--border);">
       <?php if (!empty($admin['has_rep_view'])): ?>
-      <a href="/admin/employee-rep/" style="display:flex; align-items:center; gap:0.75rem; padding:0.75rem 1rem; border-radius:8px; color:#6366f1; font-weight:500; font-size:0.875rem; transition:all 0.2s; border:1px solid transparent; text-decoration:none; background:linear-gradient(135deg, #ede9fe 0%, #e0e7ff 100%); margin-bottom:0.5rem;">
+      <a href="/admin/employee-rep/" style="display:flex; align-items:center; gap:0.75rem; padding:0.75rem 1rem; border-radius:8px; color:#0075bc; font-weight:500; font-size:0.875rem; transition:all 0.2s; border:1px solid transparent; text-decoration:none; background:linear-gradient(135deg, #e6f2fb 0%, #e6f2fb 100%); margin-bottom:0.5rem;">
         <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
         <span>My Sales Portal</span>
       </a>

@@ -98,7 +98,7 @@ $recent_activity = $stmt->fetchAll();
         }
 
         .header {
-            background: linear-gradient(135deg, #47c6be 0%, #34a89e 100%);
+            background: linear-gradient(135deg, #0075bc 0%, #34a89e 100%);
             color: white;
             padding: 30px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
@@ -191,7 +191,7 @@ $recent_activity = $stmt->fetchAll();
         .state-card .state-name {
             font-weight: bold;
             font-size: 18px;
-            color: #47c6be;
+            color: #0075bc;
             margin-bottom: 5px;
         }
 
@@ -249,7 +249,7 @@ $recent_activity = $stmt->fetchAll();
 
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #47c6be 0%, #34a89e 100%);
+            background: linear-gradient(90deg, #0075bc 0%, #34a89e 100%);
             transition: width 0.3s;
         }
 
@@ -272,7 +272,7 @@ $recent_activity = $stmt->fetchAll();
         }
 
         .btn-primary {
-            background: #47c6be;
+            background: #0075bc;
             color: white;
         }
 

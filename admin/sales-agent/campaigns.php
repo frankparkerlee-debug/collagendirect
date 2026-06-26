@@ -23,14 +23,14 @@ if ($campaign_results) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Campaigns | Sales Outreach Agent</title>
 
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
           colors: {
-            brand: { teal: '#47c6be', blue: '#2a78ff', navy: '#0a2540' }
+            brand: { teal: '#0075bc', blue: '#2a78ff', navy: '#0a2540' }
           }
         }
       }

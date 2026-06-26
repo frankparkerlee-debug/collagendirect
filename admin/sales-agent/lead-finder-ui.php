@@ -89,18 +89,18 @@ $target_specialties = [
 
         .info-box {
             background: #e8f8f7;
-            border-left: 4px solid #47c6be;
+            border-left: 4px solid #0075bc;
             padding: 15px;
             margin: 20px 0;
             border-radius: 4px;
         }
 
         .info-box strong {
-            color: #47c6be;
+            color: #0075bc;
         }
 
         button {
-            background: #47c6be;
+            background: #0075bc;
             color: white;
             border: none;
             padding: 15px 30px;
@@ -154,7 +154,7 @@ $target_specialties = [
 
         .progress-bar {
             height: 100%;
-            background: linear-gradient(90deg, #47c6be 0%, #34a89e 100%);
+            background: linear-gradient(90deg, #0075bc 0%, #34a89e 100%);
             width: 0%;
             transition: width 0.3s;
             display: flex;
@@ -167,7 +167,7 @@ $target_specialties = [
         .back-link {
             display: inline-block;
             margin-bottom: 20px;
-            color: #47c6be;
+            color: #0075bc;
             text-decoration: none;
             font-weight: 600;
         }

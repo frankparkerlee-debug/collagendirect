@@ -677,7 +677,7 @@ include __DIR__.'/_header.php';
   font-weight: 500;
 }
 .status-pending { background: #dbeafe; color: #1e40af; }
-.status-invoiced { background: #e0e7ff; color: #3730a3; }
+.status-invoiced { background: #e6f2fb; color: #20419b; }
 .status-partial { background: #fef3c7; color: #92400e; }
 .status-paid { background: #d1fae5; color: #065f46; }
 .status-overdue { background: #fee2e2; color: #991b1b; }

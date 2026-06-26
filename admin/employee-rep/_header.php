@@ -129,9 +129,9 @@ if (!function_exists('csrf_field')) {
       theme: {
         extend: {
           colors: {
-            brand: '#4DB8A8',
-            'brand-dark': '#3A9688',
-            'brand-light': '#E0F5F2',
+            brand: '#0075bc',
+            'brand-dark': '#20419b',
+            'brand-light': '#e6f2fb',
             ink: '#1F2937',
             'ink-light': '#6B7280',
             muted: '#9CA3AF',
@@ -142,13 +142,13 @@ if (!function_exists('csrf_field')) {
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     /* === PORTAL DESIGN SYSTEM === */
     :root {
-      --brand: #4DB8A8;
-      --brand-dark: #3A9688;
-      --brand-light: #E0F5F2;
+      --brand: #0075bc;
+      --brand-dark: #20419b;
+      --brand-light: #e6f2fb;
       --ink: #1F2937;
       --ink-light: #6B7280;
       --muted: #9CA3AF;
@@ -156,7 +156,7 @@ if (!function_exists('csrf_field')) {
       --bg-sidebar: #F6F6F6;
       --border: #E5E7EB;
       --border-sidebar: #E8E8E9;
-      --ring: rgba(77, 184, 168, 0.2);
+      --ring: rgba(0, 117, 188, 0.2);
       --radius: 0.5rem;
       --radius-lg: 0.75rem;
       --success: #10B981;
@@ -173,7 +173,7 @@ if (!function_exists('csrf_field')) {
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     html, body {
-      font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      font-family: Manrope, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
       color: var(--ink);
       -webkit-font-smoothing: antialiased;
       background: #ffffff;
@@ -296,7 +296,7 @@ if (!function_exists('csrf_field')) {
       width: 36px;
       height: 36px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      background: linear-gradient(135deg, #0075bc 0%, #8b5cf6 100%);
       color: white;
       display: flex;
       align-items: center;
@@ -406,8 +406,8 @@ if (!function_exists('csrf_field')) {
       letter-spacing: 0.05em;
     }
     .role-badge-employee {
-      background: linear-gradient(135deg, #ede9fe 0%, #e0e7ff 100%);
-      color: #6366f1;
+      background: linear-gradient(135deg, #e6f2fb 0%, #e6f2fb 100%);
+      color: #0075bc;
     }
 
     .text-brand {

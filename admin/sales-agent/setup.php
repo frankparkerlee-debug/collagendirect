@@ -46,7 +46,7 @@ if (!isset($_SESSION['admin_logged_in'])) {
             overflow-y: auto;
         }
         button {
-            background: #47c6be;
+            background: #0075bc;
             color: white;
             border: none;
             padding: 15px 30px;
@@ -95,7 +95,7 @@ if (!isset($_SESSION['admin_logged_in'])) {
         </div>
 
         <div style="margin-top: 30px;">
-            <a href="index.php" style="color: #47c6be;">← Back to Sales Agent Dashboard</a>
+            <a href="index.php" style="color: #0075bc;">← Back to Sales Agent Dashboard</a>
         </div>
     </div>
 

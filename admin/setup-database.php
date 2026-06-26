@@ -29,14 +29,14 @@ header('Content-Type: text/html; charset=utf-8');
     <style>
         body{font-family:system-ui;max-width:900px;margin:30px auto;padding:20px;background:#f5f5f5}
         .box{background:white;padding:30px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.1);margin:20px 0}
-        h1{color:#333;border-bottom:3px solid #47c6be;padding-bottom:10px}
-        .success{color:#0a5f56;background:#eefal8;padding:12px;border-radius:4px;margin:10px 0;border-left:4px solid #47c6be}
+        h1{color:#333;border-bottom:3px solid #0075bc;padding-bottom:10px}
+        .success{color:#0a5f56;background:#eefal8;padding:12px;border-radius:4px;margin:10px 0;border-left:4px solid #0075bc}
         .error{color:#d32f2f;background:#ffebee;padding:12px;border-radius:4px;margin:10px 0;border-left:4px solid #d32f2f}
         .info{background:#e3f2fd;padding:12px;border-radius:4px;margin:10px 0;border-left:4px solid #2196f3}
-        .step{padding:15px;background:#f9f9f9;border-left:3px solid #47c6be;margin:10px 0}
+        .step{padding:15px;background:#f9f9f9;border-left:3px solid #0075bc;margin:10px 0}
         table{width:100%;border-collapse:collapse;margin:15px 0}
         th,td{padding:10px;text-align:left;border-bottom:1px solid #ddd}
-        th{background:#47c6be;color:white}
+        th{background:#0075bc;color:white}
         code{background:#f5f5f5;padding:2px 6px;border-radius:3px;font-family:monospace}
     </style>
 </head>

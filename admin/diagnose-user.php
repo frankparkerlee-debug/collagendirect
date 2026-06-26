@@ -130,7 +130,7 @@ if ($email) {
         h1 { color: #333; }
         form { margin-bottom: 20px; }
         input[type="email"] { padding: 10px; width: 300px; font-size: 16px; }
-        button { padding: 10px 20px; font-size: 16px; background: #5FA8A1; color: white; border: none; border-radius: 6px; cursor: pointer; }
+        button { padding: 10px 20px; font-size: 16px; background: #0075bc; color: white; border: none; border-radius: 6px; cursor: pointer; }
         .table-section { margin: 20px 0; padding: 15px; border-radius: 8px; }
         .found { background: #d1fae5; border: 1px solid #059669; }
         .not-found { background: #fee2e2; border: 1px solid #dc2626; }

@@ -159,7 +159,7 @@ HTML;
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Send Demo Portal Announcement | Admin</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg: #f8fafc;
@@ -167,7 +167,7 @@ HTML;
             --border: #e2e8f0;
             --text: #1e293b;
             --muted: #64748b;
-            --brand: #0d9488;
+            --brand: #20419b;
             --demo-accent: #f59e0b;
             --success: #10b981;
             --error: #ef4444;
