@@ -7,19 +7,19 @@
   <meta name="description" content="Secure login for CollagenDirect physician portal." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <style>
     :root{
       --bg:#fafafa; --text:#1e2a38; --muted:#6b7280; --line:#e5e7eb;
-      --brand:#5FA8A1; --brand-hover:#4d8d87;
+      --brand:#0075bc; --brand-hover:#20419b;
       --radius:12px; --shadow:0 1px 3px rgba(0,0,0,.05);
     }
     *{box-sizing:border-box;margin:0;padding:0}
     body{
-      background: linear-gradient(to bottom right, #f8fafc 0%, #ffffff 50%, rgba(71, 198, 190, 0.03) 100%);
+      background: linear-gradient(to bottom right, #f8fafc 0%, #ffffff 50%, rgba(0, 117, 188, 0.05) 100%);
       color:var(--text);
-      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,sans-serif;
+      font-family:Manrope,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,sans-serif;
       line-height:1.6;
       -webkit-font-smoothing:antialiased;
       min-height:100vh;
@@ -220,8 +220,7 @@
   <header>
     <div class="nav">
       <a href="/index.html" class="brand" aria-label="Go to homepage">
-        <img src="/assets/collagendirect.png" alt="CollagenDirect logo">
-        <span class="title">COLLAGEN <span style="color:#5FA8A1">DIRECT</span></span>
+        <img src="/assets/brand/md-dme-logo.png" alt="MD DME">
       </a>
     </div>
   </header>
@@ -229,7 +228,7 @@
   <!-- Centered auth card -->
   <main>
     <section class="auth-card">
-      <div id="portalBadge" style="display:none;background:#5FA8A1;color:#fff;font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;padding:0.5rem 1rem;border-radius:8px;text-align:center;margin-bottom:1rem">Admin Portal</div>
+      <div id="portalBadge" style="display:none;background:var(--brand);color:#fff;font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;padding:0.5rem 1rem;border-radius:8px;text-align:center;margin-bottom:1rem">Admin Portal</div>
       <h1 id="pageTitle">Welcome back</h1>
       <p class="subtitle" id="pageSubtitle">New here? <a href="/register" style="color:var(--brand);font-weight:500">Create an account</a></p>
 
