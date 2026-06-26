@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Facility User Guide — CollagenDirect Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{ --brand:#0075bc; --brand-dark:#20419b; --accent:#00aeef; --ink:#1a1a1a; --ink-light:#4d4d4d; --muted:#7a8699; --line:#e6ebf2; --soft:#eef6fc; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  @page{ size:Letter; margin:0.7in 0.75in; }
+  html,body{ font-family:'Manrope',system-ui,-apple-system,'Segoe UI',sans-serif; color:var(--ink); -webkit-print-color-adjust:exact; print-color-adjust:exact; font-size:11pt; line-height:1.5; }
+  .top{ display:flex; align-items:center; justify-content:space-between; border-bottom:3px solid var(--brand); padding-bottom:12px; margin-bottom:20px; }
+  .logo{ height:34px; }
+  .top-tag{ font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--brand); }
+  h1{ font-size:30px; font-weight:800; color:var(--brand-dark); letter-spacing:-.01em; margin-bottom:4px; }
+  .sub{ color:var(--ink-light); font-size:12.5px; margin-bottom:18px; }
+  h2{ font-size:15.5px; font-weight:800; color:var(--brand-dark); margin:20px 0 8px; padding-bottom:4px; border-bottom:1px solid var(--line); }
+  h2 .n{ display:inline-block; background:var(--brand); color:#fff; width:22px; height:22px; border-radius:6px; text-align:center; font-size:12px; line-height:22px; margin-right:8px; }
+  h3{ font-size:12.5px; font-weight:700; color:var(--ink); margin:12px 0 3px; }
+  p{ margin-bottom:7px; color:var(--ink-light); }
+  ul,ol{ margin:0 0 8px 20px; color:var(--ink-light); }
+  li{ margin-bottom:3px; }
+  b,strong{ color:var(--ink); }
+  .tip{ background:var(--soft); border-left:3px solid var(--accent); padding:9px 12px; border-radius:0 6px 6px 0; margin:8px 0; font-size:10.5px; }
+  .tip b{ color:var(--brand-dark); }
+  .lead{ font-size:12.5px; color:var(--ink-light); margin-bottom:14px; }
+  .grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin:6px 0 10px; }
+  .pill{ border:1px solid var(--line); border-radius:8px; padding:9px 11px; }
+  .pill h4{ font-size:11.5px; color:var(--brand); font-weight:700; margin-bottom:2px; }
+  .pill p{ font-size:10px; margin:0; }
+  .foot{ margin-top:22px; border-top:1px solid var(--line); padding-top:8px; font-size:9.5px; color:var(--muted); display:flex; justify-content:space-between; }
+  .new{ page-break-before:always; }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <img class="logo" src="../assets/brand/md-dme-logo.png" alt="MD DME">
+  <div class="top-tag">Facility User Guide</div>
+</div>
+
+<h1>CollagenDirect Portal — Facility Guide</h1>
+<div class="sub">For wound-care practices &amp; facilities · Everything you need to order supplies and track shipments</div>
+
+<p class="lead">Your CollagenDirect portal is where you add patients, place orders, and track shipments — all in one place. This guide walks through the everyday tasks. You'll find the navigation on the left side of every screen.</p>
+
+<h2><span class="n">1</span>Getting started</h2>
+<ol>
+  <li>Go to <b>collagendirect.health</b> and sign in with your email and password.</li>
+  <li><b>First time?</b> You'll be asked to review and accept the <b>MD DME Product &amp; Services Agreement</b> and the <b>Business Associate Agreement (BAA)</b>. Sign once and you're in.</li>
+  <li>You'll land on your <b>Dashboard</b> — a snapshot of your patients, active orders, and recent activity.</li>
+</ol>
+<div class="tip"><b>Forgot your password?</b> Use the "Forgot password" link on the sign-in page. For help, contact <b>orders@md-dme.com</b>.</div>
+
+<h2><span class="n">2</span>Adding &amp; finding patients</h2>
+<p>Open <b>Patients</b> from the sidebar.</p>
+<ul>
+  <li><b>Add a patient:</b> click <b>+ New Patient</b> and enter their details. Search is case-insensitive — type any part of a name to find someone.</li>
+  <li>Open a patient to see their information and order history.</li>
+</ul>
+
+<h2><span class="n">3</span>Placing orders</h2>
+<p>There are three order types, each on its own sidebar item. Pick the one that fits how the supplies are billed:</p>
+<div class="grid">
+  <div class="pill"><h4>Patient Referral</h4><p>Insurance-billed supplies for a specific patient (collagen and advanced dressings). Ships by the piece.</p></div>
+  <div class="pill"><h4>HealKit Order</h4><p>Simple cash/wholesale supplies — no insurance paperwork. Ships to your office by the piece.</p></div>
+  <div class="pill"><h4>Wholesale Orders</h4><p>Stock for your practice, billed to the facility and shipped by the box.</p></div>
+</div>
+
+<h3>Patient Referral (insurance) order</h3>
+<ol>
+  <li>Open <b>Patient Referral</b> and choose (or add) the patient.</li>
+  <li>Add the wound(s) and pick the <b>product type</b> and <b>size</b>, then set quantity, frequency, and duration.</li>
+  <li>Attach any required documentation, sign, and submit.</li>
+</ol>
+
+<h3>HealKit order</h3>
+<ol>
+  <li>Open <b>HealKit Order</b>. New patients need only a first and last name — no insurance docs required.</li>
+  <li>Confirm delivery (defaults to your office; choose another location if needed).</li>
+  <li>Pick product type and size, set the quantity, sign, and submit.</li>
+</ol>
+<div class="tip"><b>What's the difference?</b> HealKit skips insurance verification and ships straight to your office at simple wholesale pricing — great when you don't need to bill a patient's insurance. See the dedicated <b>"Introducing HealKit"</b> handout for details.</div>
+
+<h3>Wholesale order</h3>
+<ol>
+  <li>Open <b>Wholesale Orders</b> → <b>Create</b>.</li>
+  <li>Wholesale orders ship to your facility (not a patient). Choose products and quantities (by the box) and submit.</li>
+</ol>
+
+<div class="foot"><span>CollagenDirect · MD DME — Advanced Wound Care, Simplified</span><span>Questions? orders@md-dme.com</span></div>
+
+<!-- PAGE 2 -->
+<div class="new"></div>
+<div class="top">
+  <img class="logo" src="../assets/brand/md-dme-logo.png" alt="MD DME">
+  <div class="top-tag">Facility User Guide</div>
+</div>
+
+<h2><span class="n">4</span>Tracking orders &amp; shipments</h2>
+<p>Each order type has its own list (<b>Patient Referral</b>, <b>HealKit Order</b>, <b>Wholesale Orders</b>). Open a list to see status at a glance.</p>
+<ul>
+  <li><b>Status</b> shows where each order is (Submitted → Approved → Shipped/In Transit → Delivered).</li>
+  <li>When an order ships, a <b>Track</b> link appears next to the status. Click it to open the carrier's tracking page (UPS). Expand the order or open <b>Order Details</b> to see the full tracking number.</li>
+  <li>Click any order to see its full detail — products, quantities, and shipping info.</li>
+</ul>
+<div class="tip"><b>Shipped notification:</b> when we ship an order, you'll also get an email with a <b>Track Package</b> button.</div>
+
+<h2><span class="n">5</span>Photo Reviews</h2>
+<p>If your practice uses <b>Photo Reviews</b>, you can submit wound photos for clinical review and E/M billing support from the <b>Photo Reviews</b> page. Upload images and follow the prompts; reviewed encounters appear in your list.</p>
+
+<h2><span class="n">6</span>Messages, account &amp; support</h2>
+<ul>
+  <li><b>Messages</b> — communicate with the CollagenDirect team about orders and questions.</li>
+  <li><b>Admin / Profile</b> — update your practice details, locations, and team. Practice administrators can manage additional users.</li>
+  <li><b>Sign out</b> from the menu when you're done.</li>
+</ul>
+
+<h2><span class="n">7</span>Quick reference</h2>
+<div class="grid">
+  <div class="pill"><h4>Add a patient</h4><p>Patients → + New Patient</p></div>
+  <div class="pill"><h4>Insurance order</h4><p>Patient Referral</p></div>
+  <div class="pill"><h4>No-insurance order</h4><p>HealKit Order</p></div>
+  <div class="pill"><h4>Stock your office</h4><p>Wholesale Orders → Create</p></div>
+  <div class="pill"><h4>Track a shipment</h4><p>Order list → Track (UPS)</p></div>
+  <div class="pill"><h4>Get help</h4><p>orders@md-dme.com</p></div>
+</div>
+
+<div class="tip"><b>Need a hand?</b> Our team is happy to walk you or your staff through any of this. Email <b>orders@md-dme.com</b> or call your MD DME representative.</div>
+
+<div class="foot"><span>CollagenDirect · MD DME — Advanced Wound Care, Simplified</span><span>orders@md-dme.com</span></div>
+
+</body>
+</html>
