@@ -61,7 +61,9 @@ if (!$token || !preg_match('/^[a-f0-9]{64}$/', $token)) {
       25 => 'twenty-five', 30 => 'thirty', 35 => 'thirty-five',
       40 => 'forty', 45 => 'forty-five', 50 => 'fifty'
     ];
-    $commissionRateWords = $numberWords[$commissionRatePercent] ?? $commissionRatePercent;
+    // Fall back to the numeric string for rates not in the word map (e.g. 100%);
+    // htmlspecialchars() on a bare int is a fatal TypeError in PHP 8.
+    $commissionRateWords = $numberWords[$commissionRatePercent] ?? (string)$commissionRatePercent;
   }
 }
 ?>
@@ -298,7 +300,7 @@ if (!$token || !preg_match('/^[a-f0-9]{64}$/', $token)) {
               <p class="mb-4">Representative is an independent contractor and not an employee, partner, or joint venturer of Company. Representative is solely responsible for all taxes, insurance, and business expenses related to their activities under this Agreement.</p>
 
               <h3 class="font-bold text-gray-900 mt-6 mb-2">3. COMMISSION STRUCTURE</h3>
-              <p class="mb-4">Representative shall receive a commission of <strong><?= htmlspecialchars($commissionRateWords) ?> percent (<?= $commissionRatePercent ?>%)</strong> of collected revenue from orders placed by healthcare providers that Representative has successfully onboarded to the Company's platform. Commission is payable monthly, on the 15th of each month for the previous month's collections.</p>
+              <p class="mb-4">Representative shall receive a commission of <strong><?= htmlspecialchars((string)$commissionRateWords) ?> percent (<?= (int)$commissionRatePercent ?>%)</strong> of collected revenue from orders placed by healthcare providers that Representative has successfully onboarded to the Company's platform. Commission is payable monthly, on the 15th of each month for the previous month's collections.</p>
 
               <h3 class="font-bold text-gray-900 mt-6 mb-2">4. REPRESENTATIVE RESPONSIBILITIES</h3>
               <ul class="list-disc pl-6 mb-4 space-y-2">
