@@ -221,7 +221,7 @@ if (!$token || !preg_match('/^[a-f0-9]{64}$/', $token)) {
             </div>
           </div>
 
-          <form id="passwordForm" class="space-y-6">
+          <form id="passwordForm" class="space-y-6" onsubmit="return false;">
             <div class="grid md:grid-cols-2 gap-6">
               <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Create Password <span class="text-red-500">*</span></label>
@@ -248,7 +248,7 @@ if (!$token || !preg_match('/^[a-f0-9]{64}$/', $token)) {
 
             <div id="formError" class="hidden bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm"></div>
 
-            <button type="submit" id="step1Submit"
+            <button type="button" id="step1Submit" onclick="submitStep1()"
               class="w-full py-4 bg-gradient-to-r from-teal-600 to-emerald-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:from-teal-700 hover:to-emerald-700 transition-all duration-200 flex items-center justify-center gap-2">
               Continue to Agreement
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -593,9 +593,9 @@ if (!$token || !preg_match('/^[a-f0-9]{64}$/', $token)) {
       currentStep = step;
     }
 
-    // Step 1: Password form
-    document.getElementById('passwordForm')?.addEventListener('submit', function(e) {
-      e.preventDefault();
+    // Step 1: Password — advance client-side only (never a native form submit,
+    // which would GET /rep-invite/?password=... and drop the ?token=).
+    function submitStep1() {
       const password = document.getElementById('password').value;
       const confirm = document.getElementById('confirmPassword').value;
       const errorDiv = document.getElementById('passwordError');
@@ -618,7 +618,7 @@ if (!$token || !preg_match('/^[a-f0-9]{64}$/', $token)) {
 
       formData.password = password;
       goToStep(2);
-    });
+    }
 
     // Agreement scroll detection
     const agreementContainer = document.getElementById('agreementContainer');
