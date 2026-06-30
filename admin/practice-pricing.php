@@ -108,6 +108,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } catch (Exception $e) {
       $error = $e->getMessage();
     }
+  } elseif ($action === 'save_as_template') {
+    try {
+      $templateName = trim($_POST['template_name'] ?? '');
+      if ($templateName === '') throw new Exception('Template name is required');
+      $productPrices = $_POST['product_prices'] ?? [];
+      $productDiscounts = $_POST['product_discounts'] ?? [];
+
+      $pdo->beginTransaction();
+      // Upsert the template by name so re-saving the same name updates it
+      $stmt = $pdo->prepare("
+        INSERT INTO pricing_templates (name, created_by, created_at, updated_at)
+        VALUES (?, ?, NOW(), NOW())
+        ON CONFLICT (name) DO UPDATE SET updated_at = NOW()
+        RETURNING id
+      ");
+      $stmt->execute([$templateName, $admin['id'] ?? null]);
+      $templateId = (int)$stmt->fetchColumn();
+
+      // Replace its items with the prices currently in the form
+      $pdo->prepare("DELETE FROM pricing_template_items WHERE template_id = ?")->execute([$templateId]);
+      $ins = $pdo->prepare("INSERT INTO pricing_template_items (template_id, product_id, custom_price, discount_percentage) VALUES (?, ?, ?, ?)");
+      $tplCount = 0;
+      foreach ($productPrices as $pid => $price) {
+        $pid = (int)$pid;
+        $price = (float)$price;
+        if ($price > 0) {
+          $disc = (isset($productDiscounts[$pid]) && $productDiscounts[$pid] !== '') ? (float)$productDiscounts[$pid] : null;
+          $ins->execute([$templateId, $pid, $price, $disc]);
+          $tplCount++;
+        }
+      }
+      $pdo->commit();
+      $message = "Saved template \"{$templateName}\" with {$tplCount} product price(s).";
+    } catch (Exception $e) {
+      if ($pdo->inTransaction()) $pdo->rollBack();
+      $error = 'Could not save template: ' . $e->getMessage();
+    }
   }
 }
 
@@ -141,6 +178,26 @@ $stmt = $pdo->query("
     id ASC
 ");
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Load pricing templates ("House Pricing") for the apply / save-as-template controls.
+// Wrapped in try/catch so the page still works if the migration hasn't run yet.
+$pricingTemplates = [];
+try {
+  $templates = $pdo->query("SELECT id, name FROM pricing_templates ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
+  $itemsByTpl = [];
+  foreach ($pdo->query("SELECT template_id, product_id, custom_price, discount_percentage FROM pricing_template_items")->fetchAll(PDO::FETCH_ASSOC) as $it) {
+    $itemsByTpl[(int)$it['template_id']][] = [
+      'product_id' => (int)$it['product_id'],
+      'custom_price' => (float)$it['custom_price'],
+      'discount_percentage' => $it['discount_percentage'] !== null ? (float)$it['discount_percentage'] : null,
+    ];
+  }
+  foreach ($templates as $t) {
+    $pricingTemplates[] = ['id' => (int)$t['id'], 'name' => $t['name'], 'items' => $itemsByTpl[(int)$t['id']] ?? []];
+  }
+} catch (Exception $e) {
+  $pricingTemplates = [];
+}
 
 // Fetch existing pricing for selected practice
 $existingPricing = [];
@@ -388,7 +445,8 @@ $totalProductCount = count($products);
     <?php if ($selectedPractice && $practiceDetails): ?>
       <!-- Pricing Management -->
       <form method="POST">
-        <input type="hidden" name="action" value="save_pricing">
+        <input type="hidden" name="action" id="form-action" value="save_pricing">
+        <input type="hidden" name="template_name" id="template-name-field" value="">
         <input type="hidden" name="user_id" value="<?= htmlspecialchars($selectedPractice) ?>">
 
         <!-- Catalog-Wide Discount -->
@@ -422,6 +480,25 @@ $totalProductCount = count($products);
 
         <!-- Individual Product Pricing -->
         <div class="card" style="padding: 1.5rem;">
+
+          <!-- House Pricing templates -->
+          <div style="display:flex; gap:.75rem; align-items:center; flex-wrap:wrap; margin-bottom:1.25rem; padding:.75rem 1rem; background:var(--brand-lighter, #eef6fc); border:1px solid var(--brand, #0075bc); border-radius:8px;">
+            <strong style="font-size:.875rem; color:var(--brand, #0075bc);">Pricing template:</strong>
+            <?php if (!empty($pricingTemplates)): ?>
+              <select id="template-select" style="padding:.4rem .6rem; border:1px solid var(--line,#e6ebf2); border-radius:6px;">
+                <option value="">Start from a template…</option>
+                <?php foreach ($pricingTemplates as $t): ?>
+                  <option value="<?= (int)$t['id'] ?>"><?= htmlspecialchars($t['name']) ?> (<?= count($t['items']) ?>)</option>
+                <?php endforeach; ?>
+              </select>
+              <button type="button" class="btn" onclick="applyTemplate()">Apply</button>
+              <span style="font-size:.75rem; color:var(--muted,#7a8699);">Fills the prices below — adjust as needed, then Save.</span>
+            <?php else: ?>
+              <span style="font-size:.8125rem; color:var(--muted,#7a8699);">No templates yet — set the prices below, then "Save as template" to create one (e.g. House Pricing).</span>
+            <?php endif; ?>
+            <button type="button" class="btn" style="margin-left:auto;" onclick="saveAsTemplate()">Save as template…</button>
+          </div>
+
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
             <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--ink);">
               Product Pricing (<?= count($products) ?> products)
@@ -557,6 +634,39 @@ $totalProductCount = count($products);
 </div>
 
 <script>
+// ----- House Pricing templates -----
+const PRICING_TEMPLATES = <?= json_encode($pricingTemplates, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+
+function applyTemplate() {
+  const sel = document.getElementById('template-select');
+  if (!sel || !sel.value) { alert('Pick a template first.'); return; }
+  const tpl = PRICING_TEMPLATES.find(t => t.id === parseInt(sel.value, 10));
+  if (!tpl) return;
+  if (!confirm('Fill in prices from "' + tpl.name + '"? This overwrites the price fields below (you can still adjust before saving).')) return;
+  let applied = 0;
+  tpl.items.forEach(it => {
+    const priceInput = document.querySelector('.custom-price-input[data-product-id="' + it.product_id + '"]');
+    if (priceInput) {
+      priceInput.value = Number(it.custom_price).toFixed(2);
+      calculateDiscount(priceInput); // refresh discount %, box price, and price-change cells
+      applied++;
+    }
+  });
+  if (applied === 0) alert('None of this template’s products are in the current list.');
+}
+
+function saveAsTemplate() {
+  const def = (document.getElementById('template-select') && document.getElementById('template-select').selectedOptions.length && document.getElementById('template-select').value)
+    ? document.getElementById('template-select').selectedOptions[0].textContent.replace(/\s*\(\d+\)\s*$/, '')
+    : 'House Pricing';
+  const name = prompt('Save the prices currently entered below as a reusable template.\n\nTemplate name (re-using a name updates it):', def);
+  if (!name || !name.trim()) return;
+  document.getElementById('template-name-field').value = name.trim();
+  const actionField = document.getElementById('form-action');
+  actionField.value = 'save_as_template';
+  actionField.form.submit();
+}
+
 function calculateDiscount(priceInput) {
   const productId = priceInput.dataset.productId;
   const defaultPrice = parseFloat(priceInput.dataset.defaultPrice);
