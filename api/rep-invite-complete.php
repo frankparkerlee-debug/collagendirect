@@ -204,7 +204,7 @@ function sendAdminInviteCompletedNotification(PDO $pdo, array $inviteData): void
 
 <div style="text-align: center; margin: 30px 0;">
   <a href="https://collagendirect.health/admin/platform/distributors.php?tab=pending"
-     style="display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #0d9488 0%, #10b981 100%); color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">
+     style="display: inline-block; padding: 14px 28px; background-color: #0075bc; background-image: linear-gradient(135deg, #20419b 0%, #0075bc 100%); color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">
     Review Application
   </a>
 </div>
@@ -254,7 +254,7 @@ function sendRepConfirmationEmail(array $inviteData): void {
 </p>
 
 <p style="color: #6b7280; font-size: 14px; margin-top: 20px;">
-  Questions? Contact us at <a href="mailto:partners@collagendirect.health" style="color: #0d9488;">partners@collagendirect.health</a>
+  Questions? Contact us at <a href="mailto:orders@md-dme.com" style="color: #0075bc;">orders@md-dme.com</a>
 </p>
 HTML;
 

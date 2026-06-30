@@ -202,9 +202,9 @@ function email_template(string $title, string $bodyContent): string {
         <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
           <!-- Header -->
           <tr>
-            <td style="background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%); padding: 30px; text-align: center;">
-              <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 600;">CollagenDirect</h1>
-              <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0; font-size: 14px;">Advanced Wound Care Solutions</p>
+            <td style="background-color: #20419b; background-image: linear-gradient(135deg, #20419b 0%, #0075bc 100%); padding: 30px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.01em;">CollagenDirect</h1>
+              <p style="color: rgba(255,255,255,0.9); margin: 6px 0 0 0; font-size: 13px; letter-spacing: 0.02em;">Advanced Wound Care, Simplified &middot; by MD DME</p>
             </td>
           </tr>
           <!-- Body -->
@@ -215,15 +215,14 @@ function email_template(string $title, string $bodyContent): string {
           </tr>
           <!-- Footer -->
           <tr>
-            <td style="background-color: #f8fafc; padding: 20px 30px; border-top: 1px solid #e2e8f0;">
-              <p style="margin: 0 0 10px 0; font-size: 13px; color: #64748b;">
+            <td style="background-color: #f4f8fc; padding: 20px 30px; border-top: 1px solid #e6ebf2;">
+              <p style="margin: 0 0 10px 0; font-size: 13px; color: #4d4d4d;">
                 <strong>Need Help?</strong><br>
-                Email: <a href="mailto:support@collagendirect.health" style="color: #0d9488;">support@collagendirect.health</a><br>
-                Phone: (888) 415-6880
+                Email: <a href="mailto:orders@md-dme.com" style="color: #0075bc; text-decoration: none;">orders@md-dme.com</a>
               </p>
-              <p style="margin: 0; font-size: 12px; color: #94a3b8;">
-                &copy; 2024 CollagenDirect. All rights reserved.<br>
-                <a href="https://collagendirect.health" style="color: #0d9488;">collagendirect.health</a>
+              <p style="margin: 0; font-size: 12px; color: #7a8699;">
+                &copy; 2026 MD DME. All rights reserved.<br>
+                <a href="https://collagendirect.health" style="color: #0075bc; text-decoration: none;">collagendirect.health</a>
               </p>
             </td>
           </tr>

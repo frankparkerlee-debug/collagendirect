@@ -40,8 +40,8 @@ function send_rep_application_submitted(PDO $pdo, string $repEmail, string $repN
     Our team will review your application within 2-3 business days. You will receive an email notification once a decision has been made.
 </p>
 
-<div style="background-color: #f0fdfa; border-left: 4px solid #14b8a6; padding: 15px 20px; margin: 20px 0;">
-    <p style="color: #0d9488; font-size: 14px; margin: 0; font-weight: 500;">
+<div style="background-color: #eef6fc; border-left: 4px solid #00aeef; padding: 15px 20px; margin: 20px 0;">
+    <p style="color: #20419b; font-size: 14px; margin: 0; font-weight: 500;">
         <strong>What's Next?</strong><br>
         We'll notify you by email once your application has been reviewed. If you have any questions in the meantime, please don't hesitate to reach out.
     </p>
@@ -100,27 +100,27 @@ function send_rep_application_approved(PDO $pdo, string $repEmail, string $repNa
     <table style="width: 100%; border-collapse: collapse;">
         <tr>
             <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0;">
-                <strong style="color: #0d9488;">Sales Training Portal</strong><br>
+                <strong style="color: #20419b;">Sales Training Portal</strong><br>
                 <span style="color: #64748b; font-size: 13px;">Scripts, product training, objection handling</span>
             </td>
             <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; text-align: right;">
-                <a href="{$trainingUrl}" style="color: #0d9488; font-size: 13px; text-decoration: none;">training →</a>
+                <a href="{$trainingUrl}" style="color: #20419b; font-size: 13px; text-decoration: none;">training →</a>
             </td>
         </tr>
         <tr>
             <td style="padding: 10px 0;">
-                <strong style="color: #0d9488;">Rep Dashboard</strong><br>
+                <strong style="color: #20419b;">Rep Dashboard</strong><br>
                 <span style="color: #64748b; font-size: 13px;">Onboard clinics, track commissions, manage docs</span>
             </td>
             <td style="padding: 10px 0; text-align: right;">
-                <a href="{$dashboardUrl}" style="color: #0d9488; font-size: 13px; text-decoration: none;">dashboard →</a>
+                <a href="{$dashboardUrl}" style="color: #20419b; font-size: 13px; text-decoration: none;">dashboard →</a>
             </td>
         </tr>
     </table>
 </div>
 
-<div style="background-color: #f0fdfa; border-left: 4px solid #14b8a6; padding: 15px 20px; margin: 20px 0;">
-    <p style="color: #0d9488; font-size: 14px; margin: 0; font-weight: 500;">
+<div style="background-color: #eef6fc; border-left: 4px solid #00aeef; padding: 15px 20px; margin: 20px 0;">
+    <p style="color: #20419b; font-size: 14px; margin: 0; font-weight: 500;">
         <strong>Your First Week Checklist:</strong><br>
         1. Complete the Quick Start Guide (30 min)<br>
         2. Review the product training materials<br>
@@ -198,7 +198,7 @@ function send_rep_assignment_approved(PDO $pdo, string $repEmail, string $repNam
 </p>
 
 <div style="text-align: center; margin: 30px 0;">
-    <a href="{$portalUrl}" style="display: inline-block; background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 15px;">
+    <a href="{$portalUrl}" style="display: inline-block; background-color: #0075bc; background-image: linear-gradient(135deg, #20419b 0%, #0075bc 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 15px;">
         View My Clinics
     </a>
 </div>
@@ -260,7 +260,7 @@ function send_rep_clinic_assigned(PDO $pdo, string $repEmail, string $repName, s
 </p>
 
 <div style="text-align: center; margin: 30px 0;">
-    <a href="{$portalUrl}" style="display: inline-block; background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 15px;">
+    <a href="{$portalUrl}" style="display: inline-block; background-color: #0075bc; background-image: linear-gradient(135deg, #20419b 0%, #0075bc 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 15px;">
         View My Clinics
     </a>
 </div>
@@ -366,7 +366,7 @@ function send_admin_new_rep_application(PDO $pdo, string $repName, string $repEm
 </div>
 
 <div style="text-align: center; margin: 30px 0;">
-    <a href="{$reviewUrl}" style="display: inline-block; background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 15px;">
+    <a href="{$reviewUrl}" style="display: inline-block; background-color: #0075bc; background-image: linear-gradient(135deg, #20419b 0%, #0075bc 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 15px;">
         Review Application
     </a>
 </div>
@@ -504,7 +504,7 @@ function send_rep_w9_request(PDO $pdo, string $repEmail, string $repName, int $t
 </p>
 
 <div style="text-align: center; margin: 30px 0;">
-    <a href="{$portalUrl}" style="display: inline-block; background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 15px;">
+    <a href="{$portalUrl}" style="display: inline-block; background-color: #0075bc; background-image: linear-gradient(135deg, #20419b 0%, #0075bc 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 15px;">
         Submit W-9 Form
     </a>
 </div>
@@ -550,7 +550,7 @@ function send_admin_new_assignment_request(PDO $pdo, string $repName, string $cl
 </div>
 
 <div style="text-align: center; margin: 30px 0;">
-    <a href="{$reviewUrl}" style="display: inline-block; background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 15px;">
+    <a href="{$reviewUrl}" style="display: inline-block; background-color: #0075bc; background-image: linear-gradient(135deg, #20419b 0%, #0075bc 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 15px;">
         Review Request
     </a>
 </div>
@@ -642,7 +642,7 @@ function send_rep_onboarding_day1(PDO $pdo, string $repEmail, string $repName): 
 </p>
 
 <p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 15px 0;">
-    How's your first day going? If you haven't already, make sure you've completed the <a href="{$quickStartUrl}" style="color: #0d9488;">Quick Start Guide</a> – it's the fastest way to get up to speed.
+    How's your first day going? If you haven't already, make sure you've completed the <a href="{$quickStartUrl}" style="color: #20419b;">Quick Start Guide</a> – it's the fastest way to get up to speed.
 </p>
 
 <p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 20px 0;">
@@ -650,7 +650,7 @@ function send_rep_onboarding_day1(PDO $pdo, string $repEmail, string $repName): 
 </p>
 
 <!-- Primary CTA -->
-<div style="background: linear-gradient(135deg, #10b981 0%, #14b8a6 100%); border-radius: 12px; padding: 24px; margin: 25px 0; text-align: center;">
+<div style="background-color: #0075bc; background-image: linear-gradient(135deg, #0075bc 0%, #00aeef 100%); border-radius: 12px; padding: 24px; margin: 25px 0; text-align: center;">
     <p style="color: #ffffff; font-size: 13px; font-weight: 600; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 0.5px;">
         📚 TODAY'S TRAINING
     </p>
@@ -738,9 +738,9 @@ function send_rep_onboarding_day3(PDO $pdo, string $repEmail, string $repName): 
     </ul>
 </div>
 
-<div style="background-color: #f0fdfa; border-left: 4px solid #14b8a6; padding: 15px 20px; margin: 20px 0;">
-    <p style="color: #0d9488; font-size: 14px; margin: 0;">
-        <strong>Also check out:</strong> Our <a href="{$scriptsUrl}" style="color: #0d9488;">Sales Scripts</a> have proven talk tracks for handling "we're happy with our current supplier" objections.
+<div style="background-color: #eef6fc; border-left: 4px solid #00aeef; padding: 15px 20px; margin: 20px 0;">
+    <p style="color: #20419b; font-size: 14px; margin: 0;">
+        <strong>Also check out:</strong> Our <a href="{$scriptsUrl}" style="color: #20419b;">Sales Scripts</a> have proven talk tracks for handling "we're happy with our current supplier" objections.
     </p>
 </div>
 
@@ -791,8 +791,8 @@ function send_rep_onboarding_day7(PDO $pdo, string $repEmail, string $repName): 
     </a>
 </div>
 
-<div style="background-color: #f0fdfa; border-left: 4px solid #14b8a6; padding: 15px 20px; margin: 20px 0;">
-    <p style="color: #0d9488; font-size: 14px; margin: 0; font-weight: 500;">
+<div style="background-color: #eef6fc; border-left: 4px solid #00aeef; padding: 15px 20px; margin: 20px 0;">
+    <p style="color: #20419b; font-size: 14px; margin: 0; font-weight: 500;">
         <strong>Your Week 1 Recap:</strong><br>
         ✓ Quick Start Guide – selling fundamentals<br>
         ✓ Product Training – know the portfolio<br>
@@ -809,8 +809,8 @@ function send_rep_onboarding_day7(PDO $pdo, string $repEmail, string $repName): 
         You have everything you need to start closing deals:
     </p>
     <ul style="color: #475569; font-size: 14px; line-height: 1.8; margin: 0; padding-left: 20px;">
-        <li>Use your <a href="{$repPortalUrl}" style="color: #0d9488;">Rep Dashboard</a> to onboard clinics</li>
-        <li>Reference the <a href="{$trainingUrl}" style="color: #0d9488;">Training Portal</a> anytime you need scripts or product info</li>
+        <li>Use your <a href="{$repPortalUrl}" style="color: #20419b;">Rep Dashboard</a> to onboard clinics</li>
+        <li>Reference the <a href="{$trainingUrl}" style="color: #20419b;">Training Portal</a> anytime you need scripts or product info</li>
         <li>Track your commissions in real-time as orders come in</li>
     </ul>
 </div>

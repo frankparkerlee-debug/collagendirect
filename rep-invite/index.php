@@ -75,7 +75,7 @@ if (!$token || !preg_match('/^[a-f0-9]{64}$/', $token)) {
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -83,14 +83,15 @@ if (!$token || !preg_match('/^[a-f0-9]{64}$/', $token)) {
         extend: {
           colors: {
             brand: {
-              teal: '#47c6be',
-              blue: '#2a78ff',
-              navy: '#0a2540',
-              slate: '#64748b'
+              DEFAULT: '#0075bc',
+              dark: '#20419b',
+              accent: '#00aeef',
+              navy: '#20419b',
+              slate: '#4d4d4d'
             }
           },
           fontFamily: {
-            sans: ['Inter', 'system-ui', 'sans-serif']
+            sans: ['Manrope', 'system-ui', 'sans-serif']
           }
         }
       }
@@ -98,10 +99,10 @@ if (!$token || !preg_match('/^[a-f0-9]{64}$/', $token)) {
   </script>
   <style>
     body { font-feature-settings: 'cv11', 'ss01'; -webkit-font-smoothing: antialiased; }
-    .step-indicator.active { background: linear-gradient(135deg, #14b8a6 0%, #10b981 100%); color: white; }
-    .step-indicator.completed { background: #10b981; color: white; }
+    .step-indicator.active { background: linear-gradient(135deg, #20419b 0%, #0075bc 100%); color: white; }
+    .step-indicator.completed { background: #0075bc; color: white; }
     .step-indicator.inactive { background: #e5e7eb; color: #6b7280; }
-    .step-line.active { background: #10b981; }
+    .step-line.active { background: #0075bc; }
     .step-line.inactive { background: #e5e7eb; }
     .agreement-container { max-height: 400px; overflow-y: auto; }
     .agreement-container::-webkit-scrollbar { width: 8px; }
@@ -117,7 +118,7 @@ if (!$token || !preg_match('/^[a-f0-9]{64}$/', $token)) {
     <div class="max-w-4xl mx-auto px-6 py-4">
       <div class="flex items-center justify-between">
         <a href="/" class="flex items-center gap-3">
-          <img src="/assets/collagendirect.png" alt="CollagenDirect" class="h-8 w-auto">
+          <img src="/assets/brand/md-dme-logo.png" alt="MD DME" class="h-9 w-auto">
         </a>
       </div>
     </div>
@@ -134,7 +135,7 @@ if (!$token || !preg_match('/^[a-f0-9]{64}$/', $token)) {
         </div>
         <h1 class="text-2xl font-bold text-gray-900 mb-2">Invalid Invite Link</h1>
         <p class="text-gray-600 mb-6">This invite link is invalid or has already been used. Please contact your administrator for a new invite.</p>
-        <a href="/login" class="inline-flex items-center gap-2 text-teal-600 font-semibold hover:underline">
+        <a href="/login" class="inline-flex items-center gap-2 text-brand font-semibold hover:underline">
           Go to Login
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
         </a>
@@ -150,7 +151,7 @@ if (!$token || !preg_match('/^[a-f0-9]{64}$/', $token)) {
         <h1 class="text-2xl font-bold text-gray-900 mb-2">Invite Expired</h1>
         <p class="text-gray-600 mb-6">This invite has expired. Please contact your administrator to send a new invite.</p>
         <p class="text-sm text-gray-500">
-          Contact: <a href="mailto:partners@collagendirect.health" class="text-teal-600 hover:underline">partners@collagendirect.health</a>
+          Contact: <a href="mailto:orders@md-dme.com" class="text-brand hover:underline">orders@md-dme.com</a>
         </p>
       </div>
     <?php else: ?>
@@ -227,7 +228,7 @@ if (!$token || !preg_match('/^[a-f0-9]{64}$/', $token)) {
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Create Password <span class="text-red-500">*</span></label>
                 <div class="relative">
                   <input type="password" id="password" name="password" required minlength="8"
-                    class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition pr-12"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-brand/20 focus:border-brand transition pr-12"
                     placeholder="Min 8 characters">
                   <button type="button" onclick="togglePassword('password')" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                     <svg id="password-eye" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -240,7 +241,7 @@ if (!$token || !preg_match('/^[a-f0-9]{64}$/', $token)) {
               <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Confirm Password <span class="text-red-500">*</span></label>
                 <input type="password" id="confirmPassword" name="confirm_password" required
-                  class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition"
+                  class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-brand/20 focus:border-brand transition"
                   placeholder="Re-enter password">
                 <p id="passwordError" class="text-red-600 text-sm mt-1 hidden"></p>
               </div>
@@ -249,7 +250,7 @@ if (!$token || !preg_match('/^[a-f0-9]{64}$/', $token)) {
             <div id="formError" class="hidden bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm"></div>
 
             <button type="button" id="step1Submit" onclick="submitStep1()"
-              class="w-full py-4 bg-gradient-to-r from-teal-600 to-emerald-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:from-teal-700 hover:to-emerald-700 transition-all duration-200 flex items-center justify-center gap-2">
+              class="w-full py-4 bg-gradient-to-r from-brand-dark to-brand text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:from-brand-dark hover:to-brand-dark transition-all duration-200 flex items-center justify-center gap-2">
               Continue to Agreement
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
@@ -348,7 +349,7 @@ if (!$token || !preg_match('/^[a-f0-9]{64}$/', $token)) {
 
           <div id="signatureSection" class="hidden space-y-6">
             <div class="flex items-start gap-3">
-              <input type="checkbox" id="agreeTerms" class="mt-1 w-5 h-5 rounded border-gray-300 text-teal-600 focus:ring-teal-500">
+              <input type="checkbox" id="agreeTerms" class="mt-1 w-5 h-5 rounded border-gray-300 text-brand focus:ring-brand">
               <label for="agreeTerms" class="text-sm text-gray-700">
                 I have read and agree to the terms and conditions of this Sales Representative Agreement
               </label>
@@ -357,7 +358,7 @@ if (!$token || !preg_match('/^[a-f0-9]{64}$/', $token)) {
             <div>
               <label class="block text-sm font-semibold text-gray-700 mb-2">Full Legal Name (E-Signature) <span class="text-red-500">*</span></label>
               <input type="text" id="signatureName"
-                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition font-serif text-lg"
+                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-brand/20 focus:border-brand transition font-serif text-lg"
                 placeholder="Type your full legal name">
               <p class="text-xs text-gray-500 mt-2">By typing your name above, you are electronically signing this agreement</p>
             </div>
@@ -369,7 +370,7 @@ if (!$token || !preg_match('/^[a-f0-9]{64}$/', $token)) {
                 Back
               </button>
               <button type="button" id="step2Submit" onclick="submitStep2()"
-                class="flex-1 py-4 bg-gradient-to-r from-teal-600 to-emerald-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:from-teal-700 hover:to-emerald-700 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                class="flex-1 py-4 bg-gradient-to-r from-brand-dark to-brand text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:from-brand-dark hover:to-brand-dark transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                 Sign & Continue
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
@@ -460,7 +461,7 @@ if (!$token || !preg_match('/^[a-f0-9]{64}$/', $token)) {
 
           <div id="baaSignatureSection" class="hidden space-y-6">
             <div class="flex items-start gap-3">
-              <input type="checkbox" id="agreeBaa" class="mt-1 w-5 h-5 rounded border-gray-300 text-teal-600 focus:ring-teal-500">
+              <input type="checkbox" id="agreeBaa" class="mt-1 w-5 h-5 rounded border-gray-300 text-brand focus:ring-brand">
               <label for="agreeBaa" class="text-sm text-gray-700">
                 I have read and agree to the terms of this Business Associate Agreement and understand my HIPAA compliance obligations
               </label>
@@ -469,7 +470,7 @@ if (!$token || !preg_match('/^[a-f0-9]{64}$/', $token)) {
             <div>
               <label class="block text-sm font-semibold text-gray-700 mb-2">Full Legal Name (E-Signature) <span class="text-red-500">*</span></label>
               <input type="text" id="baaSignatureName"
-                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition font-serif text-lg"
+                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-brand/20 focus:border-brand transition font-serif text-lg"
                 placeholder="Type your full legal name">
             </div>
 
@@ -480,7 +481,7 @@ if (!$token || !preg_match('/^[a-f0-9]{64}$/', $token)) {
                 Back
               </button>
               <button type="button" id="step3Submit" onclick="submitFinal()"
-                class="flex-1 py-4 bg-gradient-to-r from-teal-600 to-emerald-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:from-teal-700 hover:to-emerald-700 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                class="flex-1 py-4 bg-gradient-to-r from-brand-dark to-brand text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:from-brand-dark hover:to-brand-dark transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                 <span id="submitText">Complete Registration</span>
                 <svg id="submitArrow" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
@@ -529,10 +530,10 @@ if (!$token || !preg_match('/^[a-f0-9]{64}$/', $token)) {
           </div>
 
           <p class="text-sm text-gray-500 mb-6">
-            Questions? Contact us at <a href="mailto:partners@collagendirect.health" class="text-teal-600 hover:underline">partners@collagendirect.health</a>
+            Questions? Contact us at <a href="mailto:orders@md-dme.com" class="text-brand hover:underline">orders@md-dme.com</a>
           </p>
 
-          <a href="/login" class="inline-flex items-center gap-2 py-4 px-8 bg-gradient-to-r from-teal-600 to-emerald-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:from-teal-700 hover:to-emerald-700 transition-all duration-200">
+          <a href="/login" class="inline-flex items-center gap-2 py-4 px-8 bg-gradient-to-r from-brand-dark to-brand text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:from-brand-dark hover:to-brand-dark transition-all duration-200">
             Go to Login
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
