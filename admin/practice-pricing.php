@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ON CONFLICT (user_id, product_id)
             DO UPDATE SET custom_price = EXCLUDED.custom_price, discount_percentage = EXCLUDED.discount_percentage, updated_at = NOW(), created_by = EXCLUDED.created_by
           ");
-          $stmt->execute([$userId, $product['id'], $customPricePerPiece, $catalogDiscount, $admin['id']]);
+          $stmt->execute([$userId, $product['id'], $customPricePerPiece, $catalogDiscount, ($admin['id'] ?? null)]);
         }
         $adjustmentType = $catalogDiscount > 0 ? 'discount' : ($catalogDiscount < 0 ? 'upcharge' : 'pricing adjustment');
         $message = "Catalog-wide " . abs($catalogDiscount) . "% {$adjustmentType} applied to all products";
@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               ON CONFLICT (user_id, product_id)
               DO UPDATE SET custom_price = EXCLUDED.custom_price, discount_percentage = EXCLUDED.discount_percentage, updated_at = NOW(), created_by = EXCLUDED.created_by
             ");
-            $stmt->execute([$userId, $productId, $customPrice, $discount, $admin['id']]);
+            $stmt->execute([$userId, $productId, $customPrice, $discount, ($admin['id'] ?? null)]);
           } else {
             // Remove pricing if custom price is empty/zero
             $stmt = $pdo->prepare("DELETE FROM practice_pricing WHERE user_id = ? AND product_id = ?");
