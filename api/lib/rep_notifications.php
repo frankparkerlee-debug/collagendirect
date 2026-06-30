@@ -398,8 +398,8 @@ function send_rep_invite(PDO $pdo, string $repEmail, string $repName, string $in
     $onboardingUrl = env('APP_URL', 'https://collagendirect.health') . '/rep-invite/?token=' . urlencode($inviteToken);
 
     $personalNoteHtml = $personalNote
-        ? "<div style=\"background-color: #f0fdfa; border-left: 4px solid #14b8a6; padding: 15px 20px; margin: 20px 0;\">
-            <p style=\"color: #0d9488; font-size: 14px; margin: 0; font-weight: 500;\">
+        ? "<div style=\"background-color: #eef6fc; border-left: 4px solid #00aeef; padding: 15px 20px; margin: 20px 0;\">
+            <p style=\"color: #20419b; font-size: 14px; margin: 0; font-weight: 500;\">
                 <strong>Personal Note:</strong><br>" . htmlspecialchars($personalNote) . "
             </p>
            </div>"
@@ -422,14 +422,21 @@ function send_rep_invite(PDO $pdo, string $repEmail, string $repName, string $in
     Click the button below to complete your setup:
 </p>
 
-<div style="text-align: center; margin: 30px 0;">
-    <a href="{$onboardingUrl}" style="display: inline-block; background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 15px;">
+<div style="text-align: center; margin: 30px 0 14px 0;">
+    <a href="{$onboardingUrl}" style="display: inline-block; background-color: #0075bc; background-image: linear-gradient(135deg, #20419b 0%, #0075bc 100%); color: #ffffff !important; text-decoration: none; padding: 15px 34px; border-radius: 8px; font-weight: 700; font-size: 16px;">
         Complete Your Onboarding
     </a>
 </div>
 
-<div style="background-color: #f0fdfa; border-left: 4px solid #14b8a6; padding: 15px 20px; margin: 20px 0;">
-    <p style="color: #0d9488; font-size: 14px; margin: 0; font-weight: 500;">
+<p style="color: #475569; font-size: 13px; line-height: 1.5; margin: 0 0 6px 0; text-align: center;">
+    If the button above doesn't appear, copy and paste this link into your browser:
+</p>
+<p style="font-size: 13px; line-height: 1.5; margin: 0 0 4px 0; text-align: center; word-break: break-all;">
+    <a href="{$onboardingUrl}" style="color: #0075bc; font-weight: 600;">{$onboardingUrl}</a>
+</p>
+
+<div style="background-color: #eef6fc; border-left: 4px solid #00aeef; padding: 15px 20px; margin: 20px 0;">
+    <p style="color: #20419b; font-size: 14px; margin: 0; font-weight: 500;">
         <strong>What to Expect:</strong><br>
         • Set your secure password<br>
         • Review and sign the Sales Rep Agreement<br>
