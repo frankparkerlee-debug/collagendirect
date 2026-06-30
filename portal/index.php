@@ -10797,8 +10797,13 @@ if (<?php echo json_encode($page==='patients'); ?>){
   load('');
 }
 
-/* ORDERS page */
-if (<?php echo json_encode($page==='orders'); ?>){
+/* ORDERS page (legacy inline table — superseded by orders-list.php).
+   Guard on #orders-tb: when the legacy table isn't present (current Patient
+   Referral page renders via orders-list.php), skip this whole block. Without
+   this guard, $('#oq').addEventListener below throws on null and halts the
+   entire script before `let woundCounter` initializes — which silently breaks
+   the order modal's wounds (no default wound, dead "+ Add Wound"). */
+if (<?php echo json_encode($page==='orders'); ?> && $('#orders-tb')){
   const tb=$('#orders-tb');
 
   // Read status from URL parameter and set dropdown
@@ -12482,16 +12487,9 @@ function initWoundsManager() {
   console.log('Initializing wounds manager - adding first wound');
   addWound();
 
-  // Add wound button handler - using addEventListener for better compatibility
-  addBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    console.log('Add wound button clicked');
-    addWound();
-  });
-
-  // Also log the button element to verify it was found
-  console.log('Add wound button element:', addBtn);
+  // Click handling lives on the button's inline onclick="addWound()" (robust:
+  // works even if this init didn't run). Do NOT also addEventListener here, or
+  // each click adds two wounds.
   console.log('Wounds manager initialized successfully');
 }
 
