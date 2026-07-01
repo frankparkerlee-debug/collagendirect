@@ -107,11 +107,12 @@ foreach ($orders as $order) {
 
   if (!isset($patient_groups[$patient_name])) {
     $patient_groups[$patient_name] = [
+      'ship_name' => $order['shipping_name'] ?? '',
       'address' => $order['shipping_address'] ?? $order['address'] ?? '',
       'city' => $order['shipping_city'] ?? $order['city'] ?? '',
       'state' => $order['shipping_state'] ?? $order['state'] ?? '',
       'zip' => $order['shipping_zip'] ?? $order['zip'] ?? '',
-      'phone' => $order['patient_phone'] ?? '',
+      'phone' => $order['shipping_phone'] ?: ($order['patient_phone'] ?? ''),
       'delivery_mode' => $order['delivery_mode'] ?? 'patient',
       'products' => []
     ];
@@ -161,14 +162,17 @@ $patients_html = '';
 foreach ($patient_groups as $patient_name => $patient_data) {
   $is_office = $patient_data['delivery_mode'] === 'office' || $patient_name === 'Office Stock';
   $delivery_label = $is_office ? 'Ship to Office' : 'Ship to Patient';
+  $ship_name = trim((string)($patient_data['ship_name'] ?? ''));
 
-  $address_line = '';
-  if ($is_office) {
-    $address_parts = array_filter([$practice_address, $practice_city, $practice_state, $practice_zip]);
-    $address_line = implode(', ', $address_parts);
+  // Always prefer the delivery address the practice actually selected on the order;
+  // only fall back to the practice address for office orders with no selected address.
+  $selected_addr = implode(', ', array_filter([$patient_data['address'], $patient_data['city'], $patient_data['state'], $patient_data['zip']]));
+  if ($selected_addr !== '') {
+    $address_line = $selected_addr;
+  } elseif ($is_office) {
+    $address_line = implode(', ', array_filter([$practice_address, $practice_city, $practice_state, $practice_zip]));
   } else {
-    $address_parts = array_filter([$patient_data['address'], $patient_data['city'], $patient_data['state'], $patient_data['zip']]);
-    $address_line = implode(', ', $address_parts);
+    $address_line = '';
   }
 
   $patients_html .= '
@@ -178,6 +182,9 @@ foreach ($patient_groups as $patient_name => $patient_data) {
       <span class="delivery-badge">'.h($delivery_label).'</span>
     </div>';
 
+  if ($ship_name !== '') {
+    $patients_html .= '<div class="patient-address"><strong>Deliver To:</strong> '.h($ship_name).'</div>';
+  }
   if ($address_line) {
     $patients_html .= '<div class="patient-address">'.h($address_line).'</div>';
   }
