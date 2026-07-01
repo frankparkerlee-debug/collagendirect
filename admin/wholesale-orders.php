@@ -36,6 +36,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     'Total Value',
     'Status',
     'Payment Status',
+    'Deliver To',
     'Shipping Address'
   ]);
 
@@ -52,6 +53,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
       o.product_price as unit_price,
       o.status,
       o.paid_at,
+      o.shipping_name,
       CONCAT_WS(', ', o.shipping_address, o.shipping_city, o.shipping_state, o.shipping_zip) as shipping_address,
       pr.pieces_per_box,
       pr.price_wholesale
@@ -86,6 +88,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
       '$' . number_format($total_value, 2),
       ucfirst($row['status'] ?? ''),
       $paymentStatus,
+      $row['shipping_name'] ?? '',
       $row['shipping_address'] ?? ''
     ]);
   }
@@ -313,6 +316,7 @@ if (!$hasBilledBy) {
         u.email as phys_email,
         p.first_name as pat_first,
         p.last_name as pat_last,
+        o.shipping_name,
         CONCAT_WS(', ', o.shipping_address, o.shipping_city, o.shipping_state, o.shipping_zip) as shipping_address,
         pr.pieces_per_box,
         pr.price_wholesale,
@@ -347,6 +351,7 @@ if (!$hasBilledBy) {
           'user_id' => $order['user_id'],
           'status' => $order['status'],
           'paid_at' => $order['paid_at'],
+          'shipping_name' => $order['shipping_name'],
           'shipping_address' => $order['shipping_address'],
           'items' => [],
           'total_boxes' => 0,
@@ -1141,6 +1146,10 @@ async function viewOrderDetail(orderId) {
           <div>
             <h4 style="font-weight: 600; margin-bottom: 1rem; color: var(--ink);">Shipping Information</h4>
             <div style="display: grid; gap: 0.75rem;">
+              <div>
+                <div style="font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem;">Deliver To</div>
+                <div>${o.shipping_name || 'N/A'}</div>
+              </div>
               <div>
                 <div style="font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem;">Shipping Address</div>
                 <div>${o.shipping_address || 'N/A'}</div>
