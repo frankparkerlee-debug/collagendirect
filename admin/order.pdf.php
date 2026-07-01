@@ -81,6 +81,20 @@ try {
 
 function h($v){ return htmlspecialchars((string)$v, ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8'); }
 function weeks_auth($days){ $d=(int)$days; return $d>0 ? (int)ceil($d/7) : 0; }
+// Actual pieces dispensed over a span of days at a per-week change frequency.
+// e.g. 30 days, daily (7×/wk), 1 per change => 30 pieces (not 35 that ceil-weeks would give).
+function pieces_for($freq,$qty,$days){
+  $freq=(int)$freq; $qty=(int)$qty; $days=(int)$days;
+  if ($freq<=0 || $qty<=0 || $days<=0) return 0;
+  return (int)round($freq * $qty * $days / 7);
+}
+// Human duration: days, plus weeks only when it divides evenly (so 30 days ≠ "5 weeks").
+function duration_label($days){
+  $d=(int)$days; if ($d<=0) return '—';
+  $s=$d.' day'.($d===1?'':'s');
+  if ($d % 7 === 0) { $w=intdiv($d,7); $s.=' ('.$w.' week'.($w===1?'':'s').')'; }
+  return $s;
+}
 
 $weeks   = weeks_auth($o['duration_days'] ?? 0);
 $refills = max(0, (int)($o['refills_allowed'] ?? 0));
@@ -179,6 +193,7 @@ if (empty($wounds)) {
 // Build wounds section with each wound and all its products
 $sec_wound = '';
 $wound_num = 1;
+$product_pieces = [];   // display => total pieces, accumulated with the same per-product calc as the wound rows
 foreach ($wounds as $wound_idx => $wound) {
   $w_freq = (int)($wound['frequency_per_week'] ?? 0);
   $w_qty = (int)($wound['qty_per_change'] ?? 1);
@@ -204,13 +219,11 @@ foreach ($wounds as $wound_idx => $wound) {
         break;
     }
 
-    // Calculate boxes for this product
+    // Calculate pieces for this product over the ordered duration
     $prod_freq = (int)($prod['frequency_per_week'] ?? $w_freq);
     $prod_qty = (int)($prod['qty_per_change'] ?? $w_qty);
     $prod_days = (int)($prod['duration_days'] ?? ($o['duration_days'] ?? 0));
-    $prod_weeks = $prod_days > 0 ? (int)ceil($prod_days / 7) : 0;
-    $total_pieces = $prod_freq * $prod_qty * $prod_weeks;
-    $boxes = $total_pieces > 0 ? (int)ceil($total_pieces / 10) : 0; // 10 items per box
+    $total_pieces = pieces_for($prod_freq, $prod_qty, $prod_days);
 
     // Build product name with size and HCPCS
     $product_display = h($prod['product_name'] ?? $prod['product'] ?? '');
@@ -221,22 +234,26 @@ foreach ($wounds as $wound_idx => $wound) {
       $product_display .= ' (' . h($prod['hcpcs_code']) . ')';
     }
     $products_html .= $type_label . ' ' . $product_display;
-    if ($boxes > 0) {
-      $products_html .= ' <span style="color:#64748b">[' . $boxes . ' boxes]</span>';
+    if ($total_pieces > 0) {
+      $products_html .= ' <span style="color:#64748b">[' . $total_pieces . ' pieces]</span>';
     }
     $products_html .= '<br>';
+
+    // Tally pieces per product for the Items Ordered summary (same numbers as above)
+    $raw_display = ($prod['product_name'] ?? $prod['product'] ?? 'Unknown')
+      . (!empty($prod['product_size']) ? ' ' . $prod['product_size'] : '')
+      . (!empty($prod['hcpcs_code']) ? ' (' . $prod['hcpcs_code'] . ')' : '');
+    $product_pieces[$raw_display] = ($product_pieces[$raw_display] ?? 0) + $total_pieces;
   }
 
   if (empty($products_html)) {
     // Fallback for legacy orders
     $legacy_days = (int)($o['duration_days'] ?? 0);
-    $legacy_weeks = $legacy_days > 0 ? (int)ceil($legacy_days / 7) : 0;
-    $legacy_total = $w_freq * $w_qty * $legacy_weeks;
-    $legacy_boxes = $legacy_total > 0 ? (int)ceil($legacy_total / 10) : 0;
+    $legacy_pieces = pieces_for($w_freq, $w_qty, $legacy_days);
 
     $products_html = h($wound['product_name'] ?? '—');
-    if ($legacy_boxes > 0) {
-      $products_html .= ' <span style="color:#64748b">(' . $legacy_boxes . ' boxes)</span>';
+    if ($legacy_pieces > 0) {
+      $products_html .= ' <span style="color:#64748b">(' . $legacy_pieces . ' pieces)</span>';
     }
   }
 
@@ -280,42 +297,39 @@ foreach ($wounds as $wound) {
   }
 }
 
-// Build detailed product summary from all_products (includes size)
-$product_summary_list = [];
-foreach ($all_products as $prod) {
-  $display = $prod['product_name'] ?? $prod['product'] ?? 'Unknown';
-  if (!empty($prod['product_size'])) {
-    $display .= ' ' . $prod['product_size'];
-  }
-  if (!empty($prod['hcpcs_code'])) {
-    $display .= ' (' . $prod['hcpcs_code'] . ')';
-  }
-  if (!in_array($display, $product_summary_list)) {
-    $product_summary_list[] = $display;
-  }
+// $product_pieces was tallied in the wound loop above (same per-product piece calc)
+$duration_days = max(0, (int)($o['duration_days'] ?? 0));
+$order_date = !empty($o['created_at']) ? date('M j, Y', strtotime((string)$o['created_at'])) : '—';
+$total_pieces_all = array_sum($product_pieces);
+$total_pieces_with_refills = $total_pieces_all * (1 + $refills);
+
+// Itemized product rows showing pieces for each
+$products_rows = '';
+foreach ($product_pieces as $display => $pieces) {
+  $products_rows .= '<tr><td>'.h($display).'</td><td style="text-align:right;white-space:nowrap"><strong>'.h((string)$pieces).'</strong> pieces</td></tr>';
+}
+if ($products_rows === '') {
+  $products_rows = '<tr><td colspan="2">'.h(implode(', ', $product_list) ?: '—').'</td></tr>';
 }
 
-$duration_days = max(0, (int)($o['duration_days'] ?? 0));
-$duration_weeks = $duration_days > 0 ? (int)ceil($duration_days / 7) : 0;
-$total_units_for_duration = $total_units_per_week * $duration_weeks * (1 + $refills);
-
-$products_summary = implode(', ', $product_summary_list) ?: implode(', ', $product_list);
-
 $sec_order = '
-  <h2>Order Summary</h2>
-  <div class="box"><table class="kv">
-    <tr><td class="key">Order #</td><td>'.h($o['id']).'</td></tr>
-    <tr><td class="key">Number of Wounds</td><td>'.count($wounds).'</td></tr>
-    <tr><td class="key">Products</td><td>'.h($products_summary).'</td></tr>
-    <tr><td class="key">Total Units per Week</td><td>'.h((string)$total_units_per_week).'</td></tr>
-    <tr><td class="key">Duration (days)</td><td>'.h((string)$duration_days).' ('.h((string)$duration_weeks).' weeks)</td></tr>
-    <tr><td class="key">Refills Allowed</td><td>'.h((string)$refills).'</td></tr>
-    <tr><td class="key">Total Authorized Units</td><td><strong>'.h((string)$total_units_for_duration).'</strong> (across all wounds)</td></tr>
-    <tr><td class="key">Delivery Mode</td><td>'.h($o['delivery_mode'] ?? "—").'</td></tr>
-    <tr><td class="key">Status</td><td>'.h($o['status'] ?? "—").'</td></tr>
-    <tr><td class="key">Created</td><td>'.h($o['created_at'] ?? "—").'</td></tr>
-    <tr><td class="key">Updated</td><td>'.h($o['updated_at'] ?? "—").'</td></tr>
-  </table></div>
+  <h2>Items Ordered</h2>
+  <div class="box">
+    <table class="items">
+      <thead><tr><th>Product</th><th style="text-align:right">Quantity</th></tr></thead>
+      <tbody>'.$products_rows.'
+        <tr class="total"><td>Total pieces'.($refills>0?' (with '.$refills.' refill'.($refills===1?'':'s').')':'').'</td><td style="text-align:right"><strong>'.h((string)$total_pieces_with_refills).'</strong> pieces</td></tr>
+      </tbody>
+    </table>
+    <table class="kv" style="margin-top:8px">
+      <tr><td class="key">Number of Wounds</td><td>'.count($wounds).'</td></tr>
+      <tr><td class="key">Duration</td><td>'.h(duration_label($duration_days)).'</td></tr>
+      <tr><td class="key">Refills Authorized</td><td>'.h((string)$refills).'</td></tr>
+      <tr><td class="key">Delivery Mode</td><td>'.h(ucfirst((string)($o['delivery_mode'] ?? "—"))).'</td></tr>
+      <tr><td class="key">Order #</td><td>'.h($o['id']).'</td></tr>
+      <tr><td class="key">Order Date</td><td>'.h($order_date).'</td></tr>
+    </table>
+  </div>
 ';
 
 // Patient Instructions Section
@@ -370,27 +384,78 @@ $sec_shipping = '
   </table></div>
 ';
 
+// Referral letterhead (referring practice + prescriber) and title
+$prescriber_name = trim(($o['doc_first'] ?? '').' '.($o['doc_last'] ?? ''));
+$prescriber_line = [];
+if (!empty($o['npi'])) $prescriber_line[] = 'NPI '.h($o['npi']);
+if (!empty($o['license'])) $prescriber_line[] = 'License '.h($o['license']).(!empty($o['license_state']) ? ' ('.h($o['license_state']).')' : '');
+$sec_letterhead = '
+  <div class="letterhead">
+    <div class="practice">'.h($o['practice_name'] ?: 'Physician Practice').'</div>
+    <div class="prescriber">'.h($prescriber_name ?: '—').(count($prescriber_line) ? ' &nbsp;·&nbsp; '.implode(' &nbsp;·&nbsp; ', $prescriber_line) : '').'</div>
+  </div>
+  <div class="doctitle">Physician Referral &amp; Order — Wound Care Supplies</div>
+  <div class="meta">Date: '.h($today).' &nbsp;&nbsp;|&nbsp;&nbsp; Referral / Order #: '.h($o['id']).'</div>
+';
+
+// Referral statement (physician request), placed above the item order
+$sec_referral_stmt = '
+  <div class="referral-stmt">
+    I am referring the above-named patient for the wound care products and supplies listed below. Based on my
+    evaluation and clinical judgment, these items are medically necessary for the treatment of the wound(s)
+    documented in this referral. Please dispense as ordered.
+  </div>
+';
+
+// Certification + signature, styled as the closing of a referral
+$sec_certification = '
+  <h2>Physician Certification &amp; Signature</h2>
+  <div class="box" style="background:#f9fafb">
+    <div style="margin-bottom:10px;font-size:11px">
+      I certify that I am the prescribing physician or authorized representative and that the above referral
+      and order are accurate and medically necessary for this patient.
+    </div>
+    <table class="kv">
+      <tr><td class="key">Signed By</td><td><strong>'.h($eSignName).'</strong></td></tr>
+      <tr><td class="key">Title</td><td>'.h($eSignTitle).'</td></tr>
+      <tr><td class="key">Date &amp; Time</td><td>'.h($eSignDate).'</td></tr>
+      <tr><td class="key">IP Address</td><td>'.h($eSignIP).'</td></tr>
+    </table>
+    <div style="margin-top:10px;padding:8px;background:#fff3cd;border:1px solid #ffc107;border-radius:4px;font-size:10px">
+      <strong>E-Signature Notice:</strong> This electronic signature has the same legal effect as a handwritten
+      signature in accordance with the ESIGN Act (15 U.S.C. § 7001) and applicable state law.
+    </div>
+  </div>
+';
+
 $html = '
 <!doctype html><html><head><meta charset="utf-8">
-<title>Order #'.h($o['id']).' — CollagenDirect</title>
+<title>Referral / Order #'.h($o['id']).' — '.h($o['practice_name'] ?: 'CollagenDirect').'</title>
 <style>
- body{ font-family:-apple-system, Segoe UI, Arial, sans-serif; font-size:12px; color:#111; }
- h1{ font-size:18px; margin:0 0 6px 0; }
- h2{ font-size:14px; margin:18px 0 6px 0; }
+ body{ font-family:-apple-system, Segoe UI, Arial, sans-serif; font-size:12px; color:#111; margin:0; }
+ h2{ font-size:13px; margin:16px 0 6px 0; color:#0f172a; border-bottom:1px solid #e5e7eb; padding-bottom:3px; text-transform:uppercase; letter-spacing:.03em; }
+ .letterhead{ border-bottom:3px solid #0075bc; padding-bottom:8px; margin-bottom:10px; }
+ .letterhead .practice{ font-size:20px; font-weight:700; color:#20419b; }
+ .letterhead .prescriber{ font-size:12px; color:#334155; margin-top:2px; }
+ .doctitle{ font-size:15px; font-weight:700; text-align:center; text-transform:uppercase; letter-spacing:.05em; margin:6px 0 2px; color:#0f172a; }
+ .meta{ text-align:center; color:#64748b; font-size:11px; margin-bottom:8px; }
+ .referral-stmt{ font-style:italic; font-size:11.5px; color:#334155; background:#f8fafc; border-left:3px solid #0075bc; padding:8px 10px; margin:10px 0; }
  .box{ border:1px solid #ccc; border-radius:8px; padding:10px; margin-bottom:10px; }
  table{ width:100%; border-collapse:collapse; }
  .kv td{ padding:4px 6px; vertical-align:top; }
  .kv td.key{ width:200px; color:#555; font-weight:500; }
+ .items{ font-size:12px; }
+ .items th{ text-align:left; border-bottom:2px solid #cbd5e1; padding:5px 6px; color:#475569; font-size:11px; text-transform:uppercase; letter-spacing:.03em; }
+ .items td{ padding:5px 6px; border-bottom:1px solid #eef2f7; }
+ .items tr.total td{ border-top:2px solid #cbd5e1; border-bottom:none; font-size:12.5px; padding-top:7px; }
  .footer{ margin-top:18px; color:#666; font-size:10px; text-align:center; border-top:1px solid #ddd; padding-top:10px; }
- @media print { .no-print{ display:none } }
+ @media print { .no-print{ display:none } body{ margin:0; } }
 </style></head><body>
-  <h1>CollagenDirect — Physician Order</h1>
-  <div style="color:#666;font-size:11px;margin-bottom:8px">Generated: '.h($today).' | Order #'.h($o['id']).'</div>
-  '.$sec_patient.$sec_insurance.$sec_physician.$sec_esignature.$sec_wound.$sec_order.$sec_instructions.$sec_secondary.$sec_shipping.'
+  '.$sec_letterhead.$sec_patient.$sec_insurance.$sec_wound.$sec_referral_stmt.$sec_order.$sec_instructions.$sec_secondary.$sec_shipping.$sec_certification.'
   <div class="footer">
     <strong>CONFIDENTIAL:</strong> This document contains Protected Health Information (PHI).
     Handle per HIPAA guidelines. Unauthorized disclosure is prohibited.<br>
-    CollagenDirect | Medical Wound Care Products | © '.date('Y').'
+    '.h($o['practice_name'] ?: 'CollagenDirect').' | Wound Care Referral | © '.date('Y').'
   </div>
   <div class="no-print" style="margin-top:10px"><button onclick="window.print()">Print / Save as PDF</button></div>
 </body></html>';
