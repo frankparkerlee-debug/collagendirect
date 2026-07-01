@@ -42,7 +42,7 @@ $repFilter = $_GET['rep'] ?? '';
 $physQuery = "
   SELECT u.id, u.first_name, u.last_name, u.email, u.account_type, u.status, u.created_at, u.role, u.practice_name,
          u.assigned_rep_id, u.phone, u.address, u.city, u.state, u.zip, u.npi, u.ptan, u.license, u.license_state, u.license_expiry,
-         u.is_referral_only, u.has_dme_license, u.is_hybrid, u.features,
+         u.is_referral_only, u.has_dme_license, u.is_hybrid, u.features, u.practice_id,
          u.agree_msa, u.agree_baa, u.sign_name, u.sign_title, u.sign_date, u.signed_ip,
          CASE WHEN sr.id IS NOT NULL THEN CONCAT(rep_user.first_name, ' ', rep_user.last_name) ELSE NULL END as rep_name
   FROM users u
@@ -69,6 +69,14 @@ if (!$isOwner && !$isSales && !$isManufacturer) $params['aid'] = $admin['id'];
 if ($repFilter && $repFilter !== 'unassigned') $params['rep_id'] = $repFilter;
 $physStmt->execute($params);
 $phys = $physStmt->fetchAll();
+
+/* Practices (owners) for the physician→practice selector, fetched once and reused per row */
+$practiceOwners = $pdo->query("
+  SELECT id, practice_name, CONCAT(first_name, ' ', last_name) AS owner_name
+  FROM users
+  WHERE role = 'practice_admin' AND practice_name IS NOT NULL AND TRIM(practice_name) <> ''
+  ORDER BY practice_name
+")->fetchAll();
 
 /* Employees list - only CollagenDirect staff */
 $emps = $pdo->query("SELECT id, name, email, role, created_at FROM admin_users WHERE role IN ('employee', 'admin', 'sales', 'ops') ORDER BY created_at DESC LIMIT 200")->fetchAll();
@@ -273,31 +281,39 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         INSERT INTO users(
           id, email, password_hash, first_name, last_name,
           npi, ptan, license, license_state, license_expiry,
-          role, user_type, account_type, status,
+          role, user_type, account_type, status, practice_id,
           is_referral_only, has_dme_license, is_hybrid,
           assigned_rep_id, rep_assignment_date, rep_assigned_by, rep_assigned_by_user_id,
           created_at, updated_at
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,'physician','physician',?,'active',?,?,?,?,".($assignedRepId ? "NOW()" : "NULL").",?,?,NOW(),NOW())
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,'physician','physician',?,'active',?,?,?,?,?,".($assignedRepId ? "NOW()" : "NULL").",?,?,NOW(),NOW())
       ")->execute([
         $userId, $email, password_hash($tempPassword, PASSWORD_DEFAULT), $firstName, $lastName,
         $npi ?: null, $ptan ?: null, $license ?: null, $licenseState, $licenseExpiry,
-        $accountType,
+        $accountType, ($practiceId ?: null),
         $isReferralOnly, $hasDmeLicense, $isHybrid,
         $assignedRepId, $repAssignedBy, $repAssignedByUserId
       ]);
 
-      // Link physician to practice via practice_physicians table
+      // Add the physician to the practice's roster (denormalized name list).
       if ($practiceId) {
         $pdo->prepare("
           INSERT INTO practice_physicians(
-            practice_admin_id, physician_id, first_name, last_name, physician_email,
+            practice_manager_id, physician_first_name, physician_last_name, physician_email,
             physician_npi, physician_license, physician_license_state, physician_license_expiry,
             created_at
-          ) VALUES (?,?,?,?,?,?,?,?,?,NOW())
+          ) VALUES (?,?,?,?,?,?,?,?,NOW())
         ")->execute([
-          $practiceId, $userId, $firstName, $lastName, $email,
+          $practiceId, $firstName, $lastName, $email,
           $npi ?: null, $license ?: null, $licenseState, $licenseExpiry
         ]);
+
+        // Inherit the practice's portal features so the new member matches the practice.
+        $ownerFeatStmt = $pdo->prepare("SELECT features FROM users WHERE id = ?");
+        $ownerFeatStmt->execute([$practiceId]);
+        $ownerFeat = $ownerFeatStmt->fetchColumn();
+        if ($ownerFeat !== false && $ownerFeat !== null && $ownerFeat !== '') {
+          $pdo->prepare("UPDATE users SET features = ?::jsonb WHERE id = ?")->execute([$ownerFeat, $userId]);
+        }
       }
       $msg = 'Physician created and linked to practice';
     }
@@ -388,6 +404,16 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
       !empty($_POST['license_expiry']) ? $_POST['license_expiry'] : null,
       $physId
     ]);
+
+    // Tie a physician to their practice (practice_id = the practice owner's user id).
+    // Only touched when the edit form submitted the selector, so practice owners and
+    // other roles are unaffected. Done BEFORE the feature write so the practice-wide
+    // grouping below reflects the new link.
+    if (isset($_POST['practice_id'])) {
+      $newPid = trim((string)$_POST['practice_id']);
+      $pdo->prepare("UPDATE users SET practice_id = ?, updated_at = NOW() WHERE id = ?")
+          ->execute([$newPid !== '' ? $newPid : null, $physId]);
+    }
 
     // Persist feature entitlements at the PRACTICE level (modular MD DME / IWC assignment).
     // Every account in this practice (owner + linked physicians + duplicate accounts) gets
@@ -577,6 +603,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
 <div class="bg-white border rounded-b rounded-r p-4">
 <?php if ($tab==='physicians'): ?>
+  <div class="mb-3">
+    <a href="/admin/assign-physicians.php" class="text-sm text-blue-600 hover:underline">→ Assign physicians to practices (bulk)</a>
+  </div>
   <!-- Rep Filter -->
   <?php if (!empty($activeReps)): ?>
   <div class="mb-4 flex items-center gap-4">
@@ -732,6 +761,17 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                     <option value="both" <?=($u['is_hybrid']??false)?'selected':''?>>Referral & Wholesale</option>
                   </select>
                 </div>
+                <?php if (($u['role'] ?? '') === 'physician'): ?>
+                <div>
+                  <label class="text-xs text-slate-600">Practice <span class="text-slate-400">— ties this physician to a practice</span></label>
+                  <select class="border rounded px-2 py-1 w-full" name="practice_id">
+                    <option value="">— Standalone (no practice) —</option>
+                    <?php foreach ($practiceOwners as $po): if ($po['id'] === $u['id']) continue; ?>
+                      <option value="<?=e($po['id'])?>" <?=($u['practice_id']??'')===$po['id']?'selected':''?>><?=e($po['practice_name'])?> (<?=e($po['owner_name'])?>)</option>
+                    <?php endforeach; ?>
+                  </select>
+                </div>
+                <?php endif; ?>
                 <div style="grid-column:1/-1;">
                   <label class="text-xs text-slate-600">Portal Features <span class="text-slate-400">— applies to every account in this practice</span></label>
                   <?php

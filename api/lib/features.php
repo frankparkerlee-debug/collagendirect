@@ -59,23 +59,54 @@ function default_account_features(array $user): array {
 
 /**
  * Every user-account id that belongs to the same practice as $userId.
- * A practice is identified by a shared, non-empty `users.practice_name` (the same
- * grouping practice-pricing uses — the only reliable practice link in the data;
- * practice_id/parent_user_id are unpopulated). An account with a blank practice_name
- * is its own practice, so this returns just [$userId]. Used to apply feature
- * entitlements practice-wide.
+ *
+ * A practice = a practice_admin owner + the physician accounts linked to it via
+ * `users.practice_id` (= the owner's id) + any duplicate owner accounts sharing the
+ * same non-empty `practice_name` (the grouping practice-pricing uses). Editing the
+ * owner or any linked physician resolves the whole set. A standalone account (no
+ * practice_id link and no shared practice_name) is its own practice → [$userId].
+ * Used to apply feature entitlements practice-wide.
  */
 function practice_member_ids(PDO $pdo, string $userId): array {
-    $st = $pdo->prepare("SELECT practice_name FROM users WHERE id = ?");
+    $st = $pdo->prepare("SELECT role, practice_id, practice_name FROM users WHERE id = ?");
     $st->execute([$userId]);
-    $practiceName = trim((string)$st->fetchColumn());
-    if ($practiceName === '') return [$userId];
+    $row = $st->fetch(PDO::FETCH_ASSOC);
+    if (!$row) return [$userId];
 
-    $q = $pdo->prepare("SELECT id FROM users WHERE practice_name = ?");
-    $q->execute([$practiceName]);
-    $ids = $q->fetchAll(PDO::FETCH_COLUMN);
-    if (!in_array($userId, $ids, true)) $ids[] = $userId;
-    return array_values($ids);
+    // Resolve the practice owner account: self if this IS the owner, else the owner
+    // this physician is linked to via practice_id.
+    $ownerId = ($row['role'] ?? '') === 'practice_admin'
+        ? $userId
+        : (trim((string)($row['practice_id'] ?? '')) ?: null);
+
+    // The authoritative practice_name (the owner's when we have one).
+    $practiceName = trim((string)($row['practice_name'] ?? ''));
+    if ($ownerId !== null && $ownerId !== $userId) {
+        $o = $pdo->prepare("SELECT practice_name FROM users WHERE id = ?");
+        $o->execute([$ownerId]);
+        $practiceName = trim((string)$o->fetchColumn());
+    }
+
+    // Owner id-set: the resolved owner + any duplicate owner accounts sharing the name.
+    $owners = [];
+    if ($ownerId !== null) $owners[$ownerId] = true;
+    if ($practiceName !== '') {
+        $du = $pdo->prepare("SELECT id FROM users WHERE practice_name = ?");
+        $du->execute([$practiceName]);
+        foreach ($du->fetchAll(PDO::FETCH_COLUMN) as $id) $owners[$id] = true;
+    }
+
+    $ids = [$userId];
+    foreach (array_keys($owners) as $id) $ids[] = $id;
+    // Every physician linked to any of those owner accounts.
+    if ($owners) {
+        $ownerIds = array_keys($owners);
+        $in = implode(',', array_fill(0, count($ownerIds), '?'));
+        $ph = $pdo->prepare("SELECT id FROM users WHERE practice_id IN ($in)");
+        $ph->execute($ownerIds);
+        foreach ($ph->fetchAll(PDO::FETCH_COLUMN) as $id) $ids[] = $id;
+    }
+    return array_values(array_unique($ids));
 }
 
 function has_feature(array $user, string $key): bool {
