@@ -5344,9 +5344,6 @@ if ($page==='logout'){
 <div class="app-container">
   <!-- Sidebar -->
   <aside class="sidebar">
-    <div class="sidebar-brand">
-      <img src="/assets/brand/md-dme-logo.png" alt="MD DME" class="sidebar-logo">
-    </div>
     <div class="sidebar-header">
       <div class="sidebar-user" id="sidebar-profile-trigger" style="cursor: pointer; transition: background 0.2s;">
         <div class="sidebar-avatar">
