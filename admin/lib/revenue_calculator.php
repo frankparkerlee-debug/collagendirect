@@ -60,6 +60,14 @@ function calculate_order_revenue(array $order, array $rates = [], bool $includeS
         $totalPieces = (int)($order['total_pieces'] ?? $order['billable_pieces'] ?? 0);
         $order_cost = (float)($order['expected_cost'] ?? 0);
 
+        // Admin "actual pieces shipped" override (pieces editor): when set, bill the real
+        // shipped count instead of the stored/ordered count. NULL = unchanged. Not wholesale.
+        if (!$isWholesale && isset($order['actual_pieces']) && $order['actual_pieces'] !== null && $order['actual_pieces'] !== '') {
+            $totalPieces = max(0, (int)$order['actual_pieces']);
+            $totalBoxes = (int)ceil($totalPieces / max(1, $pieces_per_box));
+            if ($includeSteps) $steps[] = "Actual pieces shipped (override): {$totalPieces}";
+        }
+
         if ($isWholesale) {
             // Wholesale bills by the box - the stored revenue is authoritative.
             $revenue = (float)($order['expected_revenue'] ?? 0);
@@ -175,6 +183,13 @@ function calculate_order_revenue(array $order, array $rates = [], bool $includeS
         $total_pieces = $weeks * $fpw * $qty * (1 + $refills);
         $totalBoxes = (int)ceil($total_pieces / $pieces_per_box);
         $totalPieces = (int)ceil($total_pieces);
+        // Admin "actual pieces shipped" override (pieces editor): when set, bill the
+        // real shipped count instead of the ordered/frequency-based count. NULL = unchanged.
+        if (isset($order['actual_pieces']) && $order['actual_pieces'] !== null && $order['actual_pieces'] !== '') {
+            $totalPieces = max(0, (int)$order['actual_pieces']);
+            $totalBoxes = (int)ceil($totalPieces / max(1, $pieces_per_box));
+            if ($includeSteps) $steps[] = "Actual pieces shipped (override): {$totalPieces}";
+        }
         $cpt_rate = healkit_piece_rate($order, $pieces_per_box);
         $revenue = $totalPieces * $cpt_rate;
         $order_cost = $totalBoxes * $cost_per_box;
@@ -212,6 +227,12 @@ function calculate_order_revenue(array $order, array $rates = [], bool $includeS
         // Insurance reimburses for actual pieces used, not full boxes
         $billable_pieces = (int)ceil($total_pieces);
         $totalPieces = $billable_pieces;
+        // Admin "actual pieces shipped" override (pieces editor). NULL = unchanged.
+        if (isset($order['actual_pieces']) && $order['actual_pieces'] !== null && $order['actual_pieces'] !== '') {
+            $billable_pieces = max(0, (int)$order['actual_pieces']);
+            $totalPieces = $billable_pieces;
+            $totalBoxes = (int)ceil($billable_pieces / max(1, $pieces_per_box));
+        }
 
         if ($includeSteps) {
             $steps[] = "Type: Referral";
@@ -417,6 +438,7 @@ function get_revenue_metrics(PDO $pdo, string $dateFrom = '', string $dateTo = '
             o.total_pieces,
             o.boxes_to_ship,
             o.billable_pieces,
+            o.actual_pieces,
             o.expected_revenue,
             o.expected_cost,
             o.cpt_rate_used,

@@ -56,6 +56,22 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
       }
     } catch (Throwable $e) { error_log('[healkit ship email] '.$e->getMessage()); }
     $_SESSION['success_msg'] = 'HealKit order marked as shipped'.($tracking !== '' ? " (UPS {$tracking})" : '').'.';
+  } elseif ($id && $action==='set_pieces') {
+    require_once __DIR__.'/../api/lib/order_pieces.php';
+    $newPieces = (int)($_POST['actual_pieces'] ?? -1);
+    if ($newPieces < 0) {
+      $_SESSION['success_msg'] = 'Enter a valid pieces count (0 or more).';
+    } else {
+      $r = set_order_actual_pieces($pdo, (string)$id, $newPieces, $adminId, 'HealKit actual pieces correction');
+      if (!empty($r['ok'])) {
+        $msg = "Pieces updated {$r['old_pieces']} → {$r['new_pieces']}; revenue $".number_format($r['old_rev'],2)." → $".number_format($r['new_rev'],2).".";
+        if (!empty($r['flag_paid'])) $msg .= ' NOTE: order already has a payment — adjust billing/refund manually.';
+        if (!empty($r['flag_commission'])) $msg .= ' NOTE: a commission was already recorded — review it.';
+        $_SESSION['success_msg'] = $msg;
+      } else {
+        $_SESSION['success_msg'] = 'Could not update pieces: '.($r['error'] ?? 'unknown error');
+      }
+    }
   }
   header('Location: /admin/healkit-orders.php'); exit;
 }
@@ -70,7 +86,7 @@ $sql = "
          o.ivr_path, o.ivr_name, o.rx_note_path,
          o.wound_location, o.wound_laterality,
          o.qty_per_change, o.duration_days, o.frequency AS frequency_per_week,
-         o.boxes_to_ship, o.total_pieces, o.tracking_number, o.carrier,
+         o.boxes_to_ship, o.total_pieces, o.actual_pieces, o.expected_revenue, o.tracking_number, o.carrier,
          p.first_name as patient_first, p.last_name as patient_last, p.mrn, p.phone as patient_phone,
          u.first_name as phys_first, u.last_name as phys_last, u.practice_name, u.email as phys_email
   FROM orders o
@@ -273,6 +289,19 @@ require_once __DIR__.'/_header.php';
           <?php else: ?>
             <span style="color: #64748b; font-size: 0.75rem;">—</span>
           <?php endif; ?>
+
+          <!-- Correct actual pieces shipped (recomputes revenue + billing) -->
+          <form method="post" style="display:flex; gap:0.25rem; align-items:center; justify-content:center; margin-top:0.4rem;"
+                onsubmit="return confirm('Set actual pieces shipped to '+this.actual_pieces.value+' for this line?\nRevenue and billing will recompute.');">
+            <?=csrf_field()?>
+            <input type="hidden" name="id" value="<?= htmlspecialchars($o['id']) ?>">
+            <input type="hidden" name="action" value="set_pieces">
+            <input type="number" name="actual_pieces" min="0"
+                   value="<?= htmlspecialchars((string)($o['actual_pieces'] ?? $o['total_pieces'] ?? '')) ?>"
+                   title="Actual pieces shipped (ordered: <?= htmlspecialchars((string)($o['total_pieces'] ?? '')) ?>)"
+                   style="width:60px; padding:0.2rem 0.3rem; font-size:0.7rem; border:1px solid #d1d5db; border-radius:4px; text-align:right;">
+            <button type="submit" class="btn" style="padding:0.2rem 0.5rem; font-size:0.7rem;" title="Save actual pieces shipped">Set pcs</button>
+          </form>
         </td>
       </tr>
       <?php endforeach; ?>

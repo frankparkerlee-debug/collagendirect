@@ -394,6 +394,23 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             'gid'=>($_POST['ins_group'] ?: null),'pp'=>($_POST['ins_payer_phone'] ?: null),'pid'=>$_POST['patient_id']
           ]);
     }
+  } elseif ($id && $action==='set_pieces') {
+    require_once __DIR__.'/../api/lib/order_pieces.php';
+    $actorId = null; if (function_exists('current_admin')) { $ca = current_admin(); $actorId = $ca['id'] ?? null; }
+    $newPieces = (int)($_POST['actual_pieces'] ?? -1);
+    if ($newPieces < 0) {
+      $_SESSION['success_msg'] = 'Enter a valid pieces count (0 or more).';
+    } else {
+      $res = set_order_actual_pieces($pdo, (string)$id, $newPieces, $actorId, 'Referral actual pieces correction');
+      if (!empty($res['ok'])) {
+        $msg = "Pieces updated {$res['old_pieces']} → {$res['new_pieces']}; revenue $".number_format($res['old_rev'],2)." → $".number_format($res['new_rev'],2).".";
+        if (!empty($res['flag_paid'])) $msg .= ' NOTE: order already has a payment — adjust billing/refund manually.';
+        if (!empty($res['flag_commission'])) $msg .= ' NOTE: a commission was already recorded — review it.';
+        $_SESSION['success_msg'] = $msg;
+      } else {
+        $_SESSION['success_msg'] = 'Could not update pieces: '.($res['error'] ?? 'unknown error');
+      }
+    }
   }
   header('Location: /admin/orders.php'); exit;
 }
@@ -706,6 +723,17 @@ if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"
           <a href="/admin/order.pdf.php?id=<?=e($r['id'])?>&csrf=<?=e($_SESSION['csrf'] ?? '')?>" target="_blank" class="text-blue-600 hover:underline mr-2" title="Preview order details">View</a>
           <form method="post" class="inline"><?=csrf_field()?><input type="hidden" name="id" value="<?=e($r['id'])?>"><input type="hidden" name="action" value="approve"><button class="text-brand hover:underline">Approve</button></form>
           <form method="post" class="inline ml-2"><?=csrf_field()?><input type="hidden" name="id" value="<?=e($r['id'])?>"><input type="hidden" name="action" value="reject"><button class="text-rose-600 hover:underline">Reject</button></form>
+
+          <!-- Correct actual pieces shipped (recomputes revenue + billing) -->
+          <?php if (($r['billed_by'] ?? '') !== 'practice_dme'): ?>
+          <form method="post" class="inline ml-2" onsubmit="return confirm('Set actual pieces shipped to '+this.actual_pieces.value+'?\nRevenue and billing will recompute.');">
+            <?=csrf_field()?><input type="hidden" name="id" value="<?=e($r['id'])?>"><input type="hidden" name="action" value="set_pieces">
+            <input type="number" name="actual_pieces" min="0" value="<?=e((string)($r['actual_pieces'] ?? $r['total_pieces'] ?? ''))?>"
+                   title="Actual pieces shipped (ordered: <?=e((string)($r['total_pieces'] ?? ''))?>)"
+                   class="border rounded px-1 py-0.5 text-xs text-right" style="width:52px">
+            <button class="text-brand hover:underline text-xs">Set pcs</button>
+          </form>
+          <?php endif; ?>
 
           <!-- Mark Delivered (sends SMS immediately) -->
           <?php if ($s === 'in_transit' || $s === 'approved'): ?>
