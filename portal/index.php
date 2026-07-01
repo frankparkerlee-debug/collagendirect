@@ -4297,6 +4297,13 @@ if ($action) {
    Router
    ============================================================ */
 $page = $_GET['page'] ?? 'dashboard';
+// Feature entitlement guard: an unentitled client can't reach a gated page even by URL
+// (defense in depth beyond hiding the nav item). Only redirects plain page views.
+require_once __DIR__ . '/../api/lib/features.php';
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($user) && is_array($user) && !page_allowed($user, $page)) {
+    header('Location: ?page=dashboard');
+    exit;
+}
 if ($page==='logout'){
   $_SESSION = [];
   if (ini_get("session.use_cookies")) {
@@ -4741,6 +4748,17 @@ if ($page==='logout'){
     padding: 1rem;
     flex: 1;
   }
+
+  .sidebar-section {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted, #94a3b8);
+    padding: 0.9rem 1rem 0.35rem;
+    margin-top: 0.35rem;
+  }
+  .sidebar.collapsed .sidebar-section { display: none; }
 
   .sidebar-nav a {
     display: flex;
@@ -5344,40 +5362,7 @@ if ($page==='logout'){
     </div>
 
     <nav class="sidebar-nav">
-      <a class="<?php echo $page==='dashboard'?'active':''; ?>" href="?page=dashboard">
-        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-        <span>Dashboard</span>
-      </a>
-      <a class="<?php echo $page==='patients'?'active':''; ?>" href="?page=patients">
-        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-        <span>Patient</span>
-      </a>
-      <a class="<?php echo $page==='photo-reviews'?'active':''; ?>" href="?page=photo-reviews">
-        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-        <span>Photo Reviews</span>
-      </a>
-      <a class="<?php echo $page==='orders'?'active':''; ?>" href="?page=orders">
-        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
-        <span>Patient Referral</span>
-      </a>
-      <a class="<?php echo $page==='healkit'?'active':''; ?>" href="?page=healkit">
-        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
-        <span>HealKit Order</span>
-      </a>
-      <a class="<?php echo $page==='wholesale'?'active':''; ?>" href="?page=wholesale">
-        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
-        <span>Wholesale Orders</span>
-      </a>
-      <a class="<?php echo $page==='messages'?'active':''; ?>" href="?page=messages">
-        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
-        <span>Messages</span>
-      </a>
-      <?php if ($isPracticeAdmin): ?>
-      <?php endif; ?>
-      <a class="<?php echo $page==='profile'?'active':''; ?>" href="?page=profile">
-        <svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-        <span>Admin</span>
-      </a>
+      <?php require_once __DIR__ . '/../api/lib/features.php'; render_portal_nav($user, $page, $isPracticeAdmin); ?>
     </nav>
   </aside>
 

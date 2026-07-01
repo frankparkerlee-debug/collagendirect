@@ -42,7 +42,7 @@ $repFilter = $_GET['rep'] ?? '';
 $physQuery = "
   SELECT u.id, u.first_name, u.last_name, u.email, u.account_type, u.status, u.created_at, u.role, u.practice_name,
          u.assigned_rep_id, u.phone, u.address, u.city, u.state, u.zip, u.npi, u.ptan, u.license, u.license_state, u.license_expiry,
-         u.is_referral_only, u.has_dme_license, u.is_hybrid,
+         u.is_referral_only, u.has_dme_license, u.is_hybrid, u.features,
          u.agree_msa, u.agree_baa, u.sign_name, u.sign_title, u.sign_date, u.signed_ip,
          CASE WHEN sr.id IS NOT NULL THEN CONCAT(rep_user.first_name, ' ', rep_user.last_name) ELSE NULL END as rep_name
   FROM users u
@@ -388,6 +388,14 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
       !empty($_POST['license_expiry']) ? $_POST['license_expiry'] : null,
       $physId
     ]);
+
+    // Persist per-account feature entitlements (modular MD DME / IWC assignment)
+    require_once __DIR__ . '/../api/lib/features.php';
+    $pf = $_POST['features'] ?? [];
+    $featSet = [];
+    foreach (assignable_feature_keys() as $fk) { $featSet[$fk] = !empty($pf[$fk]); }
+    $pdo->prepare("UPDATE users SET features = ?::jsonb, updated_at = NOW() WHERE id = ?")->execute([json_encode($featSet), $physId]);
+
     $msg = 'User details updated successfully';
   }
 
@@ -716,6 +724,24 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                     <option value="wholesale" <?=($u['account_type']??'')==='wholesale'&&!($u['is_hybrid']??false)?'selected':''?>>Wholesale</option>
                     <option value="both" <?=($u['is_hybrid']??false)?'selected':''?>>Referral & Wholesale</option>
                   </select>
+                </div>
+                <div style="grid-column:1/-1;">
+                  <label class="text-xs text-slate-600">Portal Features (assign what this client sees)</label>
+                  <?php
+                    require_once __DIR__ . '/../api/lib/features.php';
+                    $ufeat = account_features($u); $fcat = portal_feature_catalog(); $fshown = [];
+                    foreach (portal_brand_labels() as $fbrand => $flabel):
+                      $fitems = [];
+                      foreach ($fcat as $fk => $fd) { if (empty($fd['core']) && !isset($fshown[$fk]) && in_array($fbrand, $fd['brands'], true)) $fitems[$fk] = $fd; }
+                      if (!$fitems) continue;
+                  ?>
+                    <div class="text-xs font-semibold text-slate-500 mt-1"><?=e($flabel)?></div>
+                    <div class="flex flex-wrap gap-4 mb-1">
+                      <?php foreach ($fitems as $fk => $fd): $fshown[$fk] = true; ?>
+                        <label class="inline-flex items-center gap-1 text-sm"><input type="checkbox" name="features[<?=e($fk)?>]" value="1" <?=!empty($ufeat[$fk])?'checked':''?>> <?=e($fd['label'])?></label>
+                      <?php endforeach; ?>
+                    </div>
+                  <?php endforeach; ?>
                 </div>
                 <div>
                   <label class="text-xs text-slate-600">NPI</label>
