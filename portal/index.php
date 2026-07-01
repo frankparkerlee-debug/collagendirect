@@ -4759,6 +4759,8 @@ if ($page==='logout'){
     margin-top: 0.35rem;
   }
   .sidebar.collapsed .sidebar-section { display: none; }
+  .sidebar-section-logo { padding: 0.7rem 1rem 0.35rem; }
+  .sidebar-section-logo img { height: 20px; width: auto; max-width: 80%; object-fit: contain; display: block; }
 
   .sidebar-nav a {
     display: flex;

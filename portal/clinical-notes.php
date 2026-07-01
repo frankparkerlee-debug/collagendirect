@@ -10,6 +10,9 @@ require_once __DIR__ . '/../api/lib/features.php';   // portal_brand_labels()
 
 $cnUserId = $user['id'] ?? ($_SESSION['user_id'] ?? '');
 $cnBrands = entitled_note_brands($user);   // which brands' templates this account may use
+// Scope the picker to the brand from the nav (?brand=), when entitled; else show all entitled.
+$cnActiveBrand = trim((string)($_GET['brand'] ?? ''));
+$cnPickerBrands = ($cnActiveBrand !== '' && in_array($cnActiveBrand, $cnBrands, true)) ? [$cnActiveBrand] : $cnBrands;
 $cnTplKey = trim((string)($_GET['template_key'] ?? 'wound_care_dictation'));
 
 $cnViewId = trim((string)($_GET['note'] ?? ''));
@@ -186,7 +189,7 @@ $cnEditing = ($cnNew && $cnPatient) || (!empty($_GET['edit']) && $cnNote);
       </select>
       <select name="template_key" required style="border:1px solid #cbd5e1;border-radius:6px;padding:7px 9px;font-size:13px;min-width:260px">
         <?php foreach (clinical_note_templates_by_brand() as $brand => $tpls):
-          if (!in_array($brand, $cnBrands, true)) continue;   // only brands this account is entitled to
+          if (!in_array($brand, $cnPickerBrands, true)) continue;   // brand from the nav (or all entitled)
           $blabel = portal_brand_labels()[$brand] ?? strtoupper((string)$brand); ?>
           <optgroup label="<?=htmlspecialchars($blabel)?>">
             <?php foreach ($tpls as $tk => $t): ?>

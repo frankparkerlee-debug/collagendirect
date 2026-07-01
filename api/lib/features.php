@@ -156,9 +156,26 @@ function entitled_note_brands(array $user): array {
     return $brands;
 }
 
+/** Web path to a brand's logo image if the asset exists, else null (falls back to text). */
+function portal_brand_logo(string $brand): ?string {
+    $base = ['md_dme' => 'md-dme-logo', 'iwc' => 'iwc-logo'][$brand] ?? null;
+    if ($base === null) return null;
+    foreach (['png', 'svg', 'jpg', 'webp'] as $ext) {
+        if (is_file(__DIR__ . '/../../assets/brand/' . $base . '.' . $ext)) {
+            return '/assets/brand/' . $base . '.' . $ext;
+        }
+    }
+    return null;
+}
+
 function render_portal_nav_item(string $key, array $def, string $page): void {
     $slug = $def['page'] ?? $key;
-    $active = ($page === $slug) ? 'active' : '';
+    // Brand-scoped features (e.g. Clinical Documentation) are only "active" when the
+    // current ?brand= matches this item's brand, so the two entries don't both highlight.
+    $active = '';
+    if ($page === $slug) {
+        $active = empty($def['note_brand']) || (($_GET['brand'] ?? '') === $def['note_brand']) ? 'active' : '';
+    }
     $href = '?page=' . htmlspecialchars($slug);
     if (!empty($def['nav_query'])) $href .= '&' . htmlspecialchars($def['nav_query']);
     echo '<a class="' . $active . '" href="' . $href . '">';
@@ -184,7 +201,12 @@ function render_portal_nav(array $user, string $page, bool $isPracticeAdmin): vo
             if (in_array($brand, $def['brands'], true) && !empty($acct[$key])) $items[$key] = $def;
         }
         if (!$items) continue;
-        echo '<div class="sidebar-section">' . htmlspecialchars($label) . '</div>';
+        $logo = portal_brand_logo($brand);
+        if ($logo) {
+            echo '<div class="sidebar-section sidebar-section-logo"><img src="' . htmlspecialchars($logo) . '" alt="' . htmlspecialchars($label) . '"></div>';
+        } else {
+            echo '<div class="sidebar-section">' . htmlspecialchars($label) . '</div>';
+        }
         foreach ($items as $key => $def) { render_portal_nav_item($key, $def, $page); $rendered[$key] = true; }
     }
 }
