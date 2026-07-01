@@ -16,5 +16,7 @@ $pdo->exec("ALTER TABLE delivery_confirmations
   ADD COLUMN IF NOT EXISTS pod_date_received DATE,
   ADD COLUMN IF NOT EXISTS pod_signed_at TIMESTAMP,
   ADD COLUMN IF NOT EXISTS pod_document_path VARCHAR(255),
-  ADD COLUMN IF NOT EXISTS pod_attestation_version VARCHAR(20)");
+  ADD COLUMN IF NOT EXISTS pod_attestation_version VARCHAR(20),
+  ADD COLUMN IF NOT EXISTS order_group_id VARCHAR(64)");
+$pdo->exec("CREATE INDEX IF NOT EXISTS idx_delivery_conf_group ON delivery_confirmations(order_group_id)");
 echo "OK: POD compliance fields ready.\n";

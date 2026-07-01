@@ -34,9 +34,11 @@ try {
                dc.aob_viewed_at, dc.aob_signed_at,
                o.product, o.delivered_at, o.frequency, o.duration_days, o.created_at as order_date,
                o.qty_per_change, o.actual_pieces, o.total_pieces, o.product_id, o.product_price,
-               dc.pod_signed_at, dc.pod_signature_image, dc.pod_signature_typed, dc.pod_signed_by,
+               dc.order_group_id, dc.pod_signed_at, dc.pod_signature_image, dc.pod_signature_typed, dc.pod_signed_by,
                dc.pod_designee_name, dc.pod_designee_relationship, dc.pod_quantity_confirmed,
-               dc.pod_date_received, dc.pod_document_path,
+               dc.pod_date_received, dc.pod_document_path, dc.confirmed_ip, dc.pod_attestation_version,
+               dc.patient_name_snapshot, dc.patient_dob_snapshot, dc.patient_address_snapshot,
+               dc.order_product_snapshot, dc.order_physician_snapshot, dc.order_physician_npi_snapshot,
                p.id as patient_id, p.first_name, p.last_name, p.dob, p.address, p.city, p.state, p.zip,
                p.phone as patient_phone, p.email as patient_email,
                p.insurance_provider, p.insurance_member_id,
@@ -57,6 +59,10 @@ try {
         showErrorPage('Invalid Link', 'This confirmation link is not valid. It may have expired or been used already.');
         exit;
     }
+
+    // Load every line item in this customer order (all share order_group_id) so the
+    // proof of delivery lists them on ONE document.
+    $data['_items'] = getGroupItems($pdo, $data['order_group_id'] ?? null, $data['order_id']);
 
     // Check if token is expired (7 days from SMS sent)
     if ($data['sms_sent_at']) {
@@ -146,8 +152,17 @@ function handleApproval(PDO $pdo, array $data, string $token): bool {
     $patientName = trim(($data['first_name'] ?? '') . ' ' . ($data['last_name'] ?? ''));
     $patientAddress = trim(implode(', ', array_filter([$data['address']??'', $data['city']??'', $data['state']??'', $data['zip']??''])));
     $physicianName = trim(($data['phys_first'] ?? '') . ' ' . ($data['phys_last'] ?? ''));
-    $itemLine = trim(($data['product_name'] ?? $data['product'] ?? '') . ' ' . ($data['product_size'] ?? ''));
-    if (!empty($data['cpt_code'])) $itemLine .= ' (' . $data['cpt_code'] . ')';
+    $items = $data['_items'] ?? [];
+    if ($items) {
+        $lines = [];
+        foreach ($items as $it) {
+            $lines[] = trim($it['name'] . ($it['size'] ? ' ' . $it['size'] : '') . ($it['hcpcs'] ? ' (' . $it['hcpcs'] . ')' : '')) . ' — Qty ' . (int)$it['qty'];
+        }
+        $itemLine = implode("\n", $lines);
+    } else {
+        $itemLine = trim(($data['product_name'] ?? $data['product'] ?? '') . ' ' . ($data['product_size'] ?? ''));
+        if (!empty($data['cpt_code'])) $itemLine .= ' (' . $data['cpt_code'] . ')';
+    }
 
     $pdo->prepare("
         UPDATE delivery_confirmations SET
@@ -219,8 +234,8 @@ function renderPodDocument(array $d): void {
       </div>
 
       <div class="box">
-        <div class="row"><span class="lbl">Item delivered</span><span class="val"><?=$e($d['order_product_snapshot'])?></span></div>
-        <div class="row"><span class="lbl">Quantity received (confirmed)</span><span class="val"><?=$e($d['pod_quantity_confirmed'])?></span></div>
+        <div style="padding:3px 0;border-bottom:1px dotted #ddd"><div class="lbl">Items delivered</div><div style="font-weight:bold;white-space:pre-line;margin-top:4px"><?=$e($d['order_product_snapshot'])?></div></div>
+        <div class="row"><span class="lbl">Total quantity received (confirmed)</span><span class="val"><?=$e($d['pod_quantity_confirmed'])?></span></div>
         <div class="row"><span class="lbl">Prescribing physician</span><span class="val"><?=$e($d['order_physician_snapshot'])?> (NPI <?=$e($d['order_physician_npi_snapshot'])?>)</span></div>
         <div class="row"><span class="lbl">Date received</span><span class="val"><?=$e($received)?></span></div>
       </div>
@@ -242,6 +257,24 @@ function renderPodDocument(array $d): void {
         This is an immutable record generated from data captured at signing.
       </div>
     </body></html><?php
+}
+
+/**
+ * Return every line item for the customer order (all rows sharing order_group_id),
+ * or just the single order when it has no group.
+ */
+function getGroupItems(PDO $pdo, ?string $groupId, string $orderId): array {
+    $sql = "SELECT COALESCE(pr.name, o.product, 'Wound care item') AS name, pr.size, pr.cpt_code AS hcpcs,
+                   COALESCE(o.actual_pieces, o.total_pieces, o.qty_per_change, 1) AS qty
+            FROM orders o LEFT JOIN products pr ON pr.id = o.product_id ";
+    if ($groupId) {
+        $st = $pdo->prepare($sql . "WHERE o.order_group_id = ? ORDER BY o.expected_revenue DESC NULLS LAST, o.id");
+        $st->execute([$groupId]);
+    } else {
+        $st = $pdo->prepare($sql . "WHERE o.id = ?");
+        $st->execute([$orderId]);
+    }
+    return $st->fetchAll(PDO::FETCH_ASSOC);
 }
 
 /**
@@ -565,20 +598,12 @@ function showApprovalPage(array $data, string $token, bool $isConfirmed = false,
                         <span class="detail-label">Order ID</span>
                         <span class="detail-value">#<?php echo $orderId; ?></span>
                     </div>
+                    <?php foreach (($data['_items'] ?? []) as $it): ?>
                     <div class="detail-row">
-                        <span class="detail-label">Product</span>
-                        <span class="detail-value"><?php echo $product; ?></span>
+                        <span class="detail-label"><?php echo htmlspecialchars($it['name'] . ($it['size'] ? ' ' . $it['size'] : '') . ($it['hcpcs'] ? ' (' . $it['hcpcs'] . ')' : '')); ?></span>
+                        <span class="detail-value">Qty <?php echo (int)$it['qty']; ?></span>
                     </div>
-                    <?php if ($hcpcsCode): ?>
-                    <div class="detail-row">
-                        <span class="detail-label">HCPCS</span>
-                        <span class="detail-value"><?php echo $hcpcsCode; ?></span>
-                    </div>
-                    <?php endif; ?>
-                    <div class="detail-row">
-                        <span class="detail-label">Qty Delivered</span>
-                        <span class="detail-value"><?php echo $quantity; ?></span>
-                    </div>
+                    <?php endforeach; ?>
                     <div class="detail-row">
                         <span class="detail-label">Delivered</span>
                         <span class="detail-value"><?php echo $deliveredDate; ?></span>
@@ -681,11 +706,12 @@ function showApprovalPage(array $data, string $token, bool $isConfirmed = false,
                     <form method="POST" action="?token=<?php echo htmlspecialchars($token); ?>" id="approval-form">
                         <input type="hidden" name="action" value="approve">
 
+                        <?php $__items = $data['_items'] ?? []; $__count = count($__items); $__total = 0; foreach ($__items as $__i) { $__total += (int)$__i['qty']; } ?>
                         <div class="pod-field">
                             <label class="pod-check"><input type="checkbox" id="qty-ok" checked>
-                                I received <strong><?php echo $quantity; ?></strong> unit(s) of the item shown above.</label>
+                                I received <strong>all <?php echo $__count; ?> item<?php echo $__count === 1 ? '' : 's'; ?></strong> and the quantities listed above.</label>
                         </div>
-                        <input type="hidden" name="pod_quantity_confirmed" id="pod_qty" value="<?php echo $quantity; ?>">
+                        <input type="hidden" name="pod_quantity_confirmed" id="pod_qty" value="<?php echo $__total; ?>">
                         <input type="hidden" name="pod_quantity_correct" id="pod_qty_correct" value="1">
 
                         <div class="pod-field">

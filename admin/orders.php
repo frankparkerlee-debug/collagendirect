@@ -104,10 +104,20 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
   } elseif ($id && $action==='mark_delivered') {
     // Mark order as delivered and send SMS confirmation immediately
     $deliveryDate = trim((string)($_POST['delivery_date'] ?? ''));
-    if ($deliveryDate !== '') {
-      $pdo->prepare("UPDATE orders SET status='delivered', delivered_at=?::timestamp, updated_at=NOW() WHERE id=?")->execute([date('Y-m-d', strtotime($deliveryDate)), $id]);
+    $ddVal = $deliveryDate !== '' ? date('Y-m-d', strtotime($deliveryDate)) : null;
+    // A customer order = all line items sharing order_group_id. Mark the WHOLE group
+    // delivered so a SINGLE proof of delivery covers every item.
+    $g = $pdo->prepare("SELECT order_group_id FROM orders WHERE id=?"); $g->execute([$id]);
+    $groupId = $g->fetchColumn() ?: null;
+    if ($groupId) {
+      $oi = $pdo->prepare("SELECT id FROM orders WHERE order_group_id=?"); $oi->execute([$groupId]);
+      $orderIds = $oi->fetchAll(PDO::FETCH_COLUMN);
+      if ($ddVal) { $pdo->prepare("UPDATE orders SET status='delivered', delivered_at=?::timestamp, updated_at=NOW() WHERE order_group_id=?")->execute([$ddVal, $groupId]); }
+      else { $pdo->prepare("UPDATE orders SET status='delivered', delivered_at=NOW(), updated_at=NOW() WHERE order_group_id=?")->execute([$groupId]); }
     } else {
-      $pdo->prepare("UPDATE orders SET status='delivered', delivered_at=NOW(), updated_at=NOW() WHERE id=?")->execute([$id]);
+      $orderIds = [$id];
+      if ($ddVal) { $pdo->prepare("UPDATE orders SET status='delivered', delivered_at=?::timestamp, updated_at=NOW() WHERE id=?")->execute([$ddVal, $id]); }
+      else { $pdo->prepare("UPDATE orders SET status='delivered', delivered_at=NOW(), updated_at=NOW() WHERE id=?")->execute([$id]); }
     }
 
     // Send delivery confirmation SMS immediately
@@ -139,11 +149,13 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
           $physicianName = $order['practice_name'];
         }
 
-        // Check if confirmation already exists for this order
-        $existingConfirmation = $pdo->prepare("SELECT id FROM delivery_confirmations WHERE order_id = ?");
-        $existingConfirmation->execute([$id]);
+        // One POD per customer order: skip if a confirmation already exists for ANY line in this group
+        $inPh = implode(',', array_fill(0, count($orderIds), '?'));
+        $existingConfirmation = $pdo->prepare("SELECT id FROM delivery_confirmations WHERE order_id IN ($inPh)");
+        $existingConfirmation->execute($orderIds);
+        $groupAlreadyConfirmed = (bool)$existingConfirmation->fetch();
 
-        // Check if this patient already received an SMS in the last 5 minutes (batch delivery)
+        // Also avoid double-texting a patient across separate orders in the same batch window
         $recentSmsCheck = $pdo->prepare("
           SELECT dc.id FROM delivery_confirmations dc
           JOIN orders o ON o.id = dc.order_id
@@ -153,25 +165,22 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $recentSmsCheck->execute([$order['patient_id']]);
         $patientAlreadyNotified = (bool)$recentSmsCheck->fetch();
 
-        if (!$existingConfirmation->fetch() && ($hasPhone || $hasEmail)) {
+        if (!$groupAlreadyConfirmed && ($hasPhone || $hasEmail)) {
           // Generate unique confirmation token
           $token = bin2hex(random_bytes(32));
 
           // Insert confirmation record
           $insertStmt = $pdo->prepare("
             INSERT INTO delivery_confirmations (
-              order_id,
-              patient_phone,
-              patient_email,
-              confirmation_token,
-              created_at,
-              updated_at
-            ) VALUES (?, ?, ?, ?, NOW(), NOW())
+              order_id, order_group_id,
+              patient_phone, patient_email,
+              confirmation_token, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, NOW(), NOW())
             RETURNING id
           ");
 
           $insertStmt->execute([
-            $id,
+            $id, $groupId,
             $order['phone'] ?? null,
             $order['email'] ?? null,
             $token
@@ -527,7 +536,13 @@ $sql = "
          pr.pieces_per_box,
          pr.cost_per_box,
          pr.price_wholesale,
-         u.account_type
+         u.account_type,
+         (SELECT dc2.confirmation_token FROM delivery_confirmations dc2
+            WHERE dc2.order_id = o.id OR (o.order_group_id IS NOT NULL AND dc2.order_group_id = o.order_group_id)
+            ORDER BY dc2.created_at DESC LIMIT 1) AS pod_token,
+         (SELECT dc2.pod_signed_at FROM delivery_confirmations dc2
+            WHERE dc2.order_id = o.id OR (o.order_group_id IS NOT NULL AND dc2.order_group_id = o.order_group_id)
+            ORDER BY dc2.created_at DESC LIMIT 1) AS pod_signed
   FROM orders o
   LEFT JOIN patients p ON p.id=o.patient_id
   LEFT JOIN delivery_confirmations dc ON dc.order_id=o.id
@@ -743,6 +758,15 @@ if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"
           <!-- Mark Delivered (sends SMS immediately) -->
           <?php if ($s === 'in_transit' || $s === 'approved'): ?>
             <form method="post" class="inline ml-2" onsubmit="return confirm('Mark as delivered on '+this.delivery_date.value+' and text the patient for signed proof of delivery?');"><?=csrf_field()?><input type="hidden" name="id" value="<?=e($r['id'])?>"><input type="hidden" name="action" value="mark_delivered"><input type="date" name="delivery_date" value="<?=date('Y-m-d')?>" max="<?=date('Y-m-d')?>" title="Actual delivery date" class="border rounded px-1 py-0.5 text-xs mr-1" onclick="event.stopPropagation()"><button class="text-green-600 hover:underline font-semibold">✓ Mark Delivered</button></form>
+          <?php endif; ?>
+
+          <!-- Proof of Delivery -->
+          <?php if (!empty($r['pod_token'])): ?>
+            <?php if (!empty($r['pod_signed'])): ?>
+            <a href="/api/delivery-approval.php?token=<?=e($r['pod_token'])?>&doc=1" target="_blank" class="text-green-700 hover:underline ml-2 font-semibold" title="Signed proof of delivery">POD&nbsp;&#10003;</a>
+            <?php else: ?>
+            <a href="/api/delivery-approval.php?token=<?=e($r['pod_token'])?>" target="_blank" class="text-slate-500 hover:underline ml-2" title="Proof of delivery — awaiting patient signature">POD&nbsp;(pending)</a>
+            <?php endif; ?>
           <?php endif; ?>
 
           <!-- Ship -->
