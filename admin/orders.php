@@ -103,7 +103,12 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $pdo->prepare("UPDATE orders SET status='rejected', updated_at=NOW() WHERE id=?")->execute([$id]);
   } elseif ($id && $action==='mark_delivered') {
     // Mark order as delivered and send SMS confirmation immediately
-    $pdo->prepare("UPDATE orders SET status='delivered', delivered_at=NOW(), updated_at=NOW() WHERE id=?")->execute([$id]);
+    $deliveryDate = trim((string)($_POST['delivery_date'] ?? ''));
+    if ($deliveryDate !== '') {
+      $pdo->prepare("UPDATE orders SET status='delivered', delivered_at=?::timestamp, updated_at=NOW() WHERE id=?")->execute([date('Y-m-d', strtotime($deliveryDate)), $id]);
+    } else {
+      $pdo->prepare("UPDATE orders SET status='delivered', delivered_at=NOW(), updated_at=NOW() WHERE id=?")->execute([$id]);
+    }
 
     // Send delivery confirmation SMS immediately
     try {
@@ -737,7 +742,7 @@ if ($hasLayout) include $header; else echo '<!doctype html><meta charset="utf-8"
 
           <!-- Mark Delivered (sends SMS immediately) -->
           <?php if ($s === 'in_transit' || $s === 'approved'): ?>
-            <form method="post" class="inline ml-2" onsubmit="return confirm('Mark as delivered and send SMS confirmation to patient?');"><?=csrf_field()?><input type="hidden" name="id" value="<?=e($r['id'])?>"><input type="hidden" name="action" value="mark_delivered"><button class="text-green-600 hover:underline font-semibold">✓ Mark Delivered</button></form>
+            <form method="post" class="inline ml-2" onsubmit="return confirm('Mark as delivered on '+this.delivery_date.value+' and text the patient for signed proof of delivery?');"><?=csrf_field()?><input type="hidden" name="id" value="<?=e($r['id'])?>"><input type="hidden" name="action" value="mark_delivered"><input type="date" name="delivery_date" value="<?=date('Y-m-d')?>" max="<?=date('Y-m-d')?>" title="Actual delivery date" class="border rounded px-1 py-0.5 text-xs mr-1" onclick="event.stopPropagation()"><button class="text-green-600 hover:underline font-semibold">✓ Mark Delivered</button></form>
           <?php endif; ?>
 
           <!-- Ship -->
