@@ -389,14 +389,21 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
       $physId
     ]);
 
-    // Persist per-account feature entitlements (modular MD DME / IWC assignment)
+    // Persist feature entitlements at the PRACTICE level (modular MD DME / IWC assignment).
+    // Every account in this practice (owner + linked physicians + duplicate accounts) gets
+    // the same features; a standalone account is scoped to just itself.
     require_once __DIR__ . '/../api/lib/features.php';
     $pf = $_POST['features'] ?? [];
     $featSet = [];
     foreach (assignable_feature_keys() as $fk) { $featSet[$fk] = !empty($pf[$fk]); }
-    $pdo->prepare("UPDATE users SET features = ?::jsonb, updated_at = NOW() WHERE id = ?")->execute([json_encode($featSet), $physId]);
+    $memberIds = practice_member_ids($pdo, $physId);
+    $in = implode(',', array_fill(0, count($memberIds), '?'));
+    $pdo->prepare("UPDATE users SET features = ?::jsonb, updated_at = NOW() WHERE id IN ($in)")
+        ->execute(array_merge([json_encode($featSet)], $memberIds));
+    $featScopeCount = count($memberIds);
 
-    $msg = 'User details updated successfully';
+    $msg = 'User details updated successfully'
+      . ($featScopeCount > 1 ? " — portal features applied to all {$featScopeCount} accounts in this practice." : '');
   }
 
   if ($act==='reset_phys_pw' && !$isManufacturer) {
@@ -726,7 +733,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                   </select>
                 </div>
                 <div style="grid-column:1/-1;">
-                  <label class="text-xs text-slate-600">Portal Features (assign what this client sees)</label>
+                  <label class="text-xs text-slate-600">Portal Features <span class="text-slate-400">— applies to every account in this practice</span></label>
                   <?php
                     require_once __DIR__ . '/../api/lib/features.php';
                     $ufeat = account_features($u); $fcat = portal_feature_catalog(); $fshown = [];

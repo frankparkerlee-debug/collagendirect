@@ -57,6 +57,27 @@ function default_account_features(array $user): array {
     return ['photo_reviews' => true, 'patient_referral' => true, 'healkit' => true, 'wholesale' => $wholesale];
 }
 
+/**
+ * Every user-account id that belongs to the same practice as $userId.
+ * A practice is identified by a shared, non-empty `users.practice_name` (the same
+ * grouping practice-pricing uses — the only reliable practice link in the data;
+ * practice_id/parent_user_id are unpopulated). An account with a blank practice_name
+ * is its own practice, so this returns just [$userId]. Used to apply feature
+ * entitlements practice-wide.
+ */
+function practice_member_ids(PDO $pdo, string $userId): array {
+    $st = $pdo->prepare("SELECT practice_name FROM users WHERE id = ?");
+    $st->execute([$userId]);
+    $practiceName = trim((string)$st->fetchColumn());
+    if ($practiceName === '') return [$userId];
+
+    $q = $pdo->prepare("SELECT id FROM users WHERE practice_name = ?");
+    $q->execute([$practiceName]);
+    $ids = $q->fetchAll(PDO::FETCH_COLUMN);
+    if (!in_array($userId, $ids, true)) $ids[] = $userId;
+    return array_values($ids);
+}
+
 function has_feature(array $user, string $key): bool {
     $cat = portal_feature_catalog();
     if (!isset($cat[$key])) return true;              // not a catalog feature => not gated
