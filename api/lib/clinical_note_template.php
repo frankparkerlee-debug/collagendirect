@@ -17,16 +17,44 @@
 
 function clinical_note_templates(): array {
     return [
+        // IWC — skin substitutes / PRP (Randy's Wound Care Dictation Guide)
         'wound_care_dictation' => [
-            'key'   => 'wound_care_dictation',
-            'label' => 'Wound Care Encounter (Dictation Guide)',
+            'key'     => 'wound_care_dictation',
+            'label'   => 'Skin Substitute / PRP Application',
+            'brand'   => 'iwc',
+            'ruleset' => 'iwc_skinsub',
             'sections' => clinical_note_dictation_sections(),
+        ],
+        // MD DME — surgical dressings (LCD L33831)
+        'md_surgical_dressings' => [
+            'key'     => 'md_surgical_dressings',
+            'label'   => 'Surgical Dressings (LCD L33831)',
+            'brand'   => 'md_dme',
+            'ruleset' => 'md_surgical',
+            'sections' => md_surgical_dressing_sections(),
+        ],
+        // MD DME — low-frequency ultrasound debridement (Arobella / CPT 97610)
+        'md_arobella_97610' => [
+            'key'     => 'md_arobella_97610',
+            'label'   => 'Ultrasound Debridement — Arobella (CPT 97610)',
+            'brand'   => 'md_dme',
+            'ruleset' => 'md_arobella',
+            'sections' => md_arobella_sections(),
         ],
     ];
 }
 
 function clinical_note_template(string $key): ?array {
     return clinical_note_templates()[$key] ?? null;
+}
+
+/** Templates grouped by brand key, for the picker. */
+function clinical_note_templates_by_brand(): array {
+    $out = [];
+    foreach (clinical_note_templates() as $key => $t) {
+        $out[$t['brand'] ?? 'other'][$key] = $t;
+    }
+    return $out;
 }
 
 function clinical_note_dictation_sections(): array {
@@ -174,6 +202,118 @@ function clinical_note_dictation_sections(): array {
                 ['key'=>'tp_additional','label'=>'Additional info','type'=>'textarea'],
                 ['key'=>'medical_necessity','label'=>'Medical necessity statement','type'=>'textarea',
                  'help'=>'e.g. "The patient has undergone greater than 4 weeks of conservative wound care without resolution…"'],
+            ],
+        ],
+    ];
+}
+
+/**
+ * MD DME — Surgical Dressings (Medicare LCD L33831). First-draft field set from the
+ * LCD's medical-necessity elements; refine to Randy's MD DME dictation guide. Coverage
+ * hinges on a qualifying wound (surgically created or debrided), etiology, size/number
+ * (drives quantity), exudate (drives absorptive selection), the specific dressing +
+ * HCPCS, change frequency, and periodic re-evaluation.
+ */
+function md_surgical_dressing_sections(): array {
+    return [
+        [
+            'key' => 'encounter', 'title' => 'Encounter',
+            'fields' => [
+                ['key'=>'date_of_service','label'=>'Date of Service','type'=>'date'],
+                ['key'=>'provider','label'=>'Provider','type'=>'text'],
+                ['key'=>'place_of_service','label'=>'Place of Service','type'=>'select',
+                 'options'=>['Patient\'s home','Assisted living facility','Nursing home','SNF','Physician office']],
+            ],
+        ],
+        [
+            'key' => 'qualifying', 'title' => 'Qualifying Event (Coverage Basis)',
+            'fields' => [
+                ['key'=>'qualifying_type','label'=>'Wound qualifies via','type'=>'select',
+                 'options'=>['Debrided wound','Surgically created wound','Wound requiring debridement'],
+                 'help'=>'Surgical dressings are covered for wounds caused by/treated with debridement or a surgical procedure.'],
+                ['key'=>'procedure_date','label'=>'Debridement / procedure date','type'=>'date'],
+                ['key'=>'debridement_performed','label'=>'Debridement performed this encounter?','type'=>'radio','options'=>['Yes','No']],
+            ],
+        ],
+        [
+            'key' => 'wound', 'title' => 'Wound', 'repeat' => 'wound',
+            'fields' => [
+                ['key'=>'location','label'=>'Location','type'=>'text'],
+                ['key'=>'etiology','label'=>'Etiology','type'=>'select','options'=>['Surgical','Diabetic','Venous','Arterial','Pressure','Trauma','Other']],
+                ['key'=>'icd10_primary','label'=>'ICD-10 primary','type'=>'text'],
+                ['key'=>'length_cm','label'=>'Length','type'=>'number','unit'=>'cm'],
+                ['key'=>'width_cm','label'=>'Width','type'=>'number','unit'=>'cm'],
+                ['key'=>'depth_cm','label'=>'Depth','type'=>'number','unit'=>'cm'],
+                ['key'=>'exudate_amount','label'=>'Exudate amount','type'=>'select','options'=>['None','Minimal','Moderate','Heavy'],
+                 'help'=>'Justifies dressing type/absorbency and change frequency.'],
+                ['key'=>'infection_signs','label'=>'Signs of infection?','type'=>'radio','options'=>['Yes','No']],
+            ],
+        ],
+        [
+            'key' => 'dressing', 'title' => 'Dressing Order', 'repeat' => 'wound',
+            'fields' => [
+                ['key'=>'primary_dressing','label'=>'Primary dressing (type)','type'=>'text'],
+                ['key'=>'primary_hcpcs','label'=>'Primary dressing HCPCS','type'=>'text'],
+                ['key'=>'primary_size','label'=>'Primary dressing size','type'=>'text'],
+                ['key'=>'secondary_dressing','label'=>'Secondary dressing (type)','type'=>'text'],
+                ['key'=>'secondary_hcpcs','label'=>'Secondary dressing HCPCS','type'=>'text'],
+                ['key'=>'qty_per_change','label'=>'Quantity per change','type'=>'number'],
+                ['key'=>'changes_per_week','label'=>'Changes per week','type'=>'number',
+                 'help'=>'Quantities exceeding LCD utilization guidelines need documented justification (e.g., heavy exudate).'],
+                ['key'=>'duration_days','label'=>'Expected duration','type'=>'number','unit'=>'days'],
+            ],
+        ],
+        [
+            'key' => 'evaluation', 'title' => 'Evaluation & Plan',
+            'fields' => [
+                ['key'=>'last_eval_date','label'=>'Last evaluation date','type'=>'date'],
+                ['key'=>'next_eval_date','label'=>'Next evaluation date','type'=>'date',
+                 'help'=>'Ongoing coverage requires periodic re-evaluation of continued need.'],
+                ['key'=>'tp_goals','label'=>'Treatment goals','type'=>'textarea'],
+                ['key'=>'medical_necessity','label'=>'Medical necessity statement','type'=>'textarea'],
+            ],
+        ],
+    ];
+}
+
+/**
+ * MD DME — Low-frequency, non-contact, non-thermal ultrasound debridement (Arobella,
+ * CPT 97610). First-draft; refine to Randy's Arobella documentation template.
+ */
+function md_arobella_sections(): array {
+    return [
+        [
+            'key' => 'encounter', 'title' => 'Encounter',
+            'fields' => [
+                ['key'=>'date_of_service','label'=>'Date of Service','type'=>'date'],
+                ['key'=>'provider','label'=>'Provider','type'=>'text'],
+                ['key'=>'place_of_service','label'=>'Place of Service','type'=>'select',
+                 'options'=>['Patient\'s home','Assisted living facility','Nursing home','SNF','Physician office']],
+            ],
+        ],
+        [
+            'key' => 'wound', 'title' => 'Wound & Indication', 'repeat' => 'wound',
+            'fields' => [
+                ['key'=>'location','label'=>'Location','type'=>'text'],
+                ['key'=>'etiology','label'=>'Etiology','type'=>'select','options'=>['Diabetic','Venous','Arterial','Pressure','Surgical','Trauma','Other']],
+                ['key'=>'icd10_primary','label'=>'ICD-10 primary','type'=>'text'],
+                ['key'=>'length_cm','label'=>'Length','type'=>'number','unit'=>'cm'],
+                ['key'=>'width_cm','label'=>'Width','type'=>'number','unit'=>'cm'],
+                ['key'=>'depth_cm','label'=>'Depth','type'=>'number','unit'=>'cm'],
+                ['key'=>'tissue_type','label'=>'Devitalized tissue present (slough/eschar/fibrin)?','type'=>'radio','options'=>['Yes','No'],
+                 'help'=>'Indication for debridement / cleansing.'],
+                ['key'=>'indication','label'=>'Why 97610 (indication / adjunct rationale)','type'=>'textarea'],
+            ],
+        ],
+        [
+            'key' => 'treatment', 'title' => 'Treatment & Response',
+            'fields' => [
+                ['key'=>'treatment_number','label'=>'Treatment # (of planned series)','type'=>'text'],
+                ['key'=>'frequency','label'=>'Frequency','type'=>'text','help'=>'e.g. per IFU / weekly'],
+                ['key'=>'response','label'=>'Response / measurable progress since prior treatment','type'=>'textarea',
+                 'help'=>'Continued coverage depends on documented progress.'],
+                ['key'=>'tp_goals','label'=>'Treatment goals','type'=>'textarea'],
+                ['key'=>'medical_necessity','label'=>'Medical necessity statement','type'=>'textarea'],
             ],
         ],
     ];

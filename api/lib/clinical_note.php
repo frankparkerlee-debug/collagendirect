@@ -140,11 +140,20 @@ function cn_section_rows(array $fields, array $vals): string {
 /* ------------------------------------------------------------- GAP CHECK --- */
 
 /**
- * Deterministic documentation-gap findings from the New Order Review checklist.
- * Returns [ ['level'=>'high|moderate|low','message'=>'...'], ... ].
+ * Deterministic documentation-gap findings. Routes to the rule set for the note's
+ * template. Returns [ ['level'=>'high|moderate|low','message'=>'...'], ... ].
  * (Phase 2 will add AI-assisted checks against uploaded free-text notes.)
  */
 function cn_gap_check(array $template, array $data, int $woundCount): array {
+    switch ($template['ruleset'] ?? 'iwc_skinsub') {
+        case 'md_surgical': return cn_gaps_md_surgical($data, $woundCount);
+        case 'md_arobella': return cn_gaps_md_arobella($data, $woundCount);
+        default:            return cn_gaps_iwc_skinsub($data, $woundCount);
+    }
+}
+
+/** IWC skin-substitute / PRP gap rules (from Randy's New Order Review checklist). */
+function cn_gaps_iwc_skinsub(array $data, int $woundCount): array {
     $f = $data['f'] ?? [];
     $w = $data['w'] ?? [];
     $out = [];
@@ -203,6 +212,76 @@ function cn_gap_check(array $template, array $data, int $woundCount): array {
         if (($wd['infection_signs'] ?? '') === 'Yes') {
             $add('low', $n . 'Signs of infection present — document management; wound bed should be free of active infection prior to graft application.');
         }
+    }
+    return $out;
+}
+
+/** MD DME surgical-dressing (LCD L33831) gap rules. */
+function cn_gaps_md_surgical(array $data, int $woundCount): array {
+    $f = $data['f'] ?? [];
+    $w = $data['w'] ?? [];
+    $out = [];
+    $add = function ($level, $msg) use (&$out) { $out[] = ['level' => $level, 'message' => $msg]; };
+
+    // Coverage basis: surgical dressings require a debrided / surgically-created wound
+    if (trim((string)($f['qualifying_type'] ?? '')) === '') {
+        $add('high', 'Qualifying event not documented — surgical dressings are covered only for a debrided or surgically-created wound.');
+    }
+    for ($i = 0; $i < $woundCount; $i++) {
+        $wd = $w[$i] ?? [];
+        $n = 'Wound #' . ($i + 1) . ': ';
+        if (trim((string)($wd['icd10_primary'] ?? '')) === '') {
+            $add('high', $n . 'Wound diagnosis (ICD-10) not documented.');
+        }
+        if (trim((string)($wd['length_cm'] ?? '')) === '' || trim((string)($wd['width_cm'] ?? '')) === '' || trim((string)($wd['depth_cm'] ?? '')) === '') {
+            $add('moderate', $n . 'Incomplete wound measurements — size drives covered dressing size and quantity.');
+        }
+        if (trim((string)($wd['exudate_amount'] ?? '')) === '') {
+            $add('moderate', $n . 'Exudate amount not documented — justifies dressing selection and change frequency.');
+        }
+    }
+    // Dressing order specifics
+    for ($i = 0; $i < $woundCount; $i++) {
+        $wd = $w[$i] ?? [];
+        $n = 'Wound #' . ($i + 1) . ': ';
+        if (trim((string)($wd['primary_hcpcs'] ?? '')) === '') {
+            $add('moderate', $n . 'Primary dressing HCPCS not documented.');
+        }
+        if (trim((string)($wd['qty_per_change'] ?? '')) === '' || trim((string)($wd['changes_per_week'] ?? '')) === '') {
+            $add('moderate', $n . 'Dressing quantity per change and/or change frequency not documented.');
+        }
+    }
+    if (trim((string)($f['next_eval_date'] ?? '')) === '') {
+        $add('low', 'No re-evaluation date documented — continued coverage requires periodic re-evaluation of need.');
+    }
+    return $out;
+}
+
+/** MD DME Arobella / ultrasound-debridement (CPT 97610) gap rules. */
+function cn_gaps_md_arobella(array $data, int $woundCount): array {
+    $f = $data['f'] ?? [];
+    $w = $data['w'] ?? [];
+    $out = [];
+    $add = function ($level, $msg) use (&$out) { $out[] = ['level' => $level, 'message' => $msg]; };
+
+    for ($i = 0; $i < $woundCount; $i++) {
+        $wd = $w[$i] ?? [];
+        $n = 'Wound #' . ($i + 1) . ': ';
+        if (trim((string)($wd['indication'] ?? '')) === '') {
+            $add('high', $n . 'Indication / rationale for ultrasound debridement (97610) not documented.');
+        }
+        if (($wd['tissue_type'] ?? '') !== 'Yes') {
+            $add('moderate', $n . 'Devitalized tissue (slough/eschar/fibrin) not documented — supports the debridement indication.');
+        }
+        if (trim((string)($wd['length_cm'] ?? '')) === '' || trim((string)($wd['width_cm'] ?? '')) === '' || trim((string)($wd['depth_cm'] ?? '')) === '') {
+            $add('moderate', $n . 'Incomplete wound measurements (need L × W × D for progress tracking).');
+        }
+    }
+    if (trim((string)($f['response'] ?? '')) === '') {
+        $add('moderate', 'Response / measurable progress since prior treatment not documented — required to support continued treatments.');
+    }
+    if (trim((string)($f['medical_necessity'] ?? '')) === '') {
+        $add('low', 'Medical-necessity statement not documented.');
     }
     return $out;
 }

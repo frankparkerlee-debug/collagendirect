@@ -6,10 +6,10 @@
  * by portal/index.php. Data ops post to /api/portal/clinical-note.save.php.
  */
 require_once __DIR__ . '/../api/lib/clinical_note.php';
+require_once __DIR__ . '/../api/lib/features.php';   // portal_brand_labels()
 
-$cnUserId   = $user['id'] ?? ($_SESSION['user_id'] ?? '');
-$cnTplKey   = 'wound_care_dictation';
-$cnTemplate = clinical_note_template($cnTplKey);
+$cnUserId = $user['id'] ?? ($_SESSION['user_id'] ?? '');
+$cnTplKey = trim((string)($_GET['template_key'] ?? 'wound_care_dictation'));
 
 $cnViewId = trim((string)($_GET['note'] ?? ''));
 $cnNew    = !empty($_GET['new']);
@@ -29,8 +29,10 @@ if ($cnViewId !== '') {
     $cnPatient = ['first_name'=>$cnNote['first_name'],'last_name'=>$cnNote['last_name'],'dob'=>$cnNote['dob']];
     $cnPatientId = $cnNote['patient_id'];
     $cnWounds = cn_wound_count($cnData);
+    $cnTplKey = $cnNote['template_key'] ?: $cnTplKey;
   }
 }
+$cnTemplate = clinical_note_template($cnTplKey) ?: clinical_note_template('wound_care_dictation');
 
 // Patient for a brand-new note
 if (!$cnPatient && $cnPatientId !== '') {
@@ -84,7 +86,8 @@ $cnEditing = ($cnNew && $cnPatient) || (!empty($_GET['edit']) && $cnNote);
     $pName = trim(($cnPatient['first_name'] ?? '').' '.($cnPatient['last_name'] ?? ''));
   ?>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-    <div><strong><?=htmlspecialchars($cnNote ? 'Edit note' : 'New note')?></strong> — <?=htmlspecialchars($pName)?></div>
+    <div><strong><?=htmlspecialchars($cnNote ? 'Edit note' : 'New note')?></strong> — <?=htmlspecialchars($pName)?>
+      <span class="cn-help" style="display:inline"> · <?=htmlspecialchars($cnTemplate['label'] ?? '')?></span></div>
     <a class="cn-btn secondary" href="?page=clinical-notes" style="text-decoration:none">Cancel</a>
   </div>
 
@@ -92,7 +95,7 @@ $cnEditing = ($cnNew && $cnPatient) || (!empty($_GET['edit']) && $cnNote);
   <div class="cn-section" style="display:flex;gap:14px;align-items:center">
     <label style="font-size:13px;color:#475569;font-weight:600">Number of wounds:</label>
     <?php for ($n=1;$n<=6;$n++): ?>
-      <a href="?page=clinical-notes&new=1&patient_id=<?=urlencode($cnPatientId)?>&wounds=<?=$n?>"
+      <a href="?page=clinical-notes&new=1&patient_id=<?=urlencode($cnPatientId)?>&template_key=<?=urlencode($cnTplKey)?>&wounds=<?=$n?>"
          style="text-decoration:none;font-weight:<?=$n===$formWounds?'700':'400'?>;color:<?=$n===$formWounds?'#0075bc':'#64748b'?>"><?=$n?></a>
     <?php endfor; ?>
     <span class="cn-help">Set this first — changing it reloads the form.</span>
@@ -169,13 +172,23 @@ $cnEditing = ($cnNew && $cnPatient) || (!empty($_GET['edit']) && $cnNote);
     <?php if (!$cnPatients): ?>
       <div style="font-size:13px;color:#64748b">Add a patient first, then start a note.</div>
     <?php else: ?>
-    <form method="get" style="display:flex;gap:10px;align-items:center">
+    <form method="get" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       <input type="hidden" name="page" value="clinical-notes">
       <input type="hidden" name="new" value="1">
-      <select name="patient_id" required style="border:1px solid #cbd5e1;border-radius:6px;padding:7px 9px;font-size:13px;min-width:260px">
+      <select name="patient_id" required style="border:1px solid #cbd5e1;border-radius:6px;padding:7px 9px;font-size:13px;min-width:240px">
         <option value="">Select patient…</option>
         <?php foreach ($cnPatients as $p): ?>
           <option value="<?=htmlspecialchars($p['id'])?>"><?=htmlspecialchars(trim($p['last_name'].', '.$p['first_name']))?></option>
+        <?php endforeach; ?>
+      </select>
+      <select name="template_key" required style="border:1px solid #cbd5e1;border-radius:6px;padding:7px 9px;font-size:13px;min-width:260px">
+        <?php foreach (clinical_note_templates_by_brand() as $brand => $tpls):
+          $blabel = portal_brand_labels()[$brand] ?? strtoupper((string)$brand); ?>
+          <optgroup label="<?=htmlspecialchars($blabel)?>">
+            <?php foreach ($tpls as $tk => $t): ?>
+              <option value="<?=htmlspecialchars($tk)?>"><?=htmlspecialchars($t['label'])?></option>
+            <?php endforeach; ?>
+          </optgroup>
         <?php endforeach; ?>
       </select>
       <button class="cn-btn" type="submit">Start note</button>
