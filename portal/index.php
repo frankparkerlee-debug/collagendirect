@@ -5276,6 +5276,38 @@ if ($page==='logout'){
     }
   }
 
+  /* ===== Mobile polish: readability + list-tables-as-cards ===== */
+  @media (max-width: 767px) {
+    /* 16px inputs prevent iOS auto-zoom on focus; keep controls legible */
+    input, select, textarea { font-size: 16px !important; }
+    .content-area { font-size: 15px; }
+
+    /* Main data lists render as stacked cards instead of scrolling sideways */
+    table.cards-on-mobile { display: block; width: 100%; white-space: normal; overflow: visible; border: 0; font-size: inherit; }
+    table.cards-on-mobile thead { display: none; }
+    table.cards-on-mobile tbody { display: block; }
+    table.cards-on-mobile tr {
+      display: block; margin: 0 0 0.75rem; padding: 0.7rem 0.9rem;
+      border: 1px solid var(--border, #e2e8f0); border-radius: 12px; background: #fff;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04); box-sizing: border-box; max-width: 100%;
+    }
+    table.cards-on-mobile td {
+      display: block; text-align: left; padding: 0.25rem 0 !important;
+      border: 0 !important; white-space: normal; overflow-wrap: anywhere;
+      font-size: 0.92rem; width: auto; box-sizing: border-box; max-width: 100%;
+    }
+    /* Label sits above its value — stacked layout never overflows horizontally */
+    table.cards-on-mobile td::before {
+      content: attr(data-label); display: block; font-size: 0.68rem; font-weight: 700;
+      color: var(--muted, #64748b); text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 1px;
+    }
+    /* Unlabeled cells (e.g. actions) show just their content, with a little top gap */
+    table.cards-on-mobile td:not([data-label])::before,
+    table.cards-on-mobile td[data-label=""]::before { content: none; }
+    table.cards-on-mobile td:not([data-label]),
+    table.cards-on-mobile td[data-label=""] { margin-top: 0.4rem; }
+  }
+
   /* Ensure details/summary elements work properly */
   details > summary {
     list-style: none;
@@ -6829,7 +6861,7 @@ if ($page==='logout'){
       </div>
     </div>
     <div class="overflow-x-auto">
-      <table class="w-full text-sm">
+      <table class="w-full text-sm cards-on-mobile">
         <thead style="border-bottom: 1px solid var(--border);">
           <tr class="text-left">
             <th class="py-3 px-2 hide-mobile" style="width: 40px;">
@@ -6862,7 +6894,7 @@ if ($page==='logout'){
 
   <section class="card p-5">
     <div class="overflow-x-auto">
-      <table class="w-full text-sm">
+      <table class="w-full text-sm cards-on-mobile">
         <thead class="border-b">
           <tr class="text-left">
             <th class="py-2">Name</th><th class="py-2 hide-mobile">DOB</th><th class="py-2 hide-tablet">Phone</th><th class="py-2 hide-tablet">Email</th>
@@ -6994,7 +7026,7 @@ if ($page==='logout'){
 
   <section class="card p-5">
     <div class="overflow-x-auto">
-      <table class="w-full text-sm">
+      <table class="w-full text-sm cards-on-mobile">
         <thead class="border-b">
           <tr class="text-left">
             <th class="py-2">Invoice #</th>
@@ -7116,7 +7148,7 @@ if ($page==='logout'){
 
   <section class="card p-5">
     <div class="overflow-x-auto">
-      <table class="w-full text-sm">
+      <table class="w-full text-sm cards-on-mobile">
         <thead class="border-b">
           <tr class="text-left">
             <th class="py-2">Transaction ID</th>
@@ -8499,7 +8531,7 @@ function initProfileAutocomplete(addressId, cityId, stateId, zipId) {
   <!-- Orders Table -->
   <section class="card p-5">
     <div class="overflow-x-auto">
-      <table class="w-full text-sm">
+      <table class="w-full text-sm cards-on-mobile">
         <thead class="border-b">
           <tr class="text-left">
             <th class="py-2">Order ID</th>
@@ -9612,6 +9644,36 @@ function getInitials(first, last){
       toggleMenu(true);
     }
   });
+})();
+
+/* ===== Mobile: label list-table cells (from their headers) so they read as cards ===== */
+(function initMobileTableCards() {
+  function label(scope) {
+    (scope || document).querySelectorAll('table.cards-on-mobile').forEach(function (t) {
+      var ths = t.querySelectorAll('thead th');
+      if (!ths.length) return;
+      t.querySelectorAll('tbody tr').forEach(function (tr) {
+        var cells = tr.children, ci = 0;
+        for (var i = 0; i < cells.length; i++) {
+          if (cells[i].tagName !== 'TD') continue;
+          if (!cells[i].hasAttribute('data-label')) {
+            cells[i].setAttribute('data-label', ths[ci] ? ths[ci].textContent.trim() : '');
+          }
+          ci++;
+        }
+      });
+    });
+  }
+  label(document);
+  // Re-label when lists render/refresh dynamically (debounced; attributes not observed → no loop)
+  try {
+    var timer = null;
+    var obs = new MutationObserver(function () {
+      clearTimeout(timer);
+      timer = setTimeout(function () { label(document); }, 150);
+    });
+    obs.observe(document.querySelector('.content-area') || document.body, { childList: true, subtree: true });
+  } catch (e) {}
 })();
 
 /* Metrics (dashboard) */
@@ -11749,7 +11811,7 @@ async function toggleAccordion(rowEl, patientId, page){
             <details class="mt-4">
               <summary class="cursor-pointer text-sm font-medium mb-3">View all orders (detailed)</summary>
               <div class="overflow-x-auto mt-3">
-                <table class="w-full text-sm">
+                <table class="w-full text-sm cards-on-mobile">
                   <thead class="border-b"><tr class="text-left">
                     <th class="py-2">Created</th><th class="py-2">Product</th><th class="py-2">Status</th>
                     <th class="py-2">Product Cnt</th><th class="py-2">Deliver To</th><th class="py-2">Expires</th><th class="py-2">View</th><th class="py-2">Actions</th>
