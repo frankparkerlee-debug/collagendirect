@@ -29,6 +29,10 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction
 # Copy application files
 COPY . /var/www/html/
 
+# Postgres-backed sessions: load our PHP ini (auto_prepend_file registers the
+# session handler globally). zz- prefix so it loads after the stock ini files.
+COPY docker/php-session.ini /usr/local/etc/php/conf.d/zz-session.ini
+
 # Create uploads directory structure (will be replaced by persistent disk mount on Render)
 # The entrypoint script will ensure proper permissions and subdirectories
 RUN mkdir -p /var/www/html/uploads \
