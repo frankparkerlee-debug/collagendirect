@@ -5014,10 +5014,12 @@ if ($page==='logout'){
       left: 0;
     }
 
-    /* Main content takes full width */
-    .main-content {
+    /* Main content takes full width (must also clear the desktop max-width clamp) */
+    .main-content,
+    .main-content.sidebar-collapsed {
       margin-left: 0;
       width: 100%;
+      max-width: 100%;
     }
 
     /* Top bar adjustments */

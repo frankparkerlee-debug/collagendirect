@@ -486,11 +486,27 @@ unset($order); // Break reference
   gap: 0.75rem;
   justify-content: flex-end;
 }
+
+/* ===== Mobile ===== */
+@media (max-width: 767px) {
+  .wholesale-container { padding: 1rem; }
+  .wholesale-page-header { flex-direction: column; align-items: flex-start !important; gap: 0.75rem; }
+  .wholesale-page-header > a, .wholesale-page-header .btn-primary { width: 100%; justify-content: center; }
+  .wholesale-page-header h1 { font-size: 1.5rem !important; }
+  /* Order rows + meta stack instead of fixed multi-column grids */
+  .invoice-header, .invoice-header.with-financials { grid-template-columns: 1fr; gap: 0.35rem; }
+  .invoice-meta-grid { grid-template-columns: 1fr; gap: 1rem; }
+  .invoice-actions { padding: 1rem; flex-direction: column; }
+  .invoice-actions > * { width: 100%; justify-content: center; }
+  .invoice-details { padding: 1rem; }
+  /* Line-item tables scroll horizontally rather than overflow the screen */
+  .invoice-details table { display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+}
 </style>
 
 <div class="wholesale-container">
   <!-- Header -->
-  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem;">
+  <div class="wholesale-page-header" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem;">
     <div>
       <h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; color: #1e293b;">
         Wholesale Orders<?= $canViewFinancials ? ' & Invoices' : '' ?>
