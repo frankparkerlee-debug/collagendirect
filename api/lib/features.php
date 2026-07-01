@@ -26,7 +26,8 @@ function portal_feature_catalog(): array {
         'patient_referral' => ['label' => 'Patient Referral', 'page' => 'orders',        'brands' => ['md_dme'], 'pages' => ['orders'], 'icon' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'],
         'healkit'          => ['label' => 'HealKit Order',    'page' => 'healkit',       'brands' => ['md_dme'],         'icon' => 'M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z'],
         'wholesale'        => ['label' => 'Wholesale Orders', 'page' => 'wholesale',     'brands' => ['md_dme'], 'pages' => ['wholesale', 'wholesale-order', 'create-wholesale-order', 'my-wholesale-orders', 'dme-orders'], 'icon' => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'],
-        'clinical_docs'    => ['label' => 'Clinical Documentation', 'page' => 'clinical-notes', 'brands' => ['md_dme'], 'pages' => ['clinical-notes'], 'icon' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],
+        'clinical_docs_mddme' => ['label' => 'Clinical Documentation', 'page' => 'clinical-notes', 'brands' => ['md_dme'], 'pages' => ['clinical-notes'], 'nav_query' => 'brand=md_dme', 'note_brand' => 'md_dme', 'icon' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],
+        'clinical_docs_iwc'   => ['label' => 'Clinical Documentation', 'page' => 'clinical-notes', 'brands' => ['iwc'],   'pages' => ['clinical-notes'], 'nav_query' => 'brand=iwc',   'note_brand' => 'iwc',   'icon' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],
         'messages'         => ['label' => 'Messages',         'page' => 'messages',      'brands' => ['core'],           'core' => true, 'icon' => 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z'],
         'profile'          => ['label' => 'Admin',            'page' => 'profile',       'brands' => ['core'],           'core' => true, 'icon' => 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'],
     ];
@@ -118,26 +119,49 @@ function has_feature(array $user, string $key): bool {
     return !empty($f[$key]);
 }
 
-/** Which feature (if any) guards a given ?page= slug. */
+/** Which feature (if any) guards a given ?page= slug (first match). */
 function feature_for_page(string $page): ?string {
+    $all = features_for_page($page);
+    return $all[0] ?? null;
+}
+
+/** All features that guard a given ?page= slug (a page may be shared by several). */
+function features_for_page(string $page): array {
+    $keys = [];
     foreach (portal_feature_catalog() as $key => $def) {
         if (!empty($def['core'])) continue;
         $pages = $def['pages'] ?? [$def['page']];
-        if (in_array($page, $pages, true)) return $key;
+        if (in_array($page, $pages, true)) $keys[] = $key;
     }
-    return null;
+    return $keys;
 }
 
-/** True if the account may view a page (core/unmapped pages are always allowed). */
+/** True if the account may view a page (core/unmapped pages always allowed; any matching feature grants access). */
 function page_allowed(array $user, string $page): bool {
-    $key = feature_for_page($page);
-    return $key === null ? true : has_feature($user, $key);
+    $keys = features_for_page($page);
+    if (!$keys) return true;
+    foreach ($keys as $key) { if (has_feature($user, $key)) return true; }
+    return false;
+}
+
+/**
+ * Which clinical-note brands an account may use (drives the template picker).
+ * Honors the legacy single `clinical_docs` flag as MD DME for back-compat.
+ */
+function entitled_note_brands(array $user): array {
+    $f = account_features($user);
+    $brands = [];
+    if (!empty($f['clinical_docs_mddme']) || !empty($f['clinical_docs'])) $brands[] = 'md_dme';
+    if (!empty($f['clinical_docs_iwc'])) $brands[] = 'iwc';
+    return $brands;
 }
 
 function render_portal_nav_item(string $key, array $def, string $page): void {
     $slug = $def['page'] ?? $key;
     $active = ($page === $slug) ? 'active' : '';
-    echo '<a class="' . $active . '" href="?page=' . htmlspecialchars($slug) . '">';
+    $href = '?page=' . htmlspecialchars($slug);
+    if (!empty($def['nav_query'])) $href .= '&' . htmlspecialchars($def['nav_query']);
+    echo '<a class="' . $active . '" href="' . $href . '">';
     echo '<svg class="sidebar-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="' . htmlspecialchars($def['icon']) . '"></path></svg>';
     echo '<span>' . htmlspecialchars($def['label']) . '</span></a>';
 }

@@ -9,6 +9,7 @@ require_once __DIR__ . '/../api/lib/clinical_note.php';
 require_once __DIR__ . '/../api/lib/features.php';   // portal_brand_labels()
 
 $cnUserId = $user['id'] ?? ($_SESSION['user_id'] ?? '');
+$cnBrands = entitled_note_brands($user);   // which brands' templates this account may use
 $cnTplKey = trim((string)($_GET['template_key'] ?? 'wound_care_dictation'));
 
 $cnViewId = trim((string)($_GET['note'] ?? ''));
@@ -175,7 +176,9 @@ $cnEditing = ($cnNew && $cnPatient) || (!empty($_GET['edit']) && $cnNote);
     <form method="get" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       <input type="hidden" name="page" value="clinical-notes">
       <input type="hidden" name="new" value="1">
-      <select name="patient_id" required style="border:1px solid #cbd5e1;border-radius:6px;padding:7px 9px;font-size:13px;min-width:240px">
+      <input type="text" id="cn-patient-search" placeholder="Search patient…" autocomplete="off"
+             oninput="cnFilterPatients(this.value)" style="border:1px solid #cbd5e1;border-radius:6px;padding:7px 9px;font-size:13px;min-width:200px">
+      <select name="patient_id" id="cn-patient-select" required size="1" style="border:1px solid #cbd5e1;border-radius:6px;padding:7px 9px;font-size:13px;min-width:240px">
         <option value="">Select patient…</option>
         <?php foreach ($cnPatients as $p): ?>
           <option value="<?=htmlspecialchars($p['id'])?>"><?=htmlspecialchars(trim($p['last_name'].', '.$p['first_name']))?></option>
@@ -183,6 +186,7 @@ $cnEditing = ($cnNew && $cnPatient) || (!empty($_GET['edit']) && $cnNote);
       </select>
       <select name="template_key" required style="border:1px solid #cbd5e1;border-radius:6px;padding:7px 9px;font-size:13px;min-width:260px">
         <?php foreach (clinical_note_templates_by_brand() as $brand => $tpls):
+          if (!in_array($brand, $cnBrands, true)) continue;   // only brands this account is entitled to
           $blabel = portal_brand_labels()[$brand] ?? strtoupper((string)$brand); ?>
           <optgroup label="<?=htmlspecialchars($blabel)?>">
             <?php foreach ($tpls as $tk => $t): ?>
@@ -193,6 +197,20 @@ $cnEditing = ($cnNew && $cnPatient) || (!empty($_GET['edit']) && $cnNote);
       </select>
       <button class="cn-btn" type="submit">Start note</button>
     </form>
+    <script>
+      function cnFilterPatients(q){
+        q=(q||'').toLowerCase();
+        var sel=document.getElementById('cn-patient-select'), first=null;
+        for(var i=0;i<sel.options.length;i++){
+          var o=sel.options[i];
+          if(!o.value){continue;}
+          var match=o.text.toLowerCase().indexOf(q)>=0;
+          o.hidden=!match;
+          if(match&&!first)first=o;
+        }
+        sel.value=first?first.value:'';
+      }
+    </script>
     <?php endif; ?>
   </div>
 
