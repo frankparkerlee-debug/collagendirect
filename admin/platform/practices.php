@@ -37,6 +37,32 @@ $isAdmin = in_array($adminRole, ['owner', 'superadmin', 'admin']);
 $isManufacturer = $adminRole === 'manufacturer';
 $canManage = has_permission('admin_settings.practices.manage', 'full');
 
+// Portal feature entitlements (assign per practice)
+require_once __DIR__ . '/../../api/lib/features.php';
+
+/** Render brand-grouped Portal Features checkboxes (deduped multi-brand features). */
+function pf_feature_checkboxes(array $current): void {
+    $cat = portal_feature_catalog();
+    $shown = [];
+    foreach (portal_brand_labels() as $brand => $blabel) {
+        $items = [];
+        foreach ($cat as $fk => $fd) {
+            if (!empty($fd['core']) || isset($shown[$fk])) continue;
+            if (in_array($brand, $fd['brands'], true)) $items[$fk] = $fd;
+        }
+        if (!$items) continue;
+        echo '<div class="text-xs font-semibold text-slate-500 mt-1">' . htmlspecialchars($blabel) . '</div>';
+        echo '<div class="flex flex-wrap gap-4 mb-1">';
+        foreach ($items as $fk => $fd) {
+            $shown[$fk] = true;
+            $ck = !empty($current[$fk]) ? 'checked' : '';
+            echo '<label class="inline-flex items-center gap-1 text-sm"><input type="checkbox" name="features[' . htmlspecialchars($fk) . ']" value="1" ' . $ck . '> ' . htmlspecialchars($fd['label']) . '</label>';
+        }
+        echo '</div>';
+    }
+    echo '<input type="hidden" name="features_present" value="1">';
+}
+
 // Sub-tab selection
 $subtab = $_GET['subtab'] ?? 'practices';
 $msg = $_GET['msg'] ?? '';
@@ -108,6 +134,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_POST['assigned_rep_id'] ?: null
                 ]);
 
+                // Portal feature entitlements for the new practice
+                if (!empty($_POST['features_present'])) {
+                    $featSet = [];
+                    foreach (assignable_feature_keys() as $fk) { $featSet[$fk] = !empty($_POST['features'][$fk]); }
+                    $pdo->prepare("UPDATE users SET features = ?::jsonb WHERE id = ?")->execute([json_encode($featSet), $practiceId]);
+                }
+
                 // Create primary location if address provided
                 if (!empty($_POST['address'])) {
                     $locStmt = $pdo->prepare("
@@ -149,6 +182,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $params[] = $_POST['practice_id'];
                     $sql = "UPDATE users SET " . implode(', ', $updates) . ", updated_at = NOW() WHERE id = ?";
                     $pdo->prepare($sql)->execute($params);
+                }
+
+                // Portal feature entitlements — applied practice-wide (owner + members)
+                if (!empty($_POST['features_present'])) {
+                    $featSet = [];
+                    foreach (assignable_feature_keys() as $fk) { $featSet[$fk] = !empty($_POST['features'][$fk]); }
+                    $memberIds = practice_member_ids($pdo, $_POST['practice_id']);
+                    $in = implode(',', array_fill(0, count($memberIds), '?'));
+                    $pdo->prepare("UPDATE users SET features = ?::jsonb, updated_at = NOW() WHERE id IN ($in)")
+                        ->execute(array_merge([json_encode($featSet)], $memberIds));
                 }
 
                 $msg = 'Practice updated successfully';
@@ -370,7 +413,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $practicesQuery = "
     SELECT u.id, u.first_name, u.last_name, u.email, u.practice_name, u.phone,
            u.address, u.city, u.state, u.zip, u.account_type, u.status, u.npi, u.ptan,
-           u.created_at, u.assigned_rep_id,
+           u.created_at, u.assigned_rep_id, u.features,
            (SELECT COUNT(*) FROM practice_locations pl WHERE pl.user_id = u.id AND pl.is_active = TRUE) as location_count,
            (SELECT COUNT(*) FROM users u2 WHERE u2.practice_name = u.practice_name AND u2.role IN ('physician', 'practice_admin') AND u2.status = 'active') as user_count,
            CASE WHEN sr.id IS NOT NULL THEN CONCAT(rep_user.first_name, ' ', rep_user.last_name) ELSE NULL END as rep_name
@@ -681,6 +724,11 @@ include __DIR__ . '/../_header.php';
                                     </select>
                                 </div>
 
+                                <div class="col-span-3 mt-1">
+                                    <label class="text-xs text-slate-600 block mb-1">Portal Features <span class="text-slate-400">— applies to every account in this practice</span></label>
+                                    <?php pf_feature_checkboxes(account_features($p)); ?>
+                                </div>
+
                                 <div class="col-span-3 flex gap-2 mt-2">
                                     <button type="submit" class="bg-brand text-white rounded px-4 py-1.5 text-sm">Save Changes</button>
                                     <button type="button" onclick="togglePracticeDetails('<?= e($p['id']) ?>')" class="bg-slate-200 rounded px-4 py-1.5 text-sm">Cancel</button>
@@ -758,9 +806,14 @@ include __DIR__ . '/../_header.php';
                     <label class="text-xs text-slate-600 block mb-1">Account Type *</label>
                     <select class="border rounded px-2 py-1.5 w-full text-sm" name="account_type" required>
                         <option value="referral">Referral</option>
-                        <option value="wholesale">Wholesale</option>
+                        <option value="wholesale" selected>Wholesale</option>
                         <option value="both">Referral & Wholesale</option>
                     </select>
+                </div>
+
+                <div>
+                    <label class="text-xs text-slate-600 block mb-1">Portal Features</label>
+                    <?php pf_feature_checkboxes(['photo_reviews'=>true, 'patient_referral'=>true, 'healkit'=>true, 'wholesale'=>true]); ?>
                 </div>
 
                 <?php if (($isSuperadmin || $isManufacturer) && !empty($activeReps)): ?>
