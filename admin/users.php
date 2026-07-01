@@ -1077,9 +1077,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         <div class="mb-2">
           <label class="text-sm text-slate-600 block mb-1">Account Type *</label>
           <select class="border rounded px-2 py-1 w-full" name="account_type" required>
-            <option value="">Select Account Type</option>
             <option value="referral">Referral</option>
-            <option value="wholesale">Wholesale</option>
+            <option value="wholesale" selected>Wholesale</option>
             <option value="both">Referral & Wholesale</option>
           </select>
         </div>

@@ -613,17 +613,17 @@
           </div>
           <div class="form-grid" style="margin-top:12px">
             <div id="field-license">
-              <label for="license">Medical License #</label>
+              <label for="license">Medical License # (optional)</label>
               <input id="license" />
               <div class="error-message">Medical license is required</div>
             </div>
             <div id="field-licenseState">
-              <label for="licenseState">License State</label>
+              <label for="licenseState">License State (optional)</label>
               <select id="licenseState"></select>
               <div class="error-message">License state is required</div>
             </div>
             <div id="field-licenseExpiry">
-              <label for="licenseExpiry">License Expiry</label>
+              <label for="licenseExpiry">License Expiry (optional)</label>
               <input id="licenseExpiry" type="date" />
               <div class="error-message">License expiry is required</div>
             </div>
@@ -1122,8 +1122,8 @@
           }
 
           // Set required fields
-          setRequired(['practiceName', 'address', 'city', 'state', 'zip', 'phone', 'firstName', 'lastName', 'npi', 'license', 'licenseState', 'licenseExpiry', 'agreeMSA', 'agreeBAA', 'signName', 'signTitle', 'signDate']);
-          setOptional(['dmeNumber', 'dmeState', 'dmeExpiry', 'practiceManagerEmail']);
+          setRequired(['practiceName', 'address', 'city', 'state', 'zip', 'phone', 'firstName', 'lastName', 'npi', 'agreeMSA', 'agreeBAA', 'signName', 'signTitle', 'signDate']);
+          setOptional(['license', 'licenseState', 'licenseExpiry', 'dmeNumber', 'dmeState', 'dmeExpiry', 'practiceManagerEmail']);
 
         } else if (selectedType === 'physician') {
           // Physician: Show physician creds, practice manager link, agreements only
@@ -1135,8 +1135,8 @@
           agreementsSection.hidden = false;
 
           // Set required fields
-          setRequired(['firstName', 'lastName', 'npi', 'license', 'licenseState', 'licenseExpiry', 'practiceManagerEmail', 'agreeMSA', 'agreeBAA', 'signName', 'signTitle', 'signDate']);
-          setOptional(['practiceName', 'address', 'city', 'state', 'zip', 'phone', 'dmeNumber', 'dmeState', 'dmeExpiry']);
+          setRequired(['firstName', 'lastName', 'npi', 'practiceManagerEmail', 'agreeMSA', 'agreeBAA', 'signName', 'signTitle', 'signDate']);
+          setOptional(['license', 'licenseState', 'licenseExpiry', 'practiceName', 'address', 'city', 'state', 'zip', 'phone', 'dmeNumber', 'dmeState', 'dmeExpiry']);
 
         } else if (selectedType === 'dme_wholesale') {
           // DME Wholesale: Show practice info, physician creds, DME info, agreements
@@ -1160,8 +1160,8 @@
           }
 
           // Set required fields
-          setRequired(['practiceName', 'address', 'city', 'state', 'zip', 'phone', 'firstName', 'lastName', 'npi', 'license', 'licenseState', 'licenseExpiry', 'dmeNumber', 'dmeState', 'dmeExpiry', 'agreeMSA', 'agreeBAA', 'signName', 'signTitle', 'signDate']);
-          setOptional(['practiceManagerEmail']);
+          setRequired(['practiceName', 'address', 'city', 'state', 'zip', 'phone', 'firstName', 'lastName', 'npi', 'dmeNumber', 'dmeState', 'dmeExpiry', 'agreeMSA', 'agreeBAA', 'signName', 'signTitle', 'signDate']);
+          setOptional(['license', 'licenseState', 'licenseExpiry', 'practiceManagerEmail']);
         }
       });
     });
@@ -1214,19 +1214,19 @@
             <input type="text" data-field="ptan" data-physician-id="${physicianId}" placeholder="Provider Transaction Access Number" />
           </div>
           <div>
-            <label>Medical License #</label>
-            <input type="text" data-field="license" data-physician-id="${physicianId}" required />
+            <label>Medical License # (optional)</label>
+            <input type="text" data-field="license" data-physician-id="${physicianId}" />
           </div>
           <div>
-            <label>License State</label>
-            <select data-field="licenseState" data-physician-id="${physicianId}" required>
+            <label>License State (optional)</label>
+            <select data-field="licenseState" data-physician-id="${physicianId}">
               <option value="">Select</option>
               ${states.map(s => `<option value="${s}">${s}</option>`).join('')}
             </select>
           </div>
           <div>
-            <label>License Expiry</label>
-            <input type="date" data-field="licenseExpiry" data-physician-id="${physicianId}" required />
+            <label>License Expiry (optional)</label>
+            <input type="date" data-field="licenseExpiry" data-physician-id="${physicianId}" />
           </div>
           <div>
             <label>Email (optional)</label>
@@ -1565,15 +1565,7 @@
       } else if (!isValidNPI(document.getElementById('npi').value.trim())) {
         errors.push({ field: 'field-npi', message: 'Please enter a valid 10-digit NPI number' });
       }
-      if (!document.getElementById('license').value.trim()) {
-        errors.push({ field: 'field-license', message: 'Medical license number is required' });
-      }
-      if (!document.getElementById('licenseState').value) {
-        errors.push({ field: 'field-licenseState', message: 'License state is required' });
-      }
-      if (!document.getElementById('licenseExpiry').value) {
-        errors.push({ field: 'field-licenseExpiry', message: 'License expiry date is required' });
-      }
+      // Medical license (number/state/expiry) is optional at onboarding.
 
       // Agreements
       if (!document.getElementById('agreeMSA').checked) {

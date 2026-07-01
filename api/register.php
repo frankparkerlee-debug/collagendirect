@@ -30,13 +30,13 @@ if (!in_array($userType, ['practice_admin', 'physician', 'dme_wholesale'], true)
 // Validation based on user type
 if ($userType === 'practice_admin') {
   // Practice Manager: requires practice info + physician credentials
-  $requiredFields = ['practiceName', 'address', 'city', 'state', 'zip', 'phone', 'firstName', 'lastName', 'npi', 'license', 'licenseState', 'licenseExpiry'];
+  $requiredFields = ['practiceName', 'address', 'city', 'state', 'zip', 'phone', 'firstName', 'lastName', 'npi'];
   foreach ($requiredFields as $k) {
     if (empty($data[$k])) json_out(400, ['error' => "Missing field for Practice Manager: $k"]);
   }
 } elseif ($userType === 'physician') {
   // Physician: requires physician credentials + practice manager link
-  $requiredFields = ['firstName', 'lastName', 'npi', 'license', 'licenseState', 'licenseExpiry', 'practiceManagerEmail'];
+  $requiredFields = ['firstName', 'lastName', 'npi', 'practiceManagerEmail'];
   foreach ($requiredFields as $k) {
     if (empty($data[$k])) json_out(400, ['error' => "Missing field for Physician: $k"]);
   }
