@@ -8410,6 +8410,9 @@ function initProfileAutocomplete(addressId, cityId, stateId, zipId) {
 <?php elseif ($page==='photo-reviews'): ?>
   <?php include __DIR__ . '/photo-reviews.php'; ?>
 
+<?php elseif ($page==='clinical-notes'): ?>
+  <?php include __DIR__ . '/clinical-notes.php'; ?>
+
 
 <?php elseif ($page==='billing-settings'): ?>
   <div class="container mx-auto py-6 px-4">
