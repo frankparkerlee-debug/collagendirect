@@ -661,17 +661,17 @@
           <h2 class="section-title">DME License Information</h2>
           <div class="form-grid">
             <div id="field-dmeNumber">
-              <label for="dmeNumber">DME License #</label>
+              <label for="dmeNumber">DME License # (optional)</label>
               <input id="dmeNumber" />
               <div class="error-message">DME license number is required</div>
             </div>
             <div id="field-dmeState">
-              <label for="dmeState">DME State</label>
+              <label for="dmeState">DME State (optional)</label>
               <select id="dmeState"></select>
               <div class="error-message">DME state is required</div>
             </div>
             <div id="field-dmeExpiry">
-              <label for="dmeExpiry">DME Expiry</label>
+              <label for="dmeExpiry">DME Expiry (optional)</label>
               <input id="dmeExpiry" type="date" />
               <div class="error-message">DME expiry date is required</div>
             </div>
@@ -1160,8 +1160,8 @@
           }
 
           // Set required fields
-          setRequired(['practiceName', 'address', 'city', 'state', 'zip', 'phone', 'firstName', 'lastName', 'npi', 'dmeNumber', 'dmeState', 'dmeExpiry', 'agreeMSA', 'agreeBAA', 'signName', 'signTitle', 'signDate']);
-          setOptional(['license', 'licenseState', 'licenseExpiry', 'practiceManagerEmail']);
+          setRequired(['practiceName', 'address', 'city', 'state', 'zip', 'phone', 'firstName', 'lastName', 'npi', 'agreeMSA', 'agreeBAA', 'signName', 'signTitle', 'signDate']);
+          setOptional(['license', 'licenseState', 'licenseExpiry', 'dmeNumber', 'dmeState', 'dmeExpiry', 'practiceManagerEmail']);
         }
       });
     });
@@ -1542,15 +1542,7 @@
         if (!document.getElementById('phone').value.trim()) {
           errors.push({ field: 'field-phone', message: 'Phone number is required' });
         }
-        if (!document.getElementById('dmeNumber').value.trim()) {
-          errors.push({ field: 'field-dmeNumber', message: 'DME license number is required' });
-        }
-        if (!document.getElementById('dmeState').value) {
-          errors.push({ field: 'field-dmeState', message: 'DME state is required' });
-        }
-        if (!document.getElementById('dmeExpiry').value) {
-          errors.push({ field: 'field-dmeExpiry', message: 'DME expiry date is required' });
-        }
+        // DME supplier license (number/state/expiry) is optional at onboarding.
       }
 
       // Physician credentials (required for all types)
